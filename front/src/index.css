@@ -1,0 +1,542 @@
+:root {
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  color: #172033;
+  background: #f5f7fb;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+
+  --background: #f5f7fb;
+  --surface: #ffffff;
+  --text: #172033;
+  --muted: #667085;
+  --border: #e4e9f2;
+  --primary: #5b5bd6;
+  --primary-dark: #4747ba;
+  --primary-soft: #eeeeff;
+  --shadow: 0 12px 32px rgb(30 41 59 / 8%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  min-height: 100%;
+  background: var(--background);
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(circle at top left, rgb(91 91 214 / 8%), transparent 28rem),
+    var(--background);
+  color: var(--text);
+}
+
+button,
+a {
+  font: inherit;
+}
+
+button {
+  border: 0;
+  border-radius: 10px;
+  padding: 0.7rem 1.1rem;
+  background: var(--primary);
+  box-shadow: 0 5px 14px rgb(91 91 214 / 20%);
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+button:hover {
+  background: var(--primary-dark);
+  box-shadow: 0 7px 18px rgb(91 91 214 / 28%);
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+a:focus-visible,
+button:focus-visible {
+  outline: 3px solid rgb(91 91 214 / 28%);
+  outline-offset: 3px;
+}
+
+.app-layout {
+  min-height: 100vh;
+}
+
+.app-header {
+  position: sticky;
+  z-index: 10;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 1rem clamp(1.25rem, 4vw, 4rem);
+  border-bottom: 1px solid rgb(228 233 242 / 85%);
+  background: rgb(255 255 255 / 88%);
+  box-shadow: 0 4px 20px rgb(30 41 59 / 4%);
+  backdrop-filter: blur(14px);
+}
+
+.app-header h1 {
+  flex: 0 0 auto;
+  margin: 0;
+  color: #27274f;
+  font-size: clamp(1.15rem, 2vw, 1.4rem);
+  letter-spacing: -0.03em;
+}
+
+.app-header nav {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.75rem, 2.5vw, 1.75rem);
+  color: var(--muted);
+  font-size: 0.925rem;
+  font-weight: 600;
+}
+
+.app-header nav a {
+  position: relative;
+  padding: 0.55rem 0;
+  transition: color 160ms ease;
+}
+
+.app-header nav a:hover {
+  color: var(--primary);
+}
+
+.app-header nav a::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--primary);
+  content: "";
+  transform: scaleX(0);
+  transition: transform 160ms ease;
+}
+
+.app-header nav a:hover::after {
+  transform: scaleX(1);
+}
+
+.app-content {
+  width: min(1180px, calc(100% - 2.5rem));
+  margin: 0 auto;
+  padding: clamp(2rem, 5vw, 4.5rem) 0;
+}
+
+.page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.page-header h1 {
+  margin: 0 0 0.45rem;
+  font-size: clamp(2rem, 5vw, 3rem);
+  line-height: 1.05;
+  letter-spacing: -0.045em;
+}
+
+.page-header p {
+  max-width: 40rem;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.job-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.15rem 1.25rem;
+  margin-bottom: 2rem;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 1px solid #dfe3f4;
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgb(91 91 214 / 5%), transparent 45%),
+    var(--surface);
+  box-shadow: var(--shadow);
+  animation: reveal-form 220ms ease-out;
+}
+
+.job-form h2 {
+  grid-column: 1 / -1;
+  margin: 0 0 0.25rem;
+  color: #27274f;
+  font-size: 1.4rem;
+  letter-spacing: -0.025em;
+}
+
+.job-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  color: #344054;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.job-form input,
+.job-form select,
+.job-form textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #d7dce7;
+  border-radius: 10px;
+  padding: 0.75rem 0.85rem;
+  background: #ffffff;
+  color: var(--text);
+  font: inherit;
+  font-weight: 400;
+  outline: none;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.job-form input:hover,
+.job-form select:hover,
+.job-form textarea:hover {
+  border-color: #bfc5d4;
+}
+
+.job-form input:focus,
+.job-form select:focus,
+.job-form textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgb(91 91 214 / 14%);
+}
+
+.job-form select {
+  cursor: pointer;
+}
+
+.job-form textarea {
+  min-height: 110px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.job-form label:last-of-type {
+  grid-column: 1 / -1;
+}
+
+.job-form button[type="submit"] {
+  grid-column: 1 / -1;
+  justify-self: end;
+  min-width: 140px;
+  margin-top: 0.25rem;
+}
+
+@keyframes reveal-form {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.job-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.job-filter select {
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 0.55rem 2rem 0.55rem 0.75rem;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  outline: none;
+}
+
+.job-filter select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgb(91 91 214 / 14%);
+}
+
+.job-filter span {
+  margin-left: auto;
+  font-weight: 500;
+}
+
+.job-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr));
+  gap: 1.25rem;
+}
+
+.job-card {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  flex-direction: column;
+  padding: 1.5rem;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.job-card::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary), #8b7cf6);
+  content: "";
+}
+
+.job-card:hover {
+  border-color: #d5d8f6;
+  box-shadow: 0 18px 40px rgb(30 41 59 / 12%);
+  transform: translateY(-3px);
+}
+
+.job-card h2 {
+  min-height: 3rem;
+  margin: 0 0 1rem;
+  font-size: 1.15rem;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+}
+
+.job-card p {
+  margin: 0.65rem 0 0;
+  color: var(--muted);
+  font-size: 0.925rem;
+  line-height: 1.5;
+}
+
+.job-card p:first-of-type {
+  align-self: flex-start;
+  display: inline-block;
+  margin: 0 0 0.45rem;
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.job-card .job-status-button {
+  display: inline;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  font: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.job-card .job-status-button:hover {
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transform: none;
+}
+
+.job-card .job-status-select {
+  border: 1px solid #c7c9ec;
+  border-radius: 6px;
+  padding: 0.15rem 0.3rem;
+  background: #ffffff;
+  color: var(--primary-dark);
+  font: inherit;
+  outline: none;
+  text-transform: capitalize;
+  cursor: pointer;
+}
+
+.job-card .job-status-select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgb(91 91 214 / 16%);
+}
+
+.job-card p:last-of-type {
+  margin-top: 1rem;
+  margin-bottom: 0.85rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.job-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  margin-top: auto;
+}
+
+.job-card .edit-job-button {
+  width: auto;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #ddddfb;
+  background: var(--primary-soft);
+  box-shadow: none;
+  color: var(--primary-dark);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.job-card .edit-job-button:hover {
+  border-color: #c7c7f3;
+  background: #e4e4ff;
+  box-shadow: none;
+  color: #39399c;
+  transform: none;
+}
+
+.job-card .delete-job-button {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-end;
+  justify-content: center;
+  gap: 0.4rem;
+  width: auto;
+  margin-top: 0;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid transparent;
+  background: transparent;
+  box-shadow: none;
+  color: #8a94a6;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.job-card .delete-job-button:hover {
+  border-color: #fee2e2;
+  background: #fff1f2;
+  box-shadow: none;
+  color: #c53030;
+  transform: none;
+}
+
+.job-card .delete-job-button:focus-visible {
+  outline-color: rgb(220 38 38 / 28%);
+}
+
+.job-card .delete-job-button svg {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 760px) {
+  .app-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.55rem;
+    padding-block: 0.85rem;
+  }
+
+  .app-header nav {
+    width: 100%;
+    padding-bottom: 0.2rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .app-header nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .app-header nav a {
+    flex: 0 0 auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .app-content {
+    width: min(100% - 1.5rem, 1180px);
+    padding-top: 1.75rem;
+  }
+
+  .page-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .page-header button {
+    width: 100%;
+  }
+
+  .job-form {
+    grid-template-columns: 1fr;
+  }
+
+  .job-form h2,
+  .job-form label:last-of-type,
+  .job-form button[type="submit"] {
+    grid-column: auto;
+  }
+
+  .job-form button[type="submit"] {
+    justify-self: stretch;
+    width: 100%;
+  }
+
+  .job-card h2 {
+    min-height: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
