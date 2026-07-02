@@ -44,9 +44,11 @@ function handleSaveJob(savedJob: Job) {
   }
 
   function handleUpdateJobStatus(jobId: string, status: JobStatus) {
+    const today = new Date().toISOString().split('T')[0];
+
     setJobs((currentJobs) =>
       currentJobs.map((job) =>
-        job.id === jobId ? { ...job, status } : job,
+        job.id === jobId ? { ...job, status, updatedAt: today } : job,
       ),
     );
   }

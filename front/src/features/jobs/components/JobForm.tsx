@@ -30,13 +30,13 @@ const [notes, setNotes] = useState(initialJob?.notes ?? '')
     const today = new Date().toISOString().split('T')[0];
 
     const savedJob: Job = {
-      id: initialJob?.id ??  crypto.randomUUID(),
+      id: initialJob?.id ?? crypto.randomUUID(),
       company,
       position,
       status,
-      wantedSalary:Number(wantedSalary),
+      wantedSalary: Number(wantedSalary),
       location,
-      createdAt: today,
+      createdAt: initialJob?.createdAt ?? today,
       updatedAt: today,
       notes,
     };

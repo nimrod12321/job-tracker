@@ -62,6 +62,14 @@ function JobCard({ job, onDeleteJob, onChangeStatus, onEditJob }: JobCardProps) 
 
       <p>Location: {job.location}</p>
       <p>Wanted Salary: ${job.wantedSalary}</p>
+      <div className="job-card-dates">
+        <span>
+          Created <time dateTime={job.createdAt}>{job.createdAt}</time>
+        </span>
+        <span>
+          Updated <time dateTime={job.updatedAt}>{job.updatedAt}</time>
+        </span>
+      </div>
       <p>Notes: {job.notes}</p>
 
       <div className="job-card-actions">

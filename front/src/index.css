@@ -404,6 +404,25 @@ button:focus-visible {
   box-shadow: 0 0 0 2px rgb(91 91 214 / 16%);
 }
 
+.job-card-dates {
+  display: flex;
+  align-items: flex-end;
+  align-self: flex-end;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-top: 0.7rem;
+  color: #98a2b3;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  text-align: right;
+}
+
+.job-card-dates time {
+  margin-left: 0.2rem;
+  color: #7b8495;
+  font-weight: 600;
+}
+
 .job-card p:last-of-type {
   margin-top: 1rem;
   margin-bottom: 0.85rem;
