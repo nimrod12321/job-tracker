@@ -15,19 +15,20 @@ const statusOptions: JobStatus[] = [
 ];
 
 function JobForm({ initialJob, onSaveJob }: JobFormProps) {
-
-const [company, setCompany] = useState(initialJob?.company ?? '')
-const [position, setPosition] = useState(initialJob?.position ?? '')
-const [status, setStatus] = useState<JobStatus>(initialJob?.status ?? 'applied')
-const [wantedSalary, setWantedSalary] = useState(
-  initialJob?.wantedSalary ? Number(initialJob.wantedSalary) : '',
-)
-const [location, setLocation] = useState(initialJob?.location ?? '')
-const [notes, setNotes] = useState(initialJob?.notes ?? '')
+  const [company, setCompany] = useState(initialJob?.company ?? '')
+  const [position, setPosition] = useState(initialJob?.position ?? '')
+  const [status, setStatus] = useState<JobStatus>(
+    initialJob?.status ?? 'applied',
+  )
+  const [wantedSalary, setWantedSalary] = useState(
+    initialJob?.wantedSalary ? Number(initialJob.wantedSalary) : '',
+  )
+  const [location, setLocation] = useState(initialJob?.location ?? '')
+  const [notes, setNotes] = useState(initialJob?.notes ?? '')
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().slice(0, 10);
 
     const savedJob: Job = {
       id: initialJob?.id ?? crypto.randomUUID(),
