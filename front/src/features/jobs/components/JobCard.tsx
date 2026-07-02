@@ -84,15 +84,10 @@ function JobCard({ job, onDeleteJob, onChangeStatus, onEditJob }: JobCardProps) 
           className="delete-job-button"
           type="button"
           aria-label={`Delete ${job.position} at ${job.company}`}
-          onClick={() => {
-            const confirmed = window.confirm(
-              `Delete ${job.position} at ${job.company}?`,
-            );
-
-            if (confirmed) {
-              onDeleteJob(job.id);
-            }
-          }}
+          onClick={() => {onDeleteJob(job.id);
+            
+          }
+        }
         >
           <svg
             aria-hidden="true"

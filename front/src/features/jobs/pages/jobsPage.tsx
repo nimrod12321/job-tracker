@@ -153,17 +153,21 @@ function JobsPage() {
         </span>
       </div>
 
-      <div className="job-grid">
+    {!isLoading && filteredJobs.length === 0 ? (
+    <p>No jobs found.</p>
+    ) : (
+    <div className="job-grid">
         {filteredJobs.map((job) => (
-          <JobCard
+        <JobCard
             key={job.id}
             job={job}
             onDeleteJob={handleDeleteJob}
             onChangeStatus={handleUpdateJobStatus}
             onEditJob={handleEditJob}
-          />
-        ))}
-      </div>
+        />
+    ))}
+  </div>
+)}
     </section>
   );
 }
