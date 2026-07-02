@@ -2,56 +2,99 @@ import { useState, useEffect } from 'react';
 import type { Job, JobStatus } from '../../../types/job';
 import JobCard from '../components/JobCard';
 import JobForm from '../components/JobForm';
-import { mockJobs } from '../data/mockJobs';
-import {
-  loadJobsFromStorage,
-  saveJobsToStorage,
-} from '../utils/jobStorage'
+import { getJobs, createJob, updateJob, updateJobStatus, deleteJob } from '../services/jobsApi'
+
+
 
 function JobsPage() {
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [statusFilter, setStatusFilter] = useState<JobStatus | 'all'>('all');
   const [editingJob, setEditingJob] = useState<Job | null>(null)
-  const [jobs, setJobs] = useState<Job[]>(() => {
-    const storedJobs = loadJobsFromStorage()
-
-    return storedJobs ?? mockJobs
-    })
+  const [jobs, setJobs] = useState<Job[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-  saveJobsToStorage(jobs)
-}, [jobs])
-
-function handleSaveJob(savedJob: Job) {
-  if (editingJob) {
-    setJobs((currentJobs) =>
-      currentJobs.map((job) => (job.id === savedJob.id ? savedJob : job)),
-    )
-  } else {
-    setJobs((currentJobs) => [savedJob, ...currentJobs])
+  async function loadJobs() {
+    try {
+      const jobsFromApi = await getJobs()
+      setJobs(jobsFromApi)
+    } catch (error) {
+      console.error(error)
+      setError('Failed to load jobs')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  setEditingJob(null)
-  setIsFormVisible(false)
+  loadJobs()
+}, [])
+
+async function handleSaveJob(savedJob: Job) {
+  try {
+    if (editingJob) {
+  const updatedJob = await updateJob(savedJob)
+
+  setJobs((currentJobs) =>
+    currentJobs.map((job) =>
+      job.id === updatedJob.id ? updatedJob : job,
+    ),
+  )
+} else {
+  const createdJob = await createJob({
+    company: savedJob.company,
+    position: savedJob.position,
+    status: savedJob.status,
+    wantedSalary: savedJob.wantedSalary,
+    location: savedJob.location,
+    notes: savedJob.notes,
+  })
+
+  setJobs((currentJobs) => [createdJob, ...currentJobs])
+}
+    setEditingJob(null)
+    setIsFormVisible(false)
+  } catch (error) {
+    console.error(error)
+    setError('Failed to save job')
+  }
 }
 
-  function handleDeleteJob(jobId: string) {
-    setJobs((currentJobs) => currentJobs.filter((job) => job.id !== jobId));
+async function handleDeleteJob(jobId: string) {
+  const confirmed = window.confirm('Are you sure you want to delete this job?')
+
+  if (!confirmed) {
+    return
   }
+
+  try {
+    await deleteJob(jobId)
+
+    setJobs((currentJobs) => currentJobs.filter((job) => job.id !== jobId))
+  } catch (error) {
+    console.error(error)
+    setError('Failed to delete job')
+  }
+}
   function handleEditJob(job: Job) {
     setEditingJob(job)
     setIsFormVisible(true)
   }
 
-  function handleUpdateJobStatus(jobId: string, status: JobStatus) {
-    const today = new Date().toISOString().split('T')[0];
+async function handleUpdateJobStatus(jobId: string, status: JobStatus) {
+  try {
+    const updatedJob = await updateJobStatus(jobId, status)
 
     setJobs((currentJobs) =>
       currentJobs.map((job) =>
-        job.id === jobId ? { ...job, status, updatedAt: today } : job,
+        job.id === jobId ? updatedJob : job,
       ),
-    );
+    )
+  } catch (error) {
+    console.error(error)
+    setError('Failed to update job status')
   }
+}
 
   const filteredJobs =
     statusFilter === 'all'
@@ -77,6 +120,8 @@ function handleSaveJob(savedJob: Job) {
 
       {isFormVisible && <JobForm onSaveJob={handleSaveJob} initialJob={editingJob} />}
 
+       {isLoading && <p>Loading jobs...</p>}
+       {error && <p>{error}</p>}
       <div className="job-filter">
         <label htmlFor="status-filter">Filter by status</label>
         <select
