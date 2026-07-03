@@ -1,5 +1,5 @@
-import { randomUUID } from 'node:crypto'
 import type { Request, Response } from 'express'
+import {prisma} from '../lib/prisma.js'
 import type { Job, JobStatus } from '../types/job.js'
 
 const jobs: Job[] = [
@@ -15,7 +15,9 @@ const jobs: Job[] = [
     updatedAt: '2026-07-01',
   },
 ]
-
+function formatDate(date: Date) {
+  return date.toISOString().slice(0, 10)
+}
 const validStatuses: JobStatus[] = [
   'applied',
   'HR',
@@ -24,126 +26,216 @@ const validStatuses: JobStatus[] = [
   'offer',
 ]
 
-export function getJobs(req: Request, res: Response) {
-  res.json(jobs)
-}
+export async function getJobs(req: Request, res: Response) {
+  try {
+    const dbJobs = await prisma.job.findMany({
+      orderBy: {
+        createdAt: 'desc',
+      },
+    })
 
-export function createJob(req: Request, res: Response) {
-  const { company, position, status, wantedSalary, location, notes } = req.body
+    const jobs: Job[] = dbJobs.map((job) => ({
+      id: job.id,
+      company: job.company,
+      position: job.position,
+      status: job.status,
+      wantedSalary: job.wantedSalary,
+      location: job.location,
+      notes: job.notes,
+      createdAt: formatDate(job.createdAt),
+      updatedAt: formatDate(job.updatedAt),
+    }))
 
-  if (!company || !position || !location) {
-    return res.status(400).json({
-      message: 'company, position, and location are required',
+    return res.json(jobs)
+  } catch (error) {
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to fetch jobs',
     })
   }
+}
 
-  if (status && !validStatuses.includes(status)) {
-    return res.status(400).json({
-      message: 'invalid job status',
+export async function createJob(req: Request, res: Response) {
+  try {
+    const { company, position, status, wantedSalary, location, notes } = req.body
+
+    if (!company || !position || !location) {
+      return res.status(400).json({
+        message: 'company, position, and location are required',
+      })
+    }
+
+    if (status && !validStatuses.includes(status)) {
+      return res.status(400).json({
+        message: 'invalid job status',
+      })
+    }
+
+    const newJob = await prisma.job.create({
+      data: {
+        company,
+        position,
+        status: status ?? 'applied',
+        wantedSalary: Number(wantedSalary) || 0,
+        location,
+        notes: notes ?? '',
+      },
+    })
+
+    return res.status(201).json({
+      id: newJob.id,
+      company: newJob.company,
+      position: newJob.position,
+      status: newJob.status,
+      wantedSalary: newJob.wantedSalary,
+      location: newJob.location,
+      notes: newJob.notes,
+      createdAt: formatDate(newJob.createdAt),
+      updatedAt: formatDate(newJob.updatedAt),
+    })
+  } catch (error) {
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to create job',
     })
   }
-
-  const today = new Date().toISOString().slice(0, 10)
-
-  const newJob: Job = {
-    id: randomUUID(),
-    company,
-    position,
-    status: status ?? 'applied',
-    wantedSalary: Number(wantedSalary) || 0,
-    location,
-    notes: notes ?? '',
-    createdAt: today,
-    updatedAt: today,
-  }
-
-  jobs.unshift(newJob)
-
-  return res.status(201).json(newJob)
 }
-export function deleteJob(req: Request, res: Response) {
-  const { id } = req.params
+export async function deleteJob(req: Request, res: Response) {
+  try {
+    const id = req.params.id
 
-  const jobIndex = jobs.findIndex((job) => job.id === id)
+    if (typeof id !== 'string') {
+      return res.status(400).json({
+        message: 'job id is required',
+      })
+    }
 
-  if (jobIndex === -1) {
+    await prisma.job.delete({
+      where: {
+        id,
+      },
+    })
+
+    return res.status(204).send()
+  } catch (error) {
+    console.error(error)
+
     return res.status(404).json({
       message: 'job not found',
     })
   }
-
-  jobs.splice(jobIndex, 1)
-
-  return res.status(204).send()
 }
-export function updateJobStatus(req: Request, res: Response) {
-  const { id } = req.params
-  const { status } = req.body
+export async function updateJobStatus(req: Request, res: Response) {
+  try {
+    const id = req.params.id
+    const { status } = req.body as { status?: unknown }
 
-  if (!status) {
-    return res.status(400).json({
-      message: 'status is required',
+    if (typeof id !== 'string') {
+      return res.status(400).json({
+        message: 'job id is required',
+      })
+    }
+
+    if (typeof status !== 'string' || !validStatuses.includes(status as JobStatus)) {
+      return res.status(400).json({
+        message: 'invalid job status',
+      })
+    }
+
+    const updatedJob = await prisma.job.update({
+      where: {
+        id,
+      },
+      data: {
+        status: status as JobStatus,
+      },
     })
-  }
 
-  if (!validStatuses.includes(status)) {
-    return res.status(400).json({
-      message: 'invalid job status',
+    return res.json({
+      id: updatedJob.id,
+      company: updatedJob.company,
+      position: updatedJob.position,
+      status: updatedJob.status,
+      wantedSalary: updatedJob.wantedSalary,
+      location: updatedJob.location,
+      notes: updatedJob.notes,
+      createdAt: formatDate(updatedJob.createdAt),
+      updatedAt: formatDate(updatedJob.updatedAt),
     })
-  }
+  } catch (error) {
+    console.error(error)
 
-  const job = jobs.find((job) => job.id === id)
-
-  if (!job) {
     return res.status(404).json({
       message: 'job not found',
     })
   }
-
-  job.status = status
-  job.updatedAt = new Date().toISOString().slice(0, 10)
-
-  return res.json(job)
 }
-export function updateJob(req: Request, res: Response) {
-  const { id } = req.params
-  const { company, position, status, wantedSalary, location, notes } = req.body
+export async function updateJob(req: Request, res: Response) {
+  try {
+    const id = req.params.id
+    const { company, position, status, wantedSalary, location, notes } = req.body as {
+      company?: unknown
+      position?: unknown
+      status?: unknown
+      wantedSalary?: unknown
+      location?: unknown
+      notes?: unknown
+    }
 
-  const jobIndex = jobs.findIndex((job) => job.id === id)
+    if (typeof id !== 'string') {
+      return res.status(400).json({
+        message: 'job id is required',
+      })
+    }
 
-  if (jobIndex === -1) {
+    if (
+      typeof company !== 'string' ||
+      typeof position !== 'string' ||
+      typeof location !== 'string'
+    ) {
+      return res.status(400).json({
+        message: 'company, position, and location are required',
+      })
+    }
+
+    if (typeof status !== 'string' || !validStatuses.includes(status as JobStatus)) {
+      return res.status(400).json({
+        message: 'invalid job status',
+      })
+    }
+
+    const updatedJob = await prisma.job.update({
+      where: {
+        id,
+      },
+      data: {
+        company,
+        position,
+        status: status as JobStatus,
+        wantedSalary: Number(wantedSalary) || 0,
+        location,
+        notes: typeof notes === 'string' ? notes : '',
+      },
+    })
+
+    return res.json({
+      id: updatedJob.id,
+      company: updatedJob.company,
+      position: updatedJob.position,
+      status: updatedJob.status,
+      wantedSalary: updatedJob.wantedSalary,
+      location: updatedJob.location,
+      notes: updatedJob.notes,
+      createdAt: formatDate(updatedJob.createdAt),
+      updatedAt: formatDate(updatedJob.updatedAt),
+    })
+  } catch (error) {
+    console.error(error)
+
     return res.status(404).json({
       message: 'job not found',
     })
   }
-
-  if (!company || !position || !location) {
-    return res.status(400).json({
-      message: 'company, position, and location are required',
-    })
-  }
-
-  if (status && !validStatuses.includes(status)) {
-    return res.status(400).json({
-      message: 'invalid job status',
-    })
-  }
-
-  const existingJob = jobs[jobIndex]!
-
-  const updatedJob: Job = {
-    id: existingJob.id,
-    company,
-    position,
-    status: status ?? existingJob.status,
-    wantedSalary: Number(wantedSalary) || 0,
-    location,
-    notes: notes ?? '',
-    createdAt: existingJob.createdAt,
-    updatedAt: new Date().toISOString().slice(0, 10),
-  }
-
-  jobs[jobIndex] = updatedJob
-
-  return res.json(updatedJob)
 }
