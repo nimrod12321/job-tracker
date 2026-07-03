@@ -1,23 +1,26 @@
 import type { Request, Response } from 'express'
-import {prisma} from '../lib/prisma.js'
-import type { Job, JobStatus } from '../types/job.js'
+import type { Job as PrismaJob } from '../generated/prisma/client.js'
+import { prisma } from '../lib/prisma.js'
+import type { Job as ApiJob, JobStatus } from '../types/job.js'
 
-const jobs: Job[] = [
-  {
-    id: '1',
-    company: 'MongoDB',
-    position: 'Technical Services Engineer',
-    status: 'applied',
-    wantedSalary: 20000,
-    location: 'Tel Aviv',
-    notes: 'Backend fake data from Express server.',
-    createdAt: '2026-07-01',
-    updatedAt: '2026-07-01',
-  },
-]
 function formatDate(date: Date) {
   return date.toISOString().slice(0, 10)
 }
+
+function mapJobToResponse(job: PrismaJob): ApiJob {
+  return {
+    id: job.id,
+    company: job.company,
+    position: job.position,
+    status: job.status,
+    wantedSalary: job.wantedSalary,
+    location: job.location,
+    notes: job.notes,
+    createdAt: formatDate(job.createdAt),
+    updatedAt: formatDate(job.updatedAt),
+  }
+}
+
 const validStatuses: JobStatus[] = [
   'applied',
   'HR',
@@ -34,17 +37,7 @@ export async function getJobs(req: Request, res: Response) {
       },
     })
 
-    const jobs: Job[] = dbJobs.map((job) => ({
-      id: job.id,
-      company: job.company,
-      position: job.position,
-      status: job.status,
-      wantedSalary: job.wantedSalary,
-      location: job.location,
-      notes: job.notes,
-      createdAt: formatDate(job.createdAt),
-      updatedAt: formatDate(job.updatedAt),
-    }))
+    const jobs = dbJobs.map(mapJobToResponse)
 
     return res.json(jobs)
   } catch (error) {
@@ -83,17 +76,7 @@ export async function createJob(req: Request, res: Response) {
       },
     })
 
-    return res.status(201).json({
-      id: newJob.id,
-      company: newJob.company,
-      position: newJob.position,
-      status: newJob.status,
-      wantedSalary: newJob.wantedSalary,
-      location: newJob.location,
-      notes: newJob.notes,
-      createdAt: formatDate(newJob.createdAt),
-      updatedAt: formatDate(newJob.updatedAt),
-    })
+    return res.status(201).json(mapJobToResponse(newJob))
   } catch (error) {
     console.error(error)
 
@@ -153,17 +136,7 @@ export async function updateJobStatus(req: Request, res: Response) {
       },
     })
 
-    return res.json({
-      id: updatedJob.id,
-      company: updatedJob.company,
-      position: updatedJob.position,
-      status: updatedJob.status,
-      wantedSalary: updatedJob.wantedSalary,
-      location: updatedJob.location,
-      notes: updatedJob.notes,
-      createdAt: formatDate(updatedJob.createdAt),
-      updatedAt: formatDate(updatedJob.updatedAt),
-    })
+    return res.json(mapJobToResponse(updatedJob))
   } catch (error) {
     console.error(error)
 
@@ -220,17 +193,7 @@ export async function updateJob(req: Request, res: Response) {
       },
     })
 
-    return res.json({
-      id: updatedJob.id,
-      company: updatedJob.company,
-      position: updatedJob.position,
-      status: updatedJob.status,
-      wantedSalary: updatedJob.wantedSalary,
-      location: updatedJob.location,
-      notes: updatedJob.notes,
-      createdAt: formatDate(updatedJob.createdAt),
-      updatedAt: formatDate(updatedJob.updatedAt),
-    })
+    return res.json(mapJobToResponse(updatedJob))
   } catch (error) {
     console.error(error)
 
