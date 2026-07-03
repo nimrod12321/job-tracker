@@ -29,6 +29,8 @@ const validStatuses: JobStatus[] = [
   'offer',
 ]
 
+
+
 export async function getJobs(req: Request, res: Response) {
   try {
     const dbJobs = await prisma.job.findMany({
