@@ -1,7 +1,8 @@
 import type { Request, Response } from 'express'
 import bcrypt from 'bcryptjs'
 import { prisma } from '../lib/prisma.js'
-import jwt from 'jsonwebtoken'
+import {signAuthToken} from '../lib/jwt.js'
+import type { AuthenticatedRequest } from '../middleware/auth.middleware.js'
 
 
 function getJwtSecret() {
@@ -112,15 +113,7 @@ export async function login(req: Request, res: Response) {
       })
     }
 
-    const token = jwt.sign(
-      {
-        userId: user.id,
-      },
-      getJwtSecret(),
-      {
-        expiresIn: '7d',
-      },
-    )
+    const token = signAuthToken(user.id)
 
     return res.json({
       token,
@@ -134,6 +127,46 @@ export async function login(req: Request, res: Response) {
 
     return res.status(500).json({
       message: 'failed to login',
+    })
+  }
+}
+export async function getMe(req: Request, res: Response) {
+  try {
+    const userId = (req as AuthenticatedRequest).userId
+
+    if (!userId) {
+      return res.status(401).json({
+        message: 'unauthorized',
+      })
+    }
+
+    const user = await prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+      select: {
+        id: true,
+        email: true,
+        createdAt: true,
+      },
+    })
+
+    if (!user) {
+      return res.status(404).json({
+        message: 'user not found',
+      })
+    }
+
+    return res.json({
+      id: user.id,
+      email: user.email,
+      createdAt: user.createdAt.toISOString(),
+    })
+  } catch (error) {
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to fetch current user',
     })
   }
 }
