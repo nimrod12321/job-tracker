@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import {requireAuth} from '../middleware/auth.middleware.js'
 import {
   createJob,
   deleteJob,
@@ -8,6 +9,7 @@ import {
 } from '../controllers/jobs.controller.js'
 
 const router = Router()
+router.use(requireAuth)
 
 router.get('/', getJobs)
 router.post('/', createJob)

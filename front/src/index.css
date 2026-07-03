@@ -79,6 +79,130 @@ button:focus-visible {
   outline-offset: 3px;
 }
 
+.auth-page {
+  position: relative;
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  overflow: hidden;
+  padding: 2rem 1rem;
+  background:
+    radial-gradient(circle at 15% 15%, rgb(91 91 214 / 16%), transparent 24rem),
+    radial-gradient(circle at 85% 85%, rgb(139 124 246 / 12%), transparent 26rem),
+    var(--background);
+}
+
+.auth-card {
+  position: relative;
+  width: min(100%, 440px);
+  padding: clamp(1.5rem, 5vw, 2.5rem);
+  border: 1px solid rgb(228 233 242 / 90%);
+  border-radius: 22px;
+  background: rgb(255 255 255 / 92%);
+  box-shadow: 0 24px 70px rgb(30 41 59 / 12%);
+  backdrop-filter: blur(16px);
+}
+
+.auth-card::before {
+  position: absolute;
+  top: 0;
+  right: 2rem;
+  left: 2rem;
+  height: 3px;
+  border-radius: 0 0 999px 999px;
+  background: linear-gradient(90deg, var(--primary), #8b7cf6);
+  content: "";
+}
+
+.auth-card h1 {
+  margin: 0 0 0.6rem;
+  color: #27274f;
+  font-size: clamp(1.8rem, 5vw, 2.25rem);
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+}
+
+.auth-card > p {
+  margin: 0 0 1.75rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.auth-form {
+  display: grid;
+  gap: 1.1rem;
+}
+
+.auth-form label {
+  display: grid;
+  gap: 0.45rem;
+  color: #344054;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.auth-form input {
+  width: 100%;
+  border: 1px solid #d7dce7;
+  border-radius: 10px;
+  padding: 0.8rem 0.9rem;
+  background: #ffffff;
+  color: var(--text);
+  font: inherit;
+  outline: none;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.auth-form input:hover {
+  border-color: #bfc5d4;
+}
+
+.auth-form input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgb(91 91 214 / 14%);
+}
+
+.auth-form button[type="submit"] {
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+.auth-form button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+  transform: none;
+}
+
+.auth-form .error-message {
+  margin: -0.2rem 0 0;
+  border: 1px solid #fecaca;
+  border-radius: 9px;
+  padding: 0.7rem 0.8rem;
+  background: #fff1f2;
+  color: #b42318;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.auth-card .text-button {
+  width: 100%;
+  margin-top: 1.15rem;
+  padding: 0.45rem;
+  background: transparent;
+  box-shadow: none;
+  color: var(--primary-dark);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.auth-card .text-button:hover {
+  background: var(--primary-soft);
+  box-shadow: none;
+  transform: none;
+}
+
 .app-layout {
   min-height: 100vh;
 }

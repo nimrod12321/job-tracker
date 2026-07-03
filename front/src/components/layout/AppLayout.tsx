@@ -1,14 +1,15 @@
-import type { ReactNode } from 'react';
+import type { ReactNode } from 'react'
 
 type AppLayoutProps = {
-  children: ReactNode;
-};
+  children: ReactNode
+  onLogout?: () => void
+}
 
-function AppLayout({ children }: AppLayoutProps) {
+function AppLayout({ children, onLogout }: AppLayoutProps) {
   return (
     <div className="app-layout">
       <header className="app-header">
-        <h1>Ai job tracker</h1>
+        <h1>AI Job Tracker</h1>
 
         <nav>
           <a href="#">Dashboard</a>
@@ -17,10 +18,17 @@ function AppLayout({ children }: AppLayoutProps) {
           <a href="#">Analytics</a>
           <a href="#">Settings</a>
         </nav>
+
+        {onLogout && (
+          <button type="button" onClick={onLogout}>
+            Logout
+          </button>
+        )}
       </header>
+
       <main className="app-content">{children}</main>
     </div>
-  );
+  )
 }
 
-export default AppLayout;
+export default AppLayout
