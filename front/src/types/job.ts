@@ -20,3 +20,20 @@ export type Job = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type JobAnalysis = {
+  id: string;
+  matchScore: number;
+  fitSummary: string;
+  strengths: string;
+  missingSkills: string;
+  resumeSuggestions: string;
+  interviewQuestions: string;
+  recruiterMessage: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type JobDetail = Job & {
+  analysis: JobAnalysis | null;
+};

@@ -42,6 +42,8 @@ model Job {
 
   userId String?
   user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  analysis JobAnalysis?
 }
 
 model User {
@@ -68,4 +70,19 @@ model ResumeProfile {
   resumeText        String   @default("")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+}
+
+model JobAnalysis {
+  id                 String   @id @default(uuid())
+  jobId              String   @unique
+  job                Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  matchScore         Int
+  fitSummary         String
+  strengths          String
+  missingSkills      String
+  resumeSuggestions  String
+  interviewQuestions String
+  recruiterMessage   String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }

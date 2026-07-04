@@ -1,12 +1,17 @@
 import type { Request, Response } from 'express'
-import type { Job as PrismaJob } from '../generated/prisma/client.js'
+import type {
+  Job as PrismaJob,
+  JobAnalysis as PrismaJobAnalysis,
+} from '../generated/prisma/client.js'
 import { prisma } from '../lib/prisma.js'
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js'
 import type {
   Job as ApiJob,
+  JobDetail,
   JobPriority,
   JobStatus,
 } from '../types/job.js'
+import { mapJobAnalysisToResponse } from '../utils/jobAnalysis.js'
 import { getValidationErrorMessage } from '../utils/validation.js'
 import {
   createJobSchema,
@@ -37,6 +42,17 @@ function mapJobToResponse(job: PrismaJob): ApiJob {
     salaryMax: job.salaryMax,
     createdAt: formatDate(job.createdAt),
     updatedAt: formatDate(job.updatedAt),
+  }
+}
+
+function mapJobDetailToResponse(
+  job: PrismaJob & { analysis: PrismaJobAnalysis | null },
+): JobDetail {
+  return {
+    ...mapJobToResponse(job),
+    analysis: job.analysis
+      ? mapJobAnalysisToResponse(job.analysis)
+      : null,
   }
 }
 
@@ -99,7 +115,15 @@ export async function getJob(req: Request, res: Response) {
       })
     }
 
-    const job = await findUserJob(id, userId)
+    const job = await prisma.job.findFirst({
+      where: {
+        id,
+        userId,
+      },
+      include: {
+        analysis: true,
+      },
+    })
 
     if (!job) {
       return res.status(404).json({
@@ -107,7 +131,7 @@ export async function getJob(req: Request, res: Response) {
       })
     }
 
-    return res.json(mapJobToResponse(job))
+    return res.json(mapJobDetailToResponse(job))
   } catch (error) {
     console.error(error)
 

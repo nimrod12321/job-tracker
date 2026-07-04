@@ -1,4 +1,9 @@
-import type { Job, JobStatus } from '../../../types/job'
+import type {
+  Job,
+  JobAnalysis,
+  JobDetail,
+  JobStatus,
+} from '../../../types/job'
 import {
   clearAuthToken,
   getAuthToken,
@@ -60,13 +65,26 @@ export async function getJobs(): Promise<Job[]> {
   return response.json()
 }
 
-export async function getJobById(jobId: string): Promise<Job> {
+export async function getJobById(jobId: string): Promise<JobDetail> {
   const response = await fetch(`${API_BASE_URL}/jobs/${jobId}`, {
     headers: getHeaders(),
   })
 
   if (!response.ok) {
     await handleApiError(response, 'Failed to fetch job')
+  }
+
+  return response.json()
+}
+
+export async function analyzeJob(jobId: string): Promise<JobAnalysis> {
+  const response = await fetch(`${API_BASE_URL}/jobs/${jobId}/analyze`, {
+    method: 'POST',
+    headers: getHeaders(),
+  })
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to analyze job')
   }
 
   return response.json()
