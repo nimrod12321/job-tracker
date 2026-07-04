@@ -1,23 +1,44 @@
 import type { ReactNode } from 'react'
 
+export type AppPage = 'jobs' | 'profile'
+
 type AppLayoutProps = {
   children: ReactNode
+  activePage: AppPage
   userEmail?: string
+  onNavigate: (page: AppPage) => void
   onLogout?: () => void
 }
 
-function AppLayout({ children, userEmail, onLogout }: AppLayoutProps) {
+function AppLayout({
+  children,
+  activePage,
+  userEmail,
+  onNavigate,
+  onLogout,
+}: AppLayoutProps) {
   return (
     <div className="app-layout">
       <header className="app-header">
         <h1>AI Job Tracker</h1>
 
-        <nav>
-          <a href="#">Dashboard</a>
-          <a href="#">Jobs</a>
-          <a href="#">AI Assistant</a>
-          <a href="#">Analytics</a>
-          <a href="#">Settings</a>
+        <nav aria-label="Main navigation">
+          <button
+            type="button"
+            className={`nav-button${activePage === 'jobs' ? ' active' : ''}`}
+            aria-current={activePage === 'jobs' ? 'page' : undefined}
+            onClick={() => onNavigate('jobs')}
+          >
+            Jobs
+          </button>
+          <button
+            type="button"
+            className={`nav-button${activePage === 'profile' ? ' active' : ''}`}
+            aria-current={activePage === 'profile' ? 'page' : undefined}
+            onClick={() => onNavigate('profile')}
+          >
+            Profile
+          </button>
         </nav>
 
         <div className="header-user-actions">

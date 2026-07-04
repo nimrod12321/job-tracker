@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import AppLayout from './components/layout/AppLayout'
+import type { AppPage } from './components/layout/AppLayout'
 import AuthPage from './features/auth/pages/AuthPage'
 import JobsPage from './features/jobs/pages/jobsPage'
+import ProfilePage from './features/profile/pages/ProfilePage'
 import { getCurrentUser, type AuthUser } from './features/auth/services/authApi'
 import {
   AUTH_SESSION_EXPIRED_EVENT,
@@ -14,6 +16,7 @@ function App() {
   const [token, setToken] = useState<string | null>(() => getAuthToken())
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null)
   const [isCheckingAuth, setIsCheckingAuth] = useState(() => Boolean(getAuthToken()))
+  const [activePage, setActivePage] = useState<AppPage>('jobs')
 
   useEffect(() => {
     const existingToken = getAuthToken()
@@ -44,6 +47,7 @@ function App() {
       clearAuthToken()
       setCurrentUser(null)
       setToken(null)
+      setActivePage('jobs')
     }
 
     window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, handleSessionExpired)
@@ -74,6 +78,7 @@ function App() {
     clearAuthToken()
     setCurrentUser(null)
     setToken(null)
+    setActivePage('jobs')
   }
 
   if (isCheckingAuth) {
@@ -85,8 +90,13 @@ function App() {
   }
 
   return (
-    <AppLayout userEmail={currentUser.email} onLogout={handleLogout}>
-      <JobsPage />
+    <AppLayout
+      activePage={activePage}
+      userEmail={currentUser.email}
+      onNavigate={setActivePage}
+      onLogout={handleLogout}
+    >
+      {activePage === 'jobs' ? <JobsPage /> : <ProfilePage />}
     </AppLayout>
   )
 }

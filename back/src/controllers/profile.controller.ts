@@ -1,0 +1,103 @@
+import type { Request, Response } from 'express'
+import type { ResumeProfile as PrismaResumeProfile } from '../generated/prisma/client.js'
+import { prisma } from '../lib/prisma.js'
+import type { AuthenticatedRequest } from '../middleware/auth.middleware.js'
+import { getValidationErrorMessage } from '../utils/validation.js'
+import { updateProfileSchema } from '../validations/profile.validation.js'
+
+type ProfileResponse = {
+  id: string
+  fullName: string
+  targetRole: string
+  location: string
+  salaryExpectation: number
+  skills: string
+  experienceText: string
+  resumeText: string
+  createdAt: string
+  updatedAt: string
+}
+
+function getUserId(req: Request) {
+  return (req as AuthenticatedRequest).userId
+}
+
+function mapProfileToResponse(profile: PrismaResumeProfile): ProfileResponse {
+  return {
+    id: profile.id,
+    fullName: profile.fullName,
+    targetRole: profile.targetRole,
+    location: profile.location,
+    salaryExpectation: profile.salaryExpectation,
+    skills: profile.skills,
+    experienceText: profile.experienceText,
+    resumeText: profile.resumeText,
+    createdAt: profile.createdAt.toISOString(),
+    updatedAt: profile.updatedAt.toISOString(),
+  }
+}
+
+export async function getProfile(req: Request, res: Response) {
+  try {
+    const userId = getUserId(req)
+
+    if (!userId) {
+      return res.status(401).json({
+        message: 'unauthorized',
+      })
+    }
+
+    const profile = await prisma.resumeProfile.findUnique({
+      where: {
+        userId,
+      },
+    })
+
+    return res.json(profile ? mapProfileToResponse(profile) : null)
+  } catch (error) {
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to fetch profile',
+    })
+  }
+}
+
+export async function updateProfile(req: Request, res: Response) {
+  try {
+    const userId = getUserId(req)
+
+    if (!userId) {
+      return res.status(401).json({
+        message: 'unauthorized',
+      })
+    }
+
+    const result = updateProfileSchema.safeParse(req.body)
+
+    if (!result.success) {
+      return res.status(400).json({
+        message: getValidationErrorMessage(result.error),
+      })
+    }
+
+    const profile = await prisma.resumeProfile.upsert({
+      where: {
+        userId,
+      },
+      update: result.data,
+      create: {
+        ...result.data,
+        userId,
+      },
+    })
+
+    return res.json(mapProfileToResponse(profile))
+  } catch (error) {
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to save profile',
+    })
+  }
+}
