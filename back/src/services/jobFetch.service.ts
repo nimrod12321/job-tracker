@@ -1,9 +1,20 @@
 import type { ResumeProfile } from '../generated/prisma/client.js'
 import { z } from 'zod'
+import { rankJobsWithAI } from './jobRanking.service.js'
 
 const ARBEITNOW_API_URL =
   'https://www.arbeitnow.com/api/job-board-api'
-const PROVIDER_PAGE_COUNT = 5
+const GREENHOUSE_API_URL =
+  'https://boards-api.greenhouse.io/v1/boards'
+const ARBEITNOW_PAGE_COUNT = 5
+
+const ATS_COMPANY_BOARDS = [
+  {
+    provider: 'greenhouse',
+    boardToken: 'figma',
+    companyName: 'Figma',
+  },
+] as const
 
 const arbeitnowJobSchema = z.object({
   slug: z.string().optional().default(''),
@@ -18,11 +29,43 @@ const arbeitnowResponseSchema = z.object({
   data: z.array(arbeitnowJobSchema),
 })
 
-type ProviderJob = z.infer<typeof arbeitnowJobSchema>
+const greenhouseJobSchema = z.object({
+  id: z.union([z.number(), z.string()]),
+  title: z.string().nullable().optional(),
+  location: z
+    .object({
+      name: z.string().nullable().optional(),
+    })
+    .nullable()
+    .optional(),
+  absolute_url: z.string().nullable().optional(),
+  content: z.string().nullable().optional(),
+})
+
+const greenhouseResponseSchema = z.object({
+  jobs: z.array(greenhouseJobSchema),
+})
+
+type ProviderFetchInput = {
+  query: string
+  location: string
+  limit: number
+}
+
+type ProviderJob = {
+  externalId: string
+  company: string
+  position: string
+  location: string
+  jobDescription: string
+  jobUrl: string
+  companyUrl: string
+  source: string
+}
 
 type JobProvider = {
   name: string
-  fetchJobs: () => Promise<ProviderJob[]>
+  fetchJobs: (input: ProviderFetchInput) => Promise<ProviderJob[]>
 }
 
 export type ExternalJobDraft = {
@@ -41,12 +84,11 @@ export type ExternalJobDraft = {
   notes: string
   relevanceScore: number
   relevanceReason: string
+  aiScore?: number
+  aiReason?: string
 }
 
-type FetchExternalJobsInput = {
-  query: string
-  location: string
-  limit: number
+type FetchExternalJobsInput = ProviderFetchInput & {
   profile: ResumeProfile | null
 }
 
@@ -60,15 +102,24 @@ type RelevanceContext = {
 
 export class JobFetchError extends Error {}
 
+class ProviderFetchError extends Error {}
+
 function htmlToText(value: string) {
   return value
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/&nbsp;/gi, ' ')
     .replace(/&amp;/gi, '&')
     .replace(/&quot;/gi, '"')
     .replace(/&#39;|&apos;/gi, "'")
     .replace(/&lt;/gi, '<')
     .replace(/&gt;/gi, '>')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&#(\d+);/g, (_match, code: string) => {
+      const codePoint = Number(code)
+
+      return Number.isInteger(codePoint)
+        ? String.fromCodePoint(codePoint)
+        : ' '
+    })
+    .replace(/<[^>]*>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
 }
@@ -78,6 +129,7 @@ function normalize(value: string) {
     .normalize('NFKD')
     .replace(/\p{Diacritic}/gu, '')
     .toLowerCase()
+    .trim()
 }
 
 function getSkills(profile: ResumeProfile | null) {
@@ -123,12 +175,12 @@ function findSeniority(value: string) {
   return seniorityTerms.find((term) => normalizedValue.includes(term)) ?? ''
 }
 
-function scoreRelevance(
+function scoreJobRelevance(
   job: ProviderJob,
   context: RelevanceContext,
 ) {
-  const title = normalize(job.title ?? '')
-  const description = normalize(job.description ?? '')
+  const title = normalize(job.position)
+  const description = normalize(job.jobDescription)
   const searchableText = `${title} ${description}`
   const matchedReasons: string[] = []
   let score = 0
@@ -172,7 +224,7 @@ function scoreRelevance(
   }
 
   const requestedLocation = normalize(context.location)
-  const jobLocation = normalize(job.location ?? '')
+  const jobLocation = normalize(job.location)
 
   if (
     requestedLocation &&
@@ -187,7 +239,7 @@ function scoreRelevance(
   const profileSeniority = findSeniority(
     `${context.targetRole} ${context.profileText}`,
   )
-  const jobSeniority = findSeniority(job.title ?? '')
+  const jobSeniority = findSeniority(job.position)
 
   if (profileSeniority && jobSeniority) {
     if (profileSeniority === jobSeniority) {
@@ -208,10 +260,40 @@ function scoreRelevance(
   }
 }
 
+function dedupeExternalJobs(jobs: ProviderJob[]) {
+  const seenUrls = new Set<string>()
+  const seenCompanyPositions = new Set<string>()
+  const seenProviderIds = new Set<string>()
+
+  return jobs.filter((job) => {
+    const jobUrl = normalize(job.jobUrl)
+    const companyPosition =
+      `${normalize(job.company)}::${normalize(job.position)}`
+    const providerId =
+      `${normalize(job.source)}::${normalize(job.externalId)}`
+
+    if (
+      (jobUrl && seenUrls.has(jobUrl)) ||
+      seenCompanyPositions.has(companyPosition) ||
+      seenProviderIds.has(providerId)
+    ) {
+      return false
+    }
+
+    if (jobUrl) {
+      seenUrls.add(jobUrl)
+    }
+
+    seenCompanyPositions.add(companyPosition)
+    seenProviderIds.add(providerId)
+    return true
+  })
+}
+
 async function fetchArbeitnowJobs() {
   try {
     const requests = Array.from(
-      { length: PROVIDER_PAGE_COUNT },
+      { length: ARBEITNOW_PAGE_COUNT },
       async (_, index) => {
         const response = await fetch(
           `${ARBEITNOW_API_URL}?page=${index + 1}`,
@@ -232,21 +314,84 @@ async function fetchArbeitnowJobs() {
           throw new Error('Arbeitnow returned an invalid response')
         }
 
-        return result.data.data
+        return result.data.data.map((job): ProviderJob => ({
+          externalId:
+            job.slug ||
+            job.url ||
+            `${job.company_name ?? ''}-${job.title ?? ''}`,
+          company: job.company_name?.trim() || 'Unknown company',
+          position: job.title?.trim() || 'Untitled role',
+          location: job.location?.trim() || '',
+          jobDescription: htmlToText(job.description ?? ''),
+          jobUrl: job.url?.trim() || '',
+          companyUrl: '',
+          source: 'Arbeitnow',
+        }))
       },
     )
 
     return (await Promise.all(requests)).flat()
   } catch (error) {
     console.error('Arbeitnow job fetch failed:', error)
-    throw new JobFetchError('failed to fetch jobs from external provider')
+    throw new ProviderFetchError('Arbeitnow is unavailable')
   }
 }
 
-const arbeitnowProvider: JobProvider = {
-  name: 'Arbeitnow',
-  fetchJobs: fetchArbeitnowJobs,
+async function fetchGreenhouseBoardJobs() {
+  try {
+    const requests = ATS_COMPANY_BOARDS.map(async (board) => {
+      const response = await fetch(
+        `${GREENHOUSE_API_URL}/${board.boardToken}/jobs?content=true`,
+        {
+          signal: AbortSignal.timeout(12_000),
+        },
+      )
+
+      if (!response.ok) {
+        throw new Error(
+          `Greenhouse board ${board.boardToken} returned ${response.status}`,
+        )
+      }
+
+      const result = greenhouseResponseSchema.safeParse(
+        await response.json(),
+      )
+
+      if (!result.success) {
+        throw new Error(
+          `Greenhouse board ${board.boardToken} returned an invalid response`,
+        )
+      }
+
+      return result.data.jobs.map((job): ProviderJob => ({
+        externalId: `${board.boardToken}:${job.id}`,
+        company: board.companyName,
+        position: job.title?.trim() || 'Untitled role',
+        location: job.location?.name?.trim() || '',
+        jobDescription: htmlToText(job.content ?? ''),
+        jobUrl: job.absolute_url?.trim() || '',
+        companyUrl: '',
+        source: 'Greenhouse',
+      }))
+    })
+
+    return (await Promise.all(requests)).flat()
+  } catch (error) {
+    console.error('Greenhouse job fetch failed:', error)
+    throw new ProviderFetchError('Greenhouse is unavailable')
+  }
 }
+
+const jobProviders: JobProvider[] = [
+  {
+    name: 'Arbeitnow',
+    fetchJobs: fetchArbeitnowJobs,
+  },
+  {
+    name: 'Greenhouse',
+    fetchJobs: fetchGreenhouseBoardJobs,
+  },
+]
 
 export async function fetchExternalJobs({
   query,
@@ -271,34 +416,62 @@ export async function fetchExternalJobs({
     skills,
     profileText: `${profile?.experienceText ?? ''} ${profile?.resumeText ?? ''}`,
   }
-  const providerJobs = await arbeitnowProvider.fetchJobs()
+  const providerInput: ProviderFetchInput = {
+    query: searchQuery,
+    location: resolvedLocation,
+    limit,
+  }
+  const providerResults = await Promise.allSettled(
+    jobProviders.map((provider) => provider.fetchJobs(providerInput)),
+  )
+  const providerJobs = providerResults.flatMap((result, index) => {
+    if (result.status === 'fulfilled') {
+      return result.value
+    }
 
-  return providerJobs
-    .map((job) => {
-      const relevance = scoreRelevance(job, context)
+    console.error(
+      `${jobProviders[index]?.name ?? 'Job provider'} failed:`,
+      result.reason,
+    )
+    return []
+  })
 
-      return {
-        externalId:
-          job.slug ||
-          job.url ||
-          `${job.company_name ?? ''}-${job.title ?? ''}`,
-        company: job.company_name?.trim() || 'Unknown company',
-        position: job.title?.trim() || 'Untitled role',
-        location: job.location?.trim() || '',
-        jobDescription: htmlToText(job.description ?? ''),
-        jobUrl: job.url?.trim() || '',
-        companyUrl: '',
-        source: arbeitnowProvider.name,
-        salaryMin: 0,
-        salaryMax: 0,
-        wantedSalary: 0,
-        priority: 'medium' as const,
-        notes: 'Fetched from external job source',
-        ...relevance,
-      }
-    })
+  if (providerJobs.length === 0) {
+    throw new JobFetchError('failed to fetch jobs from external providers')
+  }
+
+  const candidateLimit = Math.min(15, Math.max(10, limit * 2))
+  const deterministicJobs = dedupeExternalJobs(providerJobs)
+    .map((job) => ({
+      ...job,
+      salaryMin: 0,
+      salaryMax: 0,
+      wantedSalary: 0,
+      priority: 'medium' as const,
+      notes: 'Fetched from external job source',
+      ...scoreJobRelevance(job, context),
+    }))
     .filter((job) => job.hasTextMatch)
     .sort((first, second) => second.relevanceScore - first.relevanceScore)
-    .slice(0, limit)
+    .slice(0, candidateLimit)
     .map(({ hasTextMatch: _hasTextMatch, ...job }) => job)
+
+  if (!profile || deterministicJobs.length === 0) {
+    return deterministicJobs.slice(0, limit)
+  }
+
+  try {
+    const rankedJobs = await rankJobsWithAI({
+      profile,
+      jobs: deterministicJobs,
+    })
+
+    return rankedJobs.slice(0, limit)
+  } catch (error) {
+    console.error(
+      'OpenAI job ranking failed; using deterministic ranking:',
+      error,
+    )
+    return deterministicJobs.slice(0, limit)
+  }
 }

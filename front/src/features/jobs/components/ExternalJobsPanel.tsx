@@ -133,7 +133,7 @@ function ExternalJobsPanel({
               Leave search empty to use your profile target role and skills.
             </p>
           </div>
-          <span>Powered by Arbeitnow</span>
+          <span>Arbeitnow + Greenhouse</span>
         </div>
 
         <form
@@ -180,7 +180,7 @@ function ExternalJobsPanel({
             />
           </label>
           <button type="submit" disabled={isFetching}>
-            {isFetching ? 'Fetching jobs...' : 'Fetch jobs'}
+            {isFetching ? 'Finding and ranking jobs...' : 'Find jobs'}
           </button>
         </form>
 
@@ -221,7 +221,9 @@ function ExternalJobsPanel({
                         <h4>{draft.position}</h4>
                       </div>
                       <strong className="relevance-badge">
-                        {draft.relevanceScore}% match
+                        {draft.aiScore !== undefined
+                          ? `AI match: ${draft.aiScore}%`
+                          : `${draft.relevanceScore}% match`}
                       </strong>
                     </div>
 
@@ -233,7 +235,7 @@ function ExternalJobsPanel({
                     </div>
 
                     <p className="external-job-reason">
-                      {draft.relevanceReason}
+                      {draft.aiReason ?? draft.relevanceReason}
                     </p>
                     <p className="external-job-description">
                       {draft.jobDescription || 'No description provided.'}

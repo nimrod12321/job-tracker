@@ -75,4 +75,6 @@ export type ExternalJobDraft = {
   notes: string;
   relevanceScore: number;
   relevanceReason: string;
+  aiScore?: number;
+  aiReason?: string;
 };
