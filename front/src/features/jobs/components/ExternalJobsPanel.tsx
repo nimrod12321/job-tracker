@@ -111,128 +111,163 @@ function ExternalJobsPanel({
   }
 
   return (
-    <section className="external-jobs-panel">
-      <div className="external-jobs-heading">
-        <div>
-          <h2>Find jobs</h2>
-          <p>
-            Leave search empty to use your profile target role and skills.
-          </p>
+    <section className="external-jobs-panel job-browser">
+      <div className="job-browser-topbar" aria-hidden="true">
+        <div className="job-browser-dots">
+          <span />
+          <span />
+          <span />
         </div>
-        <span>Powered by Arbeitnow</span>
+        <div className="job-browser-tabs">
+          <span className="job-browser-tab active">Search</span>
+          <span className="job-browser-tab">Matches</span>
+          <span className="job-browser-tab">Saved</span>
+        </div>
       </div>
 
-      <form className="external-jobs-form" onSubmit={handleFetch}>
-        <label>
-          Search query
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Frontend developer"
-          />
-        </label>
-        <label>
-          Location
-          <input
-            value={location}
-            onChange={(event) => setLocation(event.target.value)}
-            placeholder="Berlin"
-          />
-        </label>
-        <label>
-          Result limit
-          <input
-            type="number"
-            min={1}
-            max={10}
-            value={limit}
-            onChange={(event) => setLimit(Number(event.target.value))}
-          />
-        </label>
-        <button type="submit" disabled={isFetching}>
-          {isFetching ? 'Fetching jobs...' : 'Fetch jobs'}
-        </button>
-      </form>
-
-      {error && (
-        <p className="message message-error" role="alert">
-          {error}
-        </p>
-      )}
-      {successMessage && (
-        <p className="message message-success" aria-live="polite">
-          {successMessage}
-        </p>
-      )}
-
-      {hasFetched && drafts.length === 0 && (
-        <div className="empty-state empty-state-compact">
-          <h3>No relevant jobs found.</h3>
-          <p>Try a broader search query or location.</p>
-        </div>
-      )}
-
-      {drafts.length > 0 && (
-        <div className="external-jobs-results">
-          <h3>Fetched job drafts</h3>
-          <div className="external-jobs-list">
-            {drafts.map((draft) => {
-              const alreadySaved = isAlreadySaved(draft)
-              const isSaving = savingIds.has(draft.externalId)
-
-              return (
-                <article
-                  className="external-job-card"
-                  key={draft.externalId}
-                >
-                  <div className="external-job-card-header">
-                    <div>
-                      <p>{draft.company}</p>
-                      <h4>{draft.position}</h4>
-                    </div>
-                    <strong>{draft.relevanceScore}% match</strong>
-                  </div>
-
-                  <div className="external-job-meta">
-                    <span>{draft.location || 'Location not provided'}</span>
-                    <span>{draft.source}</span>
-                  </div>
-
-                  <p className="external-job-reason">
-                    {draft.relevanceReason}
-                  </p>
-                  <p className="external-job-description">
-                    {draft.jobDescription || 'No description provided.'}
-                  </p>
-
-                  <div className="external-job-actions">
-                    {draft.jobUrl && (
-                      <a
-                        href={draft.jobUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        View external job
-                      </a>
-                    )}
-                    <button
-                      type="button"
-                      disabled={alreadySaved || isSaving}
-                      onClick={() => void handleSave(draft)}
-                    >
-                      {alreadySaved
-                        ? 'Already saved'
-                        : isSaving
-                          ? 'Saving...'
-                          : 'Save job'}
-                    </button>
-                  </div>
-                </article>
-              )
-            })}
+      <div className="job-browser-body">
+        <div className="external-jobs-heading">
+          <div>
+            <h2>Find jobs</h2>
+            <p>
+              Leave search empty to use your profile target role and skills.
+            </p>
           </div>
+          <span>Powered by Arbeitnow</span>
         </div>
-      )}
+
+        <form
+          className="external-jobs-form job-browser-controls"
+          onSubmit={handleFetch}
+        >
+          <label className="job-browser-address">
+            <span className="sr-only">Search query</span>
+            <svg
+              className="job-browser-search-icon"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                d="M10.5 18a7.5 7.5 0 1 1 5.3-12.8 7.5 7.5 0 0 1-5.3 12.8Zm8.5 1-3.8-3.8"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search roles or skills"
+            />
+          </label>
+          <label className="job-browser-field">
+            Location
+            <input
+              value={location}
+              onChange={(event) => setLocation(event.target.value)}
+              placeholder="Berlin"
+            />
+          </label>
+          <label className="job-browser-field">
+            Results
+            <input
+              type="number"
+              min={1}
+              max={10}
+              value={limit}
+              onChange={(event) => setLimit(Number(event.target.value))}
+            />
+          </label>
+          <button type="submit" disabled={isFetching}>
+            {isFetching ? 'Fetching jobs...' : 'Fetch jobs'}
+          </button>
+        </form>
+
+        {error && (
+          <p className="message message-error" role="alert">
+            {error}
+          </p>
+        )}
+        {successMessage && (
+          <p className="message message-success" aria-live="polite">
+            {successMessage}
+          </p>
+        )}
+
+        {hasFetched && drafts.length === 0 && (
+          <div className="empty-state empty-state-compact">
+            <h3>No relevant jobs found.</h3>
+            <p>Try a broader search query or location.</p>
+          </div>
+        )}
+
+        {drafts.length > 0 && (
+          <div className="external-jobs-results">
+            <h3>Fetched job drafts</h3>
+            <div className="external-jobs-list">
+              {drafts.map((draft) => {
+                const alreadySaved = isAlreadySaved(draft)
+                const isSaving = savingIds.has(draft.externalId)
+
+                return (
+                  <article
+                    className="external-job-card"
+                    key={draft.externalId}
+                  >
+                    <div className="external-job-card-header">
+                      <div>
+                        <p>{draft.company}</p>
+                        <h4>{draft.position}</h4>
+                      </div>
+                      <strong className="relevance-badge">
+                        {draft.relevanceScore}% match
+                      </strong>
+                    </div>
+
+                    <div className="external-job-meta">
+                      <span>
+                        {draft.location || 'Location not provided'}
+                      </span>
+                      <span>{draft.source}</span>
+                    </div>
+
+                    <p className="external-job-reason">
+                      {draft.relevanceReason}
+                    </p>
+                    <p className="external-job-description">
+                      {draft.jobDescription || 'No description provided.'}
+                    </p>
+
+                    <div className="external-job-actions">
+                      {draft.jobUrl && (
+                        <a
+                          href={draft.jobUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          View external job
+                        </a>
+                      )}
+                      <button
+                        type="button"
+                        disabled={alreadySaved || isSaving}
+                        onClick={() => void handleSave(draft)}
+                      >
+                        {alreadySaved
+                          ? 'Already saved'
+                          : isSaving
+                            ? 'Saving...'
+                            : 'Save job'}
+                      </button>
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
+          </div>
+        )}
+      </div>
     </section>
   )
 }

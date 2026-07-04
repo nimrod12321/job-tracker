@@ -9,7 +9,12 @@ function AppLayout({ userEmail, onLogout }: AppLayoutProps) {
   return (
     <div className="app-layout">
       <header className="app-header">
-        <h1>AI Job Tracker</h1>
+        <h1>
+          <span className="brand-mark" aria-hidden="true">
+            P
+          </span>
+          <span>Peeps</span>
+        </h1>
 
         <nav aria-label="Main navigation">
           <NavLink
