@@ -2,6 +2,10 @@ import type { Request, Response } from 'express'
 import type { ResumeProfile as PrismaResumeProfile } from '../generated/prisma/client.js'
 import { prisma } from '../lib/prisma.js'
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js'
+import {
+  extractResumeText,
+  ResumeParseError,
+} from '../services/resumeParser.service.js'
 import { getValidationErrorMessage } from '../utils/validation.js'
 import { updateProfileSchema } from '../validations/profile.validation.js'
 
@@ -98,6 +102,31 @@ export async function updateProfile(req: Request, res: Response) {
 
     return res.status(500).json({
       message: 'failed to save profile',
+    })
+  }
+}
+
+export async function uploadResume(req: Request, res: Response) {
+  if (!req.file) {
+    return res.status(400).json({
+      message: 'resume PDF is required',
+    })
+  }
+
+  try {
+    const resumeText = await extractResumeText(req.file.buffer)
+
+    return res.json({
+      resumeText,
+    })
+  } catch (error) {
+    console.error(error)
+
+    return res.status(error instanceof ResumeParseError ? 400 : 500).json({
+      message:
+        error instanceof ResumeParseError
+          ? error.message
+          : 'failed to process resume',
     })
   }
 }

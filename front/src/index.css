@@ -370,9 +370,49 @@ button:focus-visible {
 }
 
 .profile-field-wide,
+.profile-resume-upload,
 .profile-message,
 .profile-form button[type="submit"] {
   grid-column: 1 / -1;
+}
+
+.profile-resume-upload {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 1rem;
+  border: 1px dashed #c9ccec;
+  border-radius: 12px;
+  padding: 1rem;
+  background: var(--primary-soft);
+}
+
+.profile-resume-upload > div {
+  grid-column: 1 / -1;
+}
+
+.profile-resume-upload h2,
+.profile-resume-upload p {
+  margin: 0;
+}
+
+.profile-resume-upload h2 {
+  font-size: 1rem;
+}
+
+.profile-resume-upload p {
+  margin-top: 0.3rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.profile-resume-upload input[type="file"] {
+  background: var(--surface);
+}
+
+.profile-resume-upload button {
+  white-space: nowrap;
 }
 
 .profile-message {
@@ -1345,8 +1385,17 @@ button:focus-visible {
   }
 
   .profile-field-wide,
+  .profile-resume-upload,
   .profile-message,
   .profile-form button[type="submit"] {
+    grid-column: auto;
+  }
+
+  .profile-resume-upload {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-resume-upload > div {
     grid-column: auto;
   }
 

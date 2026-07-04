@@ -1,5 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { getProfile, saveProfile } from '../services/profileApi'
+import {
+  getProfile,
+  saveProfile,
+  uploadResume,
+} from '../services/profileApi'
 import type {
   ResumeProfile,
   ResumeProfileInput,
@@ -41,6 +45,8 @@ function ProfilePage() {
   const [form, setForm] = useState<ProfileFormState>(emptyProfile)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [resumeFile, setResumeFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
@@ -104,6 +110,40 @@ function ProfilePage() {
       )
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  async function handleResumeUpload() {
+    setError(null)
+    setSuccessMessage(null)
+
+    if (!resumeFile) {
+      setError('Select a PDF resume first.')
+      return
+    }
+
+    const hasPdfType = resumeFile.type === 'application/pdf'
+    const hasPdfExtension = resumeFile.name.toLowerCase().endsWith('.pdf')
+
+    if (!hasPdfType && !(resumeFile.type === '' && hasPdfExtension)) {
+      setError('Resume must be a PDF file.')
+      return
+    }
+
+    setIsUploading(true)
+
+    try {
+      const result = await uploadResume(resumeFile)
+      updateField('resumeText', result.resumeText)
+      setSuccessMessage(
+        'Resume text extracted. Review and save your profile.',
+      )
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : 'Failed to upload resume',
+      )
+    } finally {
+      setIsUploading(false)
     }
   }
 
@@ -180,6 +220,32 @@ function ProfilePage() {
             }
           />
         </label>
+
+        <section className="profile-resume-upload">
+          <div>
+            <h2>Upload PDF resume</h2>
+            <p>
+              Extracted text will be placed below for review. It will not be
+              saved until you save your profile.
+            </p>
+          </div>
+          <input
+            type="file"
+            accept=".pdf,application/pdf"
+            onChange={(event) => {
+              setResumeFile(event.target.files?.[0] ?? null)
+              setError(null)
+              setSuccessMessage(null)
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => void handleResumeUpload()}
+            disabled={isUploading}
+          >
+            {isUploading ? 'Extracting...' : 'Upload and extract'}
+          </button>
+        </section>
 
         <label className="profile-field-wide">
           Resume text

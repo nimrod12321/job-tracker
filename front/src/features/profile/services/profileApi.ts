@@ -11,10 +11,13 @@ import type {
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'
 
-function getHeaders(): HeadersInit {
-  const headers = new Headers({
-    'Content-Type': 'application/json',
-  })
+function getHeaders(includeJson = true): HeadersInit {
+  const headers = new Headers()
+
+  if (includeJson) {
+    headers.set('Content-Type', 'application/json')
+  }
+
   const token = getAuthToken()
 
   if (token) {
@@ -72,6 +75,28 @@ export async function saveProfile(
 
   if (!response.ok) {
     await handleApiError(response, 'Failed to save profile')
+  }
+
+  return response.json()
+}
+
+export async function uploadResume(
+  file: File,
+): Promise<{ resumeText: string }> {
+  const formData = new FormData()
+  formData.append('resume', file)
+
+  const response = await fetch(
+    `${API_BASE_URL}/profile/resume-upload`,
+    {
+      method: 'POST',
+      headers: getHeaders(false),
+      body: formData,
+    },
+  )
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to upload resume')
   }
 
   return response.json()
