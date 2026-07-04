@@ -914,7 +914,7 @@ button:focus-visible {
 
 .job-analysis-score {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 0.6rem;
   border-radius: 12px;
   padding: 1rem;
@@ -926,8 +926,17 @@ button:focus-visible {
   font-size: 2rem;
 }
 
+.job-analysis-score div {
+  display: grid;
+  gap: 0.15rem;
+}
+
 .job-analysis-score span {
   font-weight: 700;
+}
+
+.job-analysis-score small {
+  color: var(--muted);
 }
 
 .job-analysis-grid {
@@ -947,12 +956,65 @@ button:focus-visible {
   font-size: 0.95rem;
 }
 
-.job-analysis-grid p,
-.job-analysis-empty {
+.job-analysis-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.job-analysis-card-header h3 {
+  margin: 0;
+}
+
+.copy-button {
+  padding: 0.35rem 0.6rem;
+  background: var(--primary-soft);
+  box-shadow: none;
+  color: var(--primary-dark);
+  font-size: 0.75rem;
+}
+
+.copy-button:hover {
+  background: #dfdfff;
+  box-shadow: none;
+}
+
+.job-analysis-grid p {
   margin: 0;
   color: var(--muted);
   line-height: 1.6;
   white-space: pre-wrap;
+}
+
+.job-analysis-empty {
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+  background: var(--background);
+}
+
+.job-analysis-empty strong {
+  display: block;
+  margin-bottom: 0.3rem;
+}
+
+.job-analysis-empty p,
+.job-analysis-date,
+.job-analysis-copy-error {
+  margin: 0;
+  color: var(--muted);
+}
+
+.job-analysis-date {
+  font-size: 0.8rem;
+  text-align: right;
+}
+
+.job-analysis-copy-error {
+  color: #b42318;
+  font-size: 0.85rem;
 }
 
 .job-detail-error {

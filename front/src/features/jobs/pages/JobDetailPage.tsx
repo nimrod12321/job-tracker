@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import type { JobDetail } from '../../../types/job'
+import JobAnalysisPanel from '../components/JobAnalysisPanel'
 import { analyzeJob, getJobById } from '../services/jobsApi'
 
 function displayValue(value: string | number) {
@@ -185,70 +186,12 @@ function JobDetailPage() {
         </p>
       </section>
 
-      <section className="job-analysis-section">
-        <div className="job-analysis-header">
-          <div>
-            <p className="job-analysis-label">AI career assistant</p>
-            <h2>Match analysis</h2>
-          </div>
-          <button
-            type="button"
-            onClick={() => void handleAnalyze()}
-            disabled={isAnalyzing}
-          >
-            {isAnalyzing
-              ? 'Analyzing...'
-              : job.analysis
-                ? 'Analyze again'
-                : 'Analyze match'}
-          </button>
-        </div>
-
-        {analysisError && (
-          <p className="job-detail-error">{analysisError}</p>
-        )}
-
-        {job.analysis ? (
-          <>
-            <div className="job-analysis-score">
-              <strong>{job.analysis.matchScore}</strong>
-              <span>out of 100 match score</span>
-            </div>
-
-            <div className="job-analysis-grid">
-              <article>
-                <h3>Fit summary</h3>
-                <p>{job.analysis.fitSummary}</p>
-              </article>
-              <article>
-                <h3>Strengths</h3>
-                <p>{job.analysis.strengths}</p>
-              </article>
-              <article>
-                <h3>Missing skills</h3>
-                <p>{job.analysis.missingSkills}</p>
-              </article>
-              <article>
-                <h3>Resume suggestions</h3>
-                <p>{job.analysis.resumeSuggestions}</p>
-              </article>
-              <article>
-                <h3>Interview questions</h3>
-                <p>{job.analysis.interviewQuestions}</p>
-              </article>
-              <article>
-                <h3>Recruiter message</h3>
-                <p>{job.analysis.recruiterMessage}</p>
-              </article>
-            </div>
-          </>
-        ) : (
-          <p className="job-analysis-empty">
-            No analysis yet. Add a resume profile and job description, then
-            analyze this match.
-          </p>
-        )}
-      </section>
+      <JobAnalysisPanel
+        analysis={job.analysis}
+        error={analysisError}
+        isAnalyzing={isAnalyzing}
+        onAnalyze={() => void handleAnalyze()}
+      />
     </section>
   )
 }
