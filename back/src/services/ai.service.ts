@@ -23,6 +23,15 @@ function getRequiredEnvironmentVariable(name: string) {
   return value
 }
 
+export function getOpenAIConfiguration() {
+  return {
+    client: new OpenAI({
+      apiKey: getRequiredEnvironmentVariable('OPENAI_API_KEY'),
+    }),
+    model: getRequiredEnvironmentVariable('OPENAI_MODEL'),
+  }
+}
+
 function buildAnalysisInput(profile: ResumeProfile, job: Job) {
   return JSON.stringify(
     {
@@ -50,12 +59,10 @@ export async function analyzeJobMatch(
   profile: ResumeProfile,
   job: Job,
 ): Promise<JobAnalysisResult> {
-  const apiKey = getRequiredEnvironmentVariable('OPENAI_API_KEY')
-  const model = getRequiredEnvironmentVariable('OPENAI_MODEL')
-  const openai = new OpenAI({ apiKey })
+  const { client, model } = getOpenAIConfiguration()
 
   try {
-    const response = await openai.responses.parse({
+    const response = await client.responses.parse({
       model,
       instructions: [
         'You are a practical career assistant.',

@@ -1156,6 +1156,105 @@ button:focus-visible {
   color: #b42318;
 }
 
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.secondary-action-link {
+  border: 1px solid var(--primary);
+  border-radius: 10px;
+  padding: 0.65rem 1rem;
+  color: var(--primary-dark);
+  font-weight: 700;
+}
+
+.job-import-page {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.job-import-paste-form {
+  display: grid;
+  gap: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.25rem;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.job-import-paste-form h2 {
+  margin: 0;
+}
+
+.job-import-paste-form label {
+  display: grid;
+  gap: 0.45rem;
+  color: #344054;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.job-import-paste-form label span {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.job-import-paste-form input,
+.job-import-paste-form textarea {
+  width: 100%;
+  border: 1px solid #d7dce7;
+  border-radius: 10px;
+  padding: 0.75rem 0.85rem;
+  background: #ffffff;
+  color: var(--text);
+  font: inherit;
+  outline: none;
+}
+
+.job-import-paste-form input:focus,
+.job-import-paste-form textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgb(91 91 214 / 14%);
+}
+
+.job-import-paste-form textarea {
+  min-height: 220px;
+  resize: vertical;
+}
+
+.job-import-paste-form button {
+  justify-self: start;
+}
+
+.job-import-paste-form button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+  transform: none;
+}
+
+.job-import-review {
+  display: grid;
+  gap: 1rem;
+}
+
+.job-import-review > p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.job-import-error {
+  margin: 0;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 1rem;
+  background: #fff1f2;
+  color: #b42318;
+}
+
 .job-detail-error {
   margin: 0;
   border: 1px solid #fecaca;
@@ -1226,6 +1325,15 @@ button:focus-visible {
 
   .page-header button {
     width: 100%;
+  }
+
+  .page-header-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .secondary-action-link {
+    text-align: center;
   }
 
   .job-form {

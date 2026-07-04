@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { Job, JobStatus } from '../../../types/job';
 import JobCard from '../components/JobCard';
 import JobForm from '../components/JobForm';
@@ -123,14 +124,19 @@ function JobsPage() {
           <h1>Jobs</h1>
           <p>Manage your job applications and track their status.</p>
         </div>
-        <button
-          type="button"
-          aria-expanded={isFormVisible}
-          aria-controls="job-form"
-          onClick={() => setIsFormVisible((isVisible) => !isVisible)}
-        >
-          {isFormVisible ? 'Cancel' : 'Add Job'}
-        </button>
+        <div className="page-header-actions">
+          <Link className="secondary-action-link" to="/jobs/import">
+            Import job
+          </Link>
+          <button
+            type="button"
+            aria-expanded={isFormVisible}
+            aria-controls="job-form"
+            onClick={() => setIsFormVisible((isVisible) => !isVisible)}
+          >
+            {isFormVisible ? 'Cancel' : 'Add Job'}
+          </button>
+        </div>
       </div>
 
       {isFormVisible && (

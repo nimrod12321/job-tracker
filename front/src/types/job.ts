@@ -41,3 +41,14 @@ export type JobAnalysis = {
 export type JobDetail = Job & {
   analysis: JobAnalysis | null;
 };
+
+export type JobImportInput = {
+  jobDescription: string;
+  jobUrl?: string;
+  source?: string;
+};
+
+export type ImportedJobDraft = Omit<
+  Job,
+  'id' | 'createdAt' | 'updatedAt'
+>;

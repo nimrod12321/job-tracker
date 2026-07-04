@@ -4,6 +4,8 @@ import type { Job, JobPriority, JobStatus } from '../../../types/job';
 type JobFormProps = {
   initialJob?: Job | null
   onSaveJob: (job: Job) => void
+  heading?: string
+  submitLabel?: string
 }
 
 const statusOptions: JobStatus[] = [
@@ -16,7 +18,12 @@ const statusOptions: JobStatus[] = [
 
 const priorityOptions: JobPriority[] = ['low', 'medium', 'high'];
 
-function JobForm({ initialJob, onSaveJob }: JobFormProps) {
+function JobForm({
+  initialJob,
+  onSaveJob,
+  heading,
+  submitLabel,
+}: JobFormProps) {
   const [company, setCompany] = useState(initialJob?.company ?? '')
   const [position, setPosition] = useState(initialJob?.position ?? '')
   const [status, setStatus] = useState<JobStatus>(
@@ -73,7 +80,7 @@ function JobForm({ initialJob, onSaveJob }: JobFormProps) {
 
   return (
     <form id="job-form" className="job-form" onSubmit={handleSubmit}>
-      <h2>{initialJob ? 'Edit Job' : 'Add New Job'}</h2>
+      <h2>{heading ?? (initialJob ? 'Edit Job' : 'Add New Job')}</h2>
       <label>
         Company
         <input
@@ -204,7 +211,7 @@ function JobForm({ initialJob, onSaveJob }: JobFormProps) {
         />
       </label>
       <button type="submit">
-        {initialJob ? 'Save Changes' : 'Save Job'}
+        {submitLabel ?? (initialJob ? 'Save Changes' : 'Save Job')}
       </button>
     </form>
   );

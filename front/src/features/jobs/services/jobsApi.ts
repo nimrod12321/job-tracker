@@ -2,8 +2,10 @@ import type {
   Job,
   JobAnalysis,
   JobDetail,
+  JobImportInput,
   JobListItem,
   JobStatus,
+  ImportedJobDraft,
 } from '../../../types/job'
 import {
   clearAuthToken,
@@ -73,6 +75,22 @@ export async function getJobById(jobId: string): Promise<JobDetail> {
 
   if (!response.ok) {
     await handleApiError(response, 'Failed to fetch job')
+  }
+
+  return response.json()
+}
+
+export async function importJob(
+  input: JobImportInput,
+): Promise<ImportedJobDraft> {
+  const response = await fetch(`${API_BASE_URL}/jobs/import`, {
+    method: 'POST',
+    headers: getHeaders(true),
+    body: JSON.stringify(input),
+  })
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to import job')
   }
 
   return response.json()
