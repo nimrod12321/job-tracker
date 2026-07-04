@@ -52,3 +52,27 @@ export type ImportedJobDraft = Omit<
   Job,
   'id' | 'createdAt' | 'updatedAt'
 >;
+
+export type ExternalJobFetchInput = {
+  query?: string;
+  location?: string;
+  limit?: number;
+};
+
+export type ExternalJobDraft = {
+  externalId: string;
+  company: string;
+  position: string;
+  location: string;
+  jobDescription: string;
+  jobUrl: string;
+  companyUrl: string;
+  source: string;
+  salaryMin: number;
+  salaryMax: number;
+  wantedSalary: number;
+  priority: JobPriority;
+  notes: string;
+  relevanceScore: number;
+  relevanceReason: string;
+};

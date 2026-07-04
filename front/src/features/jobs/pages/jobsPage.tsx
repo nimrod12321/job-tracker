@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Job, JobStatus } from '../../../types/job';
+import ExternalJobsPanel from '../components/ExternalJobsPanel';
 import JobCard from '../components/JobCard';
 import JobForm from '../components/JobForm';
 import {
@@ -150,6 +151,13 @@ function JobsPage() {
           </button>
         </div>
       </div>
+
+      <ExternalJobsPanel
+        jobs={jobs}
+        onJobSaved={(job) =>
+          setJobs((currentJobs) => [job, ...currentJobs])
+        }
+      />
 
       {isFormVisible && (
         <JobForm onSaveJob={handleSaveJob} initialJob={editingJob} />

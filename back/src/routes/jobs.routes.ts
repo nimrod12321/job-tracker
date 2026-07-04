@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { analyzeJob } from '../controllers/jobAnalysis.controller.js'
+import { fetchJobs } from '../controllers/jobFetch.controller.js'
 import { importJob } from '../controllers/jobImport.controller.js'
 import {
   createJob,
@@ -14,6 +15,7 @@ import { requireAuth } from '../middleware/auth.middleware.js'
 const router = Router()
 router.use(requireAuth)
 
+router.post('/fetch', fetchJobs)
 router.post('/import', importJob)
 router.get('/', getJobs)
 router.post('/', createJob)

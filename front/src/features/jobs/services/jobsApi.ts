@@ -1,4 +1,6 @@
 import type {
+  ExternalJobDraft,
+  ExternalJobFetchInput,
   Job,
   JobAnalysis,
   JobDetail,
@@ -78,6 +80,26 @@ export async function getJobById(jobId: string): Promise<JobDetail> {
   }
 
   return response.json()
+}
+
+export async function fetchExternalJobs(
+  input: ExternalJobFetchInput,
+): Promise<ExternalJobDraft[]> {
+  const response = await fetch(`${API_BASE_URL}/jobs/fetch`, {
+    method: 'POST',
+    headers: getHeaders(true),
+    body: JSON.stringify(input),
+  })
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to fetch external jobs')
+  }
+
+  const result = (await response.json()) as {
+    jobs: ExternalJobDraft[]
+  }
+
+  return result.jobs
 }
 
 export async function importJob(
