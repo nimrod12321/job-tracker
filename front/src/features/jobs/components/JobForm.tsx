@@ -80,7 +80,7 @@ function JobForm({
 
   return (
     <form id="job-form" className="job-form" onSubmit={handleSubmit}>
-      <h2>{heading ?? (initialJob ? 'Edit Job' : 'Add New Job')}</h2>
+      <h2>{heading ?? (initialJob ? 'Edit job' : 'Add job')}</h2>
       <label>
         Company
         <input
@@ -211,7 +211,7 @@ function JobForm({
         />
       </label>
       <button type="submit">
-        {submitLabel ?? (initialJob ? 'Save Changes' : 'Save Job')}
+        {submitLabel ?? (initialJob ? 'Save changes' : 'Save job')}
       </button>
     </form>
   );

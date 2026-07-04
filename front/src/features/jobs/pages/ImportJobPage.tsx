@@ -98,11 +98,21 @@ function ImportJobPage() {
         </div>
       </div>
 
-      {error && <p className="job-import-error">{error}</p>}
+      {error && (
+        <p className="message message-error" role="alert">
+          {error}
+        </p>
+      )}
 
       {!reviewJob ? (
         <form className="job-import-paste-form" onSubmit={handleExtract}>
-          <h2>Paste job details</h2>
+          <div className="job-import-intro">
+            <h2>Paste job details</h2>
+            <p>
+              Add the full description. The assistant will prepare an
+              editable draft and will not save it automatically.
+            </p>
+          </div>
           <label>
             Job description
             <textarea
@@ -131,11 +141,16 @@ function ImportJobPage() {
             />
           </label>
           <button type="submit" disabled={isExtracting}>
-            {isExtracting ? 'Extracting...' : 'Extract job details'}
+            {isExtracting
+              ? 'Extracting job details...'
+              : 'Extract job details'}
           </button>
         </form>
       ) : (
         <div className="job-import-review">
+          <p className="message message-success" aria-live="polite">
+            Job details extracted. Review and save the job.
+          </p>
           <p>
             Review and edit every field before saving. Empty required fields
             must be completed.

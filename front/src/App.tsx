@@ -89,7 +89,7 @@ function App() {
   }
 
   if (isCheckingAuth) {
-    return <p>Checking session...</p>
+    return <p className="status-message app-loading">Checking session...</p>
   }
 
   const isAuthenticated = Boolean(token && currentUser)

@@ -78,13 +78,28 @@ function JobDetailPage() {
         <Link className="back-link" to="/jobs">
           ← Back to jobs
         </Link>
-        <p className="job-detail-error">Job ID is missing.</p>
+        <p className="message message-error" role="alert">
+          Job ID is missing.
+        </p>
       </section>
     )
   }
 
   if (isLoading) {
-    return <p>Loading job...</p>
+    return (
+      <section className="job-detail-page">
+        <Link className="back-link" to="/jobs">
+          ← Back to jobs
+        </Link>
+        <div className="page-header">
+          <div>
+            <h1>Job details</h1>
+            <p>Review application details and AI match insights.</p>
+          </div>
+        </div>
+        <p className="status-message">Loading job...</p>
+      </section>
+    )
   }
 
   if (error || !job) {
@@ -93,7 +108,9 @@ function JobDetailPage() {
         <Link className="back-link" to="/jobs">
           ← Back to jobs
         </Link>
-        <p className="job-detail-error">{error ?? 'Job not found.'}</p>
+        <p className="message message-error" role="alert">
+          {error ?? 'Job not found.'}
+        </p>
       </section>
     )
   }
@@ -108,6 +125,9 @@ function JobDetailPage() {
         <div>
           <p className="job-detail-company">{job.company}</p>
           <h1>{job.position}</h1>
+          <p className="job-detail-helper">
+            Review application details and AI match insights.
+          </p>
         </div>
         <span className="job-detail-status">{job.status}</span>
       </div>

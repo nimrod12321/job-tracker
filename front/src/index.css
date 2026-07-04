@@ -175,17 +175,6 @@ button:focus-visible {
   transform: none;
 }
 
-.auth-form .error-message {
-  margin: -0.2rem 0 0;
-  border: 1px solid #fecaca;
-  border-radius: 9px;
-  padding: 0.7rem 0.8rem;
-  background: #fff1f2;
-  color: #b42318;
-  font-size: 0.85rem;
-  line-height: 1.4;
-}
-
 .auth-card .text-button {
   display: block;
   width: 100%;
@@ -317,6 +306,80 @@ button:focus-visible {
   line-height: 1.6;
 }
 
+.status-message {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.app-loading {
+  width: min(100% - 2rem, 420px);
+  margin: 20vh auto 0;
+  text-align: center;
+}
+
+.message {
+  margin: 0;
+  border-radius: 9px;
+  padding: 0.75rem 0.85rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.message-error {
+  border: 1px solid #fecaca;
+  background: #fff1f2;
+  color: #b42318;
+}
+
+.message-success {
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.empty-state {
+  border: 1px dashed var(--border);
+  border-radius: 16px;
+  padding: 2rem;
+  background: var(--surface);
+  text-align: center;
+}
+
+.empty-state h2,
+.empty-state p {
+  margin: 0;
+}
+
+.empty-state p {
+  margin-top: 0.4rem;
+  color: var(--muted);
+}
+
+.empty-state > a,
+.empty-state-actions {
+  margin-top: 1.2rem;
+}
+
+.empty-state > a {
+  display: inline-block;
+  border-radius: 10px;
+  padding: 0.7rem 1.1rem;
+  background: var(--primary);
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.empty-state-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.empty-state-compact {
+  padding: 1.25rem;
+}
+
 .profile-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -371,7 +434,7 @@ button:focus-visible {
 
 .profile-field-wide,
 .profile-resume-upload,
-.profile-message,
+.profile-form > .message,
 .profile-form button[type="submit"] {
   grid-column: 1 / -1;
 }
@@ -415,23 +478,11 @@ button:focus-visible {
   white-space: nowrap;
 }
 
-.profile-message {
-  margin: 0;
-  border-radius: 9px;
-  padding: 0.7rem 0.8rem;
-  font-size: 0.875rem;
-}
-
-.profile-error {
-  border: 1px solid #fecaca;
-  background: #fff1f2;
-  color: #b42318;
-}
-
-.profile-success {
-  border: 1px solid #bbf7d0;
-  background: #f0fdf4;
-  color: #166534;
+.field-helper {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.45;
 }
 
 .profile-form button[type="submit"] {
@@ -836,6 +887,12 @@ button:focus-visible {
   letter-spacing: -0.04em;
 }
 
+.job-detail-helper {
+  margin: 0.55rem 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .job-detail-company {
   margin: 0;
   color: var(--muted);
@@ -1047,6 +1104,14 @@ button:focus-visible {
   color: var(--muted);
 }
 
+.job-analysis-empty a {
+  display: inline-block;
+  margin-top: 0.75rem;
+  color: var(--primary-dark);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
 .job-analysis-date {
   font-size: 0.8rem;
   text-align: right;
@@ -1160,42 +1225,6 @@ button:focus-visible {
   font-weight: 700;
 }
 
-.dashboard-empty {
-  border: 1px dashed var(--border);
-  border-radius: 16px;
-  padding: 2rem;
-  background: var(--surface);
-  text-align: center;
-}
-
-.dashboard-empty h2,
-.dashboard-empty p {
-  margin: 0;
-}
-
-.dashboard-empty p {
-  margin: 0.4rem 0 1.2rem;
-  color: var(--muted);
-}
-
-.dashboard-empty a {
-  display: inline-block;
-  border-radius: 10px;
-  padding: 0.7rem 1.1rem;
-  background: var(--primary);
-  color: #ffffff;
-  font-weight: 700;
-}
-
-.dashboard-error {
-  margin: 0;
-  border: 1px solid #fecaca;
-  border-radius: 10px;
-  padding: 1rem;
-  background: #fff1f2;
-  color: #b42318;
-}
-
 .page-header-actions {
   display: flex;
   align-items: center;
@@ -1225,8 +1254,16 @@ button:focus-visible {
   box-shadow: var(--shadow);
 }
 
-.job-import-paste-form h2 {
+.job-import-intro h2,
+.job-import-intro p {
   margin: 0;
+}
+
+.job-import-intro p {
+  margin-top: 0.3rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
 }
 
 .job-import-paste-form label {
@@ -1281,27 +1318,9 @@ button:focus-visible {
   gap: 1rem;
 }
 
-.job-import-review > p {
+.job-import-review > p:not(.message) {
   margin: 0;
   color: var(--muted);
-}
-
-.job-import-error {
-  margin: 0;
-  border: 1px solid #fecaca;
-  border-radius: 10px;
-  padding: 1rem;
-  background: #fff1f2;
-  color: #b42318;
-}
-
-.job-detail-error {
-  margin: 0;
-  border: 1px solid #fecaca;
-  border-radius: 10px;
-  padding: 1rem;
-  background: #fff1f2;
-  color: #b42318;
 }
 
 @media (max-width: 760px) {
@@ -1386,9 +1405,14 @@ button:focus-visible {
 
   .profile-field-wide,
   .profile-resume-upload,
-  .profile-message,
+  .profile-form > .message,
   .profile-form button[type="submit"] {
     grid-column: auto;
+  }
+
+  .empty-state-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .profile-resume-upload {

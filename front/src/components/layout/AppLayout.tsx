@@ -41,7 +41,7 @@ function AppLayout({ userEmail, onLogout }: AppLayoutProps) {
         <div className="header-user-actions">
           {userEmail && <span>{userEmail}</span>}
           <button type="button" onClick={onLogout}>
-            Logout
+            Log out
           </button>
         </div>
       </header>

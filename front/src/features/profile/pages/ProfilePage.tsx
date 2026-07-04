@@ -103,7 +103,7 @@ function ProfilePage() {
       })
 
       setForm(profileToFormState(savedProfile))
-      setSuccessMessage('Profile saved successfully.')
+      setSuccessMessage('Saved successfully.')
     } catch (error) {
       setError(
         error instanceof Error ? error.message : 'Failed to save profile',
@@ -150,8 +150,13 @@ function ProfilePage() {
   if (isLoading) {
     return (
       <section className="profile-page">
-        <h1>Profile</h1>
-        <p>Loading profile...</p>
+        <div className="page-header">
+          <div>
+            <h1>Profile</h1>
+            <p>Keep your career details ready for job analysis.</p>
+          </div>
+        </div>
+        <p className="status-message">Loading profile...</p>
       </section>
     )
   }
@@ -161,7 +166,7 @@ function ProfilePage() {
       <div className="page-header">
         <div>
           <h1>Profile</h1>
-          <p>Add the career information that will support future AI tools.</p>
+          <p>Keep your career details ready for job analysis.</p>
         </div>
       </div>
 
@@ -243,12 +248,18 @@ function ProfilePage() {
             onClick={() => void handleResumeUpload()}
             disabled={isUploading}
           >
-            {isUploading ? 'Extracting...' : 'Upload and extract'}
+            {isUploading ? 'Uploading resume...' : 'Upload and extract'}
           </button>
         </section>
 
         <label className="profile-field-wide">
           Resume text
+          {!form.resumeText && (
+            <span className="field-helper">
+              No resume text yet. Upload a PDF above or paste your resume
+              here, then save your profile.
+            </span>
+          )}
           <textarea
             rows={9}
             value={form.resumeText}
@@ -257,13 +268,13 @@ function ProfilePage() {
         </label>
 
         {error && (
-          <p className="profile-message profile-error" role="alert">
+          <p className="message message-error" role="alert">
             {error}
           </p>
         )}
 
         {successMessage && (
-          <p className="profile-message profile-success" aria-live="polite">
+          <p className="message message-success" aria-live="polite">
             {successMessage}
           </p>
         )}

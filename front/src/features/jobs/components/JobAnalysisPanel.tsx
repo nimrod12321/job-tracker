@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { JobAnalysis } from '../../../types/job'
 
 type CopyableField =
@@ -97,14 +98,18 @@ function JobAnalysisPanel({
           disabled={isAnalyzing}
         >
           {isAnalyzing
-            ? 'Analyzing...'
+            ? 'Analyzing job...'
             : analysis
               ? 'Analyze again'
               : 'Analyze match'}
         </button>
       </div>
 
-      {error && <p className="job-detail-error">{error}</p>}
+      {error && (
+        <p className="message message-error" role="alert">
+          {error}
+        </p>
+      )}
 
       {analysis ? (
         <>
@@ -142,7 +147,7 @@ function JobAnalysisPanel({
                     )
                   }
                 >
-                  {copiedField === 'resumeSuggestions' ? 'Copied!' : 'Copy'}
+                  {copiedField === 'resumeSuggestions' ? 'Copied.' : 'Copy'}
                 </button>
               </div>
               <p>{analysis.resumeSuggestions}</p>
@@ -160,7 +165,7 @@ function JobAnalysisPanel({
                     )
                   }
                 >
-                  {copiedField === 'interviewQuestions' ? 'Copied!' : 'Copy'}
+                  {copiedField === 'interviewQuestions' ? 'Copied.' : 'Copy'}
                 </button>
               </div>
               <p>{analysis.interviewQuestions}</p>
@@ -178,7 +183,7 @@ function JobAnalysisPanel({
                     )
                   }
                 >
-                  {copiedField === 'recruiterMessage' ? 'Copied!' : 'Copy'}
+                  {copiedField === 'recruiterMessage' ? 'Copied.' : 'Copy'}
                 </button>
               </div>
               <p>{analysis.recruiterMessage}</p>
@@ -202,6 +207,7 @@ function JobAnalysisPanel({
             Complete your profile, add a job description, then analyze this
             job.
           </p>
+          <Link to="/profile">Review profile</Link>
         </div>
       )}
     </section>

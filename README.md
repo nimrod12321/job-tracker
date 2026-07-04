@@ -1,255 +1,140 @@
 # AI Career Assistant / Job Tracker
 
-A full-stack job tracking application built with React, TypeScript, Express, Prisma, PostgreSQL, and Docker.
+A full-stack application for tracking job applications, maintaining a career profile, and using AI to compare a resume with specific roles.
 
-The current version is a database-backed job tracker. The long-term goal is to evolve it into an AI Career Assistant that helps users track applications, analyze job descriptions, improve resumes, prepare for interviews, and manage the job search process more efficiently.
+## Features
 
-## Current Status
+- JWT registration, login, session validation, and automatic logout
+- User-specific job data
+- Persistent job CRUD with PostgreSQL and Prisma
+- Job status, priority, salary, source, links, notes, and descriptions
+- Dashboard summary and recent jobs
+- Editable resume/profile data
+- Memory-only PDF resume text extraction
+- AI job-description import with editable review before saving
+- Saved AI job-match analysis with score, strengths, missing skills, suggestions, interview questions, and recruiter message
 
-The app currently supports authenticated, user-specific CRUD for job applications using a real PostgreSQL database.
+PDF uploads are limited to 5 MB. Uploaded files are processed in memory and are not stored. Image-only PDFs are not supported because the app does not perform OCR.
 
-Users can:
+## Stack
 
-* Register and log in
-* Restore a valid session after refresh
-* Log out
-* View jobs
-* Add jobs
-* Edit jobs
-* Delete jobs
-* Change job status
-* Filter jobs by status
-* See job counts
-* Persist data after refresh and backend restart
-
-## Tech Stack
-
-### Frontend
-
-* React
-* TypeScript
-* Vite
-* CSS
-* Fetch API
-
-### Backend
-
-* Node.js
-* Express
-* TypeScript
-* Prisma ORM
-* PostgreSQL
-* JWT authentication
-
-### Infrastructure
-
-* Docker Compose
-* Local PostgreSQL database running in Docker
+- Frontend: React, TypeScript, Vite, React Router
+- Backend: Node.js, Express, TypeScript, Zod
+- Database: PostgreSQL, Prisma
+- Authentication: JWT
+- AI: OpenAI API
+- Local database: Docker Compose
 
 ## Project Structure
 
-```txt id="ybbasi"
+```txt
 job-tracker/
-├── front/        React + TypeScript + Vite frontend
-├── back/         Node + Express + TypeScript backend
-├── analytics/    future C analytics module
-├── docs/         future documentation
-├── docker-compose.yml
+├── front/               React frontend
+├── back/                Express backend
+├── docker-compose.yml   Local PostgreSQL
 └── README.md
 ```
 
-## Current Architecture
+## Environment Setup
 
-```txt id="cd9dlp"
-React frontend
-   ↓
-jobsApi.ts service layer
-   ↓
-Express backend routes
-   ↓
-controller functions
-   ↓
-Prisma Client
-   ↓
-PostgreSQL database running in Docker
-```
+Never commit real `.env` files or secrets.
 
-## Backend API
+### Backend
 
-```txt id="fvy7bi"
-GET     /health
-POST    /api/auth/register
-POST    /api/auth/login
-GET     /api/auth/me
-GET     /api/jobs
-POST    /api/jobs
-PUT     /api/jobs/:id
-PATCH   /api/jobs/:id/status
-DELETE  /api/jobs/:id
-```
-
-The jobs endpoints require an `Authorization: Bearer <token>` header.
-
-## Job Model
-
-Each job includes:
-
-```txt id="8ywh19"
-id
-company
-position
-status
-wantedSalary
-location
-notes
-createdAt
-updatedAt
-```
-
-Supported statuses:
-
-```txt id="d35odq"
-applied
-HR
-technical
-rejected
-offer
-```
-
-## Getting Started
-
-### 1. Clone the project
-
-```bash id="kho41y"
-git clone <repo-url>
-cd job-tracker
-```
-
-### 2. Start PostgreSQL with Docker
-
-Make sure Docker Desktop is running.
-
-From the project root:
-
-```bash id="w3gfr9"
-docker compose up -d postgres
-```
-
-Check that the database container is running:
-
-```bash id="hetl6s"
-docker ps
-```
-
-Expected container name:
-
-```txt id="w18xm9"
-job-tracker-postgres
-```
-
-### 3. Configure backend environment variables
-
-Create a `.env` file inside `back/`:
-
-```bash id="p542ft"
+```bash
 cd back
 cp .env.example .env
 ```
 
-The backend environment includes:
+Configure:
 
-```env id="xig9et"
+```env
 DATABASE_URL="postgresql://jobtracker:jobtracker_password@127.0.0.1:5433/jobtracker?schema=public"
 JWT_SECRET="replace_me_with_a_real_secret"
+OPENAI_API_KEY="replace_me_with_your_openai_api_key"
+OPENAI_MODEL="replace_me_with_model_name"
 PORT=4000
 ```
 
-Use a strong, private value for `JWT_SECRET`. The PostgreSQL port in `DATABASE_URL` must match `docker-compose.yml`. This project currently publishes Docker PostgreSQL on port `5433`.
+The PostgreSQL port must match `docker-compose.yml`. This project currently publishes PostgreSQL on port `5433`.
 
-Never commit the real `.env` file.
+### Frontend
 
-### 4. Install backend dependencies
-
-From `back/`:
-
-```bash id="kc0jlp"
-npm install
-```
-
-### 5. Run Prisma migrations
-
-From `back/`:
-
-```bash id="mej54p"
-npx prisma migrate dev
-```
-
-Generate Prisma Client:
-
-```bash id="l1733w"
-npx prisma generate
-```
-
-Optional: open Prisma Studio:
-
-```bash id="v1mwrn"
-npx prisma studio
-```
-
-### 6. Run the backend
-
-From `back/`:
-
-```bash id="x0ypw5"
-npm run dev
-```
-
-Backend runs on:
-
-```txt id="jwsu90"
-http://localhost:4000
-```
-
-Health check:
-
-```txt id="nqxq13"
-http://localhost:4000/health
-```
-
-Jobs API:
-
-```txt id="hxwmq1"
-http://localhost:4000/api/jobs
-```
-
-### 7. Run the frontend
-
-Open a second terminal:
-
-```bash id="jzyhsm"
+```bash
 cd front
 cp .env.example .env
-npm install
-npm run dev
 ```
 
-The frontend environment includes:
+Configure:
 
 ```env
 VITE_API_BASE_URL="http://localhost:4000/api"
 ```
 
-Frontend runs on:
+## Run Locally
 
-```txt id="af7bmp"
-http://localhost:5173
+### 1. Start PostgreSQL
+
+From the project root:
+
+```bash
+docker compose up -d postgres
 ```
 
-## Development Commands
+### 2. Install and prepare the backend
 
-### Backend
+```bash
+cd back
+npm install
+npx prisma migrate dev
+npx prisma generate
+npm run dev
+```
 
-```bash id="l9yxei"
+The backend runs at `http://localhost:4000`.
+
+### 3. Start the frontend
+
+In another terminal:
+
+```bash
+cd front
+npm install
+npm run dev
+```
+
+The frontend runs at `http://localhost:5173`.
+
+## Main API Routes
+
+All profile and job routes require `Authorization: Bearer <token>`.
+
+```txt
+POST   /api/auth/register
+POST   /api/auth/login
+GET    /api/auth/me
+
+GET    /api/profile
+PUT    /api/profile
+POST   /api/profile/resume-upload
+
+GET    /api/jobs
+POST   /api/jobs
+POST   /api/jobs/import
+GET    /api/jobs/:id
+PUT    /api/jobs/:id
+PATCH  /api/jobs/:id/status
+POST   /api/jobs/:id/analyze
+DELETE /api/jobs/:id
+```
+
+The import endpoint returns an editable draft and does not save a job. Resume upload returns extracted text and does not save the profile. Users confirm both through the normal frontend save flows.
+
+## Useful Commands
+
+Backend:
+
+```bash
 cd back
 npm run dev
 npm run build
@@ -258,108 +143,35 @@ npx prisma generate
 npx prisma studio
 ```
 
-### Frontend
+Frontend:
 
-```bash id="am3gyv"
+```bash
 cd front
 npm run dev
 npm run build
+npm run lint
 ```
 
-### Database
+Database:
 
-Start database:
-
-```bash id="v6kbjt"
+```bash
 docker compose up -d postgres
-```
-
-Stop database:
-
-```bash id="cfv7pa"
 docker compose down
 ```
 
-Reset local database volume:
+To reset local database data:
 
-```bash id="9trjr4"
+```bash
 docker compose down -v
 docker compose up -d postgres
 ```
 
-Warning: resetting the volume deletes local database data.
-
-## Completed Milestones
-
-* Frontend CRUD
-* Backend Express API
-* Frontend connected to backend
-* Removed localStorage flow
-* Added PostgreSQL
-* Added Prisma schema and migration
-* Replaced in-memory backend data with PostgreSQL
-* Full persistent CRUD
-* Refactored backend job response mapping
-* JWT registration and login
-* Protected, user-specific job routes
-* Frontend session validation and automatic logout on unauthorized responses
+The reset command permanently deletes the local PostgreSQL volume.
 
 ## Current Limitations
 
-* Validation is still basic
-* No automated tests yet
-* No AI features yet
-* No deployment yet
-
-## Roadmap
-
-### Phase 1 — Backend Quality
-
-* Improve request validation with Zod
-* Add cleaner error handling
-* Add seed script
-* Add backend API tests
-
-### Phase 2 — Authentication
-
-* Add user model
-* Register
-* Login
-* Password hashing
-* JWT authentication
-* Protect job routes
-* Make jobs user-specific
-
-### Phase 3 — Product Features
-
-* Add job description field
-* Add job URL
-* Add company URL
-* Add source field
-* Add date applied
-* Add priority
-* Add salary range
-
-### Phase 4 — AI Career Assistant
-
-* Analyze job descriptions
-* Generate match score
-* Identify missing skills
-* Suggest resume improvements
-* Generate interview questions
-* Generate HR/recruiter messages
-
-### Phase 5 — Deployment
-
-* Deploy frontend
-* Deploy backend
-* Use managed PostgreSQL
-* Configure production environment variables
-
-### Phase 6 — GitHub Polish
-
-* Add screenshots
-* Add architecture diagram
-* Add demo video or GIF
-* Improve API documentation
-* Add project explanation for interviews
+- No automated test suite yet
+- PDF extraction does not include OCR
+- Job import requires pasted text and does not scrape websites
+- AI features require valid OpenAI credentials and a compatible model
+- No production deployment configuration yet

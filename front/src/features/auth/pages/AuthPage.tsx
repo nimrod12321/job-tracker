@@ -64,11 +64,17 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
             />
           </label>
 
-          {error && <p className="error-message">{error}</p>}
+          {error && (
+            <p className="message message-error" role="alert">
+              {error}
+            </p>
+          )}
 
           <button type="submit" disabled={isLoading}>
             {isLoading
-              ? 'Please wait...'
+              ? mode === 'login'
+                ? 'Logging in...'
+                : 'Creating account...'
               : mode === 'login'
                 ? 'Login'
                 : 'Register'}

@@ -18,6 +18,7 @@ function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadJobs() {
@@ -25,8 +26,9 @@ function JobsPage() {
         const jobsFromApi = await getJobs();
         setJobs(jobsFromApi);
       } catch (error) {
-        console.error(error);
-        setError('Failed to load jobs');
+        setError(
+          error instanceof Error ? error.message : 'Failed to load jobs',
+        );
       } finally {
         setIsLoading(false);
       }
@@ -36,6 +38,9 @@ function JobsPage() {
   }, []);
 
   async function handleSaveJob(savedJob: Job) {
+    setError(null);
+    setSuccessMessage(null);
+
     try {
       if (editingJob) {
         const updatedJob = await updateJob(savedJob);
@@ -45,6 +50,7 @@ function JobsPage() {
             job.id === updatedJob.id ? updatedJob : job,
           ),
         );
+        setSuccessMessage('Job updated successfully.');
       } else {
         const createdJob = await createJob({
           company: savedJob.company,
@@ -64,13 +70,15 @@ function JobsPage() {
         });
 
         setJobs((currentJobs) => [createdJob, ...currentJobs]);
+        setSuccessMessage('Job saved successfully.');
       }
 
       setEditingJob(null);
       setIsFormVisible(false);
     } catch (error) {
-      console.error(error);
-      setError('Failed to save job');
+      setError(
+        error instanceof Error ? error.message : 'Failed to save job',
+      );
     }
   }
 
@@ -87,8 +95,9 @@ function JobsPage() {
         currentJobs.filter((job) => job.id !== jobId),
       );
     } catch (error) {
-      console.error(error);
-      setError('Failed to delete job');
+      setError(
+        error instanceof Error ? error.message : 'Failed to delete job',
+      );
     }
   }
 
@@ -107,8 +116,11 @@ function JobsPage() {
         ),
       );
     } catch (error) {
-      console.error(error);
-      setError('Failed to update job status');
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to update job status',
+      );
     }
   }
 
@@ -122,7 +134,7 @@ function JobsPage() {
       <div className="page-header">
         <div>
           <h1>Jobs</h1>
-          <p>Manage your job applications and track their status.</p>
+          <p>Track applications, priorities, salaries, and AI analysis.</p>
         </div>
         <div className="page-header-actions">
           <Link className="secondary-action-link" to="/jobs/import">
@@ -134,7 +146,7 @@ function JobsPage() {
             aria-controls="job-form"
             onClick={() => setIsFormVisible((isVisible) => !isVisible)}
           >
-            {isFormVisible ? 'Cancel' : 'Add Job'}
+            {isFormVisible ? 'Cancel' : 'Add job'}
           </button>
         </div>
       </div>
@@ -143,8 +155,17 @@ function JobsPage() {
         <JobForm onSaveJob={handleSaveJob} initialJob={editingJob} />
       )}
 
-      {isLoading && <p>Loading jobs...</p>}
-      {error && <p>{error}</p>}
+      {isLoading && <p className="status-message">Loading jobs...</p>}
+      {error && (
+        <p className="message message-error" role="alert">
+          {error}
+        </p>
+      )}
+      {successMessage && (
+        <p className="message message-success" aria-live="polite">
+          {successMessage}
+        </p>
+      )}
 
       <div className="job-filter">
         <label htmlFor="status-filter">Filter by status</label>
@@ -167,21 +188,37 @@ function JobsPage() {
         </span>
       </div>
 
-    {!isLoading && filteredJobs.length === 0 ? (
-    <p>No jobs found.</p>
-    ) : (
-    <div className="job-grid">
-        {filteredJobs.map((job) => (
-        <JobCard
-            key={job.id}
-            job={job}
-            onDeleteJob={handleDeleteJob}
-            onChangeStatus={handleUpdateJobStatus}
-            onEditJob={handleEditJob}
-        />
-    ))}
-  </div>
-)}
+      {!isLoading && jobs.length === 0 ? (
+        <div className="empty-state">
+          <h2>No jobs yet.</h2>
+          <p>Add a job manually or import one from a pasted description.</p>
+          <div className="empty-state-actions">
+            <button type="button" onClick={() => setIsFormVisible(true)}>
+              Add job
+            </button>
+            <Link className="secondary-action-link" to="/jobs/import">
+              Import job
+            </Link>
+          </div>
+        </div>
+      ) : !isLoading && filteredJobs.length === 0 ? (
+        <div className="empty-state empty-state-compact">
+          <h2>No matching jobs.</h2>
+          <p>Choose another status to see your other applications.</p>
+        </div>
+      ) : (
+        <div className="job-grid">
+          {filteredJobs.map((job) => (
+            <JobCard
+              key={job.id}
+              job={job}
+              onDeleteJob={handleDeleteJob}
+              onChangeStatus={handleUpdateJobStatus}
+              onEditJob={handleEditJob}
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 }

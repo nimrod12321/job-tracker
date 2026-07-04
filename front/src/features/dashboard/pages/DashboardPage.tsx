@@ -66,7 +66,17 @@ function DashboardPage() {
   }, [])
 
   if (isLoading) {
-    return <p>Loading dashboard...</p>
+    return (
+      <section className="dashboard-page">
+        <div className="page-header">
+          <div>
+            <h1>Dashboard</h1>
+            <p>Your job search at a glance.</p>
+          </div>
+        </div>
+        <p className="status-message">Loading dashboard...</p>
+      </section>
+    )
   }
 
   if (error) {
@@ -78,7 +88,9 @@ function DashboardPage() {
             <p>Your job search at a glance.</p>
           </div>
         </div>
-        <p className="dashboard-error">{error}</p>
+        <p className="message message-error" role="alert">
+          {error}
+        </p>
       </section>
     )
   }
@@ -93,7 +105,7 @@ function DashboardPage() {
           </div>
         </div>
 
-        <div className="dashboard-empty">
+        <div className="empty-state">
           <h2>No jobs yet.</h2>
           <p>Add your first job to start tracking your search.</p>
           <Link to="/jobs">Add your first job</Link>
