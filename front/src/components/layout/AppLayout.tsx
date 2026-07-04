@@ -1,58 +1,54 @@
-import type { ReactNode } from 'react'
-
-export type AppPage = 'jobs' | 'profile'
+import { NavLink, Outlet } from 'react-router-dom'
 
 type AppLayoutProps = {
-  children: ReactNode
-  activePage: AppPage
   userEmail?: string
-  onNavigate: (page: AppPage) => void
-  onLogout?: () => void
+  onLogout: () => void
 }
 
-function AppLayout({
-  children,
-  activePage,
-  userEmail,
-  onNavigate,
-  onLogout,
-}: AppLayoutProps) {
+function AppLayout({ userEmail, onLogout }: AppLayoutProps) {
   return (
     <div className="app-layout">
       <header className="app-header">
         <h1>AI Job Tracker</h1>
 
         <nav aria-label="Main navigation">
-          <button
-            type="button"
-            className={`nav-button${activePage === 'jobs' ? ' active' : ''}`}
-            aria-current={activePage === 'jobs' ? 'page' : undefined}
-            onClick={() => onNavigate('jobs')}
+          <NavLink
+            to="/dashboard"
+            className={({ isActive }) =>
+              `nav-button${isActive ? ' active' : ''}`
+            }
+          >
+            Dashboard
+          </NavLink>
+          <NavLink
+            to="/jobs"
+            className={({ isActive }) =>
+              `nav-button${isActive ? ' active' : ''}`
+            }
           >
             Jobs
-          </button>
-          <button
-            type="button"
-            className={`nav-button${activePage === 'profile' ? ' active' : ''}`}
-            aria-current={activePage === 'profile' ? 'page' : undefined}
-            onClick={() => onNavigate('profile')}
+          </NavLink>
+          <NavLink
+            to="/profile"
+            className={({ isActive }) =>
+              `nav-button${isActive ? ' active' : ''}`
+            }
           >
             Profile
-          </button>
+          </NavLink>
         </nav>
 
         <div className="header-user-actions">
           {userEmail && <span>{userEmail}</span>}
-
-          {onLogout && (
-            <button type="button" onClick={onLogout}>
-              Logout
-            </button>
-          )}
+          <button type="button" onClick={onLogout}>
+            Logout
+          </button>
         </div>
       </header>
 
-      <main className="app-content">{children}</main>
+      <main className="app-content">
+        <Outlet />
+      </main>
     </div>
   )
 }

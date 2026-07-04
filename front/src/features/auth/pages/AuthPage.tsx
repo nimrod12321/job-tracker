@@ -1,12 +1,13 @@
 import { useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { loginUser, registerUser } from '../services/authApi'
 
 type AuthPageProps = {
-  onAuthSuccess: (token: string) => void
+  mode: 'login' | 'register'
+  onAuthSuccess: (token: string) => Promise<void>
 }
 
-function AuthPage({ onAuthSuccess }: AuthPageProps) {
-  const [mode, setMode] = useState<'login' | 'register'>('login')
+function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -18,12 +19,12 @@ function AuthPage({ onAuthSuccess }: AuthPageProps) {
     setIsLoading(true)
 
     try {
-      const response =
-        mode === 'login'
-          ? await loginUser(email, password)
-          : await registerUser(email, password)
+      if (mode === 'register') {
+        await registerUser(email, password)
+      }
 
-      onAuthSuccess(response.token)
+      const response = await loginUser(email, password)
+      await onAuthSuccess(response.token)
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Something went wrong')
     } finally {
@@ -74,20 +75,14 @@ function AuthPage({ onAuthSuccess }: AuthPageProps) {
           </button>
         </form>
 
-        <button
-          type="button"
+        <Link
+          to={mode === 'login' ? '/register' : '/login'}
           className="text-button"
-          onClick={() => {
-            setError(null)
-            setMode((currentMode) =>
-              currentMode === 'login' ? 'register' : 'login',
-            )
-          }}
         >
           {mode === 'login'
             ? 'Need an account? Register'
             : 'Already have an account? Login'}
-        </button>
+        </Link>
       </div>
     </section>
   )

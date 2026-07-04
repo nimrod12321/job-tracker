@@ -24,7 +24,7 @@ export type AuthUser = {
   createdAt?: string
 }
 
-type AuthResponse = {
+type LoginResponse = {
   token: string
   user: {
     id: string
@@ -32,10 +32,16 @@ type AuthResponse = {
   }
 }
 
+type RegisterResponse = {
+  id: string
+  email: string
+  createdAt: string
+}
+
 export async function registerUser(
   email: string,
   password: string,
-): Promise<AuthResponse> {
+): Promise<RegisterResponse> {
   const response = await fetch(`${API_BASE_URL}/auth/register`, {
     method: 'POST',
     headers: {
@@ -54,7 +60,7 @@ export async function registerUser(
 export async function loginUser(
   email: string,
   password: string,
-): Promise<AuthResponse> {
+): Promise<LoginResponse> {
   const response = await fetch(`${API_BASE_URL}/auth/login`, {
     method: 'POST',
     headers: {
