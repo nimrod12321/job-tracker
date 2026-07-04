@@ -3,6 +3,12 @@ import type { Job as PrismaJob } from '../generated/prisma/client.js'
 import { prisma } from '../lib/prisma.js'
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js'
 import type { Job as ApiJob, JobStatus } from '../types/job.js'
+import { getValidationErrorMessage } from '../utils/validation.js'
+import {
+  createJobSchema,
+  updateJobSchema,
+  updateJobStatusSchema,
+} from '../validations/job.validation.js'
 
 function formatDate(date: Date) {
   return date.toISOString().slice(0, 10)
@@ -21,14 +27,6 @@ function mapJobToResponse(job: PrismaJob): ApiJob {
     updatedAt: formatDate(job.updatedAt),
   }
 }
-
-const validStatuses: JobStatus[] = [
-  'applied',
-  'HR',
-  'technical',
-  'rejected',
-  'offer',
-]
 
 function getUserId(req: Request) {
   return (req as AuthenticatedRequest).userId
@@ -82,39 +80,25 @@ export async function createJob(req: Request, res: Response) {
       })
     }
 
-    const { company, position, status, wantedSalary, location, notes } = req.body as {
-      company?: unknown
-      position?: unknown
-      status?: unknown
-      wantedSalary?: unknown
-      location?: unknown
-      notes?: unknown
-    }
+    const result = createJobSchema.safeParse(req.body)
 
-    if (
-      typeof company !== 'string' ||
-      typeof position !== 'string' ||
-      typeof location !== 'string'
-    ) {
+    if (!result.success) {
       return res.status(400).json({
-        message: 'company, position, and location are required',
+        message: getValidationErrorMessage(result.error),
       })
     }
 
-    if (status !== undefined && (!validStatuses.includes(status as JobStatus))) {
-      return res.status(400).json({
-        message: 'invalid job status',
-      })
-    }
+    const { company, position, status, wantedSalary, location, notes } =
+      result.data
 
     const newJob = await prisma.job.create({
       data: {
         company,
         position,
-        status: typeof status === 'string' ? (status as JobStatus) : 'applied',
-        wantedSalary: Number(wantedSalary) || 0,
+        status,
+        wantedSalary,
         location,
-        notes: typeof notes === 'string' ? notes : '',
+        notes,
         userId,
       },
     })
@@ -146,30 +130,16 @@ export async function updateJob(req: Request, res: Response) {
       })
     }
 
-    const { company, position, status, wantedSalary, location, notes } = req.body as {
-      company?: unknown
-      position?: unknown
-      status?: unknown
-      wantedSalary?: unknown
-      location?: unknown
-      notes?: unknown
-    }
+    const result = updateJobSchema.safeParse(req.body)
 
-    if (
-      typeof company !== 'string' ||
-      typeof position !== 'string' ||
-      typeof location !== 'string'
-    ) {
+    if (!result.success) {
       return res.status(400).json({
-        message: 'company, position, and location are required',
+        message: getValidationErrorMessage(result.error),
       })
     }
 
-    if (typeof status !== 'string' || !validStatuses.includes(status as JobStatus)) {
-      return res.status(400).json({
-        message: 'invalid job status',
-      })
-    }
+    const { company, position, status, wantedSalary, location, notes } =
+      result.data
 
     const existingJob = await findUserJob(id, userId)
 
@@ -186,10 +156,10 @@ export async function updateJob(req: Request, res: Response) {
       data: {
         company,
         position,
-        status: status as JobStatus,
-        wantedSalary: Number(wantedSalary) || 0,
+        status,
+        wantedSalary,
         location,
-        notes: typeof notes === 'string' ? notes : '',
+        notes,
       },
     })
 
@@ -207,7 +177,6 @@ export async function updateJobStatus(req: Request, res: Response) {
   try {
     const userId = getUserId(req)
     const id = req.params.id
-    const { status } = req.body as { status?: unknown }
 
     if (!userId) {
       return res.status(401).json({
@@ -221,11 +190,15 @@ export async function updateJobStatus(req: Request, res: Response) {
       })
     }
 
-    if (typeof status !== 'string' || !validStatuses.includes(status as JobStatus)) {
+    const result = updateJobStatusSchema.safeParse(req.body)
+
+    if (!result.success) {
       return res.status(400).json({
-        message: 'invalid job status',
+        message: getValidationErrorMessage(result.error),
       })
     }
+
+    const { status } = result.data
 
     const existingJob = await findUserJob(id, userId)
 
@@ -240,7 +213,7 @@ export async function updateJobStatus(req: Request, res: Response) {
         id,
       },
       data: {
-        status: status as JobStatus,
+        status,
       },
     })
 

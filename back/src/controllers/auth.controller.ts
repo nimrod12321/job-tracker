@@ -3,6 +3,11 @@ import bcrypt from 'bcryptjs'
 import { prisma } from '../lib/prisma.js'
 import {signAuthToken} from '../lib/jwt.js'
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js'
+import { getValidationErrorMessage } from '../utils/validation.js'
+import {
+  loginSchema,
+  registerSchema,
+} from '../validations/auth.validation.js'
 
 
 function getJwtSecret() {
@@ -18,30 +23,16 @@ function getJwtSecret() {
 
 export async function register(req: Request, res: Response) {
   try {
-    const { email, password } = req.body as {
-      email?: unknown
-      password?: unknown
-    }
+    const result = registerSchema.safeParse(req.body)
 
-    if (typeof email !== 'string' || typeof password !== 'string') {
+    if (!result.success) {
       return res.status(400).json({
-        message: 'email and password are required',
+        message: getValidationErrorMessage(result.error),
       })
     }
 
+    const { email, password } = result.data
     const normalizedEmail = email.trim().toLowerCase()
-
-    if (!normalizedEmail.includes('@')) {
-      return res.status(400).json({
-        message: 'invalid email',
-      })
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({
-        message: 'password must be at least 6 characters',
-      })
-    }
 
     const existingUser = await prisma.user.findUnique({
       where: {
@@ -80,17 +71,15 @@ export async function register(req: Request, res: Response) {
 
 export async function login(req: Request, res: Response) {
   try {
-    const { email, password } = req.body as {
-      email?: unknown
-      password?: unknown
-    }
+    const result = loginSchema.safeParse(req.body)
 
-    if (typeof email !== 'string' || typeof password !== 'string') {
+    if (!result.success) {
       return res.status(400).json({
-        message: 'email and password are required',
+        message: getValidationErrorMessage(result.error),
       })
     }
 
+    const { email, password } = result.data
     const normalizedEmail = email.trim().toLowerCase()
 
     const user = await prisma.user.findUnique({
