@@ -60,6 +60,18 @@ export async function getJobs(): Promise<Job[]> {
   return response.json()
 }
 
+export async function getJobById(jobId: string): Promise<Job> {
+  const response = await fetch(`${API_BASE_URL}/jobs/${jobId}`, {
+    headers: getHeaders(),
+  })
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to fetch job')
+  }
+
+  return response.json()
+}
+
 export async function createJob(
   job: Omit<Job, 'id' | 'createdAt' | 'updatedAt'>,
 ): Promise<Job> {

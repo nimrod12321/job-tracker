@@ -11,6 +11,7 @@ import {
 } from './features/auth/utils/authStorage'
 import AuthPage from './features/auth/pages/AuthPage'
 import DashboardPage from './features/dashboard/pages/DashboardPage'
+import JobDetailPage from './features/jobs/pages/JobDetailPage'
 import JobsPage from './features/jobs/pages/jobsPage'
 import ProfilePage from './features/profile/pages/ProfilePage'
 
@@ -131,6 +132,7 @@ function App() {
         >
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/jobs" element={<JobsPage />} />
+          <Route path="/jobs/:jobId" element={<JobDetailPage />} />
           <Route path="/profile" element={<ProfilePage />} />
         </Route>
       </Route>

@@ -3,6 +3,7 @@ import {requireAuth} from '../middleware/auth.middleware.js'
 import {
   createJob,
   deleteJob,
+  getJob,
   getJobs,
   updateJobStatus,
   updateJob,
@@ -12,6 +13,7 @@ const router = Router()
 router.use(requireAuth)
 
 router.get('/', getJobs)
+router.get('/:id', getJob)
 router.post('/', createJob)
 router.patch('/:id/status', updateJobStatus)
 router.delete('/:id', deleteJob)

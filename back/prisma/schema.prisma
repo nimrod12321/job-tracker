@@ -15,16 +15,30 @@ enum JobStatus {
   offer
 }
 
+enum JobPriority {
+  low
+  medium
+  high
+}
+
 model Job {
-  id           String    @id @default(uuid())
-  company      String
-  position     String
-  status       JobStatus @default(applied)
-  wantedSalary Int       @default(0)
-  location     String
-  notes        String    @default("")
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id             String      @id @default(uuid())
+  company        String
+  position       String
+  status         JobStatus   @default(applied)
+  wantedSalary   Int         @default(0)
+  location       String
+  notes          String      @default("")
+  jobDescription String      @default("")
+  jobUrl         String      @default("")
+  companyUrl     String      @default("")
+  source         String      @default("")
+  priority       JobPriority @default(medium)
+  dateApplied    DateTime?
+  salaryMin      Int         @default(0)
+  salaryMax      Int         @default(0)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
   userId String?
   user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)

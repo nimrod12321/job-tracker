@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import type { Job, JobStatus } from '../../../types/job';
+import type { Job, JobPriority, JobStatus } from '../../../types/job';
 
 type JobFormProps = {
   initialJob?: Job | null
@@ -14,6 +14,8 @@ const statusOptions: JobStatus[] = [
   'offer',
 ];
 
+const priorityOptions: JobPriority[] = ['low', 'medium', 'high'];
+
 function JobForm({ initialJob, onSaveJob }: JobFormProps) {
   const [company, setCompany] = useState(initialJob?.company ?? '')
   const [position, setPosition] = useState(initialJob?.position ?? '')
@@ -25,6 +27,22 @@ function JobForm({ initialJob, onSaveJob }: JobFormProps) {
   )
   const [location, setLocation] = useState(initialJob?.location ?? '')
   const [notes, setNotes] = useState(initialJob?.notes ?? '')
+  const [jobDescription, setJobDescription] = useState(
+    initialJob?.jobDescription ?? '',
+  )
+  const [jobUrl, setJobUrl] = useState(initialJob?.jobUrl ?? '')
+  const [companyUrl, setCompanyUrl] = useState(initialJob?.companyUrl ?? '')
+  const [source, setSource] = useState(initialJob?.source ?? '')
+  const [priority, setPriority] = useState<JobPriority>(
+    initialJob?.priority ?? 'medium',
+  )
+  const [dateApplied, setDateApplied] = useState(initialJob?.dateApplied ?? '')
+  const [salaryMin, setSalaryMin] = useState<number | ''>(
+    initialJob?.salaryMin || '',
+  )
+  const [salaryMax, setSalaryMax] = useState<number | ''>(
+    initialJob?.salaryMax || '',
+  )
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -40,6 +58,14 @@ function JobForm({ initialJob, onSaveJob }: JobFormProps) {
       createdAt: initialJob?.createdAt ?? today,
       updatedAt: today,
       notes,
+      jobDescription,
+      jobUrl,
+      companyUrl,
+      source,
+      priority,
+      dateApplied,
+      salaryMin: Number(salaryMin) || 0,
+      salaryMax: Number(salaryMax) || 0,
     };
 
     onSaveJob(savedJob);
@@ -78,12 +104,34 @@ function JobForm({ initialJob, onSaveJob }: JobFormProps) {
         </select>
       </label>
       <label>
+        Priority
+        <select
+          value={priority}
+          onChange={(event) =>
+            setPriority(event.target.value as JobPriority)
+          }
+        >
+          {priorityOptions.map((priorityOption) => (
+            <option key={priorityOption} value={priorityOption}>
+              {priorityOption}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
         Wanted salary
         <input
           type="number"
           value={wantedSalary}
           onChange={(event) => setWantedSalary(Number(event.target.value))}
           required
+        />
+      </label>
+      <label>
+        Source
+        <input
+          value={source}
+          onChange={(event) => setSource(event.target.value)}
         />
       </label>
       <label>
@@ -95,10 +143,64 @@ function JobForm({ initialJob, onSaveJob }: JobFormProps) {
         />
       </label>
       <label>
+        Date applied
+        <input
+          type="date"
+          value={dateApplied}
+          onChange={(event) => setDateApplied(event.target.value)}
+        />
+      </label>
+      <label>
+        Salary minimum
+        <input
+          type="number"
+          value={salaryMin}
+          onChange={(event) =>
+            setSalaryMin(
+              event.target.value === '' ? '' : Number(event.target.value),
+            )
+          }
+        />
+      </label>
+      <label>
+        Salary maximum
+        <input
+          type="number"
+          value={salaryMax}
+          onChange={(event) =>
+            setSalaryMax(
+              event.target.value === '' ? '' : Number(event.target.value),
+            )
+          }
+        />
+      </label>
+      <label>
+        Job URL
+        <input
+          value={jobUrl}
+          onChange={(event) => setJobUrl(event.target.value)}
+        />
+      </label>
+      <label>
+        Company URL
+        <input
+          value={companyUrl}
+          onChange={(event) => setCompanyUrl(event.target.value)}
+        />
+      </label>
+      <label className="job-form-wide">
         Notes
         <textarea
           value={notes}
           onChange={(event) => setNotes(event.target.value)}
+        />
+      </label>
+      <label className="job-form-wide">
+        Job description
+        <textarea
+          rows={8}
+          value={jobDescription}
+          onChange={(event) => setJobDescription(event.target.value)}
         />
       </label>
       <button type="submit">

@@ -2,7 +2,11 @@ import type { Request, Response } from 'express'
 import type { Job as PrismaJob } from '../generated/prisma/client.js'
 import { prisma } from '../lib/prisma.js'
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js'
-import type { Job as ApiJob, JobStatus } from '../types/job.js'
+import type {
+  Job as ApiJob,
+  JobPriority,
+  JobStatus,
+} from '../types/job.js'
 import { getValidationErrorMessage } from '../utils/validation.js'
 import {
   createJobSchema,
@@ -23,6 +27,14 @@ function mapJobToResponse(job: PrismaJob): ApiJob {
     wantedSalary: job.wantedSalary,
     location: job.location,
     notes: job.notes,
+    jobDescription: job.jobDescription,
+    jobUrl: job.jobUrl,
+    companyUrl: job.companyUrl,
+    source: job.source,
+    priority: job.priority as JobPriority,
+    dateApplied: job.dateApplied ? formatDate(job.dateApplied) : '',
+    salaryMin: job.salaryMin,
+    salaryMax: job.salaryMax,
     createdAt: formatDate(job.createdAt),
     updatedAt: formatDate(job.updatedAt),
   }
@@ -70,6 +82,41 @@ export async function getJobs(req: Request, res: Response) {
   }
 }
 
+export async function getJob(req: Request, res: Response) {
+  try {
+    const userId = getUserId(req)
+    const id = req.params.id
+
+    if (!userId) {
+      return res.status(401).json({
+        message: 'unauthorized',
+      })
+    }
+
+    if (typeof id !== 'string') {
+      return res.status(400).json({
+        message: 'job id is required',
+      })
+    }
+
+    const job = await findUserJob(id, userId)
+
+    if (!job) {
+      return res.status(404).json({
+        message: 'job not found',
+      })
+    }
+
+    return res.json(mapJobToResponse(job))
+  } catch (error) {
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to fetch job',
+    })
+  }
+}
+
 export async function createJob(req: Request, res: Response) {
   try {
     const userId = getUserId(req)
@@ -88,17 +135,12 @@ export async function createJob(req: Request, res: Response) {
       })
     }
 
-    const { company, position, status, wantedSalary, location, notes } =
-      result.data
+    const { dateApplied, ...jobData } = result.data
 
     const newJob = await prisma.job.create({
       data: {
-        company,
-        position,
-        status,
-        wantedSalary,
-        location,
-        notes,
+        ...jobData,
+        dateApplied: dateApplied ? new Date(dateApplied) : null,
         userId,
       },
     })
@@ -138,8 +180,7 @@ export async function updateJob(req: Request, res: Response) {
       })
     }
 
-    const { company, position, status, wantedSalary, location, notes } =
-      result.data
+    const { dateApplied, ...jobData } = result.data
 
     const existingJob = await findUserJob(id, userId)
 
@@ -154,12 +195,8 @@ export async function updateJob(req: Request, res: Response) {
         id,
       },
       data: {
-        company,
-        position,
-        status,
-        wantedSalary,
-        location,
-        notes,
+        ...jobData,
+        dateApplied: dateApplied ? new Date(dateApplied) : null,
       },
     })
 

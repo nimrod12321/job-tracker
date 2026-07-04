@@ -52,6 +52,14 @@ function JobsPage() {
           wantedSalary: savedJob.wantedSalary,
           location: savedJob.location,
           notes: savedJob.notes,
+          jobDescription: savedJob.jobDescription,
+          jobUrl: savedJob.jobUrl,
+          companyUrl: savedJob.companyUrl,
+          source: savedJob.source,
+          priority: savedJob.priority,
+          dateApplied: savedJob.dateApplied,
+          salaryMin: savedJob.salaryMin,
+          salaryMax: savedJob.salaryMax,
         });
 
         setJobs((currentJobs) => [createdJob, ...currentJobs]);

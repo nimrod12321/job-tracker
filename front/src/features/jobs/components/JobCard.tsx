@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { Job, JobStatus } from '../../../types/job';
 
 type JobCardProps = {
@@ -16,8 +17,25 @@ const statusOptions: JobStatus[] = [
   'offer',
 ];
 
+function getSalaryRange(job: Job) {
+  if (job.salaryMin && job.salaryMax) {
+    return `$${job.salaryMin.toLocaleString()} – $${job.salaryMax.toLocaleString()}`;
+  }
+
+  if (job.salaryMin) {
+    return `From $${job.salaryMin.toLocaleString()}`;
+  }
+
+  if (job.salaryMax) {
+    return `Up to $${job.salaryMax.toLocaleString()}`;
+  }
+
+  return '';
+}
+
 function JobCard({ job, onDeleteJob, onChangeStatus, onEditJob }: JobCardProps) {
   const [isEditingStatus, setIsEditingStatus] = useState(false);
+  const salaryRange = getSalaryRange(job);
 
   return (
     <div className="job-card">
@@ -62,6 +80,19 @@ function JobCard({ job, onDeleteJob, onChangeStatus, onEditJob }: JobCardProps) 
 
       <p>Location: {job.location}</p>
       <p>Wanted Salary: ${job.wantedSalary}</p>
+      <div className="job-card-extra">
+        <span>
+          Priority: <strong>{job.priority}</strong>
+        </span>
+        {job.source && <span>Source: {job.source}</span>}
+        {salaryRange && <span>Salary range: {salaryRange}</span>}
+        {job.dateApplied && (
+          <span>
+            Applied:{' '}
+            <time dateTime={job.dateApplied}>{job.dateApplied}</time>
+          </span>
+        )}
+      </div>
       <div className="job-card-dates">
         <span>
           Created <time dateTime={job.createdAt}>{job.createdAt}</time>
@@ -73,6 +104,9 @@ function JobCard({ job, onDeleteJob, onChangeStatus, onEditJob }: JobCardProps) 
       <p>Notes: {job.notes}</p>
 
       <div className="job-card-actions">
+        <Link className="view-job-link" to={`/jobs/${job.id}`}>
+          View details
+        </Link>
         <button
           className="edit-job-button"
           type="button"
@@ -84,10 +118,7 @@ function JobCard({ job, onDeleteJob, onChangeStatus, onEditJob }: JobCardProps) 
           className="delete-job-button"
           type="button"
           aria-label={`Delete ${job.position} at ${job.company}`}
-          onClick={() => {onDeleteJob(job.id);
-            
-          }
-        }
+          onClick={() => onDeleteJob(job.id)}
         >
           <svg
             aria-hidden="true"
