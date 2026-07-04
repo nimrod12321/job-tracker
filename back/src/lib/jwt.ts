@@ -1,17 +1,8 @@
 import jwt, { type JwtPayload as JsonWebTokenPayload } from 'jsonwebtoken'
+import { env } from '../config/env.js'
 
 type AuthTokenPayload = {
   userId: string
-}
-
-function getJwtSecret() {
-  const secret = process.env.JWT_SECRET
-
-  if (!secret) {
-    throw new Error('JWT_SECRET is not set')
-  }
-
-  return secret
 }
 
 export function signAuthToken(userId: string) {
@@ -19,7 +10,7 @@ export function signAuthToken(userId: string) {
     {
       userId,
     },
-    getJwtSecret(),
+    env.jwtSecret,
     {
       expiresIn: '7d',
     },
@@ -27,7 +18,7 @@ export function signAuthToken(userId: string) {
 }
 
 export function verifyAuthToken(token: string): AuthTokenPayload {
-  const decoded = jwt.verify(token, getJwtSecret())
+  const decoded = jwt.verify(token, env.jwtSecret)
 
   if (typeof decoded === 'string') {
     throw new Error('invalid token payload')

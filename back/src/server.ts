@@ -1,27 +1,55 @@
-import express from 'express'
+import express, { type ErrorRequestHandler } from 'express'
 import cors from 'cors'
-import dotenv from 'dotenv'
+import { env } from './config/env.js'
 import jobsRouter from './routes/jobs.routes.js'
 import { authRouter } from './routes/auth.routes.js'
+import healthRouter from './routes/health.routes.js'
 import profileRouter from './routes/profile.routes.js'
 
-
-dotenv.config()
-
 const app = express()
-const PORT = process.env.PORT || 4000
+const allowedOrigins = new Set([env.frontendUrl])
 
-app.use(cors())
+if (env.nodeEnv !== 'production') {
+  allowedOrigins.add('http://localhost:5173')
+}
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      const normalizedOrigin = origin?.replace(/\/+$/, '')
+
+      callback(
+        null,
+        !normalizedOrigin || allowedOrigins.has(normalizedOrigin),
+      )
+    },
+  }),
+)
 app.use(express.json())
 
+app.use('/api/health', healthRouter)
+app.use('/health', healthRouter)
 app.use('/api/jobs', jobsRouter)
 app.use('/api/auth', authRouter)
 app.use('/api/profile', profileRouter)
 
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok' })
-})
+const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
+  console.error('Unhandled request error:', error)
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`)
+  if (error instanceof SyntaxError && 'body' in error) {
+    res.status(400).json({
+      message: 'invalid JSON body',
+    })
+    return
+  }
+
+  res.status(500).json({
+    message: 'internal server error',
+  })
+}
+
+app.use(errorHandler)
+
+app.listen(env.port, () => {
+  console.log(`Server is running on port ${env.port}`)
 })

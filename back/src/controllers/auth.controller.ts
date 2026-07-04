@@ -9,18 +9,6 @@ import {
   registerSchema,
 } from '../validations/auth.validation.js'
 
-
-function getJwtSecret() {
-  const secret = process.env.JWT_SECRET
-
-  if (!secret) {
-    throw new Error('JWT_SECRET is not set')
-  }
-
-  return secret
-}
-
-
 export async function register(req: Request, res: Response) {
   try {
     const result = registerSchema.safeParse(req.body)

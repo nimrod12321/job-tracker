@@ -9,14 +9,12 @@ import type {
   JobStatus,
   ImportedJobDraft,
 } from '../../../types/job'
+import { API_BASE_URL } from '../../../config/env'
 import {
   clearAuthToken,
   getAuthToken,
   notifyAuthSessionExpired,
 } from '../../auth/utils/authStorage'
-
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'
 
 function getHeaders(includeJson = false): HeadersInit {
   const headers = new Headers()

@@ -3,13 +3,11 @@ import {
   getAuthToken,
   notifyAuthSessionExpired,
 } from '../../auth/utils/authStorage'
+import { API_BASE_URL } from '../../../config/env'
 import type {
   ResumeProfile,
   ResumeProfileInput,
 } from '../types/profile'
-
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'
 
 function getHeaders(includeJson = true): HeadersInit {
   const headers = new Headers()
