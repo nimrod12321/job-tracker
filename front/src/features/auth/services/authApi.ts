@@ -1,4 +1,22 @@
-const API_BASE_URL = 'http://localhost:4000/api'
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'
+
+async function getErrorMessage(
+  response: Response,
+  fallbackMessage: string,
+): Promise<string> {
+  try {
+    const error = (await response.json()) as { message?: unknown }
+
+    if (typeof error.message === 'string' && error.message.trim()) {
+      return error.message
+    }
+  } catch {
+    // Keep the fallback when the response body is not valid JSON.
+  }
+
+  return fallbackMessage
+}
 
 export type AuthUser = {
   id: string
@@ -27,8 +45,7 @@ export async function registerUser(
   })
 
   if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.message ?? 'Failed to register')
+    throw new Error(await getErrorMessage(response, 'Failed to register'))
   }
 
   return response.json()
@@ -47,8 +64,7 @@ export async function loginUser(
   })
 
   if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.message ?? 'Failed to login')
+    throw new Error(await getErrorMessage(response, 'Failed to login'))
   }
 
   return response.json()
@@ -62,7 +78,7 @@ export async function getCurrentUser(token: string): Promise<AuthUser> {
   })
 
   if (!response.ok) {
-    throw new Error('Invalid session')
+    throw new Error(await getErrorMessage(response, 'Invalid session'))
   }
 
   return response.json()

@@ -6,10 +6,13 @@ The current version is a database-backed job tracker. The long-term goal is to e
 
 ## Current Status
 
-The app currently supports full CRUD for job applications using a real PostgreSQL database.
+The app currently supports authenticated, user-specific CRUD for job applications using a real PostgreSQL database.
 
 Users can:
 
+* Register and log in
+* Restore a valid session after refresh
+* Log out
 * View jobs
 * Add jobs
 * Edit jobs
@@ -36,6 +39,7 @@ Users can:
 * TypeScript
 * Prisma ORM
 * PostgreSQL
+* JWT authentication
 
 ### Infrastructure
 
@@ -74,12 +78,17 @@ PostgreSQL database running in Docker
 
 ```txt id="fvy7bi"
 GET     /health
+POST    /api/auth/register
+POST    /api/auth/login
+GET     /api/auth/me
 GET     /api/jobs
 POST    /api/jobs
 PUT     /api/jobs/:id
 PATCH   /api/jobs/:id/status
 DELETE  /api/jobs/:id
 ```
+
+The jobs endpoints require an `Authorization: Bearer <token>` header.
 
 ## Job Model
 
@@ -144,22 +153,20 @@ Create a `.env` file inside `back/`:
 
 ```bash id="p542ft"
 cd back
-touch .env
+cp .env.example .env
 ```
 
-Add:
+The backend environment includes:
 
 ```env id="xig9et"
 DATABASE_URL="postgresql://jobtracker:jobtracker_password@127.0.0.1:5433/jobtracker?schema=public"
+JWT_SECRET="replace_me_with_a_real_secret"
+PORT=4000
 ```
 
-Note: If your Docker Compose maps PostgreSQL to port `5432`, use:
+Use a strong, private value for `JWT_SECRET`. The PostgreSQL port in `DATABASE_URL` must match `docker-compose.yml`. This project currently publishes Docker PostgreSQL on port `5433`.
 
-```env id="5horor"
-DATABASE_URL="postgresql://jobtracker:jobtracker_password@localhost:5432/jobtracker?schema=public"
-```
-
-Use the port that appears in your `docker-compose.yml`.
+Never commit the real `.env` file.
 
 ### 4. Install backend dependencies
 
@@ -221,8 +228,15 @@ Open a second terminal:
 
 ```bash id="jzyhsm"
 cd front
+cp .env.example .env
 npm install
 npm run dev
+```
+
+The frontend environment includes:
+
+```env
+VITE_API_BASE_URL="http://localhost:4000/api"
 ```
 
 Frontend runs on:
@@ -286,11 +300,12 @@ Warning: resetting the volume deletes local database data.
 * Replaced in-memory backend data with PostgreSQL
 * Full persistent CRUD
 * Refactored backend job response mapping
+* JWT registration and login
+* Protected, user-specific job routes
+* Frontend session validation and automatic logout on unauthorized responses
 
 ## Current Limitations
 
-* No authentication yet
-* All jobs are global, not user-specific
 * Validation is still basic
 * No automated tests yet
 * No AI features yet
