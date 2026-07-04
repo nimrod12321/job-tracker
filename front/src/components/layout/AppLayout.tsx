@@ -2,10 +2,11 @@ import type { ReactNode } from 'react'
 
 type AppLayoutProps = {
   children: ReactNode
+  userEmail?: string
   onLogout?: () => void
 }
 
-function AppLayout({ children, onLogout }: AppLayoutProps) {
+function AppLayout({ children, userEmail, onLogout }: AppLayoutProps) {
   return (
     <div className="app-layout">
       <header className="app-header">
@@ -19,11 +20,15 @@ function AppLayout({ children, onLogout }: AppLayoutProps) {
           <a href="#">Settings</a>
         </nav>
 
-        {onLogout && (
-          <button type="button" onClick={onLogout}>
-            Logout
-          </button>
-        )}
+        <div className="header-user-actions">
+          {userEmail && <span>{userEmail}</span>}
+
+          {onLogout && (
+            <button type="button" onClick={onLogout}>
+              Logout
+            </button>
+          )}
+        </div>
       </header>
 
       <main className="app-content">{children}</main>

@@ -1,6 +1,9 @@
 import type { Job, JobStatus } from '../../../types/job'
-import { getAuthToken } from '../../auth/utils/authStorage'
-
+import {
+  clearAuthToken,
+  getAuthToken,
+  notifyAuthSessionExpired,
+} from '../../auth/utils/authStorage'
 const API_BASE_URL = 'http://localhost:4000/api'
 
 function getHeaders(includeJson = false): HeadersInit {
@@ -18,6 +21,30 @@ function getHeaders(includeJson = false): HeadersInit {
 
   return headers
 }
+async function handleApiError(
+  response: Response,
+  fallbackMessage: string,
+): Promise<never> {
+  if (response.status === 401) {
+    clearAuthToken()
+    notifyAuthSessionExpired()
+    throw new Error('Session expired. Please login again.')
+  }
+
+  let message = fallbackMessage
+
+  try {
+    const error = (await response.json()) as { message?: string }
+
+    if (error.message) {
+      message = error.message
+    }
+  } catch {
+    // Keep the fallback when the response body is not valid JSON.
+  }
+
+  throw new Error(message)
+}
 
 export async function getJobs(): Promise<Job[]> {
   const response = await fetch(`${API_BASE_URL}/jobs`, {
@@ -25,7 +52,7 @@ export async function getJobs(): Promise<Job[]> {
   })
 
   if (!response.ok) {
-    throw new Error('Failed to fetch jobs')
+    await handleApiError(response, 'Failed to fetch jobs')
   }
 
   return response.json()
@@ -41,7 +68,7 @@ export async function createJob(
   })
 
   if (!response.ok) {
-    throw new Error('Failed to create job')
+    await handleApiError(response, 'Failed to create job')
   }
 
   return response.json()
@@ -55,7 +82,7 @@ export async function updateJob(job: Job): Promise<Job> {
   })
 
   if (!response.ok) {
-    throw new Error('Failed to update job')
+    await handleApiError(response, 'Failed to update job')
   }
 
   return response.json()
@@ -72,7 +99,7 @@ export async function updateJobStatus(
   })
 
   if (!response.ok) {
-    throw new Error('Failed to update job status')
+    await handleApiError(response, 'Failed to update job status')
   }
 
   return response.json()
@@ -85,6 +112,6 @@ export async function deleteJob(jobId: string): Promise<void> {
   })
 
   if (!response.ok) {
-    throw new Error('Failed to delete job')
+    await handleApiError(response, 'Failed to delete job')
   }
 }
