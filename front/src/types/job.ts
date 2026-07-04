@@ -21,6 +21,10 @@ export type Job = {
   updatedAt: string;
 };
 
+export type JobListItem = Job & {
+  hasAnalysis: boolean;
+};
+
 export type JobAnalysis = {
   id: string;
   matchScore: number;

@@ -8,6 +8,7 @@ import type { AuthenticatedRequest } from '../middleware/auth.middleware.js'
 import type {
   Job as ApiJob,
   JobDetail,
+  JobListItem,
   JobPriority,
   JobStatus,
 } from '../types/job.js'
@@ -56,6 +57,15 @@ function mapJobDetailToResponse(
   }
 }
 
+function mapJobListItemToResponse(
+  job: PrismaJob & { analysis: { id: string } | null },
+): JobListItem {
+  return {
+    ...mapJobToResponse(job),
+    hasAnalysis: Boolean(job.analysis),
+  }
+}
+
 function getUserId(req: Request) {
   return (req as AuthenticatedRequest).userId
 }
@@ -83,12 +93,19 @@ export async function getJobs(req: Request, res: Response) {
       where: {
         userId,
       },
+      include: {
+        analysis: {
+          select: {
+            id: true,
+          },
+        },
+      },
       orderBy: {
         createdAt: 'desc',
       },
     })
 
-    return res.json(dbJobs.map(mapJobToResponse))
+    return res.json(dbJobs.map(mapJobListItemToResponse))
   } catch (error) {
     console.error(error)
 

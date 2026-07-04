@@ -2,6 +2,7 @@ import type {
   Job,
   JobAnalysis,
   JobDetail,
+  JobListItem,
   JobStatus,
 } from '../../../types/job'
 import {
@@ -53,7 +54,7 @@ async function handleApiError(
   throw new Error(message)
 }
 
-export async function getJobs(): Promise<Job[]> {
+export async function getJobs(): Promise<JobListItem[]> {
   const response = await fetch(`${API_BASE_URL}/jobs`, {
     headers: getHeaders(),
   })
