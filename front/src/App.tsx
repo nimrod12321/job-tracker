@@ -71,7 +71,7 @@ function App() {
     try {
       const user = await getCurrentUser(newToken)
       setCurrentUser(user)
-      navigate('/jobs', { replace: true })
+      navigate('/dashboard', { replace: true })
     } catch {
       clearAuthToken()
       setCurrentUser(null)
@@ -93,7 +93,9 @@ function App() {
   }
 
   const isAuthenticated = Boolean(token && currentUser)
-  const authRedirect = isAuthenticated ? <Navigate to="/jobs" replace /> : null
+  const authRedirect = isAuthenticated ? (
+    <Navigate to="/dashboard" replace />
+  ) : null
 
   return (
     <Routes>
@@ -142,13 +144,13 @@ function App() {
       <Route
         path="/"
         element={
-          <Navigate to={isAuthenticated ? '/jobs' : '/login'} replace />
+          <Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />
         }
       />
       <Route
         path="*"
         element={
-          <Navigate to={isAuthenticated ? '/jobs' : '/login'} replace />
+          <Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />
         }
       />
     </Routes>

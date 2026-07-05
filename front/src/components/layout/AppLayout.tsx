@@ -19,6 +19,7 @@ function AppLayout({ userEmail, onLogout }: AppLayoutProps) {
         <nav aria-label="Main navigation">
           <NavLink
             to="/dashboard"
+            end
             className={({ isActive }) =>
               `nav-button${isActive ? ' active' : ''}`
             }
@@ -35,6 +36,7 @@ function AppLayout({ userEmail, onLogout }: AppLayoutProps) {
           </NavLink>
           <NavLink
             to="/profile"
+            end
             className={({ isActive }) =>
               `nav-button${isActive ? ' active' : ''}`
             }
