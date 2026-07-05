@@ -13,7 +13,7 @@ function AppLayout({ userEmail, onLogout }: AppLayoutProps) {
           <span className="brand-mark" aria-hidden="true">
             P
           </span>
-          <span>Peeps</span>
+          <span>Peepss</span>
         </h1>
 
         <nav aria-label="Main navigation">
@@ -25,6 +25,15 @@ function AppLayout({ userEmail, onLogout }: AppLayoutProps) {
             }
           >
             Dashboard
+          </NavLink>
+          <NavLink
+            to="/discover"
+            end
+            className={({ isActive }) =>
+              `nav-button${isActive ? ' active' : ''}`
+            }
+          >
+            Discover
           </NavLink>
           <NavLink
             to="/jobs"

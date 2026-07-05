@@ -1,6 +1,8 @@
-# Peeps
+# Peepss
 
-Peeps is a full-stack AI job-search assistant for tracking applications, maintaining a career profile, discovering relevant jobs, and comparing a resume with specific roles.
+Peepss is a full-stack AI job-search assistant for tracking applications, maintaining a career profile, discovering relevant jobs, and comparing a resume with specific roles.
+
+Production domain: [peepss.com](https://peepss.com)
 
 ## Features
 

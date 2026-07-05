@@ -236,7 +236,7 @@ function ProfilePage() {
           <div>
             <h2>Upload your resume</h2>
             <p>
-              Upload your CV and Peeps will fill the profile for you. Nothing
+              Upload your CV and Peepss will fill the profile for you. Nothing
               is saved until you review the draft and save your profile.
             </p>
           </div>
