@@ -5,6 +5,7 @@ import express, {
 } from 'express'
 import cors, { type CorsOptions } from 'cors'
 import { env } from './config/env.js'
+import discoveryRouter from './routes/discovery.routes.js'
 import jobsRouter from './routes/jobs.routes.js'
 import { authRouter } from './routes/auth.routes.js'
 import healthRouter from './routes/health.routes.js'
@@ -33,6 +34,7 @@ app.use(express.json())
 
 app.use('/api/health', healthRouter)
 app.use('/health', healthRouter)
+app.use('/api/discover', discoveryRouter)
 app.use('/api/jobs', jobsRouter)
 app.use('/api/auth', authRouter)
 app.use('/api/profile', profileRouter)
