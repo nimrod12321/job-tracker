@@ -4,10 +4,7 @@ import {
   saveProfile,
   uploadResume,
 } from '../services/profileApi'
-import type {
-  ResumeProfile,
-  ResumeProfileInput,
-} from '../types/profile'
+import type { ResumeProfileInput } from '../types/profile'
 
 type ProfileFormState = Omit<
   ResumeProfileInput,
@@ -26,7 +23,9 @@ const emptyProfile: ProfileFormState = {
   resumeText: '',
 }
 
-function profileToFormState(profile: ResumeProfile): ProfileFormState {
+function profileToFormState(
+  profile: ResumeProfileInput,
+): ProfileFormState {
   return {
     fullName: profile.fullName,
     targetRole: profile.targetRole,
@@ -48,6 +47,7 @@ function ProfilePage() {
   const [isUploading, setIsUploading] = useState(false)
   const [resumeFile, setResumeFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [warning, setWarning] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   useEffect(() => {
@@ -93,6 +93,7 @@ function ProfilePage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError(null)
+    setWarning(null)
     setSuccessMessage(null)
     setIsSaving(true)
 
@@ -115,6 +116,7 @@ function ProfilePage() {
 
   async function handleResumeUpload() {
     setError(null)
+    setWarning(null)
     setSuccessMessage(null)
 
     if (!resumeFile) {
@@ -134,10 +136,19 @@ function ProfilePage() {
 
     try {
       const result = await uploadResume(resumeFile)
-      updateField('resumeText', result.resumeText)
-      setSuccessMessage(
-        'Resume text extracted. Review and save your profile.',
-      )
+
+      if (result.warning) {
+        setForm((currentForm) => ({
+          ...currentForm,
+          resumeText: result.resumeText,
+        }))
+        setWarning(result.warning)
+      } else {
+        setForm(profileToFormState(result.profileDraft))
+        setSuccessMessage(
+          'Profile draft generated. Review it, then save your profile.',
+        )
+      }
     } catch (error) {
       setError(
         error instanceof Error ? error.message : 'Failed to upload resume',
@@ -153,7 +164,7 @@ function ProfilePage() {
         <div className="page-header">
           <div>
             <h1>Profile</h1>
-            <p>Keep your career details ready for job analysis.</p>
+            <p>Build your profile from your resume.</p>
           </div>
         </div>
         <p className="status-message">Loading profile...</p>
@@ -166,11 +177,45 @@ function ProfilePage() {
       <div className="page-header">
         <div>
           <h1>Profile</h1>
-          <p>Keep your career details ready for job analysis.</p>
+          <p>Build your profile from your resume.</p>
         </div>
       </div>
 
       <form className="profile-form" onSubmit={handleSubmit}>
+        <section className="profile-resume-upload">
+          <div>
+            <h2>Upload your resume</h2>
+            <p>
+              Upload your CV and Peeps will fill the profile for you. Nothing
+              is saved until you review the draft and save your profile.
+            </p>
+          </div>
+          <input
+            type="file"
+            accept=".pdf,application/pdf"
+            onChange={(event) => {
+              setResumeFile(event.target.files?.[0] ?? null)
+              setError(null)
+              setWarning(null)
+              setSuccessMessage(null)
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => void handleResumeUpload()}
+            disabled={isUploading}
+          >
+            {isUploading
+              ? 'Building profile...'
+              : 'Upload and build profile'}
+          </button>
+        </section>
+
+        <div className="profile-form-heading">
+          <h2>Review and save</h2>
+          <p>No resume yet? You can fill the profile manually.</p>
+        </div>
+
         <label>
           Full name
           <input
@@ -226,32 +271,6 @@ function ProfilePage() {
           />
         </label>
 
-        <section className="profile-resume-upload">
-          <div>
-            <h2>Upload PDF resume</h2>
-            <p>
-              Extracted text will be placed below for review. It will not be
-              saved until you save your profile.
-            </p>
-          </div>
-          <input
-            type="file"
-            accept=".pdf,application/pdf"
-            onChange={(event) => {
-              setResumeFile(event.target.files?.[0] ?? null)
-              setError(null)
-              setSuccessMessage(null)
-            }}
-          />
-          <button
-            type="button"
-            onClick={() => void handleResumeUpload()}
-            disabled={isUploading}
-          >
-            {isUploading ? 'Uploading resume...' : 'Upload and extract'}
-          </button>
-        </section>
-
         <label className="profile-field-wide">
           Resume text
           {!form.resumeText && (
@@ -270,6 +289,12 @@ function ProfilePage() {
         {error && (
           <p className="message message-error" role="alert">
             {error}
+          </p>
+        )}
+
+        {warning && (
+          <p className="message message-warning" role="status">
+            {warning}
           </p>
         )}
 

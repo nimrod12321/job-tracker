@@ -30,3 +30,18 @@ export const updateProfileSchema = z.object({
   experienceText: longText('experience text'),
   resumeText: longText('resume text'),
 })
+
+export const resumeProfileDraftSchema = z
+  .object({
+    fullName: z.string().trim(),
+    targetRole: z.string().trim(),
+    location: z.string().trim(),
+    salaryExpectation: z.number().int().min(0),
+    skills: z.string().trim(),
+    experienceText: z.string().trim(),
+  })
+  .strict()
+
+export type ResumeProfileDraft = z.infer<
+  typeof resumeProfileDraftSchema
+>

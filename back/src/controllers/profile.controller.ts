@@ -6,6 +6,7 @@ import {
   extractResumeText,
   ResumeParseError,
 } from '../services/resumeParser.service.js'
+import { parseResumeProfile } from '../services/resumeProfileParser.service.js'
 import { getValidationErrorMessage } from '../utils/validation.js'
 import { updateProfileSchema } from '../validations/profile.validation.js'
 
@@ -116,9 +117,32 @@ export async function uploadResume(req: Request, res: Response) {
   try {
     const resumeText = await extractResumeText(req.file.buffer)
 
-    return res.json({
-      resumeText,
-    })
+    try {
+      const parsedProfile = await parseResumeProfile(resumeText)
+
+      return res.json({
+        resumeText,
+        profileDraft: {
+          ...parsedProfile,
+          resumeText,
+        },
+      })
+    } catch {
+      return res.json({
+        resumeText,
+        profileDraft: {
+          fullName: '',
+          targetRole: '',
+          location: '',
+          salaryExpectation: 0,
+          skills: '',
+          experienceText: '',
+          resumeText,
+        },
+        warning:
+          'Resume text was extracted, but automatic profile parsing failed. You can still review and save manually.',
+      })
+    }
   } catch (error) {
     console.error(error)
 

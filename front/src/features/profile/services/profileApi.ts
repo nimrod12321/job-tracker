@@ -80,7 +80,11 @@ export async function saveProfile(
 
 export async function uploadResume(
   file: File,
-): Promise<{ resumeText: string }> {
+): Promise<{
+  resumeText: string
+  profileDraft: ResumeProfileInput
+  warning?: string
+}> {
   const formData = new FormData()
   formData.append('resume', file)
 
