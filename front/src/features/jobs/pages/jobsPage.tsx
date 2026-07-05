@@ -48,7 +48,9 @@ function JobsPage() {
 
         setJobs((currentJobs) =>
           currentJobs.map((job) =>
-            job.id === updatedJob.id ? updatedJob : job,
+            job.id === updatedJob.id
+              ? { ...job, ...updatedJob }
+              : job,
           ),
         );
         setSuccessMessage('Job updated successfully.');
@@ -113,7 +115,7 @@ function JobsPage() {
 
       setJobs((currentJobs) =>
         currentJobs.map((job) =>
-          job.id === jobId ? updatedJob : job,
+          job.id === jobId ? { ...job, ...updatedJob } : job,
         ),
       );
     } catch (error) {

@@ -19,6 +19,9 @@ export type Job = {
   salaryMax: number;
   createdAt: string;
   updatedAt: string;
+  matchScore?: number;
+  matchSummary?: string;
+  analysisUpdatedAt?: string;
 };
 
 export type JobListItem = Job & {

@@ -6,7 +6,7 @@ import type {
 } from '../../../types/job'
 import { getJobs } from '../../jobs/services/jobsApi'
 
-const statusCards: Array<{ status: JobStatus; label: string }> = [
+const pipelineStatuses: Array<{ status: JobStatus; label: string }> = [
   { status: 'applied', label: 'Applied' },
   { status: 'HR', label: 'HR' },
   { status: 'technical', label: 'Technical' },
@@ -26,6 +26,14 @@ function StatCard({ label, value }: StatCardProps) {
       <strong>{value}</strong>
     </article>
   )
+}
+
+function getShortMatchSummary(summary: string) {
+  const normalizedSummary = summary.replace(/\s+/g, ' ').trim()
+
+  return normalizedSummary.length > 120
+    ? `${normalizedSummary.slice(0, 117).trimEnd()}…`
+    : normalizedSummary
 }
 
 function DashboardPage() {
@@ -153,17 +161,25 @@ function DashboardPage() {
 
       <div className="dashboard-stats">
         <StatCard label="Total jobs" value={jobs.length} />
-        {statusCards.map(({ status, label }) => (
-          <StatCard
-            key={status}
-            label={label}
-            value={statusCounts[status]}
-          />
-        ))}
         <StatCard label="High priority jobs" value={highPriorityCount} />
         <StatCard label="AI analyzed jobs" value={analyzedCount} />
-        <StatCard label="Average wanted salary" value={averageSalary} />
+        <StatCard label="Average salary" value={averageSalary} />
       </div>
+
+      <section className="dashboard-pipeline">
+        <div>
+          <h2>Application pipeline</h2>
+          <p>Where your applications stand right now.</p>
+        </div>
+        <div className="dashboard-pipeline-counts">
+          {pipelineStatuses.map(({ status, label }) => (
+            <span key={status}>
+              {label}
+              <strong>{statusCounts[status]}</strong>
+            </span>
+          ))}
+        </div>
+      </section>
 
       <section className="dashboard-recent">
         <div className="dashboard-section-header">
@@ -184,11 +200,25 @@ function DashboardPage() {
               <div>
                 <strong>{job.position}</strong>
                 <span>{job.company}</span>
+                <div className="dashboard-recent-meta">
+                  <span>{job.status}</span>
+                  <span>{job.priority} priority</span>
+                  <time>{job.dateApplied || job.createdAt}</time>
+                </div>
               </div>
-              <div className="dashboard-recent-meta">
-                <span>{job.status}</span>
-                <span>{job.priority} priority</span>
-                <time>{job.dateApplied || job.createdAt}</time>
+              <div className="dashboard-recent-match">
+                {job.matchScore !== undefined ? (
+                  <>
+                    <strong>{job.matchScore}% match</strong>
+                    <span>
+                      {job.matchSummary
+                        ? getShortMatchSummary(job.matchSummary)
+                        : 'Analysis available'}
+                    </span>
+                  </>
+                ) : (
+                  <span>Not analyzed yet</span>
+                )}
               </div>
             </Link>
           ))}

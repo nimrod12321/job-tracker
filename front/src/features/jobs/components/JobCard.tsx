@@ -17,7 +17,32 @@ const statusOptions: JobStatus[] = [
   'offer',
 ];
 
-function getSalaryRange(job: Job) {
+function truncateText(value: string, maxLength: number) {
+  const normalizedValue = value.replace(/\s+/g, ' ').trim();
+
+  if (normalizedValue.length <= maxLength) {
+    return normalizedValue;
+  }
+
+  const shortenedValue = normalizedValue.slice(0, maxLength);
+  const lastSpace = shortenedValue.lastIndexOf(' ');
+
+  return `${shortenedValue.slice(0, lastSpace > 80 ? lastSpace : maxLength)}…`;
+}
+
+function getJobSummary(jobDescription: string) {
+  const normalizedDescription = jobDescription.replace(/\s+/g, ' ').trim();
+
+  if (!normalizedDescription) {
+    return 'No description yet';
+  }
+
+  const firstSentence = normalizedDescription.match(/^.*?[.!?](?:\s|$)/)?.[0];
+
+  return truncateText(firstSentence || normalizedDescription, 160);
+}
+
+function getSalaryDisplay(job: Job) {
   if (job.salaryMin && job.salaryMax) {
     return `$${job.salaryMin.toLocaleString()} – $${job.salaryMax.toLocaleString()}`;
   }
@@ -30,78 +55,88 @@ function getSalaryRange(job: Job) {
     return `Up to $${job.salaryMax.toLocaleString()}`;
   }
 
-  return '';
+  if (job.wantedSalary) {
+    return `$${job.wantedSalary.toLocaleString()}`;
+  }
+
+  return 'Not listed';
 }
 
 function JobCard({ job, onDeleteJob, onChangeStatus, onEditJob }: JobCardProps) {
   const [isEditingStatus, setIsEditingStatus] = useState(false);
-  const salaryRange = getSalaryRange(job);
+  const salaryDisplay = getSalaryDisplay(job);
+  const jobSummary = getJobSummary(job.jobDescription);
 
   return (
     <div className="job-card">
-      <h2>{job.position} at {job.company}</h2>
-
-      <p className="job-status">
-        Status:{' '}
-        {isEditingStatus ? (
-          <select
-            className="job-status-select"
-            autoFocus
-            value={job.status}
-            aria-label={`Change status for ${job.position} at ${job.company}`}
-            onBlur={() => setIsEditingStatus(false)}
-            onChange={(event) => {
-              onChangeStatus(job.id, event.target.value as JobStatus);
-              setIsEditingStatus(false);
-            }}
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') {
+      <div className="job-card-header">
+        <div>
+          <p className="job-card-company">{job.company}</p>
+          <h2>{job.position}</h2>
+        </div>
+        <div className="job-card-badges">
+          <span className={`priority-badge priority-${job.priority}`}>
+            {job.priority}
+          </span>
+          {isEditingStatus ? (
+            <select
+              className="job-status-select"
+              autoFocus
+              value={job.status}
+              aria-label={`Change status for ${job.position} at ${job.company}`}
+              onBlur={() => setIsEditingStatus(false)}
+              onChange={(event) => {
+                onChangeStatus(job.id, event.target.value as JobStatus);
                 setIsEditingStatus(false);
-              }
-            }}
-          >
-            {statusOptions.map((statusOption) => (
-              <option key={statusOption} value={statusOption}>
-                {statusOption}
-              </option>
-            ))}
-          </select>
-        ) : (
-          <button
-            className="job-status-button"
-            type="button"
-            aria-label={`Change status. Current status: ${job.status}`}
-            onClick={() => setIsEditingStatus(true)}
-          >
-            {job.status}
-          </button>
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') {
+                  setIsEditingStatus(false);
+                }
+              }}
+            >
+              {statusOptions.map((statusOption) => (
+                <option key={statusOption} value={statusOption}>
+                  {statusOption}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <button
+              className="job-status-button"
+              type="button"
+              aria-label={`Change status. Current status: ${job.status}`}
+              onClick={() => setIsEditingStatus(true)}
+            >
+              {job.status}
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="job-card-meta">
+        <span>{job.location || 'Location not listed'}</span>
+        {job.source && <span>Source: {job.source}</span>}
+        {job.dateApplied && (
+          <time dateTime={job.dateApplied}>Applied {job.dateApplied}</time>
         )}
+      </div>
+
+      <p className="job-card-summary">{jobSummary}</p>
+
+      <p className="job-card-salary">
+        <span>Salary</span>
+        <strong>{salaryDisplay}</strong>
       </p>
 
-      <p>Location: {job.location}</p>
-      <p>Wanted Salary: ${job.wantedSalary}</p>
-      <div className="job-card-extra">
-        <span>
-          Priority: <strong>{job.priority}</strong>
-        </span>
-        {job.source && <span>Source: {job.source}</span>}
-        {salaryRange && <span>Salary range: {salaryRange}</span>}
-        {job.dateApplied && (
-          <span>
-            Applied:{' '}
-            <time dateTime={job.dateApplied}>{job.dateApplied}</time>
-          </span>
-        )}
-      </div>
-      <div className="job-card-dates">
-        <span>
-          Created <time dateTime={job.createdAt}>{job.createdAt}</time>
-        </span>
-        <span>
-          Updated <time dateTime={job.updatedAt}>{job.updatedAt}</time>
-        </span>
-      </div>
-      <p>Notes: {job.notes}</p>
+      {job.matchScore !== undefined && (
+        <div className="job-card-match">
+          <strong>{job.matchScore}% match</strong>
+          {job.matchSummary && (
+            <span>{truncateText(job.matchSummary, 140)}</span>
+          )}
+        </div>
+      )}
 
       <div className="job-card-actions">
         <Link className="view-job-link" to={`/jobs/${job.id}`}>

@@ -58,11 +58,25 @@ function mapJobDetailToResponse(
 }
 
 function mapJobListItemToResponse(
-  job: PrismaJob & { analysis: { id: string } | null },
+  job: PrismaJob & {
+    analysis: {
+      id: string
+      matchScore: number
+      fitSummary: string
+      updatedAt: Date
+    } | null
+  },
 ): JobListItem {
   return {
     ...mapJobToResponse(job),
     hasAnalysis: Boolean(job.analysis),
+    ...(job.analysis
+      ? {
+          matchScore: job.analysis.matchScore,
+          matchSummary: job.analysis.fitSummary,
+          analysisUpdatedAt: formatDate(job.analysis.updatedAt),
+        }
+      : {}),
   }
 }
 
@@ -97,6 +111,9 @@ export async function getJobs(req: Request, res: Response) {
         analysis: {
           select: {
             id: true,
+            matchScore: true,
+            fitSummary: true,
+            updatedAt: true,
           },
         },
       },
