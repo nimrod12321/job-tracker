@@ -1,5 +1,9 @@
-import express, { type ErrorRequestHandler } from 'express'
-import cors from 'cors'
+import express, {
+  type NextFunction,
+  type Request,
+  type Response,
+} from 'express'
+import cors, { type CorsOptions } from 'cors'
 import { env } from './config/env.js'
 import jobsRouter from './routes/jobs.routes.js'
 import { authRouter } from './routes/auth.routes.js'
@@ -13,18 +17,18 @@ if (env.nodeEnv !== 'production') {
   allowedOrigins.add('http://localhost:5173')
 }
 
-app.use(
-  cors({
-    origin(origin, callback) {
-      const normalizedOrigin = origin?.replace(/\/+$/, '')
+const corsOptions: CorsOptions = {
+  origin(origin, callback) {
+    const normalizedOrigin = origin?.replace(/\/+$/, '')
 
-      callback(
-        null,
-        !normalizedOrigin || allowedOrigins.has(normalizedOrigin),
-      )
-    },
-  }),
-)
+    callback(
+      null,
+      !normalizedOrigin || allowedOrigins.has(normalizedOrigin),
+    )
+  },
+}
+
+app.use(cors(corsOptions))
 app.use(express.json())
 
 app.use('/api/health', healthRouter)
@@ -33,7 +37,12 @@ app.use('/api/jobs', jobsRouter)
 app.use('/api/auth', authRouter)
 app.use('/api/profile', profileRouter)
 
-const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
+const errorHandler = (
+  error: unknown,
+  _req: Request,
+  res: Response,
+  _next: NextFunction,
+) => {
   console.error('Unhandled request error:', error)
 
   if (error instanceof SyntaxError && 'body' in error) {
