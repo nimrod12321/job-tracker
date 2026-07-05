@@ -4,6 +4,7 @@ import {
   getDiscoveryJobs,
   recordDiscoveryDecision,
 } from '../services/discoveryApi'
+import SwipeJobCard from '../components/SwipeJobCard'
 import type {
   DiscoveryDecisionValue,
   DiscoveryJob,
@@ -11,20 +12,6 @@ import type {
 
 const PROFILE_REQUIRED_MESSAGE =
   'Upload your resume or complete your profile before using Discover.'
-
-function getSalaryDisplay(job: DiscoveryJob) {
-  const confirmedSalary = job.salaryText.trim()
-
-  if (confirmedSalary && confirmedSalary !== 'Salary not listed') {
-    return confirmedSalary
-  }
-
-  if (job.estimatedSalary.trim()) {
-    return `${job.estimatedSalary} (estimated)`
-  }
-
-  return confirmedSalary || 'Salary not listed'
-}
 
 function DiscoverPage() {
   const [jobs, setJobs] = useState<DiscoveryJob[]>([])
@@ -109,9 +96,11 @@ function DiscoverPage() {
 
   const activeJob = jobs[activeIndex]
 
-  async function handleDecision(decision: DiscoveryDecisionValue) {
+  async function handleDecision(
+    decision: DiscoveryDecisionValue,
+  ): Promise<boolean> {
     if (!activeJob || isRecording) {
-      return
+      return false
     }
 
     setIsRecording(true)
@@ -142,12 +131,14 @@ function DiscoverPage() {
       )
       setFeedback(decision === 'liked' ? 'Liked' : 'Skipped')
       setActiveIndex((currentIndex) => currentIndex + 1)
+      return true
     } catch (error) {
       setError(
         error instanceof Error
           ? error.message
           : 'Failed to record discovery decision',
       )
+      return false
     } finally {
       setIsRecording(false)
     }
@@ -285,91 +276,12 @@ function DiscoverPage() {
         </p>
       )}
 
-      <article className="discover-card">
-        <div className="discover-card-topline">
-          <div>
-            <p className="discover-company">{activeJob.company}</p>
-            <h2>{activeJob.position}</h2>
-          </div>
-          <span className={`discover-priority ${activeJob.priority}`}>
-            {activeJob.priority}
-          </span>
-        </div>
-
-        <div className="discover-meta">
-          <span>{activeJob.location || 'Location not listed'}</span>
-          <span>{activeJob.source}</span>
-        </div>
-
-        <div className="discover-fit">
-          <strong>{activeJob.fitScore}% fit</strong>
-          <p>{activeJob.fitReason}</p>
-        </div>
-
-        <p className="discover-summary">{activeJob.summary}</p>
-
-        <ul className="discover-key-details">
-          {activeJob.keyDetails.slice(0, 4).map((detail) => (
-            <li key={detail}>{detail}</li>
-          ))}
-        </ul>
-
-        <div className="discover-salary">
-          <span>Salary</span>
-          <strong>{getSalaryDisplay(activeJob)}</strong>
-        </div>
-
-        {activeJob.concerns.length > 0 && (
-          <div className="discover-concerns">
-            <strong>
-              {activeJob.concerns.length === 1 ? 'Concern' : 'Concerns'}
-            </strong>
-            <ul>
-              {activeJob.concerns.map((concern) => (
-                <li key={concern}>{concern}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {activeJob.jobDescription && (
-          <details className="discover-details">
-            <summary>More details</summary>
-            <p>{activeJob.jobDescription}</p>
-          </details>
-        )}
-
-        <div className="discover-actions">
-          <button
-            className="discover-dislike-button"
-            type="button"
-            disabled={isRecording}
-            onClick={() => void handleDecision('disliked')}
-          >
-            {isRecording ? 'Saving...' : 'Dislike'}
-          </button>
-
-          {activeJob.jobUrl && (
-            <a
-              className="discover-open-link"
-              href={activeJob.jobUrl}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Open job
-            </a>
-          )}
-
-          <button
-            className="discover-like-button"
-            type="button"
-            disabled={isRecording}
-            onClick={() => void handleDecision('liked')}
-          >
-            {isRecording ? 'Saving...' : 'Like'}
-          </button>
-        </div>
-      </article>
+      <SwipeJobCard
+        key={`${activeJob.source}-${activeJob.externalId}`}
+        job={activeJob}
+        isRecording={isRecording}
+        onDecision={handleDecision}
+      />
     </section>
   )
 }

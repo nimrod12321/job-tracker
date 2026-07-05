@@ -1567,6 +1567,7 @@ textarea:focus-visible {
 .discover-page {
   display: grid;
   gap: 1.25rem;
+  overflow-x: hidden;
 }
 
 .discover-header-actions {
@@ -1592,6 +1593,53 @@ textarea:focus-visible {
   padding: clamp(1.25rem, 3vw, 2rem);
   background: var(--surface);
   box-shadow: var(--shadow-soft);
+}
+
+.swipe-job-card {
+  position: relative;
+  touch-action: pan-y;
+  user-select: none;
+  cursor: grab;
+  will-change: transform;
+  transition:
+    transform 220ms ease,
+    box-shadow 180ms ease;
+}
+
+.swipe-job-card.is-dragging {
+  cursor: grabbing;
+  transition: none;
+}
+
+.swipe-job-card.is-committing {
+  pointer-events: none;
+  transition: transform 220ms ease-out;
+}
+
+.swipe-hint {
+  position: absolute;
+  z-index: 2;
+  top: 4.75rem;
+  border: 2px solid currentcolor;
+  border-radius: 9px;
+  padding: 0.35rem 0.55rem;
+  background: rgb(255 255 255 / 92%);
+  font-size: 0.85rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  pointer-events: none;
+}
+
+.swipe-like-hint {
+  left: 1.25rem;
+  color: var(--success);
+  transform: rotate(-8deg);
+}
+
+.swipe-dislike-hint {
+  right: 1.25rem;
+  color: var(--danger);
+  transform: rotate(8deg);
 }
 
 .discover-card-topline {
@@ -2508,6 +2556,10 @@ textarea:focus-visible {
   .discover-header-actions {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .swipe-hint {
+    top: 4rem;
   }
 
   .discover-fit,
