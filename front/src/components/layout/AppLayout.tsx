@@ -28,7 +28,6 @@ function AppLayout({ userEmail, onLogout }: AppLayoutProps) {
           </NavLink>
           <NavLink
             to="/discover"
-            end
             className={({ isActive }) =>
               `nav-button${isActive ? ' active' : ''}`
             }

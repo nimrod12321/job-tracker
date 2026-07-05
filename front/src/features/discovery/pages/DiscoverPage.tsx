@@ -237,12 +237,15 @@ function DiscoverPage() {
         <div className="empty-state discover-empty-state">
           <h2>You're done for now.</h2>
           <p>Review liked jobs soon or fetch another batch.</p>
-          <button
-            type="button"
-            onClick={() => void loadJobs(excludeExternalIds)}
-          >
-            Find another batch
-          </button>
+          <div className="discover-end-actions">
+            <Link to="/discover/liked">View liked jobs</Link>
+            <button
+              type="button"
+              onClick={() => void loadJobs(excludeExternalIds)}
+            >
+              Find another batch
+            </button>
+          </div>
         </div>
         {feedback && (
           <p className="discover-feedback" aria-live="polite">
@@ -260,9 +263,14 @@ function DiscoverPage() {
           <h1>Discover</h1>
           <p>This is the best next job Peepss found for you.</p>
         </div>
-        <span>
-          {activeIndex + 1} of {jobs.length}
-        </span>
+        <div className="discover-header-actions">
+          <Link className="secondary-action-link" to="/discover/liked">
+            View liked jobs
+          </Link>
+          <span>
+            {activeIndex + 1} of {jobs.length}
+          </span>
+        </div>
       </div>
 
       {feedback && (

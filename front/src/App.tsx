@@ -12,6 +12,7 @@ import {
 import AuthPage from './features/auth/pages/AuthPage'
 import DashboardPage from './features/dashboard/pages/DashboardPage'
 import DiscoverPage from './features/discovery/pages/DiscoverPage'
+import LikedJobsPage from './features/discovery/pages/LikedJobsPage'
 import JobDetailPage from './features/jobs/pages/JobDetailPage'
 import ImportJobPage from './features/jobs/pages/ImportJobPage'
 import JobsPage from './features/jobs/pages/jobsPage'
@@ -136,6 +137,7 @@ function App() {
         >
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/discover" element={<DiscoverPage />} />
+          <Route path="/discover/liked" element={<LikedJobsPage />} />
           <Route path="/jobs" element={<JobsPage />} />
           <Route path="/jobs/import" element={<ImportJobPage />} />
           <Route path="/jobs/:jobId" element={<JobDetailPage />} />
