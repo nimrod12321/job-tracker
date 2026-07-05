@@ -81,8 +81,8 @@ export async function saveProfile(
 export async function uploadResume(
   file: File,
 ): Promise<{
-  resumeText: string
-  profileDraft: ResumeProfileInput
+  resumeText?: string
+  profileDraft?: Partial<ResumeProfileInput> | null
   warning?: string
 }> {
   const formData = new FormData()

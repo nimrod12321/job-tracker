@@ -23,6 +23,43 @@ const emptyProfile: ProfileFormState = {
   resumeText: '',
 }
 
+const PROFILE_PARSE_WARNING =
+  'Resume text was extracted, but automatic profile parsing failed. You can still review and save manually.'
+
+function isCompleteProfileDraft(
+  profile: Partial<ResumeProfileInput> | null | undefined,
+): profile is ResumeProfileInput {
+  return Boolean(
+    profile &&
+      typeof profile.fullName === 'string' &&
+      typeof profile.targetRole === 'string' &&
+      typeof profile.location === 'string' &&
+      typeof profile.salaryExpectation === 'number' &&
+      typeof profile.skills === 'string' &&
+      typeof profile.experienceText === 'string' &&
+      typeof profile.resumeText === 'string',
+  )
+}
+
+function getSafeProfileDraft(
+  profile: Partial<ResumeProfileInput> | null | undefined,
+  resumeText: string,
+): ResumeProfileInput {
+  if (isCompleteProfileDraft(profile)) {
+    return profile
+  }
+
+  return {
+    fullName: '',
+    targetRole: '',
+    location: '',
+    salaryExpectation: 0,
+    skills: '',
+    experienceText: '',
+    resumeText,
+  }
+}
+
 function profileToFormState(
   profile: ResumeProfileInput,
 ): ProfileFormState {
@@ -136,15 +173,28 @@ function ProfilePage() {
 
     try {
       const result = await uploadResume(resumeFile)
+      const extractedResumeText =
+        typeof result.resumeText === 'string'
+          ? result.resumeText
+          : typeof result.profileDraft?.resumeText === 'string'
+            ? result.profileDraft.resumeText
+            : ''
+      const hasCompleteDraft = isCompleteProfileDraft(
+        result.profileDraft,
+      )
+      const draft = getSafeProfileDraft(
+        result.profileDraft,
+        extractedResumeText,
+      )
 
-      if (result.warning) {
+      if (result.warning || !hasCompleteDraft) {
         setForm((currentForm) => ({
           ...currentForm,
-          resumeText: result.resumeText,
+          resumeText: draft.resumeText,
         }))
-        setWarning(result.warning)
+        setWarning(result.warning || PROFILE_PARSE_WARNING)
       } else {
-        setForm(profileToFormState(result.profileDraft))
+        setForm(profileToFormState(draft))
         setSuccessMessage(
           'Profile draft generated. Review it, then save your profile.',
         )
