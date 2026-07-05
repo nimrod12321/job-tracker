@@ -35,3 +35,28 @@ export type DiscoveryDecision = {
   createdAt: string
   updatedAt: string
 }
+
+export type DiscoveryFeedInput = {
+  limit?: number
+  excludeExternalIds?: string[]
+}
+
+export type DiscoveryJob = {
+  externalId: string
+  company: string
+  position: string
+  location: string
+  source: string
+  jobUrl: string
+  companyUrl: string
+  jobDescription: string
+  summary: string
+  keyDetails: string[]
+  salaryText: string
+  estimatedSalary: string
+  salaryIsEstimated: boolean
+  fitScore: number
+  fitReason: string
+  concerns: string[]
+  priority: 'low' | 'medium' | 'high'
+}

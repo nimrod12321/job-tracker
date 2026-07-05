@@ -7,6 +7,8 @@ import {
 import type {
   DiscoveryDecision,
   DiscoveryDecisionInput,
+  DiscoveryFeedInput,
+  DiscoveryJob,
 } from '../types/discovery'
 
 function getHeaders(): HeadersInit {
@@ -81,4 +83,24 @@ export async function getLikedDiscoveryJobs(): Promise<
   }
 
   return response.json()
+}
+
+export async function getDiscoveryJobs(
+  input: DiscoveryFeedInput = {},
+): Promise<DiscoveryJob[]> {
+  const response = await fetch(`${API_BASE_URL}/discover/jobs`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(input),
+  })
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to load discovery jobs')
+  }
+
+  const result = (await response.json()) as {
+    jobs: DiscoveryJob[]
+  }
+
+  return result.jobs
 }

@@ -40,3 +40,26 @@ export const discoveryDecisionSchema = z
     }),
   })
   .strict()
+
+export const discoveryFeedRequestSchema = z
+  .object({
+    limit: z
+      .number({ error: 'limit must be a number' })
+      .int('limit must be a whole number')
+      .min(1, 'limit must be at least 1')
+      .max(10, 'limit must be at most 10')
+      .optional()
+      .default(10),
+    excludeExternalIds: z
+      .array(
+        z
+          .string({ error: 'excluded external id must be a string' })
+          .trim()
+          .min(1, 'excluded external id cannot be empty')
+          .max(500, 'excluded external id is too long'),
+      )
+      .max(100, 'too many excluded external ids')
+      .optional()
+      .default([]),
+  })
+  .strict()

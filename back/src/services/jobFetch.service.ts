@@ -90,6 +90,7 @@ export type ExternalJobDraft = {
 
 type FetchExternalJobsInput = ProviderFetchInput & {
   profile: ResumeProfile | null
+  useAiRanking?: boolean
 }
 
 type RelevanceContext = {
@@ -398,6 +399,7 @@ export async function fetchExternalJobs({
   location,
   limit,
   profile,
+  useAiRanking = true,
 }: FetchExternalJobsInput): Promise<ExternalJobDraft[]> {
   const skills = getSkills(profile)
   const searchQuery = buildSearchQuery(query, profile, skills)
@@ -456,7 +458,11 @@ export async function fetchExternalJobs({
     .slice(0, candidateLimit)
     .map(({ hasTextMatch: _hasTextMatch, ...job }) => job)
 
-  if (!profile || deterministicJobs.length === 0) {
+  if (
+    !useAiRanking ||
+    !profile ||
+    deterministicJobs.length === 0
+  ) {
     return deterministicJobs.slice(0, limit)
   }
 
