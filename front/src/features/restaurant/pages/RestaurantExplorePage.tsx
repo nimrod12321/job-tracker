@@ -4,20 +4,11 @@ import {
   applyToRestaurantJob,
   getRestaurantExploreJobs,
 } from '../services/restaurantApi'
-import {
-  RESTAURANT_ROLES,
-  type RestaurantExploreJob,
-  type RestaurantRole,
-} from '../types/restaurant'
+import RestaurantSwipeCard from '../components/RestaurantSwipeCard'
+import type { RestaurantExploreJob } from '../types/restaurant'
 
 const PROFILE_REQUIRED_MESSAGE =
   'Complete your restaurant profile to start exploring jobs.'
-
-function getRoleLabel(role: RestaurantRole) {
-  return (
-    RESTAURANT_ROLES.find((option) => option.value === role)?.label ?? role
-  )
-}
 
 function RestaurantExplorePage() {
   const [jobs, setJobs] = useState<RestaurantExploreJob[]>([])
@@ -106,20 +97,21 @@ function RestaurantExplorePage() {
     )
   }
 
-  function handleSkip() {
+  function handleSkip(): boolean {
     if (!activeJob || isApplying) {
-      return
+      return false
     }
 
     rememberJob(activeJob.id)
     setError(null)
     setFeedback('Skipped')
     setActiveIndex((currentIndex) => currentIndex + 1)
+    return true
   }
 
-  async function handleApply() {
+  async function handleApply(): Promise<boolean> {
     if (!activeJob || isApplying) {
-      return
+      return false
     }
 
     setIsApplying(true)
@@ -131,12 +123,14 @@ function RestaurantExplorePage() {
       rememberJob(activeJob.id)
       setFeedback('Application sent')
       setActiveIndex((currentIndex) => currentIndex + 1)
+      return true
     } catch (error) {
       setError(
         error instanceof Error
           ? error.message
           : 'Failed to apply to restaurant job',
       )
+      return false
     } finally {
       setIsApplying(false)
     }
@@ -207,7 +201,7 @@ function RestaurantExplorePage() {
           </div>
         </div>
         <div className="empty-state restaurant-empty-state">
-          <h2>No more matching jobs right now.</h2>
+          <h2>No more restaurant jobs right now.</h2>
           <p>Check again later or update your wanted roles and location.</p>
           <div className="restaurant-empty-actions">
             <Link to="/restaurant/profile">Update profile</Link>
@@ -215,7 +209,7 @@ function RestaurantExplorePage() {
               type="button"
               onClick={() => void loadJobs(excludeJobIds)}
             >
-              Check again
+              Find more jobs
             </button>
           </div>
         </div>
@@ -227,8 +221,6 @@ function RestaurantExplorePage() {
       </section>
     )
   }
-
-  const whatsappNumber = activeJob.contactWhatsapp.replace(/\D/g, '')
 
   return (
     <section className="restaurant-explore-page">
@@ -254,74 +246,13 @@ function RestaurantExplorePage() {
         </p>
       )}
 
-      <article className="restaurant-job-card">
-        <p className="restaurant-job-name">{activeJob.restaurantName}</p>
-        <h2>{getRoleLabel(activeJob.role)}</h2>
-        <p className="restaurant-job-location">
-          {[activeJob.location, activeJob.area].filter(Boolean).join(' · ')}
-        </p>
-
-        {activeJob.shiftInfo && (
-          <div className="restaurant-job-highlight">
-            <span>Shifts</span>
-            <strong>{activeJob.shiftInfo}</strong>
-          </div>
-        )}
-
-        {activeJob.description && (
-          <p className="restaurant-job-description">
-            {activeJob.description}
-          </p>
-        )}
-
-        {activeJob.requirements && (
-          <div className="restaurant-job-requirements">
-            <strong>What they need</strong>
-            <p>{activeJob.requirements}</p>
-          </div>
-        )}
-
-        {(activeJob.contactPhone || whatsappNumber) && (
-          <div className="restaurant-job-contact">
-            <strong>Contact</strong>
-            <div>
-              {activeJob.contactPhone && (
-                <a href={`tel:${activeJob.contactPhone}`}>
-                  Call {activeJob.contactPhone}
-                </a>
-              )}
-              {whatsappNumber && (
-                <a
-                  href={`https://wa.me/${whatsappNumber}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Open WhatsApp
-                </a>
-              )}
-            </div>
-          </div>
-        )}
-
-        <div className="restaurant-job-actions">
-          <button
-            className="restaurant-skip-button"
-            type="button"
-            disabled={isApplying}
-            onClick={handleSkip}
-          >
-            Skip
-          </button>
-          <button
-            className="restaurant-apply-button"
-            type="button"
-            disabled={isApplying}
-            onClick={() => void handleApply()}
-          >
-            {isApplying ? 'Applying...' : 'Like · Apply'}
-          </button>
-        </div>
-      </article>
+      <RestaurantSwipeCard
+        key={activeJob.id}
+        job={activeJob}
+        isApplying={isApplying}
+        onApply={handleApply}
+        onSkip={handleSkip}
+      />
     </section>
   )
 }

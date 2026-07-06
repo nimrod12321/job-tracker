@@ -2643,6 +2643,53 @@ textarea:focus-visible {
   box-shadow: var(--shadow-soft);
 }
 
+.restaurant-swipe-card {
+  position: relative;
+  touch-action: pan-y;
+  user-select: none;
+  cursor: grab;
+  will-change: transform;
+  transition:
+    transform 220ms ease,
+    box-shadow 180ms ease;
+}
+
+.restaurant-swipe-card.is-dragging {
+  cursor: grabbing;
+  transition: none;
+}
+
+.restaurant-swipe-card.is-committing {
+  pointer-events: none;
+  transition: transform 220ms ease-out;
+}
+
+.restaurant-swipe-hint {
+  position: absolute;
+  z-index: 2;
+  top: 4.5rem;
+  border: 2px solid currentcolor;
+  border-radius: 9px;
+  padding: 0.35rem 0.55rem;
+  background: rgb(255 255 255 / 92%);
+  font-size: 0.85rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  pointer-events: none;
+}
+
+.restaurant-apply-hint {
+  left: 1.25rem;
+  color: var(--success);
+  transform: rotate(-8deg);
+}
+
+.restaurant-skip-hint {
+  right: 1.25rem;
+  color: var(--danger);
+  transform: rotate(8deg);
+}
+
 .restaurant-job-name {
   margin: 0;
   color: var(--accent);
@@ -2682,10 +2729,14 @@ textarea:focus-visible {
 }
 
 .restaurant-job-description {
+  display: -webkit-box;
   margin: 1.2rem 0 0;
+  overflow: hidden;
   color: #374151;
   font-size: 1rem;
   line-height: 1.6;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
 .restaurant-job-requirements,
@@ -2696,9 +2747,13 @@ textarea:focus-visible {
 }
 
 .restaurant-job-requirements p {
+  display: -webkit-box;
   margin: 0.35rem 0 0;
+  overflow: hidden;
   color: var(--muted);
   line-height: 1.5;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .restaurant-job-contact > div {
@@ -2892,6 +2947,10 @@ textarea:focus-visible {
 
   .restaurant-explore-header {
     align-items: flex-start;
+  }
+
+  .restaurant-swipe-hint {
+    top: 4rem;
   }
 
   .restaurant-job-actions {
