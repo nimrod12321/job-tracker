@@ -29,6 +29,7 @@ enum DiscoveryDecision {
 enum UserTrack {
   highTech
   restaurant
+  restaurantOwner
 }
 
 enum RestaurantRole {
@@ -82,6 +83,7 @@ model User {
   resumeProfile           ResumeProfile?
   discoveryDecisions      JobDiscoveryDecision[]
   restaurantWorkerProfile RestaurantWorkerProfile?
+  restaurantOwnerProfile  RestaurantOwnerProfile?
   restaurantApplications  RestaurantApplication[]
 }
 
@@ -178,6 +180,9 @@ model RestaurantJob {
   contactWhatsapp String         @default("")
   isActive        Boolean        @default(true)
 
+  ownerProfileId String?
+  ownerProfile   RestaurantOwnerProfile? @relation(fields: [ownerProfileId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -186,6 +191,27 @@ model RestaurantJob {
   @@index([role])
   @@index([location])
   @@index([isActive])
+  @@index([ownerProfileId])
+}
+
+model RestaurantOwnerProfile {
+  id String @id @default(uuid())
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  restaurantName String @default("")
+  contactPerson  String @default("")
+  phoneNumber    String @default("")
+  whatsappNumber String @default("")
+  location       String @default("")
+  area           String @default("")
+  description    String @default("")
+
+  jobs RestaurantJob[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model RestaurantApplication {

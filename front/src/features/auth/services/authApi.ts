@@ -17,7 +17,7 @@ async function getErrorMessage(
   return fallbackMessage
 }
 
-export type UserTrack = 'highTech' | 'restaurant'
+export type UserTrack = 'highTech' | 'restaurant' | 'restaurantOwner'
 
 export type AuthUser = {
   id: string

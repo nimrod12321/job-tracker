@@ -81,7 +81,7 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
                   onChange={() => setTrack('highTech')}
                 />
                 <span>
-                  <strong>High-tech</strong>
+                  <strong>High-tech job seeker</strong>
                   <small>Tech jobs, AI matching, and application tracking</small>
                 </span>
               </label>
@@ -96,6 +96,19 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
                 <span>
                   <strong>Restaurant worker</strong>
                   <small>Simple restaurant jobs and quick applications</small>
+                </span>
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name="track"
+                  value="restaurantOwner"
+                  checked={track === 'restaurantOwner'}
+                  onChange={() => setTrack('restaurantOwner')}
+                />
+                <span>
+                  <strong>Restaurant owner</strong>
+                  <small>Create and manage restaurant job posts</small>
                 </span>
               </label>
             </fieldset>

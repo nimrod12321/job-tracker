@@ -16,14 +16,22 @@ import LikedJobsPage from './features/discovery/pages/LikedJobsPage'
 import JobDetailPage from './features/jobs/pages/JobDetailPage'
 import ImportJobPage from './features/jobs/pages/ImportJobPage'
 import JobsPage from './features/jobs/pages/jobsPage'
+import OwnerJobsPage from './features/owner/pages/OwnerJobsPage'
+import OwnerProfilePage from './features/owner/pages/OwnerProfilePage'
 import ProfilePage from './features/profile/pages/ProfilePage'
 import RestaurantExplorePage from './features/restaurant/pages/RestaurantExplorePage'
 import RestaurantProfilePage from './features/restaurant/pages/RestaurantProfilePage'
 
 function getHomePath(user: AuthUser | null) {
-  return user?.track === 'restaurant'
-    ? '/restaurant/explore'
-    : '/dashboard'
+  if (user?.track === 'restaurant') {
+    return '/restaurant/explore'
+  }
+
+  if (user?.track === 'restaurantOwner') {
+    return '/owner/jobs'
+  }
+
+  return '/dashboard'
 }
 
 function App() {
@@ -103,7 +111,7 @@ function App() {
   }
 
   const isAuthenticated = Boolean(token && currentUser)
-  const isRestaurantUser = currentUser?.track === 'restaurant'
+  const userTrack = currentUser?.track ?? 'highTech'
   const homePath = getHomePath(currentUser)
   const authRedirect = isAuthenticated ? (
     <Navigate to={homePath} replace />
@@ -139,14 +147,14 @@ function App() {
       <Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
         <Route
           element={
-            isRestaurantUser ? (
-              <Navigate to="/restaurant/explore" replace />
-            ) : (
+            userTrack === 'highTech' ? (
               <AppLayout
                 userEmail={currentUser?.email}
-                userTrack={currentUser?.track}
+                userTrack={userTrack}
                 onLogout={handleLogout}
               />
+            ) : (
+              <Navigate to={homePath} replace />
             )
           }
         >
@@ -161,14 +169,14 @@ function App() {
 
         <Route
           element={
-            isRestaurantUser ? (
+            userTrack === 'restaurant' ? (
               <AppLayout
                 userEmail={currentUser?.email}
-                userTrack={currentUser?.track}
+                userTrack={userTrack}
                 onLogout={handleLogout}
               />
             ) : (
-              <Navigate to="/dashboard" replace />
+              <Navigate to={homePath} replace />
             )
           }
         >
@@ -180,6 +188,23 @@ function App() {
             path="/restaurant/profile"
             element={<RestaurantProfilePage />}
           />
+        </Route>
+
+        <Route
+          element={
+            userTrack === 'restaurantOwner' ? (
+              <AppLayout
+                userEmail={currentUser?.email}
+                userTrack={userTrack}
+                onLogout={handleLogout}
+              />
+            ) : (
+              <Navigate to={homePath} replace />
+            )
+          }
+        >
+          <Route path="/owner/jobs" element={<OwnerJobsPage />} />
+          <Route path="/owner/profile" element={<OwnerProfilePage />} />
         </Route>
       </Route>
 

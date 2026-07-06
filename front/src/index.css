@@ -2833,6 +2833,223 @@ textarea:focus-visible {
   justify-self: center;
 }
 
+.owner-profile-page,
+.owner-jobs-page {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.owner-profile-form,
+.owner-job-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: clamp(1.25rem, 3vw, 2rem);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.owner-profile-form > label,
+.owner-job-form > label {
+  display: grid;
+  gap: 0.45rem;
+  color: #344054;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.owner-profile-form input,
+.owner-profile-form textarea,
+.owner-job-form input,
+.owner-job-form select,
+.owner-job-form textarea {
+  width: 100%;
+  border: 1px solid #d7dce7;
+  border-radius: 12px;
+  padding: 0.8rem 0.9rem;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  resize: vertical;
+}
+
+.owner-field-wide,
+.owner-profile-form > .message,
+.owner-form-heading {
+  grid-column: 1 / -1;
+}
+
+.owner-profile-form > button,
+.owner-job-form > button {
+  justify-self: start;
+}
+
+.owner-profile-required {
+  width: min(100%, 680px);
+  margin-inline: auto;
+}
+
+.owner-form-heading,
+.owner-list-heading,
+.owner-job-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.owner-form-heading h2,
+.owner-form-heading p,
+.owner-list-heading h2,
+.owner-job-card-header h3,
+.owner-job-card-header p {
+  margin: 0;
+}
+
+.owner-form-heading p {
+  margin-top: 0.3rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.owner-cancel-button {
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: none;
+  color: var(--muted);
+}
+
+.owner-cancel-button:hover {
+  background: var(--surface-soft);
+  box-shadow: none;
+  color: var(--text);
+}
+
+.owner-job-list-section {
+  display: grid;
+  gap: 1rem;
+}
+
+.owner-list-heading {
+  align-items: center;
+}
+
+.owner-list-heading > span {
+  border-radius: 999px;
+  padding: 0.35rem 0.65rem;
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.owner-job-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 1rem;
+}
+
+.owner-job-card {
+  display: grid;
+  align-content: start;
+  gap: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1.1rem;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.owner-job-card-header p {
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.owner-job-card-header h3 {
+  margin-top: 0.25rem;
+  font-size: 1.3rem;
+}
+
+.owner-job-status {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.owner-job-status.draft {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.owner-job-status.active {
+  background: #dcfce7;
+  color: var(--success);
+}
+
+.owner-job-meta,
+.owner-job-card > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.owner-job-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 0.35rem;
+}
+
+.owner-job-actions button {
+  min-height: 40px;
+  padding: 0.55rem 0.7rem;
+  font-size: 0.8rem;
+}
+
+.owner-job-actions button:first-child {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: none;
+  color: var(--text);
+}
+
+.owner-active-button {
+  background: var(--accent);
+}
+
+.owner-delete-button {
+  border: 1px solid #fecaca;
+  background: var(--surface);
+  box-shadow: none;
+  color: var(--danger);
+}
+
+.owner-delete-button:hover {
+  background: #fff1f2;
+  box-shadow: none;
+  color: #b42318;
+}
+
+.owner-job-actions button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+  transform: none;
+}
+
+.owner-jobs-empty {
+  width: 100%;
+}
+
 @media (max-width: 760px) {
   .app-header {
     align-items: flex-start;
@@ -2934,6 +3151,11 @@ textarea:focus-visible {
     grid-template-columns: 1fr;
   }
 
+  .owner-profile-form,
+  .owner-job-form {
+    grid-template-columns: 1fr;
+  }
+
   .restaurant-field-wide,
   .restaurant-role-options,
   .restaurant-profile-note,
@@ -2941,7 +3163,27 @@ textarea:focus-visible {
     grid-column: auto;
   }
 
+  .owner-field-wide,
+  .owner-profile-form > .message,
+  .owner-form-heading {
+    grid-column: auto;
+  }
+
   .restaurant-profile-form > button {
+    width: 100%;
+  }
+
+  .owner-profile-form > button,
+  .owner-job-form > button {
+    width: 100%;
+  }
+
+  .owner-form-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .owner-cancel-button {
     width: 100%;
   }
 

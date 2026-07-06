@@ -14,7 +14,10 @@ const passwordSchema = z
 export const registerSchema = z.object({
   email: emailSchema.email('invalid email'),
   password: passwordSchema.min(6, 'password must be at least 6 characters'),
-  track: z.enum(['highTech', 'restaurant']).optional().default('highTech'),
+  track: z
+    .enum(['highTech', 'restaurant', 'restaurantOwner'])
+    .optional()
+    .default('highTech'),
 })
 
 export const loginSchema = z.object({

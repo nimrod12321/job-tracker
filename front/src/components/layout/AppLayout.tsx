@@ -13,6 +13,7 @@ function AppLayout({
   onLogout,
 }: AppLayoutProps) {
   const isRestaurantUser = userTrack === 'restaurant'
+  const isRestaurantOwner = userTrack === 'restaurantOwner'
 
   return (
     <div className="app-layout">
@@ -25,7 +26,28 @@ function AppLayout({
         </h1>
 
         <nav aria-label="Main navigation">
-          {isRestaurantUser ? (
+          {isRestaurantOwner ? (
+            <>
+              <NavLink
+                to="/owner/jobs"
+                end
+                className={({ isActive }) =>
+                  `nav-button${isActive ? ' active' : ''}`
+                }
+              >
+                My jobs
+              </NavLink>
+              <NavLink
+                to="/owner/profile"
+                end
+                className={({ isActive }) =>
+                  `nav-button${isActive ? ' active' : ''}`
+                }
+              >
+                Restaurant profile
+              </NavLink>
+            </>
+          ) : isRestaurantUser ? (
             <>
               <NavLink
                 to="/restaurant/explore"
