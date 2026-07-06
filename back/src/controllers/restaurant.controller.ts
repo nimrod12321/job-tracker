@@ -39,8 +39,8 @@ function mapRestaurantJob(job: RestaurantJob) {
     id: job.id,
     restaurantName: job.restaurantName,
     role: job.role,
-    location: job.location,
-    area: job.area,
+    city: job.location,
+    street: job.area,
     description: job.description,
     requirements: job.requirements,
     shiftInfo: job.shiftInfo,
@@ -273,6 +273,56 @@ export async function createRestaurantApplication(
 
     return res.status(500).json({
       message: 'failed to apply to restaurant job',
+    })
+  }
+}
+
+export async function getRestaurantMatches(req: Request, res: Response) {
+  try {
+    const userId = getUserId(req)
+
+    if (!userId) {
+      return res.status(401).json({
+        message: 'unauthorized',
+      })
+    }
+
+    const matches = await prisma.restaurantApplication.findMany({
+      where: {
+        userId,
+        status: 'selected',
+      },
+      include: {
+        restaurantJob: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    })
+
+    return res.json(
+      matches.map((match) => ({
+        id: match.id,
+        createdAt: match.createdAt.toISOString(),
+        job: {
+          id: match.restaurantJob.id,
+          restaurantName: match.restaurantJob.restaurantName,
+          role: match.restaurantJob.role,
+          city: match.restaurantJob.location,
+          street: match.restaurantJob.area,
+          description: match.restaurantJob.description,
+          requirements: match.restaurantJob.requirements,
+          shiftInfo: match.restaurantJob.shiftInfo,
+          contactPhone: match.restaurantJob.contactPhone,
+          contactWhatsapp: match.restaurantJob.contactWhatsapp,
+        },
+      })),
+    )
+  } catch (error) {
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to fetch restaurant matches',
     })
   }
 }

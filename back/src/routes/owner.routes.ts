@@ -2,9 +2,11 @@ import { Router, type RequestHandler } from 'express'
 import {
   createOwnerJob,
   deleteOwnerJob,
+  getOwnerApplications,
   getOwnerJobs,
   getOwnerProfile,
   setOwnerJobActive,
+  updateOwnerApplicationStatus,
   updateOwnerJob,
   updateOwnerProfile,
 } from '../controllers/owner.controller.js'
@@ -57,5 +59,10 @@ ownerRouter.post('/jobs', createOwnerJob)
 ownerRouter.put('/jobs/:id', updateOwnerJob)
 ownerRouter.patch('/jobs/:id/active', setOwnerJobActive)
 ownerRouter.delete('/jobs/:id', deleteOwnerJob)
+ownerRouter.get('/applications', getOwnerApplications)
+ownerRouter.patch(
+  '/applications/:id/status',
+  updateOwnerApplicationStatus,
+)
 
 export default ownerRouter

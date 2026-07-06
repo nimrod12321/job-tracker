@@ -46,8 +46,8 @@ export type RestaurantExploreJob = {
   id: string
   restaurantName: string
   role: RestaurantRole
-  location: string
-  area: string
+  city: string
+  street: string
   description: string
   requirements: string
   shiftInfo: string
@@ -59,4 +59,21 @@ export type RestaurantApplication = {
   id: string
   restaurantJobId: string
   status: 'applied' | 'selected' | 'rejected'
+}
+
+export type RestaurantMatch = {
+  id: string
+  createdAt: string
+  job: {
+    id: string
+    restaurantName: string
+    role: RestaurantRole
+    city: string
+    street: string
+    description: string
+    requirements: string
+    shiftInfo: string
+    contactPhone: string
+    contactWhatsapp: string
+  }
 }

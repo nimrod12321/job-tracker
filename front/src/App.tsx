@@ -16,10 +16,12 @@ import LikedJobsPage from './features/discovery/pages/LikedJobsPage'
 import JobDetailPage from './features/jobs/pages/JobDetailPage'
 import ImportJobPage from './features/jobs/pages/ImportJobPage'
 import JobsPage from './features/jobs/pages/jobsPage'
+import OwnerApplicationsPage from './features/owner/pages/OwnerApplicationsPage'
 import OwnerJobsPage from './features/owner/pages/OwnerJobsPage'
 import OwnerProfilePage from './features/owner/pages/OwnerProfilePage'
 import ProfilePage from './features/profile/pages/ProfilePage'
 import RestaurantExplorePage from './features/restaurant/pages/RestaurantExplorePage'
+import RestaurantMatchesPage from './features/restaurant/pages/RestaurantMatchesPage'
 import RestaurantProfilePage from './features/restaurant/pages/RestaurantProfilePage'
 
 function getHomePath(user: AuthUser | null) {
@@ -188,6 +190,10 @@ function App() {
             path="/restaurant/profile"
             element={<RestaurantProfilePage />}
           />
+          <Route
+            path="/restaurant/matches"
+            element={<RestaurantMatchesPage />}
+          />
         </Route>
 
         <Route
@@ -204,6 +210,10 @@ function App() {
           }
         >
           <Route path="/owner/jobs" element={<OwnerJobsPage />} />
+          <Route
+            path="/owner/applications"
+            element={<OwnerApplicationsPage />}
+          />
           <Route path="/owner/profile" element={<OwnerProfilePage />} />
         </Route>
       </Route>

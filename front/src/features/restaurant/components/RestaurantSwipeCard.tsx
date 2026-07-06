@@ -156,7 +156,7 @@ function RestaurantSwipeCard({
       <p className="restaurant-job-name">{job.restaurantName}</p>
       <h2>{getRoleLabel(job.role)}</h2>
       <p className="restaurant-job-location">
-        {[job.location, job.area].filter(Boolean).join(' · ')}
+        {[job.city, job.street].filter(Boolean).join(' · ')}
       </p>
 
       {job.shiftInfo && (

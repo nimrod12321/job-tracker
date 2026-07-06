@@ -6,8 +6,8 @@ export type OwnerProfile = {
   contactPerson: string
   phoneNumber: string
   whatsappNumber: string
-  location: string
-  area: string
+  city: string
+  street: string
   description: string
   createdAt: string
   updatedAt: string
@@ -20,8 +20,6 @@ export type OwnerProfileInput = Omit<
 
 export type OwnerJobInput = {
   role: RestaurantRole
-  location: string
-  area: string
   description: string
   requirements: string
   shiftInfo: string
@@ -32,7 +30,34 @@ export type OwnerJobInput = {
 export type OwnerJob = OwnerJobInput & {
   id: string
   restaurantName: string
+  city: string
+  street: string
   isActive: boolean
   createdAt: string
   updatedAt: string
+}
+
+export type OwnerApplicationStatus = 'applied' | 'selected' | 'rejected'
+
+export type OwnerApplication = {
+  id: string
+  status: OwnerApplicationStatus
+  createdAt: string
+  job: {
+    id: string
+    role: RestaurantRole
+    description: string
+    shiftInfo: string
+    isActive: boolean
+  }
+  worker: {
+    id: string
+    fullName: string
+    phoneNumber: string
+    location: string
+    wantedRoles: RestaurantRole[]
+    experienceText: string
+    availability: string
+    age: number | null
+  }
 }

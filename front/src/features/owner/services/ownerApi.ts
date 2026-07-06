@@ -5,6 +5,7 @@ import {
   notifyAuthSessionExpired,
 } from '../../auth/utils/authStorage'
 import type {
+  OwnerApplication,
   OwnerJob,
   OwnerJobInput,
   OwnerProfile,
@@ -150,4 +151,38 @@ export async function deleteOwnerJob(id: string): Promise<void> {
   if (!response.ok) {
     await handleApiError(response, 'Failed to delete restaurant job')
   }
+}
+
+export async function getOwnerApplications(): Promise<OwnerApplication[]> {
+  const response = await fetch(`${API_BASE_URL}/owner/applications`, {
+    headers: getHeaders(),
+  })
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to load applications')
+  }
+
+  return response.json()
+}
+
+export async function updateOwnerApplicationStatus(
+  id: string,
+  status: 'selected' | 'rejected',
+): Promise<Pick<OwnerApplication, 'id' | 'status' | 'createdAt'>> {
+  const response = await fetch(
+    `${API_BASE_URL}/owner/applications/${id}/status`,
+    {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify({
+        status,
+      }),
+    },
+  )
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to update application')
+  }
+
+  return response.json()
 }

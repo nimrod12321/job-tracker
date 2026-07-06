@@ -204,8 +204,8 @@ model RestaurantOwnerProfile {
   contactPerson  String @default("")
   phoneNumber    String @default("")
   whatsappNumber String @default("")
-  location       String @default("")
-  area           String @default("")
+  city           String @default("")
+  street         String @default("")
   description    String @default("")
 
   jobs RestaurantJob[]

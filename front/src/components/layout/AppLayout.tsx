@@ -38,6 +38,15 @@ function AppLayout({
                 My jobs
               </NavLink>
               <NavLink
+                to="/owner/applications"
+                end
+                className={({ isActive }) =>
+                  `nav-button${isActive ? ' active' : ''}`
+                }
+              >
+                Applications
+              </NavLink>
+              <NavLink
                 to="/owner/profile"
                 end
                 className={({ isActive }) =>
@@ -57,6 +66,15 @@ function AppLayout({
                 }
               >
                 Explore
+              </NavLink>
+              <NavLink
+                to="/restaurant/matches"
+                end
+                className={({ isActive }) =>
+                  `nav-button${isActive ? ' active' : ''}`
+                }
+              >
+                Matches
               </NavLink>
               <NavLink
                 to="/restaurant/profile"

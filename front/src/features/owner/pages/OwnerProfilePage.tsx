@@ -10,8 +10,8 @@ const emptyProfile: OwnerProfileInput = {
   contactPerson: '',
   phoneNumber: '',
   whatsappNumber: '',
-  location: '',
-  area: '',
+  city: '',
+  street: '',
   description: '',
 }
 
@@ -35,8 +35,8 @@ function OwnerProfilePage() {
             contactPerson: profile.contactPerson,
             phoneNumber: profile.phoneNumber,
             whatsappNumber: profile.whatsappNumber,
-            location: profile.location,
-            area: profile.area,
+            city: profile.city,
+            street: profile.street,
             description: profile.description,
           })
         }
@@ -83,8 +83,8 @@ function OwnerProfilePage() {
         contactPerson: savedProfile.contactPerson,
         phoneNumber: savedProfile.phoneNumber,
         whatsappNumber: savedProfile.whatsappNumber,
-        location: savedProfile.location,
-        area: savedProfile.area,
+        city: savedProfile.city,
+        street: savedProfile.street,
         description: savedProfile.description,
       })
       setSuccess('Restaurant profile saved.')
@@ -166,18 +166,18 @@ function OwnerProfilePage() {
         </label>
 
         <label>
-          Location
+          City
           <input
-            value={form.location}
-            onChange={(event) => updateField('location', event.target.value)}
+            value={form.city}
+            onChange={(event) => updateField('city', event.target.value)}
           />
         </label>
 
         <label>
-          Area
+          Street
           <input
-            value={form.area}
-            onChange={(event) => updateField('area', event.target.value)}
+            value={form.street}
+            onChange={(event) => updateField('street', event.target.value)}
           />
         </label>
 

@@ -17,8 +17,6 @@ import type {
 
 const emptyJobForm: OwnerJobInput = {
   role: 'waiter',
-  location: '',
-  area: '',
   description: '',
   requirements: '',
   shiftInfo: '',
@@ -97,8 +95,6 @@ function OwnerJobsPage() {
   function startEditing(job: OwnerJob) {
     setForm({
       role: job.role,
-      location: job.location,
-      area: job.area,
       description: job.description,
       requirements: job.requirements,
       shiftInfo: job.shiftInfo,
@@ -232,7 +228,11 @@ function OwnerJobsPage() {
     )
   }
 
-  if (!profile?.restaurantName.trim()) {
+  if (
+    !profile?.restaurantName.trim() ||
+    !profile.city.trim() ||
+    !profile.street.trim()
+  ) {
     return (
       <section className="owner-jobs-page">
         <div className="page-header">
@@ -295,24 +295,6 @@ function OwnerJobsPage() {
               </option>
             ))}
           </select>
-        </label>
-
-        <label>
-          Location
-          <input
-            value={form.location}
-            onChange={(event) =>
-              updateField('location', event.target.value)
-            }
-          />
-        </label>
-
-        <label>
-          Area
-          <input
-            value={form.area}
-            onChange={(event) => updateField('area', event.target.value)}
-          />
         </label>
 
         <label>
@@ -420,7 +402,7 @@ function OwnerJobsPage() {
                 </div>
 
                 <p className="owner-job-meta">
-                  {[job.location, job.area].filter(Boolean).join(' · ') ||
+                  {[job.city, job.street].filter(Boolean).join(' · ') ||
                     'Location not set'}
                 </p>
 

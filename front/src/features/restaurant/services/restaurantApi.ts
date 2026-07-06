@@ -7,6 +7,7 @@ import {
 import type {
   RestaurantApplication,
   RestaurantExploreJob,
+  RestaurantMatch,
   RestaurantWorkerProfile,
   RestaurantWorkerProfileInput,
 } from '../types/restaurant'
@@ -118,4 +119,16 @@ export async function applyToRestaurantJob(
   }
 
   return data.application
+}
+
+export async function getRestaurantMatches(): Promise<RestaurantMatch[]> {
+  const response = await fetch(`${API_BASE_URL}/restaurant/matches`, {
+    headers: getHeaders(),
+  })
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to load restaurant matches')
+  }
+
+  return response.json()
 }

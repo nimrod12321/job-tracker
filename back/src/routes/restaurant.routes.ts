@@ -2,6 +2,7 @@ import { Router } from 'express'
 import {
   createRestaurantApplication,
   getRestaurantExploreJobs,
+  getRestaurantMatches,
   getRestaurantProfile,
   updateRestaurantProfile,
 } from '../controllers/restaurant.controller.js'
@@ -14,5 +15,6 @@ restaurantRouter.get('/profile', getRestaurantProfile)
 restaurantRouter.put('/profile', updateRestaurantProfile)
 restaurantRouter.post('/explore', getRestaurantExploreJobs)
 restaurantRouter.post('/applications', createRestaurantApplication)
+restaurantRouter.get('/matches', getRestaurantMatches)
 
 export default restaurantRouter
