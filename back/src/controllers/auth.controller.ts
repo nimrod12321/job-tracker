@@ -19,7 +19,7 @@ export async function register(req: Request, res: Response) {
       })
     }
 
-    const { email, password } = result.data
+    const { email, password, track } = result.data
     const normalizedEmail = email.trim().toLowerCase()
 
     const existingUser = await prisma.user.findUnique({
@@ -40,12 +40,14 @@ export async function register(req: Request, res: Response) {
       data: {
         email: normalizedEmail,
         passwordHash,
+        track,
       },
     })
 
     return res.status(201).json({
       id: user.id,
       email: user.email,
+      track: user.track,
       createdAt: user.createdAt.toISOString(),
     })
   } catch (error) {
@@ -97,6 +99,7 @@ export async function login(req: Request, res: Response) {
       user: {
         id: user.id,
         email: user.email,
+        track: user.track,
       },
     })
   } catch (error) {
@@ -124,6 +127,7 @@ export async function getMe(req: Request, res: Response) {
       select: {
         id: true,
         email: true,
+        track: true,
         createdAt: true,
       },
     })
@@ -137,6 +141,7 @@ export async function getMe(req: Request, res: Response) {
     return res.json({
       id: user.id,
       email: user.email,
+      track: user.track,
       createdAt: user.createdAt.toISOString(),
     })
   } catch (error) {

@@ -10,6 +10,7 @@ import jobsRouter from './routes/jobs.routes.js'
 import { authRouter } from './routes/auth.routes.js'
 import healthRouter from './routes/health.routes.js'
 import profileRouter from './routes/profile.routes.js'
+import restaurantRouter from './routes/restaurant.routes.js'
 
 const app = express()
 const allowedOrigins = new Set([env.frontendUrl])
@@ -38,6 +39,7 @@ app.use('/api/discover', discoveryRouter)
 app.use('/api/jobs', jobsRouter)
 app.use('/api/auth', authRouter)
 app.use('/api/profile', profileRouter)
+app.use('/api/restaurant', restaurantRouter)
 
 const errorHandler = (
   error: unknown,

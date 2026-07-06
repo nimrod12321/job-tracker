@@ -1,6 +1,10 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { loginUser, registerUser } from '../services/authApi'
+import {
+  loginUser,
+  registerUser,
+  type UserTrack,
+} from '../services/authApi'
 
 type AuthPageProps = {
   mode: 'login' | 'register'
@@ -10,6 +14,7 @@ type AuthPageProps = {
 function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [track, setTrack] = useState<UserTrack>('highTech')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -20,7 +25,7 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
 
     try {
       if (mode === 'register') {
-        await registerUser(email, password)
+        await registerUser(email, password, track)
       }
 
       const response = await loginUser(email, password)
@@ -63,6 +68,38 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
               minLength={6}
             />
           </label>
+
+          {mode === 'register' && (
+            <fieldset className="auth-track-choice">
+              <legend>What kind of work are you looking for?</legend>
+              <label>
+                <input
+                  type="radio"
+                  name="track"
+                  value="highTech"
+                  checked={track === 'highTech'}
+                  onChange={() => setTrack('highTech')}
+                />
+                <span>
+                  <strong>High-tech</strong>
+                  <small>Tech jobs, AI matching, and application tracking</small>
+                </span>
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name="track"
+                  value="restaurant"
+                  checked={track === 'restaurant'}
+                  onChange={() => setTrack('restaurant')}
+                />
+                <span>
+                  <strong>Restaurant worker</strong>
+                  <small>Simple restaurant jobs and quick applications</small>
+                </span>
+              </label>
+            </fieldset>
+          )}
 
           {error && (
             <p className="message message-error" role="alert">

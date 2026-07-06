@@ -26,6 +26,25 @@ enum DiscoveryDecision {
   disliked
 }
 
+enum UserTrack {
+  highTech
+  restaurant
+}
+
+enum RestaurantRole {
+  waiter
+  bartender
+  host
+  floorManager
+  cook
+}
+
+enum RestaurantApplicationStatus {
+  applied
+  selected
+  rejected
+}
+
 model Job {
   id             String      @id @default(uuid())
   company        String
@@ -52,15 +71,18 @@ model Job {
 }
 
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
+  id           String    @id @default(uuid())
+  email        String    @unique
   passwordHash String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  track        UserTrack @default(highTech)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  jobs               Job[]
-  resumeProfile      ResumeProfile?
-  discoveryDecisions JobDiscoveryDecision[]
+  jobs                    Job[]
+  resumeProfile           ResumeProfile?
+  discoveryDecisions      JobDiscoveryDecision[]
+  restaurantWorkerProfile RestaurantWorkerProfile?
+  restaurantApplications  RestaurantApplication[]
 }
 
 model ResumeProfile {
@@ -122,4 +144,65 @@ model JobDiscoveryDecision {
   @@index([userId])
   @@index([userId, decision])
   @@index([userId, jobUrl])
+}
+
+model RestaurantWorkerProfile {
+  id String @id @default(uuid())
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  fullName       String           @default("")
+  phoneNumber    String           @default("")
+  location       String           @default("")
+  wantedRoles    RestaurantRole[] @default([])
+  experienceText String           @default("")
+  availability   String           @default("")
+  age            Int              @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model RestaurantJob {
+  id String @id @default(uuid())
+
+  restaurantName  String
+  role            RestaurantRole
+  location        String
+  area            String         @default("")
+  description     String         @default("")
+  requirements    String         @default("")
+  shiftInfo       String         @default("")
+  contactPhone    String         @default("")
+  contactWhatsapp String         @default("")
+  isActive        Boolean        @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  applications RestaurantApplication[]
+
+  @@index([role])
+  @@index([location])
+  @@index([isActive])
+}
+
+model RestaurantApplication {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  restaurantJobId String
+  restaurantJob   RestaurantJob @relation(fields: [restaurantJobId], references: [id], onDelete: Cascade)
+
+  status RestaurantApplicationStatus @default(applied)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, restaurantJobId])
+  @@index([userId])
+  @@index([restaurantJobId])
 }

@@ -1,11 +1,19 @@
 import { NavLink, Outlet } from 'react-router-dom'
+import type { UserTrack } from '../../features/auth/services/authApi'
 
 type AppLayoutProps = {
   userEmail?: string
+  userTrack?: UserTrack
   onLogout: () => void
 }
 
-function AppLayout({ userEmail, onLogout }: AppLayoutProps) {
+function AppLayout({
+  userEmail,
+  userTrack = 'highTech',
+  onLogout,
+}: AppLayoutProps) {
+  const isRestaurantUser = userTrack === 'restaurant'
+
   return (
     <div className="app-layout">
       <header className="app-header">
@@ -17,40 +25,65 @@ function AppLayout({ userEmail, onLogout }: AppLayoutProps) {
         </h1>
 
         <nav aria-label="Main navigation">
-          <NavLink
-            to="/dashboard"
-            end
-            className={({ isActive }) =>
-              `nav-button${isActive ? ' active' : ''}`
-            }
-          >
-            Dashboard
-          </NavLink>
-          <NavLink
-            to="/discover"
-            className={({ isActive }) =>
-              `nav-button${isActive ? ' active' : ''}`
-            }
-          >
-            Discover
-          </NavLink>
-          <NavLink
-            to="/jobs"
-            className={({ isActive }) =>
-              `nav-button${isActive ? ' active' : ''}`
-            }
-          >
-            Jobs
-          </NavLink>
-          <NavLink
-            to="/profile"
-            end
-            className={({ isActive }) =>
-              `nav-button${isActive ? ' active' : ''}`
-            }
-          >
-            Profile
-          </NavLink>
+          {isRestaurantUser ? (
+            <>
+              <NavLink
+                to="/restaurant/explore"
+                end
+                className={({ isActive }) =>
+                  `nav-button${isActive ? ' active' : ''}`
+                }
+              >
+                Explore
+              </NavLink>
+              <NavLink
+                to="/restaurant/profile"
+                end
+                className={({ isActive }) =>
+                  `nav-button${isActive ? ' active' : ''}`
+                }
+              >
+                Profile
+              </NavLink>
+            </>
+          ) : (
+            <>
+              <NavLink
+                to="/dashboard"
+                end
+                className={({ isActive }) =>
+                  `nav-button${isActive ? ' active' : ''}`
+                }
+              >
+                Dashboard
+              </NavLink>
+              <NavLink
+                to="/discover"
+                className={({ isActive }) =>
+                  `nav-button${isActive ? ' active' : ''}`
+                }
+              >
+                Discover
+              </NavLink>
+              <NavLink
+                to="/jobs"
+                className={({ isActive }) =>
+                  `nav-button${isActive ? ' active' : ''}`
+                }
+              >
+                Jobs
+              </NavLink>
+              <NavLink
+                to="/profile"
+                end
+                className={({ isActive }) =>
+                  `nav-button${isActive ? ' active' : ''}`
+                }
+              >
+                Profile
+              </NavLink>
+            </>
+          )}
         </nav>
 
         <div className="header-user-actions">

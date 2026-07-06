@@ -17,36 +17,38 @@ async function getErrorMessage(
   return fallbackMessage
 }
 
+export type UserTrack = 'highTech' | 'restaurant'
+
 export type AuthUser = {
   id: string
   email: string
+  track?: UserTrack
   createdAt?: string
 }
 
 type LoginResponse = {
   token: string
-  user: {
-    id: string
-    email: string
-  }
+  user: AuthUser
 }
 
 type RegisterResponse = {
   id: string
   email: string
+  track: UserTrack
   createdAt: string
 }
 
 export async function registerUser(
   email: string,
   password: string,
+  track: UserTrack = 'highTech',
 ): Promise<RegisterResponse> {
   const response = await fetch(`${API_BASE_URL}/auth/register`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, track }),
   })
 
   if (!response.ok) {

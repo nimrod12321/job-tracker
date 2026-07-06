@@ -17,6 +17,14 @@ import JobDetailPage from './features/jobs/pages/JobDetailPage'
 import ImportJobPage from './features/jobs/pages/ImportJobPage'
 import JobsPage from './features/jobs/pages/jobsPage'
 import ProfilePage from './features/profile/pages/ProfilePage'
+import RestaurantExplorePage from './features/restaurant/pages/RestaurantExplorePage'
+import RestaurantProfilePage from './features/restaurant/pages/RestaurantProfilePage'
+
+function getHomePath(user: AuthUser | null) {
+  return user?.track === 'restaurant'
+    ? '/restaurant/explore'
+    : '/dashboard'
+}
 
 function App() {
   const navigate = useNavigate()
@@ -73,7 +81,7 @@ function App() {
     try {
       const user = await getCurrentUser(newToken)
       setCurrentUser(user)
-      navigate('/dashboard', { replace: true })
+      navigate(getHomePath(user), { replace: true })
     } catch {
       clearAuthToken()
       setCurrentUser(null)
@@ -95,8 +103,10 @@ function App() {
   }
 
   const isAuthenticated = Boolean(token && currentUser)
+  const isRestaurantUser = currentUser?.track === 'restaurant'
+  const homePath = getHomePath(currentUser)
   const authRedirect = isAuthenticated ? (
-    <Navigate to="/dashboard" replace />
+    <Navigate to={homePath} replace />
   ) : null
 
   return (
@@ -129,10 +139,15 @@ function App() {
       <Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
         <Route
           element={
-            <AppLayout
-              userEmail={currentUser?.email}
-              onLogout={handleLogout}
-            />
+            isRestaurantUser ? (
+              <Navigate to="/restaurant/explore" replace />
+            ) : (
+              <AppLayout
+                userEmail={currentUser?.email}
+                userTrack={currentUser?.track}
+                onLogout={handleLogout}
+              />
+            )
           }
         >
           <Route path="/dashboard" element={<DashboardPage />} />
@@ -143,18 +158,41 @@ function App() {
           <Route path="/jobs/:jobId" element={<JobDetailPage />} />
           <Route path="/profile" element={<ProfilePage />} />
         </Route>
+
+        <Route
+          element={
+            isRestaurantUser ? (
+              <AppLayout
+                userEmail={currentUser?.email}
+                userTrack={currentUser?.track}
+                onLogout={handleLogout}
+              />
+            ) : (
+              <Navigate to="/dashboard" replace />
+            )
+          }
+        >
+          <Route
+            path="/restaurant/explore"
+            element={<RestaurantExplorePage />}
+          />
+          <Route
+            path="/restaurant/profile"
+            element={<RestaurantProfilePage />}
+          />
+        </Route>
       </Route>
 
       <Route
         path="/"
         element={
-          <Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />
+          <Navigate to={isAuthenticated ? homePath : '/login'} replace />
         }
       />
       <Route
         path="*"
         element={
-          <Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />
+          <Navigate to={isAuthenticated ? homePath : '/login'} replace />
         }
       />
     </Routes>

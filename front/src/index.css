@@ -181,6 +181,55 @@ textarea:focus-visible {
     box-shadow 160ms ease;
 }
 
+.auth-track-choice {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.auth-track-choice legend {
+  margin-bottom: 0.55rem;
+  color: #344054;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.auth-track-choice label {
+  display: flex;
+  grid-template-columns: none;
+  align-items: flex-start;
+  gap: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.8rem;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.auth-track-choice label:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.auth-track-choice input {
+  width: auto;
+  margin: 0.2rem 0 0;
+  accent-color: var(--accent);
+}
+
+.auth-track-choice span {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.auth-track-choice small {
+  color: var(--muted);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
 .auth-form input:hover {
   border-color: #bfc5d4;
 }
@@ -2461,6 +2510,274 @@ textarea:focus-visible {
   color: #5b21b6;
 }
 
+.restaurant-profile-page,
+.restaurant-explore-page {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.restaurant-profile-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: clamp(1.25rem, 3vw, 2rem);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.restaurant-profile-form > label {
+  display: grid;
+  gap: 0.45rem;
+  color: #344054;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.restaurant-profile-form input,
+.restaurant-profile-form textarea {
+  width: 100%;
+  border: 1px solid #d7dce7;
+  border-radius: 12px;
+  padding: 0.8rem 0.9rem;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  resize: vertical;
+}
+
+.restaurant-field-wide,
+.restaurant-role-options,
+.restaurant-profile-note,
+.restaurant-profile-form > .message {
+  grid-column: 1 / -1;
+}
+
+.restaurant-role-options {
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.restaurant-role-options legend {
+  margin-bottom: 0.65rem;
+  color: #344054;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.restaurant-role-options > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.restaurant-role-options label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.55rem 0.75rem;
+  background: var(--surface-soft);
+  color: #4b5563;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.restaurant-role-options label:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: #5b21b6;
+}
+
+.restaurant-role-options input {
+  width: auto;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.restaurant-profile-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.restaurant-profile-form > button {
+  justify-self: start;
+}
+
+.restaurant-explore-page {
+  overflow-x: hidden;
+}
+
+.restaurant-explore-header > span {
+  border-radius: 999px;
+  padding: 0.4rem 0.7rem;
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.restaurant-feedback {
+  width: fit-content;
+  margin: 0 auto;
+  border-radius: 999px;
+  padding: 0.4rem 0.75rem;
+  background: #f0fdf4;
+  color: var(--success);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.restaurant-job-card {
+  width: min(100%, 680px);
+  margin-inline: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: clamp(1.25rem, 4vw, 2rem);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.restaurant-job-name {
+  margin: 0;
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.restaurant-job-card h2 {
+  margin: 0.35rem 0 0;
+  font-size: clamp(2rem, 7vw, 3rem);
+  line-height: 1.05;
+  letter-spacing: -0.05em;
+}
+
+.restaurant-job-location {
+  margin: 0.65rem 0 0;
+  color: var(--muted);
+  font-weight: 650;
+}
+
+.restaurant-job-highlight {
+  display: grid;
+  gap: 0.2rem;
+  margin-top: 1.25rem;
+  border-radius: var(--radius-md);
+  padding: 0.9rem 1rem;
+  background: var(--accent-soft);
+}
+
+.restaurant-job-highlight span {
+  color: #6d28d9;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.restaurant-job-description {
+  margin: 1.2rem 0 0;
+  color: #374151;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.restaurant-job-requirements,
+.restaurant-job-contact {
+  margin-top: 1rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+
+.restaurant-job-requirements p {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.restaurant-job-contact > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.65rem;
+}
+
+.restaurant-job-contact a,
+.restaurant-empty-actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  padding: 0.6rem 0.8rem;
+  background: var(--surface-soft);
+  color: var(--primary-dark);
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.restaurant-job-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+  gap: 0.75rem;
+  margin-top: 1.35rem;
+}
+
+.restaurant-job-actions button {
+  min-height: 48px;
+}
+
+.restaurant-skip-button {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: none;
+  color: var(--muted);
+}
+
+.restaurant-skip-button:hover {
+  background: var(--surface-soft);
+  box-shadow: none;
+  color: var(--text);
+}
+
+.restaurant-apply-button {
+  background: var(--accent);
+}
+
+.restaurant-apply-button:hover {
+  background: #6d28d9;
+}
+
+.restaurant-job-actions button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+  transform: none;
+}
+
+.restaurant-empty-state {
+  width: min(100%, 680px);
+  margin-inline: auto;
+}
+
+.restaurant-empty-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.restaurant-retry-button {
+  justify-self: center;
+}
+
 @media (max-width: 760px) {
   .app-header {
     align-items: flex-start;
@@ -2554,6 +2871,35 @@ textarea:focus-visible {
   }
 
   .discover-header-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .restaurant-profile-form {
+    grid-template-columns: 1fr;
+  }
+
+  .restaurant-field-wide,
+  .restaurant-role-options,
+  .restaurant-profile-note,
+  .restaurant-profile-form > .message {
+    grid-column: auto;
+  }
+
+  .restaurant-profile-form > button {
+    width: 100%;
+  }
+
+  .restaurant-explore-header {
+    align-items: flex-start;
+  }
+
+  .restaurant-job-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .restaurant-job-contact > div,
+  .restaurant-empty-actions {
     align-items: stretch;
     flex-direction: column;
   }
