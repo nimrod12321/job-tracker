@@ -28,11 +28,20 @@ const emptyJobForm: OwnerJobInput = {
   contactWhatsapp: '',
 }
 
+const shiftOptions = [
+  { he: 'בוקר', en: 'Morning' },
+  { he: 'ערב', en: 'Evening' },
+  { he: 'סופי שבוע', en: 'Weekends' },
+  { he: 'גמיש', en: 'Flexible' },
+]
+
 function OwnerJobsPage() {
   const { direction, language } = useRestaurantLanguage()
   const [profile, setProfile] = useState<OwnerProfile | null>(null)
   const [jobs, setJobs] = useState<OwnerJob[]>([])
   const [form, setForm] = useState<OwnerJobInput>(emptyJobForm)
+  const [jobStep, setJobStep] = useState(1)
+  const [isCreating, setIsCreating] = useState(false)
   const [editingJobId, setEditingJobId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -52,51 +61,61 @@ function OwnerJobsPage() {
         : 'Loading restaurant jobs...',
     completeProfile:
       language === 'he'
-        ? 'צריך להשלים פרופיל מסעדה'
-        : 'Complete your restaurant profile',
-    completeProfileHint:
-      language === 'he'
-        ? 'מלא שם מסעדה, עיר ורחוב לפני פרסום משרות.'
+        ? 'כדי לפרסם משרה צריך להשלים פרופיל מסעדה'
         : 'Complete your restaurant profile before posting jobs.',
     goToProfile:
-      language === 'he' ? 'לפרופיל מסעדה' : 'Go to Restaurant profile',
+      language === 'he' ? 'להשלמת פרופיל' : 'Complete profile',
+    firstJob:
+      language === 'he'
+        ? 'בוא ניצור את המשרה הראשונה שלך'
+        : "Let's create your first job",
+    createJob: language === 'he' ? 'צור משרה' : 'Create job',
     postingFor: language === 'he' ? 'מפרסמים עבור' : 'Posting for',
     newDrafts:
       language === 'he'
         ? 'משרות חדשות מתחילות כטיוטה.'
         : 'New jobs start as drafts.',
     editJob: language === 'he' ? 'עריכת משרה' : 'Edit job',
-    createJob: language === 'he' ? 'יצירת משרה' : 'Create a job',
-    draftHint:
-      language === 'he'
-        ? 'טיוטות נשארות מוסתרות עד שמפעילים אותן.'
-        : 'Draft jobs stay hidden until you activate them.',
     cancelEdit: language === 'he' ? 'ביטול עריכה' : 'Cancel edit',
-    role: language === 'he' ? 'תפקיד' : 'Role',
+    roleStep: language === 'he' ? 'את מי אתם מחפשים?' : 'Who are you hiring?',
+    shiftStep: language === 'he' ? 'מתי המשמרות?' : 'When are the shifts?',
+    detailsStep:
+      language === 'he' ? 'מה חשוב לדעת?' : 'What should workers know?',
     shiftInfo: language === 'he' ? 'משמרות' : 'Shift info',
-    contactPhone:
-      language === 'he' ? 'טלפון ליצירת קשר' : 'Contact phone',
-    contactWhatsapp:
-      language === 'he' ? 'וואטסאפ ליצירת קשר' : 'Contact WhatsApp',
+    contactStep:
+      language === 'he'
+        ? 'לאן לפנות אחרי התאמה?'
+        : 'Where should matched workers contact you?',
+    contactHint:
+      language === 'he'
+        ? 'נמלא מהפרופיל אם תשאיר ריק.'
+        : 'Leave blank to use the restaurant profile contact.',
+    contactPhone: language === 'he' ? 'טלפון' : 'Phone',
+    contactWhatsapp: language === 'he' ? 'וואטסאפ' : 'WhatsApp',
     requirements: language === 'he' ? 'דרישות' : 'Requirements',
     description: language === 'he' ? 'תיאור' : 'Description',
     saving: language === 'he' ? 'שומר...' : 'Saving...',
     saveChanges: language === 'he' ? 'שמירת שינויים' : 'Save changes',
-    createDraft: language === 'he' ? 'יצירת טיוטה' : 'Create draft',
+    createDraft: language === 'he' ? 'צור טיוטה' : 'Create draft',
+    next: language === 'he' ? 'הבא' : 'Next',
+    back: language === 'he' ? 'חזרה' : 'Back',
     postedJobs: language === 'he' ? 'משרות שפורסמו' : 'Posted jobs',
-    noJobs: language === 'he' ? 'אין משרות עדיין.' : 'No jobs yet.',
-    noJobsHint:
-      language === 'he'
-        ? 'צור את הטיוטה הראשונה בטופס למעלה.'
-        : 'Create your first draft using the form above.',
-    active: language === 'he' ? 'פעיל' : 'Active',
+    active: language === 'he' ? 'פעילה' : 'Active',
     draft: language === 'he' ? 'טיוטה' : 'Draft',
+    activeHint:
+      language === 'he'
+        ? 'משרה פעילה — עובדים יכולים לראות אותה'
+        : 'Active — workers can see this job',
+    draftHint:
+      language === 'he'
+        ? 'טיוטה — עובדים עדיין לא רואים אותה'
+        : 'Draft — workers cannot see this yet',
     locationNotSet:
       language === 'he' ? 'כתובת לא הוגדרה' : 'Location not set',
-    edit: language === 'he' ? 'עריכה' : 'Edit',
-    activate: language === 'he' ? 'הפעל משרה' : 'Activate',
+    edit: language === 'he' ? 'ערוך' : 'Edit',
+    activate: language === 'he' ? 'הפעל משרה' : 'Activate job',
     deactivate: language === 'he' ? 'כבה משרה' : 'Deactivate',
-    delete: language === 'he' ? 'מחיקה' : 'Delete',
+    delete: language === 'he' ? 'מחק' : 'Delete',
     updated: language === 'he' ? 'המשרה עודכנה.' : 'Job updated.',
     created:
       language === 'he' ? 'טיוטת משרה נוצרה.' : 'Draft job created.',
@@ -154,6 +173,21 @@ function OwnerJobsPage() {
   function resetForm() {
     setForm(emptyJobForm)
     setEditingJobId(null)
+    setIsCreating(false)
+    setJobStep(1)
+  }
+
+  function startCreating() {
+    setForm({
+      ...emptyJobForm,
+      contactPhone: profile?.phoneNumber ?? '',
+      contactWhatsapp: profile?.whatsappNumber ?? '',
+    })
+    setEditingJobId(null)
+    setIsCreating(true)
+    setJobStep(1)
+    setError(null)
+    setSuccess(null)
   }
 
   function startEditing(job: OwnerJob) {
@@ -166,6 +200,8 @@ function OwnerJobsPage() {
       contactWhatsapp: job.contactWhatsapp,
     })
     setEditingJobId(job.id)
+    setIsCreating(true)
+    setJobStep(1)
     setError(null)
     setSuccess(null)
   }
@@ -180,6 +216,12 @@ function OwnerJobsPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+
+    if (jobStep < 4) {
+      setJobStep((currentStep) => currentStep + 1)
+      return
+    }
+
     setError(null)
     setSuccess(null)
     setIsSubmitting(true)
@@ -265,9 +307,23 @@ function OwnerJobsPage() {
     }
   }
 
+  function toggleShift(label: string) {
+    const currentValues = form.shiftInfo
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean)
+
+    updateField(
+      'shiftInfo',
+      currentValues.includes(label)
+        ? currentValues.filter((item) => item !== label).join(', ')
+        : [...currentValues, label].join(', '),
+    )
+  }
+
   if (isLoading) {
     return (
-      <section className="owner-jobs-page" dir={direction}>
+      <section className="owner-jobs-page owner-guided-page" dir={direction}>
         <div className="page-header">
           <div>
             <h1>{text.title}</h1>
@@ -281,7 +337,7 @@ function OwnerJobsPage() {
 
   if (error && !profile) {
     return (
-      <section className="owner-jobs-page" dir={direction}>
+      <section className="owner-jobs-page owner-guided-page" dir={direction}>
         <div className="page-header">
           <div>
             <h1>{text.title}</h1>
@@ -301,16 +357,9 @@ function OwnerJobsPage() {
     !profile.street.trim()
   ) {
     return (
-      <section className="owner-jobs-page" dir={direction}>
-        <div className="page-header">
-          <div>
-            <h1>{text.title}</h1>
-            <p>{text.subtitle}</p>
-          </div>
-        </div>
-        <div className="empty-state owner-profile-required">
-          <h2>{text.completeProfile}</h2>
-          <p>{text.completeProfileHint}</p>
+      <section className="owner-jobs-page owner-guided-page" dir={direction}>
+        <div className="owner-step-card owner-profile-required">
+          <h1>{text.completeProfile}</h1>
           <Link to="/owner/profile">{text.goToProfile}</Link>
         </div>
       </section>
@@ -318,7 +367,7 @@ function OwnerJobsPage() {
   }
 
   return (
-    <section className="owner-jobs-page" dir={direction}>
+    <section className="owner-jobs-page owner-guided-page" dir={direction}>
       <div className="page-header">
         <div>
           <h1>{text.title}</h1>
@@ -328,13 +377,47 @@ function OwnerJobsPage() {
         </div>
       </div>
 
-      <form className="owner-job-form" onSubmit={handleSubmit}>
-        <div className="owner-form-heading">
-          <div>
-            <h2>{editingJobId ? text.editJob : text.createJob}</h2>
-            <p>{text.draftHint}</p>
+      {!isCreating && jobs.length === 0 && (
+        <div className="owner-step-card owner-jobs-empty">
+          <h2>{text.firstJob}</h2>
+          <button type="button" onClick={startCreating}>
+            {text.createJob}
+          </button>
+        </div>
+      )}
+
+      {!isCreating && jobs.length > 0 && (
+        <button
+          className="owner-create-job-button"
+          type="button"
+          onClick={startCreating}
+        >
+          {text.createJob}
+        </button>
+      )}
+
+      {isCreating && (
+        <form
+          className="owner-job-form owner-step-card"
+          onSubmit={handleSubmit}
+        >
+          <div className="guided-form-progress">
+            <span>{jobStep}/4</span>
+            <div>
+              {[1, 2, 3, 4].map((currentStep) => (
+                <span
+                  className={currentStep <= jobStep ? 'active' : ''}
+                  key={currentStep}
+                />
+              ))}
+            </div>
           </div>
-          {editingJobId && (
+
+          <div className="owner-form-heading">
+            <div>
+              <h2>{editingJobId ? text.editJob : text.createJob}</h2>
+              <p>{jobStep === 4 ? text.contactHint : text.draftHint}</p>
+            </div>
             <button
               className="owner-cancel-button"
               type="button"
@@ -342,90 +425,148 @@ function OwnerJobsPage() {
             >
               {text.cancelEdit}
             </button>
+          </div>
+
+          {jobStep === 1 && (
+            <>
+              <div className="guided-form-heading">
+                <h2>{text.roleStep}</h2>
+              </div>
+              <fieldset className="restaurant-role-options owner-role-options">
+                <legend>{text.roleStep}</legend>
+                <div>
+                  {RESTAURANT_ROLES.map((role) => (
+                    <label key={role.value}>
+                      <input
+                        type="radio"
+                        name="owner-job-role"
+                        checked={form.role === role.value}
+                        onChange={() => updateField('role', role.value)}
+                      />
+                      <span>
+                        {getRestaurantRoleLabel(role.value, language)}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            </>
           )}
-        </div>
 
-        <label>
-          {text.role}
-          <select
-            value={form.role}
-            onChange={(event) =>
-              updateField(
-                'role',
-                event.target.value as OwnerJobInput['role'],
-              )
-            }
-          >
-            {RESTAURANT_ROLES.map((role) => (
-              <option key={role.value} value={role.value}>
-                {getRestaurantRoleLabel(role.value, language)}
-              </option>
-            ))}
-          </select>
-        </label>
+          {jobStep === 2 && (
+            <>
+              <div className="guided-form-heading">
+                <h2>{text.shiftStep}</h2>
+              </div>
+              <fieldset className="restaurant-role-options owner-shift-options">
+                <legend>{text.shiftStep}</legend>
+                <div>
+                  {shiftOptions.map((option) => {
+                    const label = option[language]
 
-        <label>
-          {text.shiftInfo}
-          <input
-            value={form.shiftInfo}
-            onChange={(event) =>
-              updateField('shiftInfo', event.target.value)
-            }
-          />
-        </label>
+                    return (
+                      <label key={label}>
+                        <input
+                          type="checkbox"
+                          checked={form.shiftInfo.includes(label)}
+                          onChange={() => toggleShift(label)}
+                        />
+                        <span>{label}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+              </fieldset>
+              <label className="owner-field-wide">
+                {text.shiftInfo}
+                <input
+                  value={form.shiftInfo}
+                  onChange={(event) =>
+                    updateField('shiftInfo', event.target.value)
+                  }
+                />
+              </label>
+            </>
+          )}
 
-        <label>
-          {text.contactPhone}
-          <input
-            type="tel"
-            value={form.contactPhone}
-            onChange={(event) =>
-              updateField('contactPhone', event.target.value)
-            }
-          />
-        </label>
+          {jobStep === 3 && (
+            <>
+              <div className="guided-form-heading">
+                <h2>{text.detailsStep}</h2>
+              </div>
+              <label className="owner-field-wide">
+                {text.requirements}
+                <textarea
+                  rows={3}
+                  value={form.requirements}
+                  onChange={(event) =>
+                    updateField('requirements', event.target.value)
+                  }
+                />
+              </label>
+              <label className="owner-field-wide">
+                {text.description}
+                <textarea
+                  rows={4}
+                  value={form.description}
+                  onChange={(event) =>
+                    updateField('description', event.target.value)
+                  }
+                />
+              </label>
+            </>
+          )}
 
-        <label>
-          {text.contactWhatsapp}
-          <input
-            type="tel"
-            value={form.contactWhatsapp}
-            onChange={(event) =>
-              updateField('contactWhatsapp', event.target.value)
-            }
-          />
-        </label>
+          {jobStep === 4 && (
+            <>
+              <div className="guided-form-heading">
+                <h2>{text.contactStep}</h2>
+              </div>
+              <label>
+                {text.contactPhone}
+                <input
+                  type="tel"
+                  value={form.contactPhone}
+                  onChange={(event) =>
+                    updateField('contactPhone', event.target.value)
+                  }
+                />
+              </label>
+              <label>
+                {text.contactWhatsapp}
+                <input
+                  type="tel"
+                  value={form.contactWhatsapp}
+                  onChange={(event) =>
+                    updateField('contactWhatsapp', event.target.value)
+                  }
+                />
+              </label>
+            </>
+          )}
 
-        <label className="owner-field-wide">
-          {text.requirements}
-          <textarea
-            rows={3}
-            value={form.requirements}
-            onChange={(event) =>
-              updateField('requirements', event.target.value)
-            }
-          />
-        </label>
-
-        <label className="owner-field-wide">
-          {text.description}
-          <textarea
-            rows={4}
-            value={form.description}
-            onChange={(event) =>
-              updateField('description', event.target.value)
-            }
-          />
-        </label>
-
-        <button type="submit" disabled={isSubmitting}>
-          {isSubmitting
-            ? text.saving
-            : editingJobId
-              ? text.saveChanges
-              : text.createDraft}
-        </button>
-      </form>
+          <div className="guided-form-actions">
+            {jobStep > 1 && (
+              <button
+                className="restaurant-skip-button"
+                type="button"
+                onClick={() => setJobStep((currentStep) => currentStep - 1)}
+              >
+                {text.back}
+              </button>
+            )}
+            <button type="submit" disabled={isSubmitting}>
+              {isSubmitting
+                ? text.saving
+                : jobStep === 4
+                  ? editingJobId
+                    ? text.saveChanges
+                    : text.createDraft
+                  : text.next}
+            </button>
+          </div>
+        </form>
+      )}
 
       {error && (
         <p className="message message-error" role="alert">
@@ -439,18 +580,13 @@ function OwnerJobsPage() {
         </p>
       )}
 
-      <section className="owner-job-list-section">
-        <div className="owner-list-heading">
-          <h2>{text.postedJobs}</h2>
-          <span>{jobs.length}</span>
-        </div>
-
-        {jobs.length === 0 ? (
-          <div className="empty-state owner-jobs-empty">
-            <h3>{text.noJobs}</h3>
-            <p>{text.noJobsHint}</p>
+      {jobs.length > 0 && (
+        <section className="owner-job-list-section">
+          <div className="owner-list-heading">
+            <h2>{text.postedJobs}</h2>
+            <span>{jobs.length}</span>
           </div>
-        ) : (
+
           <div className="owner-job-list">
             {jobs.map((job) => (
               <article className="owner-job-card" key={job.id}>
@@ -468,12 +604,21 @@ function OwnerJobsPage() {
                   </span>
                 </div>
 
+                <p className="owner-job-status-note">
+                  {job.isActive ? text.activeHint : text.draftHint}
+                </p>
+
                 <p className="owner-job-meta">
                   {[job.city, job.street].filter(Boolean).join(' · ') ||
                     text.locationNotSet}
                 </p>
 
                 {job.shiftInfo && <p>{job.shiftInfo}</p>}
+                {job.requirements && (
+                  <p className="owner-job-requirements">
+                    {job.requirements}
+                  </p>
+                )}
 
                 <div className="owner-job-actions">
                   <button
@@ -507,8 +652,8 @@ function OwnerJobsPage() {
               </article>
             ))}
           </div>
-        )}
-      </section>
+        </section>
+      )}
     </section>
   )
 }

@@ -40,7 +40,8 @@ function OwnerProfilePage() {
         : 'Loading restaurant profile...',
     back: language === 'he' ? 'חזרה' : 'Back',
     next: language === 'he' ? 'הבא' : 'Next',
-    finish: language === 'he' ? 'יאללה, לפרסם משרה' : 'Start posting',
+    finish:
+      language === 'he' ? 'שמור והמשך למשרות' : 'Save and continue to jobs',
     saving: language === 'he' ? 'שומר...' : 'Saving...',
     saved:
       language === 'he'
@@ -179,8 +180,8 @@ function OwnerProfilePage() {
             <div className="guided-form-heading">
               <h2>
                 {language === 'he'
-                  ? 'מי המסעדה?'
-                  : 'Restaurant identity'}
+                  ? 'ספר לנו על המסעדה'
+                  : 'Tell us about the restaurant'}
               </h2>
             </div>
 
@@ -211,8 +212,8 @@ function OwnerProfilePage() {
             <div className="guided-form-heading">
               <h2>
                 {language === 'he'
-                  ? 'איך מגיעים אליכם?'
-                  : 'Contact and address'}
+                  ? 'איפה ואיך יוצרים קשר?'
+                  : 'Where and how do workers contact you?'}
               </h2>
             </div>
 
@@ -263,8 +264,8 @@ function OwnerProfilePage() {
             <div className="guided-form-heading">
               <h2>
                 {language === 'he'
-                  ? 'תיאור קצר'
-                  : 'Short description'}
+                  ? 'מה הסגנון של המקום?'
+                  : 'What is the vibe of the place?'}
               </h2>
             </div>
 

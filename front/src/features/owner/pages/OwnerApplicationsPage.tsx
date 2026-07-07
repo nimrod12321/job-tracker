@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { RESTAURANT_ROLES } from '../../restaurant/types/restaurant'
+import { getRestaurantRoleLabel } from '../../restaurant/types/restaurant'
+import { useRestaurantLanguage } from '../../restaurant/utils/restaurantLanguage'
 import {
   getOwnerApplications,
   updateOwnerApplicationStatus,
@@ -9,23 +10,58 @@ import type {
   OwnerApplicationStatus,
 } from '../types/owner'
 
-function getRoleLabel(role: OwnerApplication['job']['role']) {
-  return (
-    RESTAURANT_ROLES.find((option) => option.value === role)?.label ?? role
-  )
+function getStatusLabel(
+  status: OwnerApplicationStatus,
+  language: 'he' | 'en',
+) {
+  const labels = {
+    applied: language === 'he' ? 'הוגש' : 'Applied',
+    rejected: language === 'he' ? 'נדחה' : 'Rejected',
+    selected: language === 'he' ? 'נבחר' : 'Selected',
+  }
+
+  return labels[status]
 }
 
-function getStatusLabel(status: OwnerApplicationStatus) {
-  return `${status.charAt(0).toUpperCase()}${status.slice(1)}`
+function getWorkerInitial(name: string) {
+  return Array.from(name.trim() || '?')[0]
 }
 
 function OwnerApplicationsPage() {
+  const { direction, language } = useRestaurantLanguage()
   const [applications, setApplications] = useState<OwnerApplication[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [busyApplicationId, setBusyApplicationId] = useState<string | null>(
     null,
   )
   const [error, setError] = useState<string | null>(null)
+
+  const text = {
+    title: language === 'he' ? 'מועמדים' : 'Applications',
+    subtitle:
+      language === 'he'
+        ? 'עובדים שהגישו מועמדות למשרות שלך.'
+        : 'Review workers who applied to your restaurant jobs.',
+    loading: language === 'he' ? 'טוען מועמדים...' : 'Loading applications...',
+    emptyTitle: language === 'he' ? 'אין מועמדים עדיין' : 'No applicants yet',
+    emptyHint:
+      language === 'he'
+        ? 'כשעובדים יגישו מועמדות, הם יופיעו כאן.'
+        : 'When workers apply, they will appear here.',
+    unnamed: language === 'he' ? 'עובד ללא שם' : 'Unnamed worker',
+    location: language === 'he' ? 'מיקום' : 'Location',
+    age: language === 'he' ? 'גיל' : 'Age',
+    availability: language === 'he' ? 'זמינות' : 'Availability',
+    phone: language === 'he' ? 'טלפון' : 'Phone',
+    appliedAt: language === 'he' ? 'הוגש' : 'Applied',
+    wantedRoles: language === 'he' ? 'תפקידים רצויים' : 'Wanted roles',
+    experience: language === 'he' ? 'ניסיון' : 'Experience',
+    notProvided: language === 'he' ? 'לא צוין' : 'Not provided',
+    select: language === 'he' ? 'בחר' : 'Select',
+    reject: language === 'he' ? 'דחה' : 'Reject',
+    call: language === 'he' ? 'שיחה' : 'Call',
+    whatsapp: language === 'he' ? 'וואטסאפ' : 'WhatsApp',
+  }
 
   useEffect(() => {
     let isActive = true
@@ -95,24 +131,24 @@ function OwnerApplicationsPage() {
 
   if (isLoading) {
     return (
-      <section className="owner-applications-page">
+      <section className="owner-applications-page" dir={direction}>
         <div className="page-header">
           <div>
-            <h1>Applications</h1>
-            <p>Review workers who applied to your restaurant jobs.</p>
+            <h1>{text.title}</h1>
+            <p>{text.subtitle}</p>
           </div>
         </div>
-        <p className="status-message">Loading applications...</p>
+        <p className="status-message">{text.loading}</p>
       </section>
     )
   }
 
   return (
-    <section className="owner-applications-page">
+    <section className="owner-applications-page" dir={direction}>
       <div className="page-header">
         <div>
-          <h1>Applications</h1>
-          <p>Review workers who applied to your restaurant jobs.</p>
+          <h1>{text.title}</h1>
+          <p>{text.subtitle}</p>
         </div>
       </div>
 
@@ -124,8 +160,8 @@ function OwnerApplicationsPage() {
 
       {applications.length === 0 ? (
         <div className="empty-state owner-applications-empty">
-          <h2>No applications yet.</h2>
-          <p>Applications will appear here when workers apply.</p>
+          <h2>{text.emptyTitle}</h2>
+          <p>{text.emptyHint}</p>
         </div>
       ) : (
         <div className="owner-application-list">
@@ -134,6 +170,7 @@ function OwnerApplicationsPage() {
               /\D/g,
               '',
             )
+            const workerName = application.worker.fullName || text.unnamed
 
             return (
               <article
@@ -141,42 +178,50 @@ function OwnerApplicationsPage() {
                 key={application.id}
               >
                 <div className="owner-application-header">
-                  <div>
-                    <p>{getRoleLabel(application.job.role)}</p>
-                    <h2>
-                      {application.worker.fullName || 'Unnamed worker'}
-                    </h2>
+                  <div className="owner-worker-heading">
+                    <span className="owner-worker-avatar" aria-hidden="true">
+                      {getWorkerInitial(workerName)}
+                    </span>
+                    <div>
+                      <p>
+                        {getRestaurantRoleLabel(
+                          application.job.role,
+                          language,
+                        )}
+                      </p>
+                      <h2>{workerName}</h2>
+                    </div>
                   </div>
                   <span
                     className={`application-status ${application.status}`}
                   >
-                    {getStatusLabel(application.status)}
+                    {getStatusLabel(application.status, language)}
                   </span>
                 </div>
 
                 <dl className="owner-worker-details">
                   <div>
-                    <dt>Location</dt>
-                    <dd>{application.worker.location || 'Not provided'}</dd>
+                    <dt>{text.location}</dt>
+                    <dd>{application.worker.location || text.notProvided}</dd>
                   </div>
                   <div>
-                    <dt>Age</dt>
-                    <dd>{application.worker.age ?? 'Not provided'}</dd>
+                    <dt>{text.age}</dt>
+                    <dd>{application.worker.age ?? text.notProvided}</dd>
                   </div>
                   <div>
-                    <dt>Availability</dt>
+                    <dt>{text.availability}</dt>
                     <dd>
-                      {application.worker.availability || 'Not provided'}
+                      {application.worker.availability || text.notProvided}
                     </dd>
                   </div>
                   <div>
-                    <dt>Phone</dt>
+                    <dt>{text.phone}</dt>
                     <dd>
-                      {application.worker.phoneNumber || 'Not provided'}
+                      {application.worker.phoneNumber || text.notProvided}
                     </dd>
                   </div>
                   <div>
-                    <dt>Applied</dt>
+                    <dt>{text.appliedAt}</dt>
                     <dd>
                       {new Date(application.createdAt).toLocaleDateString()}
                     </dd>
@@ -184,27 +229,29 @@ function OwnerApplicationsPage() {
                 </dl>
 
                 <div className="owner-application-section">
-                  <strong>Wanted roles</strong>
+                  <strong>{text.wantedRoles}</strong>
                   <p>
                     {application.worker.wantedRoles.length > 0
                       ? application.worker.wantedRoles
-                          .map(getRoleLabel)
+                          .map((role) =>
+                            getRestaurantRoleLabel(role, language),
+                          )
                           .join(', ')
-                      : 'Not provided'}
+                      : text.notProvided}
                   </p>
                 </div>
 
                 <div className="owner-application-section">
-                  <strong>Experience</strong>
+                  <strong>{text.experience}</strong>
                   <p>
-                    {application.worker.experienceText || 'Not provided'}
+                    {application.worker.experienceText || text.notProvided}
                   </p>
                 </div>
 
                 {application.worker.phoneNumber && (
                   <div className="owner-applicant-contact">
                     <a href={`tel:${application.worker.phoneNumber}`}>
-                      Call
+                      {text.call}
                     </a>
                     {whatsappNumber && (
                       <a
@@ -212,7 +259,7 @@ function OwnerApplicationsPage() {
                         target="_blank"
                         rel="noreferrer"
                       >
-                        WhatsApp
+                        {text.whatsapp}
                       </a>
                     )}
                   </div>
@@ -229,7 +276,7 @@ function OwnerApplicationsPage() {
                       void handleStatusChange(application, 'selected')
                     }
                   >
-                    Select
+                    {text.select}
                   </button>
                   <button
                     className="owner-reject-button"
@@ -242,7 +289,7 @@ function OwnerApplicationsPage() {
                       void handleStatusChange(application, 'rejected')
                     }
                   >
-                    Reject
+                    {text.reject}
                   </button>
                 </div>
               </article>

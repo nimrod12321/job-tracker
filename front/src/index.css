@@ -4028,7 +4028,10 @@ textarea:focus-visible {
 @media (max-width: 760px) {
   .restaurant-shell:has(.restaurant-explore-page),
   .restaurant-shell:has(.restaurant-profile-page),
-  .restaurant-shell:has(.restaurant-matches-page) {
+  .restaurant-shell:has(.restaurant-matches-page),
+  .restaurant-shell:has(.owner-profile-page),
+  .restaurant-shell:has(.owner-jobs-page),
+  .restaurant-shell:has(.owner-applications-page) {
     display: flex;
     flex-direction: column;
     min-height: 100dvh;
@@ -4132,14 +4135,20 @@ textarea:focus-visible {
 
   .restaurant-shell:has(.restaurant-explore-page) .app-header,
   .restaurant-shell:has(.restaurant-profile-page) .app-header,
-  .restaurant-shell:has(.restaurant-matches-page) .app-header {
+  .restaurant-shell:has(.restaurant-matches-page) .app-header,
+  .restaurant-shell:has(.owner-profile-page) .app-header,
+  .restaurant-shell:has(.owner-jobs-page) .app-header,
+  .restaurant-shell:has(.owner-applications-page) .app-header {
     position: relative;
     flex: 0 0 auto;
   }
 
   .restaurant-shell:has(.restaurant-explore-page) .app-content,
   .restaurant-shell:has(.restaurant-profile-page) .app-content,
-  .restaurant-shell:has(.restaurant-matches-page) .app-content {
+  .restaurant-shell:has(.restaurant-matches-page) .app-content,
+  .restaurant-shell:has(.owner-profile-page) .app-content,
+  .restaurant-shell:has(.owner-jobs-page) .app-content,
+  .restaurant-shell:has(.owner-applications-page) .app-content {
     display: flex;
     flex-direction: column;
   }
@@ -4299,25 +4308,37 @@ textarea:focus-visible {
   }
 
   .restaurant-shell .restaurant-profile-page,
-  .restaurant-shell .restaurant-matches-page {
+  .restaurant-shell .restaurant-matches-page,
+  .restaurant-shell .owner-profile-page,
+  .restaurant-shell .owner-jobs-page,
+  .restaurant-shell .owner-applications-page {
     display: grid;
     gap: 0.85rem;
     padding-bottom: 1rem;
   }
 
   .restaurant-shell .restaurant-profile-page .page-header,
-  .restaurant-shell .restaurant-matches-page .page-header {
+  .restaurant-shell .restaurant-matches-page .page-header,
+  .restaurant-shell .owner-profile-page .page-header,
+  .restaurant-shell .owner-jobs-page .page-header,
+  .restaurant-shell .owner-applications-page .page-header {
     margin: 0;
   }
 
   .restaurant-shell .restaurant-profile-page .page-header h1,
-  .restaurant-shell .restaurant-matches-page .page-header h1 {
+  .restaurant-shell .restaurant-matches-page .page-header h1,
+  .restaurant-shell .owner-profile-page .page-header h1,
+  .restaurant-shell .owner-jobs-page .page-header h1,
+  .restaurant-shell .owner-applications-page .page-header h1 {
     font-size: clamp(1.85rem, 9vw, 2.75rem);
     line-height: 0.95;
   }
 
   .restaurant-shell .restaurant-profile-page .page-header p,
-  .restaurant-shell .restaurant-matches-page .page-header p {
+  .restaurant-shell .restaurant-matches-page .page-header p,
+  .restaurant-shell .owner-profile-page .page-header p,
+  .restaurant-shell .owner-jobs-page .page-header p,
+  .restaurant-shell .owner-applications-page .page-header p {
     margin-top: 0.35rem;
     color: var(--restaurant-muted);
     font-size: 0.9rem;
@@ -4328,6 +4349,17 @@ textarea:focus-visible {
     gap: 0.85rem;
     border-radius: 28px;
     padding: 1rem;
+  }
+
+  .restaurant-shell .owner-profile-form,
+  .restaurant-shell .owner-job-form,
+  .restaurant-shell .owner-step-card {
+    gap: 0.85rem;
+    border: 1px solid var(--restaurant-border);
+    border-radius: 28px;
+    padding: 1rem;
+    background: var(--restaurant-surface);
+    box-shadow: 0 18px 45px rgb(93 49 13 / 10%);
   }
 
   .restaurant-shell .guided-form-progress {
@@ -4344,13 +4376,19 @@ textarea:focus-visible {
   }
 
   .restaurant-shell .restaurant-profile-form > label,
+  .restaurant-shell .owner-profile-form > label,
+  .restaurant-shell .owner-job-form > label,
   .restaurant-shell .restaurant-role-options legend {
     color: var(--restaurant-ink);
     font-size: 0.86rem;
   }
 
   .restaurant-shell .restaurant-profile-form input,
-  .restaurant-shell .restaurant-profile-form textarea {
+  .restaurant-shell .restaurant-profile-form textarea,
+  .restaurant-shell .owner-profile-form input,
+  .restaurant-shell .owner-profile-form textarea,
+  .restaurant-shell .owner-job-form input,
+  .restaurant-shell .owner-job-form textarea {
     border-color: var(--restaurant-border);
     border-radius: 18px;
     background: #fffdf8;
@@ -4362,6 +4400,70 @@ textarea:focus-visible {
     color: var(--restaurant-ink);
   }
 
+  .restaurant-shell .owner-step-card h1,
+  .restaurant-shell .owner-step-card h2 {
+    margin: 0;
+    font-size: clamp(1.8rem, 8vw, 2.6rem);
+    line-height: 1;
+    letter-spacing: -0.05em;
+  }
+
+  .restaurant-shell .owner-step-card > a,
+  .restaurant-shell .owner-step-card > button,
+  .restaurant-shell .owner-create-job-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 50px;
+    border-radius: 999px;
+    padding-inline: 1rem;
+    font-weight: 900;
+  }
+
+  .restaurant-shell .owner-create-job-button {
+    justify-self: start;
+  }
+
+  .restaurant-shell .owner-field-wide,
+  .restaurant-shell .owner-form-heading,
+  .restaurant-shell .owner-job-form .guided-form-progress,
+  .restaurant-shell .owner-job-form .guided-form-heading,
+  .restaurant-shell .owner-job-form .guided-form-actions {
+    grid-column: 1 / -1;
+  }
+
+  .restaurant-shell .owner-form-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .restaurant-shell .owner-form-heading h2 {
+    margin: 0;
+    font-size: clamp(1.7rem, 8vw, 2.35rem);
+  }
+
+  .restaurant-shell .owner-form-heading p {
+    color: var(--restaurant-muted);
+  }
+
+  .restaurant-shell .owner-cancel-button {
+    width: 100%;
+    border-color: var(--restaurant-border);
+    border-radius: 999px;
+    background: #fffdf8;
+    color: var(--restaurant-ink);
+  }
+
+  .restaurant-shell .owner-role-options,
+  .restaurant-shell .owner-shift-options {
+    grid-column: 1 / -1;
+  }
+
+  .restaurant-shell .owner-role-options input,
+  .restaurant-shell .owner-shift-options input {
+    width: auto;
+  }
+
   .restaurant-shell .guided-form-actions button {
     min-height: 48px;
     border-radius: 999px;
@@ -4370,6 +4472,98 @@ textarea:focus-visible {
   .restaurant-shell .restaurant-match-list {
     grid-template-columns: 1fr;
     gap: 0.85rem;
+  }
+
+  .restaurant-shell .owner-job-list,
+  .restaurant-shell .owner-application-list {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+  }
+
+  .restaurant-shell .owner-job-list-section {
+    gap: 0.85rem;
+  }
+
+  .restaurant-shell .owner-list-heading {
+    align-items: center;
+  }
+
+  .restaurant-shell .owner-job-card,
+  .restaurant-shell .owner-application-card {
+    gap: 0.75rem;
+    border-color: var(--restaurant-border);
+    border-radius: 26px;
+    padding: 1rem;
+    background: var(--restaurant-surface);
+  }
+
+  .restaurant-shell .owner-job-card-header {
+    align-items: flex-start;
+  }
+
+  .restaurant-shell .owner-job-card-header h3,
+  .restaurant-shell .owner-application-header h2 {
+    font-size: clamp(1.45rem, 7vw, 2.05rem);
+    line-height: 1;
+  }
+
+  .restaurant-shell .owner-job-status-note,
+  .restaurant-shell .owner-job-meta,
+  .restaurant-shell .owner-job-card > p,
+  .restaurant-shell .owner-job-requirements {
+    color: var(--restaurant-muted);
+    font-size: 0.84rem;
+    line-height: 1.45;
+  }
+
+  .restaurant-shell .owner-job-requirements {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .restaurant-shell .owner-job-status,
+  .restaurant-shell .application-status {
+    border-radius: 999px;
+  }
+
+  .restaurant-shell .owner-job-actions,
+  .restaurant-shell .owner-application-actions,
+  .restaurant-shell .owner-applicant-contact {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .restaurant-shell .owner-job-actions button,
+  .restaurant-shell .owner-application-actions button,
+  .restaurant-shell .owner-applicant-contact a {
+    min-height: 46px;
+    border-radius: 999px;
+  }
+
+  .restaurant-shell .owner-worker-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+  }
+
+  .restaurant-shell .owner-worker-avatar {
+    display: grid;
+    flex: 0 0 auto;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 18px;
+    background: var(--restaurant-primary);
+    color: #fff;
+    font-size: 1.25rem;
+    font-weight: 900;
+    place-items: center;
+  }
+
+  .restaurant-shell .owner-worker-details {
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
   }
 
   .restaurant-shell .restaurant-match-card {
