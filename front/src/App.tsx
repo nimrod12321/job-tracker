@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+import {
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom'
 import AppLayout from './components/layout/AppLayout'
 import ProtectedRoute from './components/routing/ProtectedRoute'
 import { getCurrentUser, type AuthUser } from './features/auth/services/authApi'
@@ -34,6 +40,18 @@ function getHomePath(user: AuthUser | null) {
   }
 
   return '/dashboard'
+}
+
+function ScrollToTop() {
+  const location = useLocation()
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+    document.documentElement.scrollTop = 0
+    document.body.scrollTop = 0
+  }, [location.pathname])
+
+  return null
 }
 
 function App() {
@@ -136,7 +154,9 @@ function App() {
   ) : null
 
   return (
-    <Routes>
+    <>
+      <ScrollToTop />
+      <Routes>
       <Route
         path="/login"
         element={
@@ -246,7 +266,8 @@ function App() {
           <Navigate to={isAuthenticated ? homePath : '/login'} replace />
         }
       />
-    </Routes>
+      </Routes>
+    </>
   )
 }
 

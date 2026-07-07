@@ -5059,3 +5059,180 @@ textarea:focus-visible {
     transform: none;
   }
 }
+
+@media (max-width: 768px) {
+  html,
+  body,
+  #root {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    min-height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-x: clip;
+  }
+
+  @supports not (overflow-x: clip) {
+    body {
+      overflow-x: hidden;
+    }
+  }
+
+  input,
+  select,
+  textarea,
+  .auth-page input,
+  .auth-page select,
+  .auth-page textarea,
+  .restaurant-shell input,
+  .restaurant-shell select,
+  .restaurant-shell textarea,
+  .restaurant-worker-shell input,
+  .restaurant-worker-shell select,
+  .restaurant-worker-shell textarea,
+  .restaurant-owner-shell input,
+  .restaurant-owner-shell select,
+  .restaurant-owner-shell textarea,
+  .owner-profile-page input,
+  .owner-profile-page select,
+  .owner-profile-page textarea,
+  .owner-jobs-page input,
+  .owner-jobs-page select,
+  .owner-jobs-page textarea {
+    font-size: 16px !important;
+    line-height: 1.3;
+  }
+
+  .auth-page,
+  .auth-shell,
+  .auth-card,
+  .app-layout,
+  .app-header,
+  .app-content,
+  .restaurant-shell,
+  .restaurant-shell .app-header,
+  .restaurant-shell .app-content,
+  .restaurant-profile-page,
+  .restaurant-explore-page,
+  .restaurant-matches-page,
+  .owner-profile-page,
+  .owner-jobs-page,
+  .owner-applications-page,
+  .restaurant-profile-form,
+  .restaurant-card-stack,
+  .restaurant-swipe-card,
+  .restaurant-job-card,
+  .restaurant-match-card,
+  .owner-profile-form,
+  .owner-job-form,
+  .owner-step-card,
+  .owner-job-card,
+  .owner-application-card {
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .auth-page,
+  .app-layout,
+  .restaurant-shell {
+    width: 100% !important;
+    overflow-x: clip;
+  }
+
+  .auth-page *,
+  .restaurant-shell * {
+    min-width: 0;
+  }
+
+  .auth-shell,
+  .auth-card,
+  .restaurant-shell .app-content,
+  .restaurant-profile-page,
+  .restaurant-explore-page,
+  .restaurant-matches-page,
+  .owner-profile-page,
+  .owner-jobs-page,
+  .owner-applications-page {
+    width: 100% !important;
+  }
+
+  .auth-hero,
+  .auth-card,
+  .restaurant-swipe-card,
+  .restaurant-swipe-card *,
+  .restaurant-match-card,
+  .restaurant-match-card *,
+  .owner-profile-page,
+  .owner-jobs-page,
+  .owner-applications-page,
+  .owner-profile-page *,
+  .owner-jobs-page *,
+  .owner-applications-page * {
+    overflow-wrap: anywhere;
+  }
+
+  .auth-logo.peepss-logo,
+  .restaurant-shell .peepss-logo {
+    width: clamp(84px, 26vw, 116px) !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow: visible;
+  }
+
+  .restaurant-shell .app-header {
+    width: 100%;
+    max-width: 100%;
+    grid-template-columns: minmax(0, 1fr) auto;
+    overflow: visible;
+  }
+
+  .restaurant-shell .restaurant-options {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .restaurant-shell .app-header nav {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .restaurant-shell .app-header .nav-button {
+    min-width: 0 !important;
+    max-width: 100%;
+    padding-inline: 0.25rem;
+    overflow-wrap: anywhere;
+    white-space: normal !important;
+  }
+
+  .restaurant-card-stack {
+    overflow: hidden;
+  }
+
+  .restaurant-swipe-card {
+    width: 100% !important;
+    max-width: min(100%, 430px) !important;
+    margin-inline: auto;
+    overflow: hidden;
+  }
+
+  .restaurant-owner-shell,
+  .restaurant-owner-shell .app-content,
+  .restaurant-owner-shell .owner-profile-page,
+  .restaurant-owner-shell .owner-jobs-page,
+  .restaurant-owner-shell .owner-applications-page {
+    height: auto !important;
+    overflow-y: visible;
+  }
+
+  [dir="rtl"] .restaurant-swipe-card,
+  [dir="rtl"] .owner-profile-page,
+  [dir="rtl"] .owner-jobs-page,
+  [dir="rtl"] .owner-applications-page {
+    text-align: right;
+  }
+}

@@ -29,6 +29,16 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
       }
 
       const response = await loginUser(email, password)
+      const activeElement = document.activeElement
+
+      if (activeElement instanceof HTMLElement) {
+        activeElement.blur()
+      }
+
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+      document.documentElement.scrollTop = 0
+      document.body.scrollTop = 0
+
       await onAuthSuccess(response.token)
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Something went wrong')
