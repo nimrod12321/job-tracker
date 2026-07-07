@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import {
   RESTAURANT_ROLES,
@@ -48,6 +48,7 @@ function OwnerJobsPage() {
   const [busyJobId, setBusyJobId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const pendingJobIds = useRef(new Set<string>())
 
   const text = {
     title: language === 'he' ? 'המשרות שלי' : 'My jobs',
@@ -250,8 +251,13 @@ function OwnerJobsPage() {
   }
 
   async function handleActiveChange(job: OwnerJob) {
+    if (pendingJobIds.current.has(job.id)) {
+      return
+    }
+
     const nextIsActive = !job.isActive
 
+    pendingJobIds.current.add(job.id)
     setBusyJobId(job.id)
     setError(null)
     setSuccess(nextIsActive ? text.activated : text.deactivated)
@@ -269,11 +275,16 @@ function OwnerJobsPage() {
           : 'Failed to update job visibility',
       )
     } finally {
+      pendingJobIds.current.delete(job.id)
       setBusyJobId(null)
     }
   }
 
   async function handleDelete(job: OwnerJob) {
+    if (pendingJobIds.current.has(job.id)) {
+      return
+    }
+
     const roleLabel = getRestaurantRoleLabel(job.role, language)
     const shouldDelete = window.confirm(
       language === 'he'
@@ -285,28 +296,45 @@ function OwnerJobsPage() {
       return
     }
 
+    const jobIndex = jobs.findIndex((currentJob) => currentJob.id === job.id)
+
+    pendingJobIds.current.add(job.id)
     setBusyJobId(job.id)
     setError(null)
-    setSuccess(null)
+    setSuccess(text.deleted)
+    setJobs((currentJobs) =>
+      currentJobs.filter((currentJob) => currentJob.id !== job.id),
+    )
 
     try {
       await deleteOwnerJob(job.id)
-      setJobs((currentJobs) =>
-        currentJobs.filter((currentJob) => currentJob.id !== job.id),
-      )
 
       if (editingJobId === job.id) {
         resetForm()
       }
-
-      setSuccess(text.deleted)
     } catch (error) {
+      setJobs((currentJobs) => {
+        if (currentJobs.some((currentJob) => currentJob.id === job.id)) {
+          return currentJobs
+        }
+
+        const insertAt =
+          jobIndex >= 0 ? Math.min(jobIndex, currentJobs.length) : 0
+
+        return [
+          ...currentJobs.slice(0, insertAt),
+          job,
+          ...currentJobs.slice(insertAt),
+        ]
+      })
+      setSuccess(null)
       setError(
         error instanceof Error
           ? error.message
           : 'Failed to delete restaurant job',
       )
     } finally {
+      pendingJobIds.current.delete(job.id)
       setBusyJobId(null)
     }
   }

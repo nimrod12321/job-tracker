@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getRestaurantRoleLabel } from '../../restaurant/types/restaurant'
 import { useRestaurantLanguage } from '../../restaurant/utils/restaurantLanguage'
 import {
@@ -35,6 +35,7 @@ function OwnerApplicationsPage() {
     null,
   )
   const [error, setError] = useState<string | null>(null)
+  const pendingApplicationIds = useRef(new Set<string>())
 
   const text = {
     title: language === 'he' ? 'מועמדים' : 'Applications',
@@ -99,6 +100,14 @@ function OwnerApplicationsPage() {
     application: OwnerApplication,
     status: 'selected' | 'rejected',
   ) {
+    if (
+      pendingApplicationIds.current.has(application.id) ||
+      application.status === status
+    ) {
+      return
+    }
+
+    pendingApplicationIds.current.add(application.id)
     setBusyApplicationId(application.id)
     setError(null)
     setApplications((currentApplications) =>
@@ -145,6 +154,7 @@ function OwnerApplicationsPage() {
           : 'Failed to update application',
       )
     } finally {
+      pendingApplicationIds.current.delete(application.id)
       setBusyApplicationId(null)
     }
   }

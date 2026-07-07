@@ -28,6 +28,7 @@ function RestaurantExplorePage() {
   const [feedback, setFeedback] = useState<string | null>(null)
   const animationTimeout = useRef<number | null>(null)
   const activeIndexRef = useRef(0)
+  const isCardActionPending = useRef(false)
   const text = {
     title: language === 'he' ? 'משמרות סביבך' : 'Jobs near you',
     subtitle:
@@ -150,6 +151,7 @@ function RestaurantExplorePage() {
       setActiveIndex((currentIndex) => currentIndex + 1)
       setAnimationDirection(null)
       setIsAnimating(false)
+      isCardActionPending.current = false
       animationTimeout.current = null
     }, CARD_ANIMATION_MS)
   }
@@ -167,10 +169,11 @@ function RestaurantExplorePage() {
   }
 
   function handleSkip(): boolean {
-    if (!activeJob || isAnimating) {
+    if (!activeJob || isAnimating || isCardActionPending.current) {
       return false
     }
 
+    isCardActionPending.current = true
     rememberJob(activeJob.id)
     setError(null)
     setFeedback(text.skipped)
@@ -179,12 +182,13 @@ function RestaurantExplorePage() {
   }
 
   async function handleApply(): Promise<boolean> {
-    if (!activeJob || isAnimating) {
+    if (!activeJob || isAnimating || isCardActionPending.current) {
       return false
     }
 
     const jobToApply = activeJob
 
+    isCardActionPending.current = true
     setError(null)
     setFeedback(text.applied)
     rememberJob(jobToApply.id)
@@ -235,6 +239,8 @@ function RestaurantExplorePage() {
       if (animationTimeout.current !== null) {
         window.clearTimeout(animationTimeout.current)
       }
+
+      isCardActionPending.current = false
     }
   }, [])
 
