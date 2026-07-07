@@ -3608,6 +3608,118 @@ textarea:focus-visible {
     grid-template-columns: 1fr;
   }
 
+  .restaurant-shell .restaurant-explore-page {
+    display: grid;
+    align-content: start;
+    gap: 0.45rem;
+    height: calc(100dvh - 124px);
+    min-height: calc(100dvh - 124px);
+    overflow: hidden;
+  }
+
+  .restaurant-shell .restaurant-explore-page .page-header {
+    gap: 0.45rem;
+    margin: 0;
+  }
+
+  .restaurant-shell .restaurant-explore-page .page-header h1 {
+    font-size: clamp(1.5rem, 8vw, 2.05rem);
+    line-height: 0.95;
+  }
+
+  .restaurant-shell .restaurant-explore-page .page-header p {
+    margin-top: 0.2rem;
+    font-size: 0.78rem;
+    line-height: 1.25;
+  }
+
+  .restaurant-explore-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+
+  .restaurant-explore-header > span {
+    padding: 0.3rem 0.55rem;
+    font-size: 0.72rem;
+  }
+
+  .restaurant-shell .restaurant-feedback,
+  .restaurant-shell .restaurant-explore-page > .message {
+    max-width: 100%;
+    padding: 0.3rem 0.55rem;
+    font-size: 0.74rem;
+  }
+
+  .restaurant-shell .restaurant-job-card {
+    display: grid;
+    gap: 0.5rem;
+    width: 100%;
+    max-height: calc(100dvh - 235px);
+    border-radius: 24px;
+    padding: 0.85rem;
+    overflow: hidden;
+  }
+
+  .restaurant-shell .restaurant-job-name {
+    font-size: 0.7rem;
+  }
+
+  .restaurant-shell .restaurant-job-card h2 {
+    margin-top: 0.15rem;
+    font-size: clamp(1.75rem, 10vw, 2.45rem);
+  }
+
+  .restaurant-shell .restaurant-job-location {
+    margin-top: 0.15rem;
+    font-size: 0.82rem;
+  }
+
+  .restaurant-shell .restaurant-job-highlight {
+    margin-top: 0.35rem;
+    padding: 0.55rem 0.65rem;
+  }
+
+  .restaurant-shell .restaurant-job-highlight span {
+    font-size: 0.66rem;
+  }
+
+  .restaurant-shell .restaurant-job-highlight strong {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: 0.9rem;
+    line-height: 1.25;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .restaurant-shell .restaurant-job-description,
+  .restaurant-shell .restaurant-job-requirements p {
+    margin-top: 0.25rem;
+    font-size: 0.82rem;
+    line-height: 1.35;
+    -webkit-line-clamp: 2;
+  }
+
+  .restaurant-shell .restaurant-job-requirements {
+    margin-top: 0.35rem;
+    padding-top: 0.5rem;
+  }
+
+  .restaurant-shell .restaurant-job-requirements strong {
+    font-size: 0.75rem;
+  }
+
+  .restaurant-shell .restaurant-job-actions,
+  .restaurant-shell .restaurant-job-contact {
+    display: none;
+  }
+
+  .restaurant-shell .restaurant-swipe-hint {
+    top: 2.4rem;
+    font-size: 0.72rem;
+  }
+
   .restaurant-shell .app-header nav {
     position: fixed;
     z-index: 20;
@@ -3636,6 +3748,66 @@ textarea:focus-visible {
   .restaurant-shell .header-user-actions {
     align-items: center;
     flex-wrap: wrap;
+  }
+
+  .restaurant-shell .app-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.55rem 0.75rem;
+    padding: 0.45rem 0.75rem 0.65rem;
+    overflow: visible;
+  }
+
+  .restaurant-shell .app-header h1 {
+    min-width: 0;
+    overflow: visible;
+  }
+
+  .restaurant-shell .peepss-logo {
+    min-width: 0;
+    width: 92px;
+    max-width: 30vw;
+    height: 2rem;
+    font-size: 2.05rem;
+    letter-spacing: -0.14em;
+  }
+
+  .restaurant-shell .peepss-logo-circle {
+    left: 1.45rem;
+    width: 3.3rem;
+    height: 3.3rem;
+  }
+
+  .restaurant-shell .header-user-actions {
+    width: auto;
+    justify-self: end;
+    gap: 0.4rem;
+  }
+
+  .restaurant-shell .header-user-actions > span {
+    display: none;
+  }
+
+  .restaurant-shell .header-user-actions > button {
+    min-height: 34px;
+    padding: 0.42rem 0.55rem;
+    font-size: 0.76rem;
+  }
+
+  .restaurant-shell .restaurant-language-toggle {
+    padding: 0.18rem 0.32rem;
+    font-size: 0.72rem;
+  }
+
+  .restaurant-shell .restaurant-language-toggle button {
+    padding: 0.25rem 0.32rem;
+  }
+
+  .restaurant-shell .app-header nav {
+    position: static;
+    grid-column: 1 / -1;
+    width: 100%;
+    box-shadow: none;
   }
 
   .guided-form {
@@ -3790,6 +3962,199 @@ textarea:focus-visible {
   .job-analysis-header {
     align-items: stretch;
     flex-direction: column;
+  }
+}
+
+@media (max-width: 760px) {
+  .restaurant-shell .app-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.5rem 0.75rem;
+    padding: 0.45rem 0.75rem 0.6rem;
+    overflow: visible;
+  }
+
+  .restaurant-shell .app-header h1 {
+    min-width: 0;
+    overflow: visible;
+  }
+
+  .restaurant-shell .peepss-logo {
+    min-width: 0;
+    width: 92px;
+    max-width: 30vw;
+    height: 2rem;
+    font-size: 2.05rem;
+    letter-spacing: -0.14em;
+  }
+
+  .restaurant-shell .peepss-logo-circle {
+    left: 1.45rem;
+    width: 3.3rem;
+    height: 3.3rem;
+  }
+
+  .restaurant-shell .header-user-actions {
+    width: auto;
+    justify-self: end;
+    gap: 0.4rem;
+  }
+
+  .restaurant-shell .header-user-actions > span {
+    display: none;
+  }
+
+  .restaurant-shell .header-user-actions > button {
+    min-height: 34px;
+    padding: 0.42rem 0.55rem;
+    font-size: 0.76rem;
+  }
+
+  .restaurant-shell .restaurant-language-toggle {
+    padding: 0.18rem 0.32rem;
+    font-size: 0.72rem;
+  }
+
+  .restaurant-shell .restaurant-language-toggle button {
+    padding: 0.25rem 0.32rem;
+  }
+
+  .restaurant-shell .app-header nav {
+    position: static;
+    grid-column: 1 / -1;
+    width: 100%;
+    justify-content: space-around;
+    border: 1px solid var(--restaurant-border);
+    border-radius: 999px;
+    padding: 0.35rem;
+    overflow-x: auto;
+    background: rgb(255 250 243 / 94%);
+    box-shadow: none;
+  }
+
+  .restaurant-shell .app-header .nav-button {
+    flex: 1 0 auto;
+    justify-content: center;
+    min-height: 38px;
+    padding: 0.48rem 0.6rem;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .restaurant-shell .app-content {
+    width: min(100% - 1rem, 1180px);
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .restaurant-shell .restaurant-explore-page {
+    display: grid;
+    align-content: start;
+    gap: 0.45rem;
+    height: calc(100dvh - 128px);
+    min-height: calc(100dvh - 128px);
+    overflow: hidden;
+  }
+
+  .restaurant-shell .restaurant-explore-page .page-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 0.45rem;
+    margin: 0;
+  }
+
+  .restaurant-shell .restaurant-explore-page .page-header h1 {
+    font-size: clamp(1.45rem, 7vw, 2.05rem);
+    line-height: 0.95;
+  }
+
+  .restaurant-shell .restaurant-explore-page .page-header p {
+    margin-top: 0.2rem;
+    font-size: 0.78rem;
+    line-height: 1.25;
+  }
+
+  .restaurant-shell .restaurant-explore-header > span {
+    padding: 0.3rem 0.55rem;
+    font-size: 0.72rem;
+  }
+
+  .restaurant-shell .restaurant-feedback,
+  .restaurant-shell .restaurant-explore-page > .message {
+    max-width: 100%;
+    padding: 0.3rem 0.55rem;
+    font-size: 0.74rem;
+  }
+
+  .restaurant-shell .restaurant-job-card {
+    display: grid;
+    gap: 0.48rem;
+    width: 100%;
+    max-height: calc(100dvh - 235px);
+    border-radius: 24px;
+    padding: 0.85rem;
+    overflow: hidden;
+  }
+
+  .restaurant-shell .restaurant-job-name {
+    font-size: 0.7rem;
+  }
+
+  .restaurant-shell .restaurant-job-card h2 {
+    margin-top: 0.15rem;
+    font-size: clamp(1.65rem, 9vw, 2.35rem);
+  }
+
+  .restaurant-shell .restaurant-job-location {
+    margin-top: 0.12rem;
+    font-size: 0.82rem;
+  }
+
+  .restaurant-shell .restaurant-job-highlight {
+    margin-top: 0.3rem;
+    padding: 0.55rem 0.65rem;
+  }
+
+  .restaurant-shell .restaurant-job-highlight span {
+    font-size: 0.66rem;
+  }
+
+  .restaurant-shell .restaurant-job-highlight strong {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: 0.9rem;
+    line-height: 1.25;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .restaurant-shell .restaurant-job-description,
+  .restaurant-shell .restaurant-job-requirements p {
+    margin-top: 0.25rem;
+    overflow: hidden;
+    font-size: 0.82rem;
+    line-height: 1.35;
+    -webkit-line-clamp: 2;
+  }
+
+  .restaurant-shell .restaurant-job-requirements {
+    margin-top: 0.35rem;
+    padding-top: 0.5rem;
+  }
+
+  .restaurant-shell .restaurant-job-requirements strong {
+    font-size: 0.75rem;
+  }
+
+  .restaurant-shell .restaurant-job-actions,
+  .restaurant-shell .restaurant-job-contact {
+    display: none;
+  }
+
+  .restaurant-shell .restaurant-swipe-hint {
+    top: 2.4rem;
+    font-size: 0.72rem;
   }
 }
 

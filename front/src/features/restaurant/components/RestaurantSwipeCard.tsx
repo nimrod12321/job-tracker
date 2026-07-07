@@ -35,15 +35,11 @@ function RestaurantSwipeCard({
     1,
     Math.abs(dragOffsetX) / SWIPE_THRESHOLD,
   )
-  const whatsappNumber = job.contactWhatsapp.replace(/\D/g, '')
   const text = {
     applyHint: language === 'he' ? 'הגש' : 'APPLY',
     skipHint: language === 'he' ? 'דלג' : 'SKIP',
     shift: language === 'he' ? 'משמרות' : 'Shift',
     requirements: language === 'he' ? 'דרישות' : 'Need',
-    contact: language === 'he' ? 'יצירת קשר' : 'Contact',
-    call: language === 'he' ? 'טלפון' : 'Call',
-    whatsapp: language === 'he' ? 'וואטסאפ' : 'WhatsApp',
     skip: language === 'he' ? 'דלג' : 'Skip',
     apply: language === 'he' ? 'הגש בקשה' : 'Like · Apply',
     applying: language === 'he' ? 'שולח...' : 'Applying...',
@@ -182,26 +178,6 @@ function RestaurantSwipeCard({
         <div className="restaurant-job-requirements">
           <strong>{text.requirements}</strong>
           <p>{job.requirements}</p>
-        </div>
-      )}
-
-      {(job.contactPhone || whatsappNumber) && (
-        <div className="restaurant-job-contact">
-          <strong>{text.contact}</strong>
-          <div>
-            {job.contactPhone && (
-              <a href={`tel:${job.contactPhone}`}>{text.call}</a>
-            )}
-            {whatsappNumber && (
-              <a
-                href={`https://wa.me/${whatsappNumber}`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {text.whatsapp}
-              </a>
-            )}
-          </div>
         </div>
       )}
 
