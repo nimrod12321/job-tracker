@@ -23,6 +23,7 @@ export type AuthUser = {
   id: string
   email: string
   track?: UserTrack
+  isAdmin: boolean
   createdAt?: string
 }
 
@@ -35,6 +36,7 @@ type RegisterResponse = {
   id: string
   email: string
   track: UserTrack
+  isAdmin: boolean
   createdAt: string
 }
 

@@ -33,6 +33,10 @@ import RestaurantMatchesPage from './features/restaurant/pages/RestaurantMatches
 import RestaurantProfilePage from './features/restaurant/pages/RestaurantProfilePage'
 
 function getHomePath(user: AuthUser | null) {
+  if (user?.isAdmin) {
+    return '/admin/leads'
+  }
+
   if (user?.track === 'restaurant') {
     return '/restaurant/explore'
   }

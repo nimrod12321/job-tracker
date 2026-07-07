@@ -1,13 +1,37 @@
 import type { Request, Response } from 'express'
 import bcrypt from 'bcryptjs'
+import { env } from '../config/env.js'
 import { prisma } from '../lib/prisma.js'
-import {signAuthToken} from '../lib/jwt.js'
+import { signAuthToken } from '../lib/jwt.js'
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js'
 import { getValidationErrorMessage } from '../utils/validation.js'
 import {
   loginSchema,
   registerSchema,
 } from '../validations/auth.validation.js'
+
+function isAdminEmail(email: string) {
+  return env.adminEmails.includes(email.trim().toLowerCase())
+}
+
+function mapAuthUser(user: {
+  id: string
+  email: string
+  track: 'highTech' | 'restaurant' | 'restaurantOwner'
+  createdAt?: Date
+}) {
+  return {
+    id: user.id,
+    email: user.email,
+    track: user.track,
+    isAdmin: isAdminEmail(user.email),
+    ...(user.createdAt
+      ? {
+          createdAt: user.createdAt.toISOString(),
+        }
+      : {}),
+  }
+}
 
 export async function register(req: Request, res: Response) {
   try {
@@ -44,12 +68,7 @@ export async function register(req: Request, res: Response) {
       },
     })
 
-    return res.status(201).json({
-      id: user.id,
-      email: user.email,
-      track: user.track,
-      createdAt: user.createdAt.toISOString(),
-    })
+    return res.status(201).json(mapAuthUser(user))
   } catch (error) {
     console.error(error)
 
@@ -96,11 +115,7 @@ export async function login(req: Request, res: Response) {
 
     return res.json({
       token,
-      user: {
-        id: user.id,
-        email: user.email,
-        track: user.track,
-      },
+      user: mapAuthUser(user),
     })
   } catch (error) {
     console.error(error)
@@ -138,12 +153,7 @@ export async function getMe(req: Request, res: Response) {
       })
     }
 
-    return res.json({
-      id: user.id,
-      email: user.email,
-      track: user.track,
-      createdAt: user.createdAt.toISOString(),
-    })
+    return res.json(mapAuthUser(user))
   } catch (error) {
     console.error(error)
 
