@@ -3991,12 +3991,15 @@ textarea:focus-visible {
 }
 
 @media (max-width: 760px) {
-  .restaurant-shell:has(.restaurant-explore-page) {
+  .restaurant-shell:has(.restaurant-explore-page),
+  .restaurant-shell:has(.restaurant-profile-page),
+  .restaurant-shell:has(.restaurant-matches-page) {
     display: flex;
     flex-direction: column;
-    height: 100dvh;
     min-height: 100dvh;
-    overflow: hidden;
+    background:
+      radial-gradient(circle at top left, rgb(255 213 176 / 42%), transparent 24rem),
+      var(--restaurant-bg);
   }
 
   .restaurant-shell .app-header {
@@ -4092,14 +4095,26 @@ textarea:focus-visible {
     overflow: visible;
   }
 
-  .restaurant-shell:has(.restaurant-explore-page) .app-header {
+  .restaurant-shell:has(.restaurant-explore-page) .app-header,
+  .restaurant-shell:has(.restaurant-profile-page) .app-header,
+  .restaurant-shell:has(.restaurant-matches-page) .app-header {
     position: relative;
     flex: 0 0 auto;
   }
 
-  .restaurant-shell:has(.restaurant-explore-page) .app-content {
+  .restaurant-shell:has(.restaurant-explore-page) .app-content,
+  .restaurant-shell:has(.restaurant-profile-page) .app-content,
+  .restaurant-shell:has(.restaurant-matches-page) .app-content {
     display: flex;
     flex-direction: column;
+  }
+
+  .restaurant-shell:has(.restaurant-explore-page) {
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .restaurant-shell:has(.restaurant-explore-page) .app-content {
     overflow: hidden;
   }
 
@@ -4226,6 +4241,131 @@ textarea:focus-visible {
   .restaurant-shell .restaurant-swipe-hint {
     top: 2.4rem;
     font-size: 0.72rem;
+  }
+
+  .restaurant-shell .restaurant-profile-page,
+  .restaurant-shell .restaurant-matches-page {
+    display: grid;
+    gap: 0.85rem;
+    padding-bottom: 1rem;
+  }
+
+  .restaurant-shell .restaurant-profile-page .page-header,
+  .restaurant-shell .restaurant-matches-page .page-header {
+    margin: 0;
+  }
+
+  .restaurant-shell .restaurant-profile-page .page-header h1,
+  .restaurant-shell .restaurant-matches-page .page-header h1 {
+    font-size: clamp(1.85rem, 9vw, 2.75rem);
+    line-height: 0.95;
+  }
+
+  .restaurant-shell .restaurant-profile-page .page-header p,
+  .restaurant-shell .restaurant-matches-page .page-header p {
+    margin-top: 0.35rem;
+    color: var(--restaurant-muted);
+    font-size: 0.9rem;
+    line-height: 1.35;
+  }
+
+  .restaurant-shell .restaurant-profile-form {
+    gap: 0.85rem;
+    border-radius: 28px;
+    padding: 1rem;
+  }
+
+  .restaurant-shell .guided-form-progress {
+    color: var(--restaurant-muted);
+    font-size: 0.78rem;
+  }
+
+  .restaurant-shell .guided-form-progress > div > span {
+    width: 1.85rem;
+  }
+
+  .restaurant-shell .guided-form-heading h2 {
+    font-size: clamp(1.65rem, 8vw, 2.35rem);
+  }
+
+  .restaurant-shell .restaurant-profile-form > label,
+  .restaurant-shell .restaurant-role-options legend {
+    color: var(--restaurant-ink);
+    font-size: 0.86rem;
+  }
+
+  .restaurant-shell .restaurant-profile-form input,
+  .restaurant-shell .restaurant-profile-form textarea {
+    border-color: var(--restaurant-border);
+    border-radius: 18px;
+    background: #fffdf8;
+  }
+
+  .restaurant-shell .restaurant-role-options label {
+    border-color: var(--restaurant-border);
+    background: #fff3e7;
+    color: var(--restaurant-ink);
+  }
+
+  .restaurant-shell .guided-form-actions button {
+    min-height: 48px;
+    border-radius: 999px;
+  }
+
+  .restaurant-shell .restaurant-match-list {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+  }
+
+  .restaurant-shell .restaurant-match-card {
+    gap: 0.75rem;
+    border-radius: 26px;
+    padding: 1rem;
+  }
+
+  .restaurant-shell .restaurant-match-name {
+    color: var(--restaurant-primary);
+    font-size: 0.7rem;
+  }
+
+  .restaurant-shell .restaurant-match-card h2 {
+    font-size: clamp(1.55rem, 8vw, 2.2rem);
+    line-height: 1;
+  }
+
+  .restaurant-shell .restaurant-match-address {
+    color: var(--restaurant-muted);
+    font-size: 0.88rem;
+  }
+
+  .restaurant-shell .restaurant-match-card > div:not(.restaurant-match-contact) {
+    border-color: var(--restaurant-border);
+    padding-top: 0.7rem;
+  }
+
+  .restaurant-shell .restaurant-match-card > div > p {
+    color: var(--restaurant-muted);
+    font-size: 0.84rem;
+    line-height: 1.45;
+  }
+
+  .restaurant-shell .restaurant-match-contact {
+    flex-direction: row;
+  }
+
+  .restaurant-shell .restaurant-match-contact a {
+    flex: 1 1 auto;
+    min-height: 44px;
+    border-color: var(--restaurant-border);
+    border-radius: 999px;
+    background: var(--restaurant-soft);
+    color: var(--restaurant-ink);
+  }
+
+  .restaurant-shell .restaurant-matches-empty {
+    width: 100%;
+    border-radius: 28px;
+    background: var(--restaurant-surface);
   }
 }
 
