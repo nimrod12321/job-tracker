@@ -109,7 +109,23 @@ function App() {
   }
 
   if (isCheckingAuth) {
-    return <p className="status-message app-loading">Checking session...</p>
+    return (
+      <section className="checking-session-screen" aria-live="polite">
+        <div className="checking-session-card">
+          <span
+            className="peepss-logo checking-session-logo"
+            aria-label="Peepss"
+            dir="ltr"
+          >
+            <span className="peepss-logo-circle" />
+            <span className="peepss-logo-thin">p</span>
+            <span className="peepss-logo-bold">ee</span>
+            <span className="peepss-logo-thin">pss</span>
+          </span>
+          <p className="checking-session-text">Checking session...</p>
+        </div>
+      </section>
+    )
   }
 
   const isAuthenticated = Boolean(token && currentUser)

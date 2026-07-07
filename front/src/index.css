@@ -523,6 +523,59 @@ textarea:focus-visible {
   text-align: center;
 }
 
+.checking-session-screen {
+  display: grid;
+  min-height: 100dvh;
+  padding: 1.5rem;
+  background:
+    radial-gradient(circle at 20% 18%, rgb(239 75 35 / 13%), transparent 18rem),
+    radial-gradient(circle at 82% 74%, rgb(134 91 89 / 14%), transparent 20rem),
+    #fff7ed;
+  place-items: center;
+}
+
+.checking-session-card {
+  display: grid;
+  justify-items: center;
+  gap: 1rem;
+  text-align: center;
+}
+
+.checking-session-logo.peepss-logo {
+  min-width: 0;
+  width: 8.5rem;
+  height: 5rem;
+  overflow: visible;
+  font-size: clamp(3rem, 13vw, 4rem);
+  letter-spacing: -0.14em;
+  line-height: 1;
+  animation: peepss-session-hop 900ms ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.checking-session-logo .peepss-logo-circle {
+  left: 2rem;
+  width: 5.25rem;
+  height: 5.25rem;
+}
+
+.checking-session-text {
+  margin: 0;
+  color: rgb(31 29 30 / 68%);
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+@keyframes peepss-session-hop {
+  from {
+    transform: translateX(-10px) translateY(0) rotate(-2deg);
+  }
+
+  to {
+    transform: translateX(10px) translateY(-4px) rotate(2deg);
+  }
+}
+
 .message {
   margin: 0;
   border-radius: 9px;
@@ -4834,7 +4887,9 @@ textarea:focus-visible {
   .restaurant-card-next,
   .restaurant-card-next.is-promoting,
   .restaurant-card-exit-left,
-  .restaurant-card-exit-right {
+  .restaurant-card-exit-right,
+  .checking-session-logo {
+    animation: none;
     opacity: 1;
     transform: none;
   }
