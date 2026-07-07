@@ -186,6 +186,7 @@ function RestaurantSwipeCard({
     dragOffsetRef.current = 0
     activePointerId.current = event.pointerId
     setIsDragging(true)
+    event.preventDefault()
     event.currentTarget.setPointerCapture(event.pointerId)
   }
 
@@ -198,6 +199,7 @@ function RestaurantSwipeCard({
     }
 
     const nextOffset = event.clientX - dragStartX.current
+    event.preventDefault()
     dragOffsetRef.current = nextOffset
     setDragOffsetX(nextOffset)
   }

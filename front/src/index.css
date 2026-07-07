@@ -2834,9 +2834,27 @@ textarea:focus-visible {
   justify-content: center;
 }
 
+.restaurant-options-menu > a,
 .restaurant-options-menu > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 40px;
   border-radius: 999px;
+  color: var(--restaurant-ink);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.restaurant-options-menu > a {
+  border: 1px solid var(--restaurant-border);
+  padding: 0.55rem 0.8rem;
+  background: #fffdf8;
+}
+
+.restaurant-options-menu > a:hover {
+  background: var(--restaurant-soft);
+  transform: none;
 }
 
 .restaurant-profile-page[dir='rtl'],
@@ -3109,7 +3127,7 @@ textarea:focus-visible {
 
 .restaurant-swipe-card {
   position: relative;
-  touch-action: pan-y;
+  touch-action: none;
   user-select: none;
   cursor: grab;
   will-change: transform;
@@ -4400,7 +4418,7 @@ textarea:focus-visible {
     display: grid;
     grid-row: 2;
     grid-column: 1 / -1;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     width: 100%;
     min-width: 0;
     justify-content: stretch;
@@ -4417,11 +4435,19 @@ textarea:focus-visible {
     justify-content: center;
     min-width: 0;
     min-height: 34px;
+    border: 0;
     padding: 0.4rem 0.35rem;
+    background: transparent;
+    box-shadow: none;
     font-size: 0.78rem;
     line-height: 1.1;
     text-align: center;
     white-space: normal;
+  }
+
+  .restaurant-shell .app-header .nav-button.active {
+    background: var(--restaurant-soft);
+    color: var(--restaurant-ink);
   }
 
   .restaurant-shell .restaurant-options {
@@ -5194,7 +5220,7 @@ textarea:focus-visible {
 
   .restaurant-shell .app-header nav {
     display: grid !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     width: 100% !important;
     max-width: 100% !important;
     min-width: 0 !important;
@@ -5209,8 +5235,14 @@ textarea:focus-visible {
     white-space: normal !important;
   }
 
+  .restaurant-shell .app-header .nav-button.active {
+    background: var(--restaurant-soft) !important;
+    color: var(--restaurant-ink) !important;
+  }
+
   .restaurant-card-stack {
     overflow: hidden;
+    touch-action: none;
   }
 
   .restaurant-swipe-card {
@@ -5218,6 +5250,7 @@ textarea:focus-visible {
     max-width: min(100%, 430px) !important;
     margin-inline: auto;
     overflow: hidden;
+    touch-action: none;
   }
 
   .restaurant-owner-shell,

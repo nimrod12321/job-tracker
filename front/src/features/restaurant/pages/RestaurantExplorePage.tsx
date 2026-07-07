@@ -345,9 +345,6 @@ function RestaurantExplorePage() {
           <h1>{text.title}</h1>
           <p>{text.subtitle}</p>
         </div>
-        <span>
-          {activeIndex + 1} of {jobs.length}
-        </span>
       </div>
 
       {feedback && (

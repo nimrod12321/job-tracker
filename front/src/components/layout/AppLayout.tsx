@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import type { UserTrack } from '../../features/auth/services/authApi'
 import RestaurantLanguageToggle from '../../features/restaurant/components/RestaurantLanguageToggle'
 import { useRestaurantLanguage } from '../../features/restaurant/utils/restaurantLanguage'
@@ -125,15 +125,6 @@ function AppLayout({
               >
                 {restaurantNavLabels.ownerApplications}
               </NavLink>
-              <NavLink
-                to="/owner/profile"
-                end
-                className={({ isActive }) =>
-                  `nav-button${isActive ? ' active' : ''}`
-                }
-              >
-                {restaurantNavLabels.ownerProfile}
-              </NavLink>
             </>
           ) : isRestaurantUser ? (
             <>
@@ -154,15 +145,6 @@ function AppLayout({
                 }
               >
                 {restaurantNavLabels.workerMatches}
-              </NavLink>
-              <NavLink
-                to="/restaurant/profile"
-                end
-                className={({ isActive }) =>
-                  `nav-button${isActive ? ' active' : ''}`
-                }
-              >
-                {restaurantNavLabels.workerProfile}
               </NavLink>
             </>
           ) : (
@@ -221,6 +203,18 @@ function AppLayout({
 
             {isOptionsOpen && (
               <div className="restaurant-options-menu">
+                <Link
+                  to={
+                    isRestaurantOwner
+                      ? '/owner/profile'
+                      : '/restaurant/profile'
+                  }
+                  onClick={() => setIsOptionsOpen(false)}
+                >
+                  {isRestaurantOwner
+                    ? restaurantNavLabels.ownerProfile
+                    : restaurantNavLabels.workerProfile}
+                </Link>
                 <RestaurantLanguageToggle
                   onChange={() => setIsOptionsOpen(false)}
                 />

@@ -172,15 +172,6 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
                   : 'Register'}
             </button>
           </form>
-
-          <Link
-            to={mode === 'login' ? '/register' : '/login'}
-            className="text-button"
-          >
-            {mode === 'login'
-              ? 'Need an account? Register'
-              : 'Already have an account? Login'}
-          </Link>
         </div>
 
         <p className="auth-footer-note">
