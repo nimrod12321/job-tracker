@@ -69,6 +69,15 @@ function AppLayout({
       return
     }
 
+    const activeElement = document.activeElement
+
+    if (
+      activeElement instanceof HTMLElement &&
+      activeElement.matches('input, textarea, select')
+    ) {
+      activeElement.blur()
+    }
+
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
   }, [isRestaurantSide, location.pathname])
 
