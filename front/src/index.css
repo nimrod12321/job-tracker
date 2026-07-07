@@ -3673,16 +3673,342 @@ textarea:focus-visible {
 }
 
 .owner-applications-page,
-.restaurant-matches-page,
-.admin-leads-page {
+.restaurant-matches-page {
   display: grid;
   gap: 1.25rem;
 }
 
-.admin-leads-page {
+.admin-shell,
+.admin-forbidden-page {
   min-height: 100dvh;
-  padding: clamp(1rem, 4vw, 2rem);
+  overflow-x: hidden;
   background: var(--restaurant-bg, #fff7ed);
+}
+
+.admin-shell {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+}
+
+.admin-sidebar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  height: 100dvh;
+  border-inline-end: 1px solid var(--restaurant-border, var(--border));
+  padding: 1.15rem;
+  background: rgb(255 250 243 / 94%);
+}
+
+.admin-brand {
+  display: grid;
+  gap: 0.5rem;
+  overflow: visible;
+}
+
+.admin-logo.peepss-logo {
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  min-height: 3.8rem;
+  overflow: visible;
+  font-size: clamp(2.5rem, 5vw, 3.25rem);
+  letter-spacing: -0.14em;
+}
+
+.admin-logo .peepss-logo-circle {
+  left: 1.95rem;
+  width: 4.55rem;
+  height: 4.55rem;
+}
+
+.admin-brand p {
+  margin: 0;
+  color: #7a5142;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.admin-nav {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.admin-nav a,
+.admin-nav span {
+  border-radius: 999px;
+  padding: 0.72rem 0.9rem;
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.admin-nav a.active {
+  background: var(--restaurant-soft, #fff3e7);
+  color: var(--restaurant-ink, var(--text));
+}
+
+.admin-nav span {
+  color: #9a7a6b;
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+.admin-main {
+  min-width: 0;
+  padding: clamp(1rem, 3vw, 2rem);
+}
+
+.admin-leads-page {
+  display: grid;
+  gap: 1.25rem;
+  width: min(100%, 1180px);
+  margin-inline: auto;
+}
+
+.admin-page-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.admin-page-heading h1 {
+  margin: 0;
+  color: #1f1d1e;
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  line-height: 0.98;
+  letter-spacing: -0.06em;
+}
+
+.admin-page-heading p,
+.admin-page-heading span {
+  margin: 0.35rem 0 0;
+  color: #7a5142;
+  font-weight: 750;
+}
+
+.admin-page-heading > span {
+  flex: 0 0 auto;
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: 999px;
+  padding: 0.5rem 0.8rem;
+  background: #fffaf3;
+  font-size: 0.82rem;
+}
+
+.admin-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.admin-stat-card,
+.admin-lead-card,
+.admin-forbidden-card,
+.admin-leads-toolbar {
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: 22px;
+  background: rgb(255 250 243 / 96%);
+  box-shadow: 0 18px 45px rgb(93 49 13 / 8%);
+}
+
+.admin-stat-card {
+  display: grid;
+  gap: 0.25rem;
+  padding: 1rem;
+}
+
+.admin-stat-card span {
+  color: #7a5142;
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.admin-stat-card strong {
+  color: #1f1d1e;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.admin-leads-toolbar {
+  display: grid;
+  grid-template-columns: 0.8fr 1.4fr 1fr;
+  gap: 0.85rem;
+  padding: 1rem;
+}
+
+.admin-leads-toolbar label {
+  display: grid;
+  gap: 0.35rem;
+  color: #7a5142;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.admin-leads-toolbar input,
+.admin-leads-toolbar select {
+  min-width: 0;
+  width: 100%;
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: 14px;
+  padding: 0.72rem 0.8rem;
+  background: #fffdf8;
+  color: var(--text);
+  font: inherit;
+}
+
+.admin-leads-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.admin-lead-card {
+  display: grid;
+  gap: 1rem;
+  padding: 1.15rem;
+}
+
+.admin-lead-header,
+.admin-lead-badges,
+.admin-actions,
+.admin-status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.admin-lead-header {
+  justify-content: space-between;
+}
+
+.admin-lead-header h2 {
+  margin: 0;
+  color: #1f1d1e;
+  font-size: 1.35rem;
+}
+
+.admin-lead-header p {
+  margin: 0.25rem 0 0;
+  color: #7a5142;
+  font-size: 0.9rem;
+}
+
+.admin-source-badge,
+.admin-status-badge {
+  border-radius: 999px;
+  padding: 0.38rem 0.62rem;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.admin-source-badge {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.admin-status-badge.new {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.admin-status-badge.contacted {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.admin-status-badge.relevant {
+  background: #dcfce7;
+  color: var(--success);
+}
+
+.admin-status-badge.rejected {
+  background: #fff1f2;
+  color: #b42318;
+}
+
+.admin-lead-details {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.admin-lead-details dt,
+.admin-lead-section strong {
+  color: #7a5142;
+  font-size: 0.75rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.admin-lead-details dd,
+.admin-lead-section p {
+  margin: 0.22rem 0 0;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.admin-actions a,
+.admin-status-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: 999px;
+  padding: 0.55rem 0.8rem;
+  background: #fffdf8;
+  color: var(--text);
+  font-size: 0.86rem;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.admin-status-actions button:not(:disabled) {
+  background: #1f1d1e;
+  color: #fffaf3;
+}
+
+.admin-status-actions button:disabled {
+  cursor: default;
+  opacity: 0.58;
+}
+
+.admin-empty-state {
+  background: rgb(255 250 243 / 96%);
+}
+
+.admin-forbidden-page {
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+}
+
+.admin-forbidden-card {
+  width: min(100%, 460px);
+  padding: clamp(1.25rem, 4vw, 2rem);
+  text-align: center;
+}
+
+.admin-forbidden-card h1 {
+  margin: 0;
+  font-size: clamp(2rem, 7vw, 3rem);
+  letter-spacing: -0.06em;
+}
+
+.admin-forbidden-card p {
+  margin: 0.65rem 0 0;
+  color: #7a5142;
+  font-weight: 750;
 }
 
 .owner-application-list,
@@ -3942,6 +4268,62 @@ textarea:focus-visible {
 }
 
 @media (max-width: 760px) {
+  .admin-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-sidebar {
+    position: static;
+    height: auto;
+    border-inline-end: 0;
+    border-bottom: 1px solid var(--restaurant-border, var(--border));
+    padding: 0.9rem 1rem;
+  }
+
+  .admin-brand {
+    align-items: center;
+    grid-template-columns: auto 1fr;
+  }
+
+  .admin-logo.peepss-logo {
+    min-height: 3.2rem;
+    font-size: 2.35rem;
+  }
+
+  .admin-logo .peepss-logo-circle {
+    left: 1.75rem;
+    width: 4rem;
+    height: 4rem;
+  }
+
+  .admin-nav {
+    display: flex;
+    overflow-x: auto;
+  }
+
+  .admin-nav a,
+  .admin-nav span {
+    flex: 0 0 auto;
+  }
+
+  .admin-page-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .admin-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-leads-toolbar,
+  .admin-lead-details {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-main {
+    padding: 1rem;
+  }
+
   .auth-page,
   .auth-shell,
   .auth-card,
