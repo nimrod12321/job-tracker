@@ -81,7 +81,6 @@ function JobCard({ job, onDeleteJob, onChangeStatus, onEditJob }: JobCardProps) 
           {isEditingStatus ? (
             <select
               className="job-status-select"
-              autoFocus
               value={job.status}
               aria-label={`Change status for ${job.position} at ${job.company}`}
               onBlur={() => setIsEditingStatus(false)}

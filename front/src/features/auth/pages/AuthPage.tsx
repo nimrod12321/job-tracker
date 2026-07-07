@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import {
   loginUser,
@@ -12,7 +12,6 @@ type AuthPageProps = {
 }
 
 function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
-  const pageRef = useRef<HTMLElement | null>(null)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [track, setTrack] = useState<UserTrack>('highTech')
@@ -39,30 +38,11 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
   }
 
   useEffect(() => {
-    function blurAuthInput() {
-      const activeElement = document.activeElement
-
-      if (
-        activeElement instanceof HTMLElement &&
-        pageRef.current?.contains(activeElement) &&
-        activeElement.matches('input, textarea, select')
-      ) {
-        activeElement.blur()
-      }
-    }
-
-    blurAuthInput()
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
-
-    const timeoutId = window.setTimeout(blurAuthInput, 100)
-
-    return () => {
-      window.clearTimeout(timeoutId)
-    }
   }, [mode])
 
   return (
-    <section className="auth-page" ref={pageRef}>
+    <section className="auth-page">
       <div className="auth-shell">
         <div className="auth-hero">
           <span className="peepss-logo auth-logo" aria-label="Peepss" dir="ltr">

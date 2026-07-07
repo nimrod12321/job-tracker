@@ -22,6 +22,14 @@ function AppLayout({
   const optionsRef = useRef<HTMLDivElement | null>(null)
   const { direction, language } = useRestaurantLanguage()
   const isRestaurantSide = isRestaurantUser || isRestaurantOwner
+  const layoutClassName = [
+    'app-layout',
+    isRestaurantSide ? 'restaurant-shell' : '',
+    isRestaurantUser ? 'restaurant-worker-shell' : '',
+    isRestaurantOwner ? 'restaurant-owner-shell' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
   const restaurantNavLabels = {
     ownerJobs: language === 'he' ? 'המשרות שלי' : 'My jobs',
     ownerApplications: language === 'he' ? 'מועמדים' : 'Applications',
@@ -83,7 +91,7 @@ function AppLayout({
 
   return (
     <div
-      className={`app-layout${isRestaurantSide ? ' restaurant-shell' : ''}`}
+      className={layoutClassName}
       dir={isRestaurantSide ? direction : undefined}
     >
       <header className="app-header">
