@@ -1,7 +1,192 @@
 import { RestaurantRole } from '../generated/prisma/client.js'
 import { prisma } from '../lib/prisma.js'
 
+const DEMO_REAL_PLACE_SOURCE = 'source=demo_real_place'
+const DEMO_REAL_PLACE_NOTE = 'Demo listing — not verified by restaurant.'
+
+function createDemoRealPlaceJob({
+  restaurantName,
+  role,
+  area,
+  description,
+  requirements,
+  shiftInfo,
+}: {
+  restaurantName: string
+  role: RestaurantRole
+  area: string
+  description: string
+  requirements: string
+  shiftInfo: string
+}) {
+  return {
+    restaurantName,
+    role,
+    location: 'Tel Aviv',
+    area,
+    description: `${DEMO_REAL_PLACE_SOURCE}. ${description}`,
+    requirements: `${DEMO_REAL_PLACE_NOTE} ${requirements}`,
+    shiftInfo,
+    contactPhone: '',
+    contactWhatsapp: '',
+  }
+}
+
+const demoRealPlaceRestaurantJobs = [
+  createDemoRealPlaceJob({
+    restaurantName: 'Ouzeria',
+    role: RestaurantRole.waiter,
+    area: 'Matalon 44',
+    description:
+      'Busy evening service in a lively Mediterranean restaurant. Help the team keep service fast, clean and friendly.',
+    requirements:
+      'Positive attitude, reliability and a strong service mindset. Experience is a plus.',
+    shiftInfo: 'Evening shifts, weekends available',
+  }),
+  createDemoRealPlaceJob({
+    restaurantName: 'Ouzeria',
+    role: RestaurantRole.cook,
+    area: 'Matalon 44',
+    description:
+      'Lively dinner service with Mediterranean food and a fast-moving kitchen team.',
+    requirements:
+      'Kitchen basics, cleanliness and ability to stay calm during busy service.',
+    shiftInfo: 'Evening prep and dinner shifts',
+  }),
+  createDemoRealPlaceJob({
+    restaurantName: 'Ouzeria',
+    role: RestaurantRole.host,
+    area: 'Matalon 44',
+    description:
+      'Welcome guests, support reservations and help keep the entrance flow smooth.',
+    requirements:
+      'Warm communication, organization and comfort speaking with guests.',
+    shiftInfo: 'Dinner shifts, weekend availability helpful',
+  }),
+  createDemoRealPlaceJob({
+    restaurantName: 'Ouzeria Next Door',
+    role: RestaurantRole.bartender,
+    area: 'Zvulun 25',
+    description:
+      'Mediterranean bar/restaurant vibe with busy evening drinks and food service.',
+    requirements:
+      'Bar experience is helpful. Reliability and clean work habits are important.',
+    shiftInfo: 'Evening shifts, late weekends',
+  }),
+  createDemoRealPlaceJob({
+    restaurantName: 'Ouzeria Next Door',
+    role: RestaurantRole.waiter,
+    area: 'Zvulun 25',
+    description:
+      'Casual bar/restaurant service with a lively Tel Aviv crowd and team rhythm.',
+    requirements:
+      'Service mindset, positive energy and willingness to learn the menu.',
+    shiftInfo: 'Evening shifts, weekends available',
+  }),
+  createDemoRealPlaceJob({
+    restaurantName: 'Cafe Casbah',
+    role: RestaurantRole.waiter,
+    area: 'Florentin St 3',
+    description:
+      'Cafe/restaurant service with a Florentin neighborhood vibe and steady table flow.',
+    requirements:
+      'Friendly attitude, reliability and basic service communication.',
+    shiftInfo: 'Morning and evening shifts',
+  }),
+  createDemoRealPlaceJob({
+    restaurantName: 'Cafe Casbah',
+    role: RestaurantRole.host,
+    area: 'Florentin St 3',
+    description:
+      'Greet guests, manage waiting lists and support the floor during busy periods.',
+    requirements:
+      'Organized, welcoming and comfortable handling quick changes.',
+    shiftInfo: 'Evening and weekend shifts',
+  }),
+  createDemoRealPlaceJob({
+    restaurantName: 'Cafe Casbah',
+    role: RestaurantRole.cook,
+    area: 'Florentin St 3',
+    description:
+      'Support a compact cafe kitchen with prep, line work and clean handoffs.',
+    requirements:
+      'Kitchen experience is a plus. Clean, reliable work is required.',
+    shiftInfo: 'Day and evening shifts',
+  }),
+  createDemoRealPlaceJob({
+    restaurantName: 'Florentina',
+    role: RestaurantRole.waiter,
+    area: 'Abarbanel 56',
+    description:
+      'Italian dairy restaurant/bar service with a casual Florentin dinner atmosphere.',
+    requirements:
+      'Good guest communication, teamwork and reliable availability.',
+    shiftInfo: 'Evening shifts, weekends available',
+  }),
+  createDemoRealPlaceJob({
+    restaurantName: 'Florentina',
+    role: RestaurantRole.cook,
+    area: 'Abarbanel 56',
+    description:
+      'Prepare Italian dairy dishes and support dinner service in a busy kitchen.',
+    requirements:
+      'Basic kitchen experience, cleanliness and ability to follow prep lists.',
+    shiftInfo: 'Afternoon prep and evening service',
+  }),
+  createDemoRealPlaceJob({
+    restaurantName: 'Florentina',
+    role: RestaurantRole.floorManager,
+    area: 'Abarbanel 56',
+    description:
+      'Help lead floor service, coordinate tables and keep the team moving smoothly.',
+    requirements:
+      'Restaurant service experience and calm communication during pressure.',
+    shiftInfo: 'Four to five evening shifts',
+  }),
+  createDemoRealPlaceJob({
+    restaurantName: 'Florentina',
+    role: RestaurantRole.bartender,
+    area: 'Abarbanel 56',
+    description:
+      'Italian restaurant/bar shift with wine, simple drinks and dinner service support.',
+    requirements:
+      'Bar basics, clean work habits and friendly guest interaction.',
+    shiftInfo: 'Evening bar shifts',
+  }),
+  createDemoRealPlaceJob({
+    restaurantName: 'Cafe Levinsky 41',
+    role: RestaurantRole.waiter,
+    area: 'Levinski 41',
+    description:
+      'Small cafe/gazoz/coffee stand with quick service and a friendly street-side feel.',
+    requirements:
+      'Fast hands, positive attitude and comfort with short customer interactions.',
+    shiftInfo: 'Morning and afternoon shifts',
+  }),
+  createDemoRealPlaceJob({
+    restaurantName: 'Cafe Levinsky 41',
+    role: RestaurantRole.host,
+    area: 'Levinski 41',
+    description:
+      'Support guest flow, orders and friendly service in a compact cafe setting.',
+    requirements:
+      'Warm communication, reliability and attention to small details.',
+    shiftInfo: 'Daytime shifts, Fridays helpful',
+  }),
+  createDemoRealPlaceJob({
+    restaurantName: 'Cafe Levinsky 41',
+    role: RestaurantRole.cook,
+    area: 'Levinski 41',
+    description:
+      'Help with light prep, clean station work and quick cafe service support.',
+    requirements:
+      'Food prep basics are helpful. Clean and reliable work is required.',
+    shiftInfo: 'Morning prep and daytime shifts',
+  }),
+]
+
 const restaurantJobs = [
+  ...demoRealPlaceRestaurantJobs,
   {
     restaurantName: 'Cafe Levinsky',
     role: RestaurantRole.waiter,
@@ -314,6 +499,7 @@ async function seedRestaurantJobs() {
         restaurantName: job.restaurantName,
         role: job.role,
         location: job.location,
+        area: job.area,
       },
       select: {
         id: true,

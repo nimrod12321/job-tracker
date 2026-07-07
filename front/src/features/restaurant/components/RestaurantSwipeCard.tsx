@@ -22,6 +22,8 @@ const roleIcons: Record<RestaurantExploreJob['role'], string> = {
   host: '👋',
   waiter: '🍽️',
 }
+const DEMO_REAL_PLACE_MARKER = 'source=demo_real_place.'
+const DEMO_REAL_PLACE_NOTE = 'Demo listing — not verified by restaurant.'
 
 type RestaurantSwipeCardProps = {
   job: RestaurantExploreJob
@@ -104,6 +106,13 @@ function getVibeBadges(job: RestaurantExploreJob, language: AppLanguage) {
   return badges.slice(0, 2)
 }
 
+function getCleanDemoText(value: string) {
+  return value
+    .replace(DEMO_REAL_PLACE_MARKER, '')
+    .replace(DEMO_REAL_PLACE_NOTE, '')
+    .trim()
+}
+
 function RestaurantSwipeCard({
   job,
   isApplying,
@@ -134,7 +143,15 @@ function RestaurantSwipeCard({
   }
   const avatar = getRestaurantAvatar(job)
   const placeIcon = getPlaceIcon(job)
-  const vibeBadges = getVibeBadges(job, language)
+  const isDemoRealPlace = job.description.includes(DEMO_REAL_PLACE_MARKER)
+  const vibeBadges = [
+    ...(isDemoRealPlace
+      ? [language === 'he' ? 'דמו' : 'Demo listing']
+      : []),
+    ...getVibeBadges(job, language),
+  ].slice(0, 2)
+  const description = getCleanDemoText(job.description)
+  const requirements = getCleanDemoText(job.requirements)
 
   function resetDrag() {
     dragStartX.current = null
@@ -282,14 +299,14 @@ function RestaurantSwipeCard({
         </div>
       )}
 
-      {job.description && (
-        <p className="restaurant-job-description">{job.description}</p>
+      {description && (
+        <p className="restaurant-job-description">{description}</p>
       )}
 
-      {job.requirements && (
+      {requirements && (
         <div className="restaurant-job-requirements">
           <strong>{text.requirements}</strong>
-          <p>{job.requirements}</p>
+          <p>{requirements}</p>
         </div>
       )}
 
