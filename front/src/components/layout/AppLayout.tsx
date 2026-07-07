@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import type { UserTrack } from '../../features/auth/services/authApi'
 import RestaurantLanguageToggle from '../../features/restaurant/components/RestaurantLanguageToggle'
@@ -16,6 +17,7 @@ function AppLayout({
 }: AppLayoutProps) {
   const isRestaurantUser = userTrack === 'restaurant'
   const isRestaurantOwner = userTrack === 'restaurantOwner'
+  const [isOptionsOpen, setIsOptionsOpen] = useState(false)
   const { direction, language } = useRestaurantLanguage()
   const isRestaurantSide = isRestaurantUser || isRestaurantOwner
   const restaurantNavLabels = {
@@ -145,13 +147,43 @@ function AppLayout({
           )}
         </nav>
 
-        <div className="header-user-actions">
-          {isRestaurantSide && <RestaurantLanguageToggle />}
-          {userEmail && <span>{userEmail}</span>}
-          <button type="button" onClick={onLogout}>
-            {isRestaurantSide ? restaurantNavLabels.logout : 'Log out'}
-          </button>
-        </div>
+        {isRestaurantSide ? (
+          <div className="restaurant-options">
+            <button
+              type="button"
+              className="restaurant-options-trigger"
+              aria-label={language === 'he' ? 'אפשרויות' : 'Options'}
+              aria-expanded={isOptionsOpen}
+              onClick={() =>
+                setIsOptionsOpen((currentIsOpen) => !currentIsOpen)
+              }
+            >
+              ⋯
+            </button>
+
+            {isOptionsOpen && (
+              <div className="restaurant-options-menu">
+                <RestaurantLanguageToggle />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOptionsOpen(false)
+                    onLogout()
+                  }}
+                >
+                  {restaurantNavLabels.logout}
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="header-user-actions">
+            {userEmail && <span>{userEmail}</span>}
+            <button type="button" onClick={onLogout}>
+              Log out
+            </button>
+          </div>
+        )}
       </header>
 
       <main className="app-content">
