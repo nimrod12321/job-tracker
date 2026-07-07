@@ -2637,6 +2637,21 @@ textarea:focus-visible {
   place-items: center;
 }
 
+.restaurant-options-trigger:hover,
+.restaurant-options-trigger:active,
+.restaurant-options-trigger[aria-expanded='true'] {
+  border-color: var(--restaurant-border);
+  background: #fff3e7;
+  box-shadow: none;
+  color: var(--restaurant-ink);
+  transform: none;
+}
+
+.restaurant-options-trigger:focus-visible {
+  outline: 3px solid rgb(239 75 35 / 28%);
+  outline-offset: 3px;
+}
+
 .restaurant-options-menu {
   position: absolute;
   z-index: 30;

@@ -3,13 +3,19 @@ import {
   useRestaurantLanguage,
 } from '../utils/restaurantLanguage'
 
-function RestaurantLanguageToggle() {
+type RestaurantLanguageToggleProps = {
+  onChange?: () => void
+}
+
+function RestaurantLanguageToggle({ onChange }: RestaurantLanguageToggleProps) {
   const { language, setLanguage } = useRestaurantLanguage()
 
   function handleLanguageChange(nextLanguage: AppLanguage) {
     if (nextLanguage !== language) {
       setLanguage(nextLanguage)
     }
+
+    onChange?.()
   }
 
   return (

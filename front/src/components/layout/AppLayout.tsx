@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import type { UserTrack } from '../../features/auth/services/authApi'
 import RestaurantLanguageToggle from '../../features/restaurant/components/RestaurantLanguageToggle'
@@ -18,6 +18,7 @@ function AppLayout({
   const isRestaurantUser = userTrack === 'restaurant'
   const isRestaurantOwner = userTrack === 'restaurantOwner'
   const [isOptionsOpen, setIsOptionsOpen] = useState(false)
+  const optionsRef = useRef<HTMLDivElement | null>(null)
   const { direction, language } = useRestaurantLanguage()
   const isRestaurantSide = isRestaurantUser || isRestaurantOwner
   const restaurantNavLabels = {
@@ -30,6 +31,37 @@ function AppLayout({
     workerProfile: language === 'he' ? 'פרופיל' : 'Profile',
     logout: language === 'he' ? 'התנתקות' : 'Log out',
   }
+
+  useEffect(() => {
+    if (!isOptionsOpen) {
+      return
+    }
+
+    function handlePointerDown(event: MouseEvent | TouchEvent) {
+      if (
+        optionsRef.current &&
+        !optionsRef.current.contains(event.target as Node)
+      ) {
+        setIsOptionsOpen(false)
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsOptionsOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('touchstart', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('touchstart', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isOptionsOpen])
 
   return (
     <div
@@ -148,7 +180,7 @@ function AppLayout({
         </nav>
 
         {isRestaurantSide ? (
-          <div className="restaurant-options">
+          <div className="restaurant-options" ref={optionsRef}>
             <button
               type="button"
               className="restaurant-options-trigger"
@@ -163,7 +195,9 @@ function AppLayout({
 
             {isOptionsOpen && (
               <div className="restaurant-options-menu">
-                <RestaurantLanguageToggle />
+                <RestaurantLanguageToggle
+                  onChange={() => setIsOptionsOpen(false)}
+                />
                 <button
                   type="button"
                   onClick={() => {
