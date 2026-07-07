@@ -61,10 +61,6 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
             <span className="peepss-logo-bold">ee</span>
             <span className="peepss-logo-thin">pss</span>
           </span>
-          <div>
-            <h1>Find your next shift or job</h1>
-            <p>One profile. Swipe. Apply.</p>
-          </div>
         </div>
 
         <div className="auth-card">
@@ -79,15 +75,6 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
               Register
             </Link>
           </nav>
-
-          <div className="auth-card-heading">
-            <h2>{mode === 'login' ? 'Welcome back' : 'Create account'}</h2>
-            <p>
-              {mode === 'login'
-                ? 'Login to continue your Peepss search.'
-                : 'Choose your track and start with the right flow.'}
-            </p>
-          </div>
 
           <form className="auth-form" onSubmit={handleSubmit}>
             <label>
@@ -174,9 +161,6 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
           </form>
         </div>
 
-        <p className="auth-footer-note">
-          Built for high-tech and restaurant work
-        </p>
       </div>
     </section>
   )

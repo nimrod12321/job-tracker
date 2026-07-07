@@ -148,17 +148,22 @@ textarea:focus-visible {
 }
 
 .auth-hero {
-  display: grid;
-  justify-items: center;
-  gap: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding-top: 0.25rem;
+  overflow: visible;
   text-align: center;
 }
 
 .auth-logo.peepss-logo {
+  display: inline-flex;
   min-width: 0;
-  width: 9.25rem;
-  height: 5.25rem;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  min-height: clamp(4.75rem, 18vw, 6.5rem);
+  object-fit: contain;
   overflow: visible;
   font-size: clamp(3.15rem, 13vw, 4.35rem);
   letter-spacing: -0.14em;
@@ -3844,8 +3849,9 @@ textarea:focus-visible {
   }
 
   .auth-logo.peepss-logo {
-    width: min(9.25rem, 72vw);
-    max-width: 72vw;
+    width: auto;
+    max-width: 100%;
+    height: auto;
   }
 
   .app-header {
@@ -5198,11 +5204,18 @@ textarea:focus-visible {
     overflow-wrap: anywhere;
   }
 
-  .auth-logo.peepss-logo,
   .restaurant-shell .peepss-logo {
     width: clamp(84px, 26vw, 116px) !important;
     max-width: 100% !important;
     min-width: 0 !important;
+    overflow: visible;
+  }
+
+  .auth-logo.peepss-logo {
+    width: auto !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: clamp(4.75rem, 18vw, 6.5rem);
     overflow: visible;
   }
 
