@@ -3966,37 +3966,51 @@ textarea:focus-visible {
 }
 
 @media (max-width: 760px) {
+  .restaurant-shell:has(.restaurant-explore-page) {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    min-height: 100dvh;
+    overflow: hidden;
+  }
+
   .restaurant-shell .app-header {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 0.5rem 0.75rem;
-    padding: 0.45rem 0.75rem 0.6rem;
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+    padding: max(0.9rem, env(safe-area-inset-top)) 0.75rem 0.45rem;
     overflow: visible;
   }
 
   .restaurant-shell .app-header h1 {
+    justify-self: start;
     min-width: 0;
     overflow: visible;
   }
 
   .restaurant-shell .peepss-logo {
+    display: inline-flex;
     min-width: 0;
-    width: 92px;
-    max-width: 30vw;
-    height: 2rem;
-    font-size: 2.05rem;
+    width: 96px;
+    max-width: 32vw;
+    height: 2.15rem;
+    overflow: visible;
+    font-size: 2.1rem;
     letter-spacing: -0.14em;
+    line-height: 0.9;
   }
 
   .restaurant-shell .peepss-logo-circle {
-    left: 1.45rem;
-    width: 3.3rem;
-    height: 3.3rem;
+    left: 1.5rem;
+    width: 3.45rem;
+    height: 3.45rem;
   }
 
   .restaurant-shell .header-user-actions {
-    width: auto;
-    justify-self: end;
+    grid-row: 3;
+    width: 100%;
+    justify-content: space-between;
+    justify-self: stretch;
     gap: 0.4rem;
   }
 
@@ -4021,7 +4035,7 @@ textarea:focus-visible {
 
   .restaurant-shell .app-header nav {
     position: static;
-    grid-column: 1 / -1;
+    grid-row: 2;
     width: 100%;
     justify-content: space-around;
     border: 1px solid var(--restaurant-border);
@@ -4035,24 +4049,39 @@ textarea:focus-visible {
   .restaurant-shell .app-header .nav-button {
     flex: 1 0 auto;
     justify-content: center;
-    min-height: 38px;
-    padding: 0.48rem 0.6rem;
+    min-height: 34px;
+    padding: 0.4rem 0.55rem;
+    font-size: 0.78rem;
     text-align: center;
     white-space: nowrap;
   }
 
   .restaurant-shell .app-content {
+    flex: 1 1 auto;
+    min-height: 0;
     width: min(100% - 1rem, 1180px);
-    padding-top: 0.5rem;
-    padding-bottom: 0.5rem;
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+    overflow: visible;
+  }
+
+  .restaurant-shell:has(.restaurant-explore-page) .app-header {
+    position: relative;
+    flex: 0 0 auto;
+  }
+
+  .restaurant-shell:has(.restaurant-explore-page) .app-content {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
 
   .restaurant-shell .restaurant-explore-page {
-    display: grid;
-    align-content: start;
-    gap: 0.45rem;
-    height: calc(100dvh - 128px);
-    min-height: calc(100dvh - 128px);
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-height: 0;
+    height: 100%;
     overflow: hidden;
   }
 
@@ -4065,7 +4094,7 @@ textarea:focus-visible {
   }
 
   .restaurant-shell .restaurant-explore-page .page-header h1 {
-    font-size: clamp(1.45rem, 7vw, 2.05rem);
+    font-size: clamp(1.35rem, 6.5vw, 1.95rem);
     line-height: 0.95;
   }
 
@@ -4083,17 +4112,21 @@ textarea:focus-visible {
   .restaurant-shell .restaurant-feedback,
   .restaurant-shell .restaurant-explore-page > .message {
     max-width: 100%;
-    padding: 0.3rem 0.55rem;
-    font-size: 0.74rem;
+    margin-block: 0;
+    padding: 0.25rem 0.55rem;
+    font-size: 0.72rem;
   }
 
   .restaurant-shell .restaurant-job-card {
     display: grid;
-    gap: 0.48rem;
+    align-content: start;
+    flex: 1 1 auto;
+    gap: 0.42rem;
     width: 100%;
-    max-height: calc(100dvh - 235px);
+    height: 100%;
+    min-height: 0;
     border-radius: 24px;
-    padding: 0.85rem;
+    padding: 0.75rem;
     overflow: hidden;
   }
 
@@ -4103,7 +4136,7 @@ textarea:focus-visible {
 
   .restaurant-shell .restaurant-job-card h2 {
     margin-top: 0.15rem;
-    font-size: clamp(1.65rem, 9vw, 2.35rem);
+    font-size: clamp(1.55rem, 8.5vw, 2.2rem);
   }
 
   .restaurant-shell .restaurant-job-location {
@@ -4112,8 +4145,8 @@ textarea:focus-visible {
   }
 
   .restaurant-shell .restaurant-job-highlight {
-    margin-top: 0.3rem;
-    padding: 0.55rem 0.65rem;
+    margin-top: 0.2rem;
+    padding: 0.5rem 0.6rem;
   }
 
   .restaurant-shell .restaurant-job-highlight span {
@@ -4131,16 +4164,16 @@ textarea:focus-visible {
 
   .restaurant-shell .restaurant-job-description,
   .restaurant-shell .restaurant-job-requirements p {
-    margin-top: 0.25rem;
+    margin-top: 0.2rem;
     overflow: hidden;
-    font-size: 0.82rem;
-    line-height: 1.35;
+    font-size: 0.8rem;
+    line-height: 1.32;
     -webkit-line-clamp: 2;
   }
 
   .restaurant-shell .restaurant-job-requirements {
-    margin-top: 0.35rem;
-    padding-top: 0.5rem;
+    margin-top: 0.25rem;
+    padding-top: 0.45rem;
   }
 
   .restaurant-shell .restaurant-job-requirements strong {
