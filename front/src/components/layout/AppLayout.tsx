@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import type { UserTrack } from '../../features/auth/services/authApi'
 import RestaurantLanguageToggle from '../../features/restaurant/components/RestaurantLanguageToggle'
 import { useRestaurantLanguage } from '../../features/restaurant/utils/restaurantLanguage'
@@ -15,6 +15,7 @@ function AppLayout({
   userTrack = 'highTech',
   onLogout,
 }: AppLayoutProps) {
+  const location = useLocation()
   const isRestaurantUser = userTrack === 'restaurant'
   const isRestaurantOwner = userTrack === 'restaurantOwner'
   const [isOptionsOpen, setIsOptionsOpen] = useState(false)
@@ -62,6 +63,14 @@ function AppLayout({
       document.removeEventListener('keydown', handleKeyDown)
     }
   }, [isOptionsOpen])
+
+  useEffect(() => {
+    if (!isRestaurantSide) {
+      return
+    }
+
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [isRestaurantSide, location.pathname])
 
   return (
     <div
