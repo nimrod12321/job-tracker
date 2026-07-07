@@ -250,15 +250,19 @@ function OwnerJobsPage() {
   }
 
   async function handleActiveChange(job: OwnerJob) {
+    const nextIsActive = !job.isActive
+
     setBusyJobId(job.id)
     setError(null)
-    setSuccess(null)
+    setSuccess(nextIsActive ? text.activated : text.deactivated)
+    replaceJob({ ...job, isActive: nextIsActive })
 
     try {
-      const updatedJob = await setOwnerJobActive(job.id, !job.isActive)
+      const updatedJob = await setOwnerJobActive(job.id, nextIsActive)
       replaceJob(updatedJob)
-      setSuccess(updatedJob.isActive ? text.activated : text.deactivated)
     } catch (error) {
+      replaceJob(job)
+      setSuccess(null)
       setError(
         error instanceof Error
           ? error.message

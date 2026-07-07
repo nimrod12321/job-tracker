@@ -2893,6 +2893,47 @@ textarea:focus-visible {
   font-weight: 800;
 }
 
+.restaurant-card-stack {
+  display: grid;
+  flex: 1 1 auto;
+  width: min(100%, 700px);
+  min-height: 0;
+  margin-inline: auto;
+  place-items: stretch;
+}
+
+.restaurant-card-stack > .restaurant-swipe-card {
+  grid-area: 1 / 1;
+}
+
+.restaurant-card-current {
+  z-index: 2;
+}
+
+.restaurant-card-next {
+  z-index: 1;
+  opacity: 0.68;
+  pointer-events: none;
+  transform: translateY(18px) scale(0.96);
+}
+
+.restaurant-card-next.is-promoting {
+  opacity: 0.95;
+  transform: translateY(4px) scale(0.99);
+}
+
+.restaurant-card-exit-right {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(120%) rotate(12deg);
+}
+
+.restaurant-card-exit-left {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-120%) rotate(-12deg);
+}
+
 .restaurant-job-card {
   width: min(100%, 680px);
   margin-inline: auto;
@@ -2910,7 +2951,8 @@ textarea:focus-visible {
   cursor: grab;
   will-change: transform;
   transition:
-    transform 220ms ease,
+    opacity 220ms ease,
+    transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
     box-shadow 180ms ease;
 }
 
@@ -4262,6 +4304,11 @@ textarea:focus-visible {
     font-size: 0.72rem;
   }
 
+  .restaurant-shell .restaurant-card-stack {
+    width: 100%;
+    min-height: 0;
+  }
+
   .restaurant-shell .restaurant-job-card {
     display: grid;
     align-content: start;
@@ -4273,6 +4320,18 @@ textarea:focus-visible {
     border-radius: 24px;
     padding: 0.75rem;
     overflow: hidden;
+  }
+
+  .restaurant-shell .restaurant-card-stack .restaurant-job-card {
+    height: 100%;
+  }
+
+  .restaurant-shell .restaurant-card-next {
+    transform: translateY(10px) scale(0.965);
+  }
+
+  .restaurant-shell .restaurant-card-next.is-promoting {
+    transform: translateY(3px) scale(0.99);
   }
 
   .restaurant-shell .restaurant-job-name {
@@ -4683,5 +4742,13 @@ textarea:focus-visible {
   *::after {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .restaurant-card-next,
+  .restaurant-card-next.is-promoting,
+  .restaurant-card-exit-left,
+  .restaurant-card-exit-right {
+    opacity: 1;
+    transform: none;
   }
 }

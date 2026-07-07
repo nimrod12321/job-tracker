@@ -101,6 +101,16 @@ function OwnerApplicationsPage() {
   ) {
     setBusyApplicationId(application.id)
     setError(null)
+    setApplications((currentApplications) =>
+      currentApplications.map((currentApplication) =>
+        currentApplication.id === application.id
+          ? {
+              ...currentApplication,
+              status,
+            }
+          : currentApplication,
+      ),
+    )
 
     try {
       const updatedApplication = await updateOwnerApplicationStatus(
@@ -119,6 +129,16 @@ function OwnerApplicationsPage() {
         ),
       )
     } catch (error) {
+      setApplications((currentApplications) =>
+        currentApplications.map((currentApplication) =>
+          currentApplication.id === application.id
+            ? {
+                ...currentApplication,
+                status: application.status,
+              }
+            : currentApplication,
+        ),
+      )
       setError(
         error instanceof Error
           ? error.message

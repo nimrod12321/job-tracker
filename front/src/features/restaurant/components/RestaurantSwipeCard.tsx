@@ -26,8 +26,11 @@ const DEMO_REAL_PLACE_MARKER = 'source=demo_real_place.'
 const DEMO_REAL_PLACE_NOTE = 'Demo listing — not verified by restaurant.'
 
 type RestaurantSwipeCardProps = {
+  className?: string
   job: RestaurantExploreJob
+  isAnimating?: boolean
   isApplying: boolean
+  isPreview?: boolean
   language: AppLanguage
   onApply: () => Promise<boolean>
   onSkip: () => boolean
@@ -114,8 +117,11 @@ function getCleanDemoText(value: string) {
 }
 
 function RestaurantSwipeCard({
+  className = '',
   job,
+  isAnimating = false,
   isApplying,
+  isPreview = false,
   language,
   onApply,
   onSkip,
@@ -167,6 +173,8 @@ function RestaurantSwipeCard({
 
     if (
       isApplying ||
+      isAnimating ||
+      isPreview ||
       isCommittingSwipe ||
       event.button !== 0 ||
       target.closest('button, a')
@@ -237,10 +245,16 @@ function RestaurantSwipeCard({
     <article
       className={`restaurant-job-card restaurant-swipe-card${
         isDragging ? ' is-dragging' : ''
-      }${isCommittingSwipe ? ' is-committing' : ''}`}
-      style={{
-        transform: `translateX(${dragOffsetX}px) rotate(${rotation}deg)`,
-      }}
+      }${isCommittingSwipe ? ' is-committing' : ''}${
+        isPreview ? ' is-preview' : ''
+      }${className ? ` ${className}` : ''}`}
+      style={
+        isDragging || isCommittingSwipe
+          ? {
+              transform: `translateX(${dragOffsetX}px) rotate(${rotation}deg)`,
+            }
+          : undefined
+      }
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={(event) => void handlePointerUp(event)}
@@ -314,7 +328,7 @@ function RestaurantSwipeCard({
         <button
           className="restaurant-skip-button"
           type="button"
-          disabled={isApplying || isCommittingSwipe}
+          disabled={isApplying || isAnimating || isPreview || isCommittingSwipe}
           onClick={onSkip}
         >
           {text.skip}
@@ -322,7 +336,7 @@ function RestaurantSwipeCard({
         <button
           className="restaurant-apply-button"
           type="button"
-          disabled={isApplying || isCommittingSwipe}
+          disabled={isApplying || isAnimating || isPreview || isCommittingSwipe}
           onClick={() => void onApply()}
         >
           {isApplying ? text.applying : text.apply}

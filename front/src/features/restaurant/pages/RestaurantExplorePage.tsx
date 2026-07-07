@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   applyToRestaurantJob,
@@ -10,6 +10,9 @@ import { useRestaurantLanguage } from '../utils/restaurantLanguage'
 
 const PROFILE_REQUIRED_MESSAGE =
   'Complete your restaurant profile to start exploring jobs.'
+const CARD_ANIMATION_MS = 260
+
+type CardAnimationDirection = 'left' | 'right'
 
 function RestaurantExplorePage() {
   const { direction, language } = useRestaurantLanguage()
@@ -17,10 +20,14 @@ function RestaurantExplorePage() {
   const [activeIndex, setActiveIndex] = useState(0)
   const [excludeJobIds, setExcludeJobIds] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [isApplying, setIsApplying] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const [animationDirection, setAnimationDirection] =
+    useState<CardAnimationDirection | null>(null)
   const [needsProfile, setNeedsProfile] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
+  const animationTimeout = useRef<number | null>(null)
+  const activeIndexRef = useRef(0)
   const text = {
     title: language === 'he' ? 'משמרות סביבך' : 'Jobs near you',
     subtitle:
@@ -52,7 +59,7 @@ function RestaurantExplorePage() {
     updateProfile: language === 'he' ? 'עדכון פרופיל' : 'Update profile',
     findMore: language === 'he' ? 'חפש עוד משמרות' : 'Find more jobs',
     skipped: language === 'he' ? 'דילגת' : 'Skipped',
-    applied: language === 'he' ? 'הבקשה נשלחה' : 'Application sent',
+    applied: language === 'he' ? 'נשלח' : 'Sent',
   }
 
   const loadJobs = useCallback(async (excludedIds: string[]) => {
@@ -124,7 +131,28 @@ function RestaurantExplorePage() {
     }
   }, [])
 
+  useEffect(() => {
+    activeIndexRef.current = activeIndex
+  }, [activeIndex])
+
   const activeJob = jobs[activeIndex]
+  const nextJob = jobs[activeIndex + 1]
+
+  function animateToNext(direction: CardAnimationDirection) {
+    if (animationTimeout.current !== null) {
+      window.clearTimeout(animationTimeout.current)
+    }
+
+    setAnimationDirection(direction)
+    setIsAnimating(true)
+
+    animationTimeout.current = window.setTimeout(() => {
+      setActiveIndex((currentIndex) => currentIndex + 1)
+      setAnimationDirection(null)
+      setIsAnimating(false)
+      animationTimeout.current = null
+    }, CARD_ANIMATION_MS)
+  }
 
   function rememberJob(jobId: string) {
     setExcludeJobIds((currentIds) =>
@@ -132,43 +160,90 @@ function RestaurantExplorePage() {
     )
   }
 
+  function forgetJob(jobId: string) {
+    setExcludeJobIds((currentIds) =>
+      currentIds.filter((currentId) => currentId !== jobId),
+    )
+  }
+
   function handleSkip(): boolean {
-    if (!activeJob || isApplying) {
+    if (!activeJob || isAnimating) {
       return false
     }
 
     rememberJob(activeJob.id)
     setError(null)
     setFeedback(text.skipped)
-    setActiveIndex((currentIndex) => currentIndex + 1)
+    animateToNext('left')
     return true
   }
 
   async function handleApply(): Promise<boolean> {
-    if (!activeJob || isApplying) {
+    if (!activeJob || isAnimating) {
       return false
     }
 
-    setIsApplying(true)
+    const jobToApply = activeJob
+
     setError(null)
-    setFeedback(null)
+    setFeedback(text.applied)
+    rememberJob(jobToApply.id)
+    animateToNext('right')
 
-    try {
-      await applyToRestaurantJob(activeJob.id)
-      rememberJob(activeJob.id)
-      setFeedback(text.applied)
-      setActiveIndex((currentIndex) => currentIndex + 1)
-      return true
-    } catch (error) {
-      setError(
-        error instanceof Error
-          ? error.message
-          : 'Failed to apply to restaurant job',
-      )
-      return false
-    } finally {
-      setIsApplying(false)
+    void applyToRestaurantJob(jobToApply.id)
+      .catch((error) => {
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Failed to apply to restaurant job'
+
+        if (!message.toLowerCase().includes('already')) {
+          forgetJob(jobToApply.id)
+          setJobs((currentJobs) => {
+            const jobsWithoutFailedApply = currentJobs.filter(
+              (currentJob) => currentJob.id !== jobToApply.id,
+            )
+            const insertAt = Math.min(
+              activeIndexRef.current,
+              jobsWithoutFailedApply.length,
+            )
+
+            return [
+              ...jobsWithoutFailedApply.slice(0, insertAt),
+              jobToApply,
+              ...jobsWithoutFailedApply.slice(insertAt),
+            ]
+          })
+        }
+
+        setError(message)
+      })
+
+    return true
+  }
+
+  function handlePreviewApply() {
+    return Promise.resolve(false)
+  }
+
+  function handlePreviewSkip() {
+    return false
+  }
+
+  useEffect(() => {
+    return () => {
+      if (animationTimeout.current !== null) {
+        window.clearTimeout(animationTimeout.current)
+      }
     }
+  }, [])
+
+  function getCardClassName() {
+    if (!animationDirection) {
+      return 'restaurant-card-current'
+    }
+
+    return `restaurant-card-current restaurant-card-exit-${animationDirection}`
   }
 
   if (isLoading) {
@@ -281,14 +356,34 @@ function RestaurantExplorePage() {
         </p>
       )}
 
-      <RestaurantSwipeCard
-        key={activeJob.id}
-        job={activeJob}
-        isApplying={isApplying}
-        language={language}
-        onApply={handleApply}
-        onSkip={handleSkip}
-      />
+      <div className="restaurant-card-stack">
+        {nextJob && (
+          <RestaurantSwipeCard
+            className={`restaurant-card-next${
+              isAnimating ? ' is-promoting' : ''
+            }`}
+            job={nextJob}
+            isAnimating={isAnimating}
+            isApplying={false}
+            isPreview
+            key={`${nextJob.id}-preview`}
+            language={language}
+            onApply={handlePreviewApply}
+            onSkip={handlePreviewSkip}
+          />
+        )}
+
+        <RestaurantSwipeCard
+          className={getCardClassName()}
+          job={activeJob}
+          isAnimating={isAnimating}
+          isApplying={false}
+          key={activeJob.id}
+          language={language}
+          onApply={handleApply}
+          onSkip={handleSkip}
+        />
+      </div>
     </section>
   )
 }
