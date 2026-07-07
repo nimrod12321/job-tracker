@@ -35,4 +35,8 @@ export const env = {
     configuredFrontendUrl?.replace(/\/+$/, '') ||
     'http://localhost:5173',
   nodeEnv,
+  adminEmails: (process.env.ADMIN_EMAILS ?? '')
+    .split(',')
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean),
 }

@@ -4,10 +4,12 @@ import {
   deleteOwnerJob,
   getOwnerApplications,
   getOwnerJobs,
+  getOwnerLeads,
   getOwnerProfile,
   setOwnerJobActive,
   updateOwnerApplicationStatus,
   updateOwnerJob,
+  updateOwnerLeadStatus,
   updateOwnerProfile,
 } from '../controllers/owner.controller.js'
 import { prisma } from '../lib/prisma.js'
@@ -64,5 +66,7 @@ ownerRouter.patch(
   '/applications/:id/status',
   updateOwnerApplicationStatus,
 )
+ownerRouter.get('/leads', getOwnerLeads)
+ownerRouter.patch('/leads/:id/status', updateOwnerLeadStatus)
 
 export default ownerRouter

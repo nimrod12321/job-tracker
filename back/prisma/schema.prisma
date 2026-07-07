@@ -46,6 +46,13 @@ enum RestaurantApplicationStatus {
   rejected
 }
 
+enum CandidateLeadStatus {
+  new
+  contacted
+  relevant
+  rejected
+}
+
 model Job {
   id             String      @id @default(uuid())
   company        String
@@ -207,11 +214,37 @@ model RestaurantOwnerProfile {
   city           String @default("")
   street         String @default("")
   description    String @default("")
+  slug           String? @unique
 
-  jobs RestaurantJob[]
+  jobs  RestaurantJob[]
+  leads RestaurantCandidateLead[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model RestaurantCandidateLead {
+  id String @id @default(uuid())
+
+  ownerProfileId String
+  ownerProfile   RestaurantOwnerProfile @relation(fields: [ownerProfileId], references: [id], onDelete: Cascade)
+
+  fullName       String
+  phoneNumber    String
+  wantedRoles    RestaurantRole[]
+  experienceText String           @default("")
+  availability   String           @default("")
+  age            Int?
+  source         String           @default("qr")
+  status         CandidateLeadStatus @default(new)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerProfileId])
+  @@index([phoneNumber])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model RestaurantApplication {

@@ -3598,10 +3598,91 @@ textarea:focus-visible {
   width: 100%;
 }
 
+.owner-qr-card,
+.public-apply-card {
+  display: grid;
+  gap: 1rem;
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: 26px;
+  padding: clamp(1.1rem, 4vw, 1.6rem);
+  background: rgb(255 250 243 / 96%);
+  box-shadow: 0 18px 45px rgb(93 49 13 / 10%);
+}
+
+.owner-qr-card {
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.owner-qr-card h2,
+.public-apply-card h1,
+.public-apply-card h2 {
+  margin: 0;
+}
+
+.owner-qr-card p,
+.public-apply-card p {
+  margin: 0.35rem 0 0;
+}
+
+.owner-qr-link {
+  overflow-wrap: anywhere;
+  color: var(--restaurant-primary, var(--accent));
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.owner-qr-image {
+  width: min(150px, 34vw);
+  height: auto;
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: 18px;
+  padding: 0.5rem;
+  background: #fffaf3;
+}
+
+.owner-qr-actions,
+.public-apply-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.owner-qr-actions {
+  margin-top: 0.9rem;
+}
+
+.owner-qr-actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: 999px;
+  padding: 0.6rem 0.95rem;
+  background: #fffdf8;
+  color: var(--restaurant-ink, var(--text));
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.owner-candidate-section {
+  display: grid;
+  gap: 1rem;
+}
+
 .owner-applications-page,
-.restaurant-matches-page {
+.restaurant-matches-page,
+.admin-leads-page {
   display: grid;
   gap: 1.25rem;
+}
+
+.admin-leads-page {
+  min-height: 100dvh;
+  padding: clamp(1rem, 4vw, 2rem);
+  background: var(--restaurant-bg, #fff7ed);
 }
 
 .owner-application-list,
@@ -3670,6 +3751,70 @@ textarea:focus-visible {
 .application-status.rejected {
   background: #fff1f2;
   color: #b42318;
+}
+
+.application-status.new {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.application-status.contacted {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.application-status.relevant {
+  background: #dcfce7;
+  color: var(--success);
+}
+
+.public-apply-page {
+  min-height: 100dvh;
+  overflow-x: hidden;
+  padding: max(1rem, env(safe-area-inset-top)) 1rem 1.5rem;
+  background:
+    radial-gradient(circle at 18% 12%, rgb(239 75 35 / 13%), transparent 18rem),
+    linear-gradient(180deg, #fff8ed 0%, #f8ead8 100%);
+}
+
+.public-apply-shell {
+  display: grid;
+  width: min(100%, 520px);
+  gap: 1rem;
+  margin-inline: auto;
+}
+
+.public-apply-header {
+  justify-content: space-between;
+  overflow: visible;
+}
+
+.public-apply-logo.peepss-logo {
+  width: auto;
+  height: auto;
+  min-height: 4.5rem;
+  overflow: visible;
+  font-size: clamp(3rem, 14vw, 4.1rem);
+  letter-spacing: -0.14em;
+}
+
+.public-apply-logo .peepss-logo-circle {
+  left: 2.2rem;
+  width: 5.3rem;
+  height: 5.3rem;
+}
+
+.public-apply-kicker,
+.public-apply-location {
+  color: #7a5142;
+  font-size: 0.9rem;
+  font-weight: 850;
+}
+
+.public-apply-form {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
 }
 
 .owner-worker-details {
@@ -4479,6 +4624,15 @@ textarea:focus-visible {
 
   .restaurant-shell .restaurant-options-menu .restaurant-language-toggle button {
     padding: 0.25rem 0.32rem;
+  }
+
+  .owner-qr-card {
+    grid-template-columns: 1fr;
+  }
+
+  .owner-qr-image {
+    justify-self: center;
+    width: min(190px, 58vw);
   }
 
   .restaurant-shell .app-content {

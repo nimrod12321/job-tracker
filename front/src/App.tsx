@@ -15,6 +15,7 @@ import {
   getAuthToken,
   saveAuthToken,
 } from './features/auth/utils/authStorage'
+import AdminLeadsPage from './features/admin/pages/AdminLeadsPage'
 import AuthPage from './features/auth/pages/AuthPage'
 import DashboardPage from './features/dashboard/pages/DashboardPage'
 import DiscoverPage from './features/discovery/pages/DiscoverPage'
@@ -26,6 +27,7 @@ import OwnerApplicationsPage from './features/owner/pages/OwnerApplicationsPage'
 import OwnerJobsPage from './features/owner/pages/OwnerJobsPage'
 import OwnerProfilePage from './features/owner/pages/OwnerProfilePage'
 import ProfilePage from './features/profile/pages/ProfilePage'
+import RestaurantPublicApplyPage from './features/public/pages/RestaurantPublicApplyPage'
 import RestaurantExplorePage from './features/restaurant/pages/RestaurantExplorePage'
 import RestaurantMatchesPage from './features/restaurant/pages/RestaurantMatchesPage'
 import RestaurantProfilePage from './features/restaurant/pages/RestaurantProfilePage'
@@ -181,8 +183,11 @@ function App() {
           )
         }
       />
+      <Route path="/r/:restaurantSlug" element={<RestaurantPublicApplyPage />} />
 
       <Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
+        <Route path="/admin/leads" element={<AdminLeadsPage />} />
+
         <Route
           element={
             userTrack === 'highTech' ? (

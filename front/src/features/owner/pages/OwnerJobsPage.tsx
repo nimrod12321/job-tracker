@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import QRCode from 'qrcode'
 import { Link } from 'react-router-dom'
 import {
   RESTAURANT_ROLES,
@@ -48,7 +49,11 @@ function OwnerJobsPage() {
   const [busyJobId, setBusyJobId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [qrCodeUrl, setQrCodeUrl] = useState('')
   const pendingJobIds = useRef(new Set<string>())
+  const publicHiringLink = profile?.slug
+    ? `${window.location.origin}/r/${profile.slug}`
+    : ''
 
   const text = {
     title: language === 'he' ? 'המשרות שלי' : 'My jobs',
@@ -131,6 +136,19 @@ function OwnerJobsPage() {
     activated: language === 'he' ? 'המשרה הופעלה.' : 'Job activated.',
     deactivated: language === 'he' ? 'המשרה כובתה.' : 'Job deactivated.',
     deleted: language === 'he' ? 'המשרה נמחקה.' : 'Job deleted.',
+    qrTitle:
+      language === 'he' ? 'קישור גיוס למסעדה' : 'Restaurant hiring QR',
+    qrDescription:
+      language === 'he'
+        ? 'תלו את הברקוד במסעדה כדי שעובדים יוכלו להשאיר פרטים.'
+        : 'Print or share this QR so workers can apply to your restaurant.',
+    qrMissing:
+      language === 'he'
+        ? 'השלימו ושמרו פרופיל מסעדה כדי ליצור קישור גיוס.'
+        : 'Complete your restaurant profile to generate your hiring QR.',
+    copyLink: language === 'he' ? 'העתק קישור' : 'Copy link',
+    downloadQr: language === 'he' ? 'הורד QR' : 'Download QR',
+    copied: language === 'he' ? 'הקישור הועתק.' : 'Link copied.',
   }
 
   useEffect(() => {
@@ -168,6 +186,42 @@ function OwnerJobsPage() {
       isActive = false
     }
   }, [])
+
+  useEffect(() => {
+    let isActive = true
+
+    async function generateQrCode() {
+      if (!publicHiringLink) {
+        setQrCodeUrl('')
+        return
+      }
+
+      try {
+        const dataUrl = await QRCode.toDataURL(publicHiringLink, {
+          margin: 1,
+          width: 320,
+          color: {
+            dark: '#1f1d1e',
+            light: '#fffaf3',
+          },
+        })
+
+        if (isActive) {
+          setQrCodeUrl(dataUrl)
+        }
+      } catch {
+        if (isActive) {
+          setQrCodeUrl('')
+        }
+      }
+    }
+
+    void generateQrCode()
+
+    return () => {
+      isActive = false
+    }
+  }, [publicHiringLink])
 
   function updateField<K extends keyof OwnerJobInput>(
     field: K,
@@ -361,6 +415,20 @@ function OwnerJobsPage() {
     )
   }
 
+  async function handleCopyQrLink() {
+    if (!publicHiringLink) {
+      return
+    }
+
+    try {
+      await navigator.clipboard.writeText(publicHiringLink)
+      setSuccess(text.copied)
+      setError(null)
+    } catch {
+      setError(publicHiringLink)
+    }
+  }
+
   if (isLoading) {
     return (
       <section className="owner-jobs-page owner-guided-page" dir={direction}>
@@ -416,6 +484,39 @@ function OwnerJobsPage() {
           </p>
         </div>
       </div>
+
+      <section className="owner-qr-card">
+        <div>
+          <h2>{text.qrTitle}</h2>
+          <p>{profile.slug ? text.qrDescription : text.qrMissing}</p>
+          {publicHiringLink && (
+            <p className="owner-qr-link" dir="ltr">
+              {publicHiringLink}
+            </p>
+          )}
+          <div className="owner-qr-actions">
+            <button
+              type="button"
+              disabled={!publicHiringLink}
+              onClick={() => void handleCopyQrLink()}
+            >
+              {text.copyLink}
+            </button>
+            {qrCodeUrl && (
+              <a href={qrCodeUrl} download="peepss-restaurant-qr.png">
+                {text.downloadQr}
+              </a>
+            )}
+          </div>
+        </div>
+        {qrCodeUrl && (
+          <img
+            src={qrCodeUrl}
+            alt={text.qrTitle}
+            className="owner-qr-image"
+          />
+        )}
+      </section>
 
       {!isCreating && jobs.length === 0 && (
         <div className="owner-step-card owner-jobs-empty">

@@ -10,6 +10,7 @@ import type {
   OwnerJobInput,
   OwnerProfile,
   OwnerProfileInput,
+  RestaurantCandidateLead,
 } from '../types/owner'
 
 function getHeaders(): Headers {
@@ -182,6 +183,37 @@ export async function updateOwnerApplicationStatus(
 
   if (!response.ok) {
     await handleApiError(response, 'Failed to update application')
+  }
+
+  return response.json()
+}
+
+export async function getOwnerLeads(): Promise<RestaurantCandidateLead[]> {
+  const response = await fetch(`${API_BASE_URL}/owner/leads`, {
+    headers: getHeaders(),
+  })
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to load QR candidates')
+  }
+
+  return response.json()
+}
+
+export async function updateOwnerLeadStatus(
+  id: string,
+  status: RestaurantCandidateLead['status'],
+): Promise<RestaurantCandidateLead> {
+  const response = await fetch(`${API_BASE_URL}/owner/leads/${id}/status`, {
+    method: 'PATCH',
+    headers: getHeaders(),
+    body: JSON.stringify({
+      status,
+    }),
+  })
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to update QR candidate')
   }
 
   return response.json()

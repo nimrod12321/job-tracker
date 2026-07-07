@@ -7,6 +7,10 @@ import { prisma } from '../lib/prisma.js'
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js'
 import { getValidationErrorMessage } from '../utils/validation.js'
 import {
+  candidateLeadStatusBodySchema,
+  leadIdSchema,
+} from '../validations/publicRestaurant.validation.js'
+import {
   ownerApplicationIdSchema,
   ownerApplicationStatusSchema,
   ownerJobActiveSchema,
@@ -81,6 +85,7 @@ function mapOwnerProfile(profile: RestaurantOwnerProfile) {
     city: profile.city,
     street: profile.street,
     description: profile.description,
+    slug: profile.slug,
     createdAt: profile.createdAt.toISOString(),
     updatedAt: profile.updatedAt.toISOString(),
   }
@@ -120,6 +125,73 @@ function hasCompleteOwnerProfile(
       profile.city.trim() &&
       profile.street.trim(),
   )
+}
+
+function slugify(value: string) {
+  const slug = value
+    .trim()
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+
+  return slug || 'restaurant'
+}
+
+async function generateUniqueRestaurantSlug(
+  restaurantName: string,
+  city: string,
+) {
+  const baseSlug = slugify(`${restaurantName} ${city}`)
+  let candidateSlug = baseSlug
+  let suffix = 2
+
+  while (
+    await prisma.restaurantOwnerProfile.findUnique({
+      where: {
+        slug: candidateSlug,
+      },
+      select: {
+        id: true,
+      },
+    })
+  ) {
+    candidateSlug = `${baseSlug}-${suffix}`
+    suffix += 1
+  }
+
+  return candidateSlug
+}
+
+function mapCandidateLead(
+  lead: {
+    id: string
+    fullName: string
+    phoneNumber: string
+    wantedRoles: Array<'waiter' | 'bartender' | 'host' | 'floorManager' | 'cook'>
+    experienceText: string
+    availability: string
+    age: number | null
+    source: string
+    status: 'new' | 'contacted' | 'relevant' | 'rejected'
+    createdAt: Date
+    updatedAt: Date
+  },
+) {
+  return {
+    id: lead.id,
+    fullName: lead.fullName,
+    phoneNumber: lead.phoneNumber,
+    wantedRoles: lead.wantedRoles,
+    experienceText: lead.experienceText,
+    availability: lead.availability,
+    age: lead.age,
+    source: lead.source,
+    status: lead.status,
+    createdAt: lead.createdAt.toISOString(),
+    updatedAt: lead.updatedAt.toISOString(),
+  }
 }
 
 async function findOwnedJob(
@@ -201,14 +273,30 @@ export async function updateOwnerProfile(req: Request, res: Response) {
       })
     }
 
+    const existingProfile = await findOwnerProfile(userId)
+    const shouldGenerateSlug =
+      !existingProfile?.slug &&
+      result.data.restaurantName.trim() &&
+      result.data.city.trim()
+    const slug = shouldGenerateSlug
+      ? await generateUniqueRestaurantSlug(
+          result.data.restaurantName,
+          result.data.city,
+        )
+      : undefined
+
     const profile = await prisma.restaurantOwnerProfile.upsert({
       where: {
         userId,
       },
-      update: result.data,
+      update: {
+        ...result.data,
+        ...(slug ? { slug } : {}),
+      },
       create: {
         ...result.data,
         userId,
+        ...(slug ? { slug } : {}),
       },
     })
 
@@ -643,6 +731,101 @@ export async function updateOwnerApplicationStatus(
 
     return res.status(500).json({
       message: 'failed to update restaurant application',
+    })
+  }
+}
+
+export async function getOwnerLeads(req: Request, res: Response) {
+  try {
+    const userId = getUserId(req)
+
+    if (!userId) {
+      return res.status(401).json({
+        message: 'unauthorized',
+      })
+    }
+
+    const profile = await findOwnerProfile(userId)
+
+    if (!profile) {
+      return res.json([])
+    }
+
+    const leads = await prisma.restaurantCandidateLead.findMany({
+      where: {
+        ownerProfileId: profile.id,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    })
+
+    return res.json(leads.map(mapCandidateLead))
+  } catch (error) {
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to fetch QR candidate leads',
+    })
+  }
+}
+
+export async function updateOwnerLeadStatus(req: Request, res: Response) {
+  try {
+    const userId = getUserId(req)
+
+    if (!userId) {
+      return res.status(401).json({
+        message: 'unauthorized',
+      })
+    }
+
+    const idResult = leadIdSchema.safeParse(req.params.id)
+    const bodyResult = candidateLeadStatusBodySchema.safeParse(req.body)
+
+    if (!idResult.success) {
+      return res.status(400).json({
+        message: getValidationErrorMessage(idResult.error),
+      })
+    }
+
+    if (!bodyResult.success) {
+      return res.status(400).json({
+        message: getValidationErrorMessage(bodyResult.error),
+      })
+    }
+
+    const profile = await findOwnerProfile(userId)
+    const lead = profile
+      ? await prisma.restaurantCandidateLead.findFirst({
+          where: {
+            id: idResult.data,
+            ownerProfileId: profile.id,
+          },
+        })
+      : null
+
+    if (!lead) {
+      return res.status(404).json({
+        message: 'candidate lead not found',
+      })
+    }
+
+    const updatedLead = await prisma.restaurantCandidateLead.update({
+      where: {
+        id: lead.id,
+      },
+      data: {
+        status: bodyResult.data.status,
+      },
+    })
+
+    return res.json(mapCandidateLead(updatedLead))
+  } catch (error) {
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to update candidate lead',
     })
   }
 }

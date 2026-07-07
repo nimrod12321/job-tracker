@@ -9,13 +9,14 @@ export type OwnerProfile = {
   city: string
   street: string
   description: string
+  slug: string | null
   createdAt: string
   updatedAt: string
 }
 
 export type OwnerProfileInput = Omit<
   OwnerProfile,
-  'id' | 'createdAt' | 'updatedAt'
+  'id' | 'slug' | 'createdAt' | 'updatedAt'
 >
 
 export type OwnerJobInput = {
@@ -59,5 +60,35 @@ export type OwnerApplication = {
     experienceText: string
     availability: string
     age: number | null
+  }
+}
+
+export type CandidateLeadStatus =
+  | 'new'
+  | 'contacted'
+  | 'relevant'
+  | 'rejected'
+
+export type RestaurantCandidateLead = {
+  id: string
+  fullName: string
+  phoneNumber: string
+  wantedRoles: RestaurantRole[]
+  experienceText: string
+  availability: string
+  age: number | null
+  source: string
+  status: CandidateLeadStatus
+  createdAt: string
+  updatedAt: string
+}
+
+export type AdminRestaurantCandidateLead = RestaurantCandidateLead & {
+  restaurant: {
+    id: string
+    restaurantName: string
+    city: string
+    street: string
+    slug: string | null
   }
 }
