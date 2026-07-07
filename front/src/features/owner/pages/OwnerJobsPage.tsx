@@ -76,6 +76,14 @@ function OwnerJobsPage() {
       language === 'he'
         ? 'משרות חדשות מתחילות כטיוטה.'
         : 'New jobs start as drafts.',
+    defaultDraftsTitle:
+      language === 'he'
+        ? 'יצרנו עבורך משרות בסיסיות לעריכה מהירה.'
+        : 'We created basic job drafts for you.',
+    defaultDraftsHint:
+      language === 'he'
+        ? 'אפשר לערוך, למחוק או להפעיל כל משרה.'
+        : 'You can edit, delete, or activate each job.',
     editJob: language === 'he' ? 'עריכת משרה' : 'Edit job',
     cancelEdit: language === 'he' ? 'ביטול עריכה' : 'Cancel edit',
     roleStep: language === 'he' ? 'את מי אתם מחפשים?' : 'Who are you hiring?',
@@ -426,6 +434,13 @@ function OwnerJobsPage() {
         >
           {text.createJob}
         </button>
+      )}
+
+      {!isCreating && jobs.some((job) => !job.isActive) && (
+        <div className="owner-step-card owner-default-drafts-note">
+          <h2>{text.defaultDraftsTitle}</h2>
+          <p>{text.defaultDraftsHint}</p>
+        </div>
       )}
 
       {isCreating && (

@@ -18,6 +18,55 @@ import {
 const PROFILE_REQUIRED_MESSAGE =
   'Complete your restaurant profile before posting jobs.'
 
+const DEFAULT_OWNER_JOB_DRAFTS: Array<
+  Pick<RestaurantJob, 'role' | 'shiftInfo' | 'requirements' | 'description'>
+> = [
+  {
+    role: 'waiter',
+    shiftInfo:
+      '3–4 shifts per week, including at least one weekend shift.',
+    requirements:
+      'Service mindset, responsibility, good communication. Previous restaurant experience is a plus.',
+    description:
+      'Join the floor team for regular restaurant service. Serve guests, work with the team, and keep service smooth and friendly.',
+  },
+  {
+    role: 'bartender',
+    shiftInfo:
+      'Mostly evening shifts, 3–4 shifts per week, including at least one weekend shift.',
+    requirements:
+      'Bar experience is a plus, ability to work fast, responsibility, and good service attitude.',
+    description:
+      'Bar shift in a restaurant/bar environment. Prepare drinks, serve guests, and work closely with the floor team.',
+  },
+  {
+    role: 'host',
+    shiftInfo: 'Evening and weekend shifts, 3–4 shifts per week.',
+    requirements:
+      'Good communication, organized work, welcoming attitude, and responsibility.',
+    description:
+      'Welcome guests, manage seating flow, answer basic questions, and help the restaurant service run smoothly.',
+  },
+  {
+    role: 'cook',
+    shiftInfo:
+      '3–4 shifts per week, morning/evening depending on restaurant needs, including at least one weekend shift.',
+    requirements:
+      'Kitchen experience is a plus, clean work, reliability, and ability to work under pressure.',
+    description:
+      'Kitchen shift including prep, service support, and clean organized work with the kitchen team.',
+  },
+  {
+    role: 'floorManager',
+    shiftInfo:
+      '3–4 shifts per week, including evening and weekend availability.',
+    requirements:
+      'Restaurant experience, responsibility, team management ability, and strong communication.',
+    description:
+      'Manage the shift, support the floor team, solve service issues, and help keep the restaurant running smoothly.',
+  },
+]
+
 function getUserId(req: Request) {
   return (req as AuthenticatedRequest).userId
 }
@@ -85,6 +134,33 @@ async function findOwnedJob(
   })
 }
 
+async function createDefaultRestaurantJobsIfNeeded(
+  profile: RestaurantOwnerProfile,
+) {
+  const existingJobsCount = await prisma.restaurantJob.count({
+    where: {
+      ownerProfileId: profile.id,
+    },
+  })
+
+  if (existingJobsCount > 0) {
+    return
+  }
+
+  await prisma.restaurantJob.createMany({
+    data: DEFAULT_OWNER_JOB_DRAFTS.map((draft) => ({
+      ...draft,
+      restaurantName: profile.restaurantName,
+      location: profile.city,
+      area: profile.street,
+      contactPhone: profile.phoneNumber,
+      contactWhatsapp: profile.whatsappNumber,
+      ownerProfileId: profile.id,
+      isActive: false,
+    })),
+  })
+}
+
 export async function getOwnerProfile(req: Request, res: Response) {
   try {
     const userId = getUserId(req)
@@ -147,6 +223,7 @@ export async function updateOwnerProfile(req: Request, res: Response) {
           area: profile.street,
         },
       })
+      await createDefaultRestaurantJobsIfNeeded(profile)
     }
 
     return res.json(mapOwnerProfile(profile))
