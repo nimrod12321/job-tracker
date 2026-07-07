@@ -7,6 +7,14 @@ import type { AppLanguage } from '../utils/restaurantLanguage'
 
 const SWIPE_THRESHOLD = 100
 const SWIPE_EXIT_DISTANCE = 900
+const avatarColors = [
+  '#ef4b23',
+  '#d97706',
+  '#16a34a',
+  '#0f766e',
+  '#7c3aed',
+  '#be123c',
+]
 
 type RestaurantSwipeCardProps = {
   job: RestaurantExploreJob
@@ -14,6 +22,20 @@ type RestaurantSwipeCardProps = {
   language: AppLanguage
   onApply: () => Promise<boolean>
   onSkip: () => boolean
+}
+
+function getRestaurantAvatar(job: RestaurantExploreJob) {
+  const name = job.restaurantName.trim()
+  const initial = Array.from(name || getRestaurantRoleLabel(job.role))[0]
+  const colorIndex = Array.from(name).reduce(
+    (total, letter) => total + letter.charCodeAt(0),
+    0,
+  )
+
+  return {
+    backgroundColor: avatarColors[colorIndex % avatarColors.length],
+    initial,
+  }
 }
 
 function RestaurantSwipeCard({
@@ -44,6 +66,7 @@ function RestaurantSwipeCard({
     apply: language === 'he' ? 'הגש בקשה' : 'Like · Apply',
     applying: language === 'he' ? 'שולח...' : 'Applying...',
   }
+  const avatar = getRestaurantAvatar(job)
 
   function resetDrag() {
     dragStartX.current = null
@@ -157,8 +180,19 @@ function RestaurantSwipeCard({
         {text.skipHint}
       </span>
 
-      <p className="restaurant-job-name">{job.restaurantName}</p>
-      <h2>{getRestaurantRoleLabel(job.role, language)}</h2>
+      <div className="restaurant-job-card-top">
+        <div
+          className="restaurant-job-avatar"
+          style={{ backgroundColor: avatar.backgroundColor }}
+          aria-hidden="true"
+        >
+          <span>{avatar.initial}</span>
+        </div>
+        <div>
+          <p className="restaurant-job-name">{job.restaurantName}</p>
+          <h2>{getRestaurantRoleLabel(job.role, language)}</h2>
+        </div>
+      </div>
       <p className="restaurant-job-location">
         {[job.city, job.street].filter(Boolean).join(' · ')}
       </p>
