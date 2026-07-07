@@ -1,6 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import RestaurantLanguageToggle from '../components/RestaurantLanguageToggle'
 import {
   getRestaurantProfile,
   saveRestaurantProfile,
@@ -225,7 +224,6 @@ function RestaurantProfilePage() {
             <h1>{text.title}</h1>
             <p>{text.subtitle}</p>
           </div>
-          <RestaurantLanguageToggle />
         </div>
         <p className="status-message">{text.loading}</p>
       </section>
@@ -239,7 +237,6 @@ function RestaurantProfilePage() {
           <h1>{text.title}</h1>
           <p>{text.subtitle}</p>
         </div>
-        <RestaurantLanguageToggle />
       </div>
 
       <form

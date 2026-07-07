@@ -4,7 +4,6 @@ import {
   applyToRestaurantJob,
   getRestaurantExploreJobs,
 } from '../services/restaurantApi'
-import RestaurantLanguageToggle from '../components/RestaurantLanguageToggle'
 import RestaurantSwipeCard from '../components/RestaurantSwipeCard'
 import type { RestaurantExploreJob } from '../types/restaurant'
 import { useRestaurantLanguage } from '../utils/restaurantLanguage'
@@ -180,7 +179,6 @@ function RestaurantExplorePage() {
             <h1>{text.title}</h1>
             <p>{text.subtitle}</p>
           </div>
-          <RestaurantLanguageToggle />
         </div>
         <p className="status-message">{text.loading}</p>
       </section>
@@ -195,7 +193,6 @@ function RestaurantExplorePage() {
             <h1>{text.title}</h1>
             <p>{text.subtitle}</p>
           </div>
-          <RestaurantLanguageToggle />
         </div>
         <div className="empty-state restaurant-empty-state">
           <h2>{text.completeProfile}</h2>
@@ -214,7 +211,6 @@ function RestaurantExplorePage() {
             <h1>{text.title}</h1>
             <p>{text.subtitle}</p>
           </div>
-          <RestaurantLanguageToggle />
         </div>
         <p className="message message-error" role="alert">
           {error}
@@ -238,7 +234,6 @@ function RestaurantExplorePage() {
             <h1>{text.title}</h1>
             <p>{text.subtitle}</p>
           </div>
-          <RestaurantLanguageToggle />
         </div>
         <div className="empty-state restaurant-empty-state">
           <h2>{text.noMore}</h2>
@@ -269,7 +264,6 @@ function RestaurantExplorePage() {
           <h1>{text.title}</h1>
           <p>{text.subtitle}</p>
         </div>
-        <RestaurantLanguageToggle />
         <span>
           {activeIndex + 1} of {jobs.length}
         </span>

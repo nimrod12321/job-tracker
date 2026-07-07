@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import RestaurantLanguageToggle from '../components/RestaurantLanguageToggle'
 import { getRestaurantMatches } from '../services/restaurantApi'
 import {
   getRestaurantRoleLabel,
@@ -70,7 +69,6 @@ function RestaurantMatchesPage() {
             <h1>{text.title}</h1>
             <p>{text.subtitle}</p>
           </div>
-          <RestaurantLanguageToggle />
         </div>
         <p className="status-message">{text.loading}</p>
       </section>
@@ -84,7 +82,6 @@ function RestaurantMatchesPage() {
           <h1>{text.title}</h1>
           <p>{text.subtitle}</p>
         </div>
-        <RestaurantLanguageToggle />
       </div>
 
       {error && (

@@ -292,23 +292,49 @@ textarea:focus-visible {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 0.6rem;
   margin: 0;
   color: var(--text);
-  font-size: clamp(1.15rem, 2vw, 1.4rem);
-  letter-spacing: -0.03em;
+  line-height: 1;
 }
 
-.brand-mark {
-  display: grid;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 11px;
-  background: linear-gradient(145deg, var(--primary), var(--accent));
-  box-shadow: 0 7px 16px rgb(124 58 237 / 18%);
+.peepss-logo {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  min-width: 8.25rem;
+  height: 2.5rem;
+  color: #1f1d1e;
+  font-family:
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+  font-size: clamp(2.1rem, 5vw, 3rem);
+  font-weight: 200;
+  letter-spacing: -0.13em;
+  line-height: 0.85;
+}
+
+.peepss-logo-circle {
+  position: absolute;
+  z-index: -1;
+  top: 50%;
+  left: 2.1rem;
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 50%;
+  background: #865b59;
+  transform: translateY(-50%);
+}
+
+.peepss-logo-bold {
   color: #ffffff;
-  font-size: 0.9rem;
-  place-items: center;
+  font-weight: 900;
+  letter-spacing: -0.08em;
+}
+
+.peepss-logo-thin {
+  font-weight: 200;
 }
 
 .app-header nav {

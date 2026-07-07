@@ -35,11 +35,13 @@ function AppLayout({
       dir={isRestaurantSide ? direction : undefined}
     >
       <header className="app-header">
-        <h1>
-          <span className="brand-mark" aria-hidden="true">
-            P
+        <h1 aria-label="Peepss">
+          <span className="peepss-logo" aria-hidden="true" dir="ltr">
+            <span className="peepss-logo-circle" />
+            <span className="peepss-logo-thin">p</span>
+            <span className="peepss-logo-bold">ee</span>
+            <span className="peepss-logo-thin">pss</span>
           </span>
-          <span>Peepss</span>
         </h1>
 
         <nav aria-label="Main navigation">

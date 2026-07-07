@@ -1,6 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import RestaurantLanguageToggle from '../../restaurant/components/RestaurantLanguageToggle'
 import {
   RESTAURANT_ROLES,
   getRestaurantRoleLabel,
@@ -274,7 +273,6 @@ function OwnerJobsPage() {
             <h1>{text.title}</h1>
             <p>{text.subtitle}</p>
           </div>
-          <RestaurantLanguageToggle />
         </div>
         <p className="status-message">{text.loading}</p>
       </section>
@@ -289,7 +287,6 @@ function OwnerJobsPage() {
             <h1>{text.title}</h1>
             <p>{text.subtitle}</p>
           </div>
-          <RestaurantLanguageToggle />
         </div>
         <p className="message message-error" role="alert">
           {error}
@@ -310,7 +307,6 @@ function OwnerJobsPage() {
             <h1>{text.title}</h1>
             <p>{text.subtitle}</p>
           </div>
-          <RestaurantLanguageToggle />
         </div>
         <div className="empty-state owner-profile-required">
           <h2>{text.completeProfile}</h2>
@@ -330,7 +326,6 @@ function OwnerJobsPage() {
             {text.postingFor} {profile.restaurantName}. {text.newDrafts}
           </p>
         </div>
-        <RestaurantLanguageToggle />
       </div>
 
       <form className="owner-job-form" onSubmit={handleSubmit}>
