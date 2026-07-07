@@ -39,106 +39,139 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
 
   return (
     <section className="auth-page">
-      <div className="auth-card">
-        <h1>{mode === 'login' ? 'Login' : 'Create account'}</h1>
-        <p>
-          {mode === 'login'
-            ? 'Login to manage your job applications.'
-            : 'Create an account to start tracking your jobs.'}
-        </p>
+      <div className="auth-shell">
+        <div className="auth-hero">
+          <span className="peepss-logo auth-logo" aria-label="Peepss" dir="ltr">
+            <span className="peepss-logo-circle" />
+            <span className="peepss-logo-thin">p</span>
+            <span className="peepss-logo-bold">ee</span>
+            <span className="peepss-logo-thin">pss</span>
+          </span>
+          <div>
+            <h1>Find your next shift or job</h1>
+            <p>One profile. Swipe. Apply.</p>
+          </div>
+        </div>
 
-        <form className="auth-form" onSubmit={handleSubmit}>
-          <label>
-            Email
-            <input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              required
-            />
-          </label>
+        <div className="auth-card">
+          <nav className="auth-mode-tabs" aria-label="Auth mode">
+            <Link className={mode === 'login' ? 'active' : ''} to="/login">
+              Login
+            </Link>
+            <Link
+              className={mode === 'register' ? 'active' : ''}
+              to="/register"
+            >
+              Register
+            </Link>
+          </nav>
 
-          <label>
-            Password
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-              minLength={6}
-            />
-          </label>
-
-          {mode === 'register' && (
-            <fieldset className="auth-track-choice">
-              <legend>What kind of work are you looking for?</legend>
-              <label>
-                <input
-                  type="radio"
-                  name="track"
-                  value="highTech"
-                  checked={track === 'highTech'}
-                  onChange={() => setTrack('highTech')}
-                />
-                <span>
-                  <strong>High-tech job seeker</strong>
-                  <small>Tech jobs, AI matching, and application tracking</small>
-                </span>
-              </label>
-              <label>
-                <input
-                  type="radio"
-                  name="track"
-                  value="restaurant"
-                  checked={track === 'restaurant'}
-                  onChange={() => setTrack('restaurant')}
-                />
-                <span>
-                  <strong>Restaurant worker</strong>
-                  <small>Simple restaurant jobs and quick applications</small>
-                </span>
-              </label>
-              <label>
-                <input
-                  type="radio"
-                  name="track"
-                  value="restaurantOwner"
-                  checked={track === 'restaurantOwner'}
-                  onChange={() => setTrack('restaurantOwner')}
-                />
-                <span>
-                  <strong>Restaurant owner</strong>
-                  <small>Create and manage restaurant job posts</small>
-                </span>
-              </label>
-            </fieldset>
-          )}
-
-          {error && (
-            <p className="message message-error" role="alert">
-              {error}
+          <div className="auth-card-heading">
+            <h2>{mode === 'login' ? 'Welcome back' : 'Create account'}</h2>
+            <p>
+              {mode === 'login'
+                ? 'Login to continue your Peepss search.'
+                : 'Choose your track and start with the right flow.'}
             </p>
-          )}
+          </div>
 
-          <button type="submit" disabled={isLoading}>
-            {isLoading
-              ? mode === 'login'
-                ? 'Logging in...'
-                : 'Creating account...'
-              : mode === 'login'
-                ? 'Login'
-                : 'Register'}
-          </button>
-        </form>
+          <form className="auth-form" onSubmit={handleSubmit}>
+            <label>
+              Email
+              <input
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                required
+              />
+            </label>
 
-        <Link
-          to={mode === 'login' ? '/register' : '/login'}
-          className="text-button"
-        >
-          {mode === 'login'
-            ? 'Need an account? Register'
-            : 'Already have an account? Login'}
-        </Link>
+            <label>
+              Password
+              <input
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+                minLength={6}
+              />
+            </label>
+
+            {mode === 'register' && (
+              <fieldset className="auth-track-choice">
+                <legend>What kind of work are you looking for?</legend>
+                <label>
+                  <input
+                    type="radio"
+                    name="track"
+                    value="highTech"
+                    checked={track === 'highTech'}
+                    onChange={() => setTrack('highTech')}
+                  />
+                  <span>
+                    <strong>High-tech job seeker</strong>
+                    <small>Track applications and use AI job matching.</small>
+                  </span>
+                </label>
+                <label>
+                  <input
+                    type="radio"
+                    name="track"
+                    value="restaurant"
+                    checked={track === 'restaurant'}
+                    onChange={() => setTrack('restaurant')}
+                  />
+                  <span>
+                    <strong>Restaurant worker</strong>
+                    <small>Swipe restaurant shifts and apply quickly.</small>
+                  </span>
+                </label>
+                <label>
+                  <input
+                    type="radio"
+                    name="track"
+                    value="restaurantOwner"
+                    checked={track === 'restaurantOwner'}
+                    onChange={() => setTrack('restaurantOwner')}
+                  />
+                  <span>
+                    <strong>Restaurant owner</strong>
+                    <small>Post jobs and review applicants.</small>
+                  </span>
+                </label>
+              </fieldset>
+            )}
+
+            {error && (
+              <p className="message message-error" role="alert">
+                {error}
+              </p>
+            )}
+
+            <button type="submit" disabled={isLoading}>
+              {isLoading
+                ? mode === 'login'
+                  ? 'Logging in...'
+                  : 'Creating account...'
+                : mode === 'login'
+                  ? 'Login'
+                  : 'Register'}
+            </button>
+          </form>
+
+          <Link
+            to={mode === 'login' ? '/register' : '/login'}
+            className="text-button"
+          >
+            {mode === 'login'
+              ? 'Need an account? Register'
+              : 'Already have an account? Login'}
+          </Link>
+        </div>
+
+        <p className="auth-footer-note">
+          Built for high-tech and restaurant work
+        </p>
       </div>
     </section>
   )
