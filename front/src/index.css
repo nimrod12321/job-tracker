@@ -2516,6 +2516,168 @@ textarea:focus-visible {
   gap: 1.25rem;
 }
 
+.restaurant-shell {
+  --restaurant-bg: #fff7ed;
+  --restaurant-surface: #fffaf3;
+  --restaurant-ink: #15110d;
+  --restaurant-muted: #78695d;
+  --restaurant-border: #f1dcc8;
+  --restaurant-primary: #ef4b23;
+  --restaurant-primary-dark: #c93414;
+  --restaurant-soft: #ffe9d8;
+
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgb(255 213 176 / 45%), transparent 32rem),
+    var(--restaurant-bg);
+  color: var(--restaurant-ink);
+}
+
+.restaurant-shell .app-header {
+  border-color: var(--restaurant-border);
+  background: rgb(255 250 243 / 88%);
+  backdrop-filter: blur(14px);
+}
+
+.restaurant-shell .app-content {
+  padding-bottom: 5.5rem;
+}
+
+.restaurant-shell .nav-button.active {
+  border-color: var(--restaurant-primary);
+  background: var(--restaurant-soft);
+  color: var(--restaurant-ink);
+}
+
+.restaurant-shell button:not(.restaurant-language-toggle button) {
+  background: var(--restaurant-primary);
+  color: #fff;
+}
+
+.restaurant-shell button:not(.restaurant-language-toggle button):hover {
+  background: var(--restaurant-primary-dark);
+}
+
+.restaurant-language-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: 999px;
+  padding: 0.25rem 0.45rem;
+  background: rgb(255 255 255 / 62%);
+  color: var(--restaurant-muted, var(--muted));
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.restaurant-language-toggle button {
+  min-height: auto;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.3rem 0.45rem;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  font: inherit;
+}
+
+.restaurant-language-toggle button:hover,
+.restaurant-language-toggle button.active {
+  background: var(--restaurant-soft, var(--surface-soft));
+  box-shadow: none;
+  color: var(--restaurant-ink, var(--text));
+  transform: none;
+}
+
+.restaurant-profile-page[dir='rtl'],
+.restaurant-explore-page[dir='rtl'],
+.restaurant-matches-page[dir='rtl'],
+.owner-profile-page[dir='rtl'],
+.owner-jobs-page[dir='rtl'],
+.owner-applications-page[dir='rtl'] {
+  text-align: right;
+}
+
+.restaurant-profile-page .page-header,
+.restaurant-explore-page .page-header,
+.restaurant-matches-page .page-header,
+.owner-profile-page .page-header,
+.owner-jobs-page .page-header,
+.owner-applications-page .page-header {
+  align-items: flex-start;
+}
+
+.restaurant-profile-page .page-header h1,
+.restaurant-explore-page .page-header h1,
+.restaurant-matches-page .page-header h1,
+.owner-profile-page .page-header h1,
+.owner-jobs-page .page-header h1,
+.owner-applications-page .page-header h1 {
+  color: var(--restaurant-ink, var(--text));
+  font-size: clamp(2.15rem, 8vw, 4.5rem);
+  line-height: 0.95;
+}
+
+.guided-form {
+  width: min(100%, 720px);
+  margin-inline: auto;
+}
+
+.guided-form-progress,
+.guided-form-heading,
+.guided-form-actions {
+  grid-column: 1 / -1;
+}
+
+.guided-form-progress {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--restaurant-muted, var(--muted));
+  font-size: 0.84rem;
+  font-weight: 900;
+}
+
+.guided-form-progress > div {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.guided-form-progress > div > span {
+  display: block;
+  width: 2.1rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: #f4dfcc;
+}
+
+.guided-form-progress > div > span.active {
+  background: var(--restaurant-primary, var(--accent));
+}
+
+.guided-form-heading h2 {
+  margin: 0;
+  color: var(--restaurant-ink, var(--text));
+  font-size: clamp(1.8rem, 6vw, 2.7rem);
+  line-height: 1;
+  letter-spacing: -0.05em;
+}
+
+.guided-form-actions {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.guided-form-actions button {
+  min-width: 9rem;
+  min-height: 52px;
+  border-radius: 999px;
+}
+
 .restaurant-profile-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2525,6 +2687,18 @@ textarea:focus-visible {
   padding: clamp(1.25rem, 3vw, 2rem);
   background: var(--surface);
   box-shadow: var(--shadow);
+}
+
+.restaurant-shell .restaurant-profile-form,
+.restaurant-shell .owner-profile-form,
+.restaurant-shell .owner-job-form,
+.restaurant-shell .restaurant-job-card,
+.restaurant-shell .owner-job-card,
+.restaurant-shell .owner-application-card,
+.restaurant-shell .restaurant-match-card {
+  border-color: var(--restaurant-border);
+  background: var(--restaurant-surface);
+  box-shadow: 0 18px 45px rgb(93 49 13 / 10%);
 }
 
 .restaurant-profile-form > label {
@@ -2588,9 +2762,9 @@ textarea:focus-visible {
 }
 
 .restaurant-role-options label:has(input:checked) {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: #5b21b6;
+  border-color: var(--restaurant-primary, var(--accent));
+  background: var(--restaurant-soft, var(--accent-soft));
+  color: var(--restaurant-ink, #5b21b6);
 }
 
 .restaurant-role-options input {
@@ -2803,11 +2977,11 @@ textarea:focus-visible {
 }
 
 .restaurant-apply-button {
-  background: var(--accent);
+  background: var(--restaurant-primary, var(--accent));
 }
 
 .restaurant-apply-button:hover {
-  background: #6d28d9;
+  background: var(--restaurant-primary-dark, #6d28d9);
 }
 
 .restaurant-job-actions button:disabled {
@@ -3406,6 +3580,49 @@ textarea:focus-visible {
 
   .restaurant-job-actions {
     grid-template-columns: 1fr;
+  }
+
+  .restaurant-shell .app-header nav {
+    position: fixed;
+    z-index: 20;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    left: 0.75rem;
+    width: auto;
+    justify-content: space-around;
+    border: 1px solid var(--restaurant-border);
+    border-radius: 999px;
+    padding: 0.45rem;
+    background: rgb(255 250 243 / 94%);
+    box-shadow: 0 18px 45px rgb(93 49 13 / 18%);
+    backdrop-filter: blur(16px);
+  }
+
+  .restaurant-shell .app-header .nav-button {
+    flex: 1 1 0;
+    justify-content: center;
+    min-height: 42px;
+    padding-inline: 0.55rem;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .restaurant-shell .header-user-actions {
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .guided-form {
+    border-radius: 28px;
+    padding: 1rem;
+  }
+
+  .guided-form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .guided-form-actions button {
+    width: 100%;
   }
 
   .restaurant-job-contact > div,

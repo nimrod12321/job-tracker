@@ -1,20 +1,34 @@
 import { useEffect, useState } from 'react'
+import RestaurantLanguageToggle from '../components/RestaurantLanguageToggle'
 import { getRestaurantMatches } from '../services/restaurantApi'
 import {
-  RESTAURANT_ROLES,
+  getRestaurantRoleLabel,
   type RestaurantMatch,
 } from '../types/restaurant'
-
-function getRoleLabel(role: RestaurantMatch['job']['role']) {
-  return (
-    RESTAURANT_ROLES.find((option) => option.value === role)?.label ?? role
-  )
-}
+import { useRestaurantLanguage } from '../utils/restaurantLanguage'
 
 function RestaurantMatchesPage() {
+  const { direction, language } = useRestaurantLanguage()
   const [matches, setMatches] = useState<RestaurantMatch[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const text = {
+    title: language === 'he' ? 'התאמות' : 'Matches',
+    subtitle:
+      language === 'he'
+        ? 'מסעדות שבחרו את הבקשה שלך.'
+        : 'Restaurants that selected your application.',
+    loading: language === 'he' ? 'טוען התאמות...' : 'Loading matches...',
+    emptyTitle: language === 'he' ? 'אין התאמות עדיין.' : 'No matches yet.',
+    emptyHint:
+      language === 'he'
+        ? 'כשהמסעדה תבחר אותך, זה יופיע כאן.'
+        : 'When a restaurant selects you, it will appear here.',
+    shift: language === 'he' ? 'משמרות' : 'Shift',
+    requirements: language === 'he' ? 'דרישות' : 'Requirements',
+    call: language === 'he' ? 'טלפון' : 'Call',
+    whatsapp: language === 'he' ? 'וואטסאפ' : 'WhatsApp',
+  }
 
   useEffect(() => {
     let isActive = true
@@ -50,25 +64,27 @@ function RestaurantMatchesPage() {
 
   if (isLoading) {
     return (
-      <section className="restaurant-matches-page">
+      <section className="restaurant-matches-page" dir={direction}>
         <div className="page-header">
           <div>
-            <h1>Matches</h1>
-            <p>Restaurants that selected your application.</p>
+            <h1>{text.title}</h1>
+            <p>{text.subtitle}</p>
           </div>
+          <RestaurantLanguageToggle />
         </div>
-        <p className="status-message">Loading matches...</p>
+        <p className="status-message">{text.loading}</p>
       </section>
     )
   }
 
   return (
-    <section className="restaurant-matches-page">
+    <section className="restaurant-matches-page" dir={direction}>
       <div className="page-header">
         <div>
-          <h1>Matches</h1>
-          <p>Restaurants that selected your application.</p>
+          <h1>{text.title}</h1>
+          <p>{text.subtitle}</p>
         </div>
+        <RestaurantLanguageToggle />
       </div>
 
       {error && (
@@ -79,8 +95,8 @@ function RestaurantMatchesPage() {
 
       {matches.length === 0 ? (
         <div className="empty-state restaurant-matches-empty">
-          <h2>No matches yet.</h2>
-          <p>When a restaurant selects you, it will appear here.</p>
+          <h2>{text.emptyTitle}</h2>
+          <p>{text.emptyHint}</p>
         </div>
       ) : (
         <div className="restaurant-match-list">
@@ -95,7 +111,7 @@ function RestaurantMatchesPage() {
                 <p className="restaurant-match-name">
                   {match.job.restaurantName}
                 </p>
-                <h2>{getRoleLabel(match.job.role)}</h2>
+                <h2>{getRestaurantRoleLabel(match.job.role, language)}</h2>
                 <p className="restaurant-match-address">
                   {[match.job.city, match.job.street]
                     .filter(Boolean)
@@ -104,14 +120,14 @@ function RestaurantMatchesPage() {
 
                 {match.job.shiftInfo && (
                   <div>
-                    <strong>Shift</strong>
+                    <strong>{text.shift}</strong>
                     <p>{match.job.shiftInfo}</p>
                   </div>
                 )}
 
                 {match.job.requirements && (
                   <div>
-                    <strong>Requirements</strong>
+                    <strong>{text.requirements}</strong>
                     <p>{match.job.requirements}</p>
                   </div>
                 )}
@@ -119,7 +135,9 @@ function RestaurantMatchesPage() {
                 {(match.job.contactPhone || whatsappNumber) && (
                   <div className="restaurant-match-contact">
                     {match.job.contactPhone && (
-                      <a href={`tel:${match.job.contactPhone}`}>Call</a>
+                      <a href={`tel:${match.job.contactPhone}`}>
+                        {text.call}
+                      </a>
                     )}
                     {whatsappNumber && (
                       <a
@@ -127,7 +145,7 @@ function RestaurantMatchesPage() {
                         target="_blank"
                         rel="noreferrer"
                       >
-                        WhatsApp
+                        {text.whatsapp}
                       </a>
                     )}
                   </div>

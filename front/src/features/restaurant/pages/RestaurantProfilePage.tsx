@@ -1,13 +1,17 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
+import RestaurantLanguageToggle from '../components/RestaurantLanguageToggle'
 import {
   getRestaurantProfile,
   saveRestaurantProfile,
 } from '../services/restaurantApi'
 import {
   RESTAURANT_ROLES,
+  getRestaurantRoleLabel,
   type RestaurantRole,
   type RestaurantWorkerProfile,
 } from '../types/restaurant'
+import { useRestaurantLanguage } from '../utils/restaurantLanguage'
 
 type RestaurantProfileForm = {
   fullName: string
@@ -29,6 +33,44 @@ const emptyProfile: RestaurantProfileForm = {
   age: '',
 }
 
+const experienceOptions = [
+  {
+    he: 'אין ניסיון',
+    en: 'No experience',
+  },
+  {
+    he: 'עד שנה',
+    en: 'Up to 1 year',
+  },
+  {
+    he: '1–3 שנים',
+    en: '1–3 years',
+  },
+  {
+    he: 'מעל 3 שנים',
+    en: '3+ years',
+  },
+]
+
+const availabilityOptions = [
+  {
+    he: 'בוקר',
+    en: 'Morning',
+  },
+  {
+    he: 'ערב',
+    en: 'Evening',
+  },
+  {
+    he: 'סופי שבוע',
+    en: 'Weekends',
+  },
+  {
+    he: 'גמיש',
+    en: 'Flexible',
+  },
+]
+
 function profileToForm(
   profile: RestaurantWorkerProfile,
 ): RestaurantProfileForm {
@@ -44,11 +86,30 @@ function profileToForm(
 }
 
 function RestaurantProfilePage() {
+  const navigate = useNavigate()
+  const { direction, language } = useRestaurantLanguage()
   const [form, setForm] = useState<RestaurantProfileForm>(emptyProfile)
+  const [step, setStep] = useState(1)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+
+  const text = {
+    title: language === 'he' ? 'בונים את הפרופיל שלך' : 'Build your profile',
+    subtitle:
+      language === 'he'
+        ? 'שלוש שאלות קצרות, ואז נציג לך משמרות מתאימות.'
+        : 'Three quick steps, then we will show you relevant shifts.',
+    loading: language === 'he' ? 'טוען פרופיל...' : 'Loading profile...',
+    back: language === 'he' ? 'חזרה' : 'Back',
+    next: language === 'he' ? 'הבא' : 'Next',
+    start: language === 'he' ? 'יאללה, מתחילים' : "Let's start",
+    saving: language === 'he' ? 'שומר...' : 'Saving...',
+    saved: language === 'he' ? 'הפרופיל נשמר.' : 'Profile saved.',
+    step: language === 'he' ? 'שלב' : 'Step',
+    optional: language === 'he' ? 'לא חובה' : 'Optional',
+  }
 
   useEffect(() => {
     let isActive = true
@@ -103,8 +164,35 @@ function RestaurantProfilePage() {
     }))
   }
 
+  function toggleTextChoice(
+    field: 'availability' | 'experienceText',
+    value: string,
+  ) {
+    setForm((currentForm) => {
+      const currentValues = currentForm[field]
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean)
+
+      const nextValues = currentValues.includes(value)
+        ? currentValues.filter((item) => item !== value)
+        : [...currentValues, value]
+
+      return {
+        ...currentForm,
+        [field]: nextValues.join(', '),
+      }
+    })
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+
+    if (step < 3) {
+      setStep((currentStep) => currentStep + 1)
+      return
+    }
+
     setError(null)
     setSuccess(null)
     setIsSaving(true)
@@ -116,7 +204,8 @@ function RestaurantProfilePage() {
       })
 
       setForm(profileToForm(profile))
-      setSuccess('Profile saved.')
+      setSuccess(text.saved)
+      navigate('/restaurant/explore')
     } catch (error) {
       setError(
         error instanceof Error
@@ -130,114 +219,227 @@ function RestaurantProfilePage() {
 
   if (isLoading) {
     return (
-      <section className="restaurant-profile-page">
+      <section className="restaurant-profile-page" dir={direction}>
         <div className="page-header">
           <div>
-            <h1>Profile</h1>
-            <p>Tell restaurants what kind of work fits you.</p>
+            <h1>{text.title}</h1>
+            <p>{text.subtitle}</p>
           </div>
+          <RestaurantLanguageToggle />
         </div>
-        <p className="status-message">Loading profile...</p>
+        <p className="status-message">{text.loading}</p>
       </section>
     )
   }
 
   return (
-    <section className="restaurant-profile-page">
+    <section className="restaurant-profile-page" dir={direction}>
       <div className="page-header">
         <div>
-          <h1>Restaurant profile</h1>
-          <p>Keep it short. You can update these details whenever you want.</p>
+          <h1>{text.title}</h1>
+          <p>{text.subtitle}</p>
         </div>
+        <RestaurantLanguageToggle />
       </div>
 
-      <form className="restaurant-profile-form" onSubmit={handleSubmit}>
-        <label>
-          Full name
-          <input
-            value={form.fullName}
-            onChange={(event) =>
-              updateTextField('fullName', event.target.value)
-            }
-          />
-        </label>
-
-        <label>
-          Phone number
-          <input
-            type="tel"
-            value={form.phoneNumber}
-            onChange={(event) =>
-              updateTextField('phoneNumber', event.target.value)
-            }
-          />
-        </label>
-
-        <label>
-          Location
-          <input
-            value={form.location}
-            onChange={(event) =>
-              updateTextField('location', event.target.value)
-            }
-            placeholder="Tel Aviv"
-          />
-        </label>
-
-        <label>
-          Age
-          <input
-            type="number"
-            min="0"
-            max="120"
-            value={form.age}
-            onChange={(event) => updateTextField('age', event.target.value)}
-          />
-        </label>
-
-        <fieldset className="restaurant-role-options">
-          <legend>Wanted roles</legend>
+      <form
+        className="restaurant-profile-form guided-form"
+        onSubmit={handleSubmit}
+      >
+        <div className="guided-form-progress">
+          <span>
+            {text.step} {step}/3
+          </span>
           <div>
-            {RESTAURANT_ROLES.map((role) => (
-              <label key={role.value}>
-                <input
-                  type="checkbox"
-                  checked={form.wantedRoles.includes(role.value)}
-                  onChange={() => toggleRole(role.value)}
-                />
-                <span>{role.label}</span>
-              </label>
+            {[1, 2, 3].map((currentStep) => (
+              <span
+                className={currentStep <= step ? 'active' : ''}
+                key={currentStep}
+              />
             ))}
           </div>
-        </fieldset>
+        </div>
 
-        <label className="restaurant-field-wide">
-          Experience
-          <textarea
-            rows={5}
-            value={form.experienceText}
-            onChange={(event) =>
-              updateTextField('experienceText', event.target.value)
-            }
-            placeholder="A short summary of your restaurant experience"
-          />
-        </label>
+        {step === 1 && (
+          <>
+            <div className="guided-form-heading">
+              <h2>
+                {language === 'he'
+                  ? 'איך קוראים לך?'
+                  : 'What should we call you?'}
+              </h2>
+            </div>
 
-        <label className="restaurant-field-wide">
-          Availability
-          <textarea
-            rows={3}
-            value={form.availability}
-            onChange={(event) =>
-              updateTextField('availability', event.target.value)
-            }
-            placeholder="For example: evenings and weekends"
-          />
-        </label>
+            <label>
+              {language === 'he' ? 'שם מלא' : 'Full name'}
+              <input
+                value={form.fullName}
+                onChange={(event) =>
+                  updateTextField('fullName', event.target.value)
+                }
+              />
+            </label>
 
-        <p className="restaurant-profile-note">
-          Some roles may require legal age or experience.
-        </p>
+            <label>
+              {language === 'he' ? 'טלפון' : 'Phone number'}
+              <input
+                type="tel"
+                value={form.phoneNumber}
+                onChange={(event) =>
+                  updateTextField('phoneNumber', event.target.value)
+                }
+              />
+            </label>
+
+            <label>
+              {language === 'he' ? `גיל (${text.optional})` : `Age (${text.optional})`}
+              <input
+                type="number"
+                min="0"
+                max="120"
+                value={form.age}
+                onChange={(event) =>
+                  updateTextField('age', event.target.value)
+                }
+              />
+            </label>
+          </>
+        )}
+
+        {step === 2 && (
+          <>
+            <div className="guided-form-heading">
+              <h2>{language === 'he' ? 'איפה ומה?' : 'Where and what?'}</h2>
+            </div>
+
+            <label className="restaurant-field-wide">
+              {language === 'he'
+                ? 'איפה תרצה לעבוד?'
+                : 'Where do you want to work?'}
+              <input
+                value={form.location}
+                onChange={(event) =>
+                  updateTextField('location', event.target.value)
+                }
+                placeholder={language === 'he' ? 'תל אביב' : 'Tel Aviv'}
+              />
+            </label>
+
+            <fieldset className="restaurant-role-options">
+              <legend>
+                {language === 'he' ? 'מה אתה עושה?' : 'What roles are you looking for?'}
+              </legend>
+              <div>
+                {RESTAURANT_ROLES.map((role) => (
+                  <label key={role.value}>
+                    <input
+                      type="checkbox"
+                      checked={form.wantedRoles.includes(role.value)}
+                      onChange={() => toggleRole(role.value)}
+                    />
+                    <span>{getRestaurantRoleLabel(role.value, language)}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          </>
+        )}
+
+        {step === 3 && (
+          <>
+            <div className="guided-form-heading">
+              <h2>
+                {language === 'he'
+                  ? 'כמה ניסיון יש לך?'
+                  : 'How much experience do you have?'}
+              </h2>
+            </div>
+
+            <fieldset className="restaurant-role-options">
+              <legend>
+                {language === 'he' ? 'ניסיון' : 'Experience'}
+              </legend>
+              <div>
+                {experienceOptions.map((option) => {
+                  const label = option[language]
+
+                  return (
+                    <label key={label}>
+                      <input
+                        type="checkbox"
+                        checked={form.experienceText.includes(label)}
+                        onChange={() =>
+                          toggleTextChoice('experienceText', label)
+                        }
+                      />
+                      <span>{label}</span>
+                    </label>
+                  )
+                })}
+              </div>
+            </fieldset>
+
+            <label className="restaurant-field-wide">
+              {language === 'he' ? 'ניסיון נוסף' : 'Extra experience notes'}
+              <textarea
+                rows={4}
+                value={form.experienceText}
+                onChange={(event) =>
+                  updateTextField('experienceText', event.target.value)
+                }
+                placeholder={
+                  language === 'he'
+                    ? 'אפשר להוסיף בקצרה איפה עבדת ומה עשית'
+                    : 'Add a short summary of where you worked and what you did'
+                }
+              />
+            </label>
+
+            <fieldset className="restaurant-role-options">
+              <legend>{language === 'he' ? 'זמינות' : 'Availability'}</legend>
+              <div>
+                {availabilityOptions.map((option) => {
+                  const label = option[language]
+
+                  return (
+                    <label key={label}>
+                      <input
+                        type="checkbox"
+                        checked={form.availability.includes(label)}
+                        onChange={() =>
+                          toggleTextChoice('availability', label)
+                        }
+                      />
+                      <span>{label}</span>
+                    </label>
+                  )
+                })}
+              </div>
+            </fieldset>
+
+            <label className="restaurant-field-wide">
+              {language === 'he' ? 'זמינות חופשית' : 'Availability notes'}
+              <textarea
+                rows={3}
+                value={form.availability}
+                onChange={(event) =>
+                  updateTextField('availability', event.target.value)
+                }
+                placeholder={
+                  language === 'he'
+                    ? 'לדוגמה: ערב וסופי שבוע'
+                    : 'For example: evenings and weekends'
+                }
+              />
+            </label>
+
+            <p className="restaurant-profile-note">
+              {language === 'he'
+                ? 'חלק מהתפקידים דורשים גיל מתאים או ניסיון.'
+                : 'Some roles may require legal age or experience.'}
+            </p>
+          </>
+        )}
 
         {error && (
           <p className="message message-error" role="alert">
@@ -251,9 +453,20 @@ function RestaurantProfilePage() {
           </p>
         )}
 
-        <button type="submit" disabled={isSaving}>
-          {isSaving ? 'Saving...' : 'Save profile'}
-        </button>
+        <div className="guided-form-actions">
+          {step > 1 && (
+            <button
+              className="restaurant-skip-button"
+              type="button"
+              onClick={() => setStep((currentStep) => currentStep - 1)}
+            >
+              {text.back}
+            </button>
+          )}
+          <button type="submit" disabled={isSaving}>
+            {isSaving ? text.saving : step === 3 ? text.start : text.next}
+          </button>
+        </div>
       </form>
     </section>
   )

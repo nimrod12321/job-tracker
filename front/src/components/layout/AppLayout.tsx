@@ -1,5 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import type { UserTrack } from '../../features/auth/services/authApi'
+import RestaurantLanguageToggle from '../../features/restaurant/components/RestaurantLanguageToggle'
+import { useRestaurantLanguage } from '../../features/restaurant/utils/restaurantLanguage'
 
 type AppLayoutProps = {
   userEmail?: string
@@ -14,9 +16,24 @@ function AppLayout({
 }: AppLayoutProps) {
   const isRestaurantUser = userTrack === 'restaurant'
   const isRestaurantOwner = userTrack === 'restaurantOwner'
+  const { direction, language } = useRestaurantLanguage()
+  const isRestaurantSide = isRestaurantUser || isRestaurantOwner
+  const restaurantNavLabels = {
+    ownerJobs: language === 'he' ? 'המשרות שלי' : 'My jobs',
+    ownerApplications: language === 'he' ? 'מועמדים' : 'Applications',
+    ownerProfile:
+      language === 'he' ? 'פרופיל מסעדה' : 'Restaurant profile',
+    workerExplore: language === 'he' ? 'משמרות' : 'Explore',
+    workerMatches: language === 'he' ? 'התאמות' : 'Matches',
+    workerProfile: language === 'he' ? 'פרופיל' : 'Profile',
+    logout: language === 'he' ? 'התנתקות' : 'Log out',
+  }
 
   return (
-    <div className="app-layout">
+    <div
+      className={`app-layout${isRestaurantSide ? ' restaurant-shell' : ''}`}
+      dir={isRestaurantSide ? direction : undefined}
+    >
       <header className="app-header">
         <h1>
           <span className="brand-mark" aria-hidden="true">
@@ -35,7 +52,7 @@ function AppLayout({
                   `nav-button${isActive ? ' active' : ''}`
                 }
               >
-                My jobs
+                {restaurantNavLabels.ownerJobs}
               </NavLink>
               <NavLink
                 to="/owner/applications"
@@ -44,7 +61,7 @@ function AppLayout({
                   `nav-button${isActive ? ' active' : ''}`
                 }
               >
-                Applications
+                {restaurantNavLabels.ownerApplications}
               </NavLink>
               <NavLink
                 to="/owner/profile"
@@ -53,7 +70,7 @@ function AppLayout({
                   `nav-button${isActive ? ' active' : ''}`
                 }
               >
-                Restaurant profile
+                {restaurantNavLabels.ownerProfile}
               </NavLink>
             </>
           ) : isRestaurantUser ? (
@@ -65,7 +82,7 @@ function AppLayout({
                   `nav-button${isActive ? ' active' : ''}`
                 }
               >
-                Explore
+                {restaurantNavLabels.workerExplore}
               </NavLink>
               <NavLink
                 to="/restaurant/matches"
@@ -74,7 +91,7 @@ function AppLayout({
                   `nav-button${isActive ? ' active' : ''}`
                 }
               >
-                Matches
+                {restaurantNavLabels.workerMatches}
               </NavLink>
               <NavLink
                 to="/restaurant/profile"
@@ -83,7 +100,7 @@ function AppLayout({
                   `nav-button${isActive ? ' active' : ''}`
                 }
               >
-                Profile
+                {restaurantNavLabels.workerProfile}
               </NavLink>
             </>
           ) : (
@@ -127,9 +144,10 @@ function AppLayout({
         </nav>
 
         <div className="header-user-actions">
+          {isRestaurantSide && <RestaurantLanguageToggle />}
           {userEmail && <span>{userEmail}</span>}
           <button type="button" onClick={onLogout}>
-            Log out
+            {isRestaurantSide ? restaurantNavLabels.logout : 'Log out'}
           </button>
         </div>
       </header>

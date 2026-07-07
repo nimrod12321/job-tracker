@@ -1,4 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
+import RestaurantLanguageToggle from '../../restaurant/components/RestaurantLanguageToggle'
+import { useRestaurantLanguage } from '../../restaurant/utils/restaurantLanguage'
 import {
   getOwnerProfile,
   saveOwnerProfile,
@@ -16,11 +19,36 @@ const emptyProfile: OwnerProfileInput = {
 }
 
 function OwnerProfilePage() {
+  const navigate = useNavigate()
+  const { direction, language } = useRestaurantLanguage()
   const [form, setForm] = useState<OwnerProfileInput>(emptyProfile)
+  const [step, setStep] = useState(1)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+
+  const text = {
+    title:
+      language === 'he' ? 'פרופיל המסעדה שלך' : 'Your restaurant profile',
+    subtitle:
+      language === 'he'
+        ? 'נשתמש בזה כדי לפרסם משרות ברורות ומהירות.'
+        : 'We use this to publish clear, fast job posts.',
+    loading:
+      language === 'he'
+        ? 'טוען פרופיל מסעדה...'
+        : 'Loading restaurant profile...',
+    back: language === 'he' ? 'חזרה' : 'Back',
+    next: language === 'he' ? 'הבא' : 'Next',
+    finish: language === 'he' ? 'יאללה, לפרסם משרה' : 'Start posting',
+    saving: language === 'he' ? 'שומר...' : 'Saving...',
+    saved:
+      language === 'he'
+        ? 'פרופיל המסעדה נשמר.'
+        : 'Restaurant profile saved.',
+    step: language === 'he' ? 'שלב' : 'Step',
+  }
 
   useEffect(() => {
     let isActive = true
@@ -71,6 +99,12 @@ function OwnerProfilePage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+
+    if (step < 3) {
+      setStep((currentStep) => currentStep + 1)
+      return
+    }
+
     setError(null)
     setSuccess(null)
     setIsSaving(true)
@@ -87,7 +121,8 @@ function OwnerProfilePage() {
         street: savedProfile.street,
         description: savedProfile.description,
       })
-      setSuccess('Restaurant profile saved.')
+      setSuccess(text.saved)
+      navigate('/owner/jobs')
     } catch (error) {
       setError(
         error instanceof Error
@@ -101,96 +136,153 @@ function OwnerProfilePage() {
 
   if (isLoading) {
     return (
-      <section className="owner-profile-page">
+      <section className="owner-profile-page" dir={direction}>
         <div className="page-header">
           <div>
-            <h1>Restaurant profile</h1>
-            <p>These details are used when you publish jobs.</p>
+            <h1>{text.title}</h1>
+            <p>{text.subtitle}</p>
           </div>
+          <RestaurantLanguageToggle />
         </div>
-        <p className="status-message">Loading restaurant profile...</p>
+        <p className="status-message">{text.loading}</p>
       </section>
     )
   }
 
   return (
-    <section className="owner-profile-page">
+    <section className="owner-profile-page" dir={direction}>
       <div className="page-header">
         <div>
-          <h1>Restaurant profile</h1>
-          <p>These details are used when you publish jobs.</p>
+          <h1>{text.title}</h1>
+          <p>{text.subtitle}</p>
         </div>
+        <RestaurantLanguageToggle />
       </div>
 
-      <form className="owner-profile-form" onSubmit={handleSubmit}>
-        <label>
-          Restaurant name
-          <input
-            value={form.restaurantName}
-            onChange={(event) =>
-              updateField('restaurantName', event.target.value)
-            }
-          />
-        </label>
+      <form
+        className="owner-profile-form guided-form"
+        onSubmit={handleSubmit}
+      >
+        <div className="guided-form-progress">
+          <span>
+            {text.step} {step}/3
+          </span>
+          <div>
+            {[1, 2, 3].map((currentStep) => (
+              <span
+                className={currentStep <= step ? 'active' : ''}
+                key={currentStep}
+              />
+            ))}
+          </div>
+        </div>
 
-        <label>
-          Contact person
-          <input
-            value={form.contactPerson}
-            onChange={(event) =>
-              updateField('contactPerson', event.target.value)
-            }
-          />
-        </label>
+        {step === 1 && (
+          <>
+            <div className="guided-form-heading">
+              <h2>
+                {language === 'he'
+                  ? 'מי המסעדה?'
+                  : 'Restaurant identity'}
+              </h2>
+            </div>
 
-        <label>
-          Phone number
-          <input
-            type="tel"
-            value={form.phoneNumber}
-            onChange={(event) =>
-              updateField('phoneNumber', event.target.value)
-            }
-          />
-        </label>
+            <label>
+              {language === 'he' ? 'שם המסעדה' : 'Restaurant name'}
+              <input
+                value={form.restaurantName}
+                onChange={(event) =>
+                  updateField('restaurantName', event.target.value)
+                }
+              />
+            </label>
 
-        <label>
-          WhatsApp number
-          <input
-            type="tel"
-            value={form.whatsappNumber}
-            onChange={(event) =>
-              updateField('whatsappNumber', event.target.value)
-            }
-          />
-        </label>
+            <label>
+              {language === 'he' ? 'איש קשר' : 'Contact person'}
+              <input
+                value={form.contactPerson}
+                onChange={(event) =>
+                  updateField('contactPerson', event.target.value)
+                }
+              />
+            </label>
+          </>
+        )}
 
-        <label>
-          City
-          <input
-            value={form.city}
-            onChange={(event) => updateField('city', event.target.value)}
-          />
-        </label>
+        {step === 2 && (
+          <>
+            <div className="guided-form-heading">
+              <h2>
+                {language === 'he'
+                  ? 'איך מגיעים אליכם?'
+                  : 'Contact and address'}
+              </h2>
+            </div>
 
-        <label>
-          Street
-          <input
-            value={form.street}
-            onChange={(event) => updateField('street', event.target.value)}
-          />
-        </label>
+            <label>
+              {language === 'he' ? 'טלפון' : 'Phone number'}
+              <input
+                type="tel"
+                value={form.phoneNumber}
+                onChange={(event) =>
+                  updateField('phoneNumber', event.target.value)
+                }
+              />
+            </label>
 
-        <label className="owner-field-wide">
-          Short description
-          <textarea
-            rows={5}
-            value={form.description}
-            onChange={(event) =>
-              updateField('description', event.target.value)
-            }
-          />
-        </label>
+            <label>
+              {language === 'he' ? 'וואטסאפ' : 'WhatsApp number'}
+              <input
+                type="tel"
+                value={form.whatsappNumber}
+                onChange={(event) =>
+                  updateField('whatsappNumber', event.target.value)
+                }
+              />
+            </label>
+
+            <label>
+              {language === 'he' ? 'עיר' : 'City'}
+              <input
+                value={form.city}
+                onChange={(event) => updateField('city', event.target.value)}
+              />
+            </label>
+
+            <label>
+              {language === 'he' ? 'רחוב' : 'Street'}
+              <input
+                value={form.street}
+                onChange={(event) =>
+                  updateField('street', event.target.value)
+                }
+              />
+            </label>
+          </>
+        )}
+
+        {step === 3 && (
+          <>
+            <div className="guided-form-heading">
+              <h2>
+                {language === 'he'
+                  ? 'תיאור קצר'
+                  : 'Short description'}
+              </h2>
+            </div>
+
+            <label className="owner-field-wide">
+              {language === 'he' ? 'תיאור קצר' : 'Short description'}
+              <textarea
+                rows={5}
+                value={form.description}
+                onChange={(event) =>
+                  updateField('description', event.target.value)
+                }
+              />
+            </label>
+          </>
+        )}
 
         {error && (
           <p className="message message-error" role="alert">
@@ -204,9 +296,20 @@ function OwnerProfilePage() {
           </p>
         )}
 
-        <button type="submit" disabled={isSaving}>
-          {isSaving ? 'Saving...' : 'Save profile'}
-        </button>
+        <div className="guided-form-actions">
+          {step > 1 && (
+            <button
+              className="restaurant-skip-button"
+              type="button"
+              onClick={() => setStep((currentStep) => currentStep - 1)}
+            >
+              {text.back}
+            </button>
+          )}
+          <button type="submit" disabled={isSaving}>
+            {isSaving ? text.saving : step === 3 ? text.finish : text.next}
+          </button>
+        </div>
       </form>
     </section>
   )

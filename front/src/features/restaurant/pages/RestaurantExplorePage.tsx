@@ -4,13 +4,16 @@ import {
   applyToRestaurantJob,
   getRestaurantExploreJobs,
 } from '../services/restaurantApi'
+import RestaurantLanguageToggle from '../components/RestaurantLanguageToggle'
 import RestaurantSwipeCard from '../components/RestaurantSwipeCard'
 import type { RestaurantExploreJob } from '../types/restaurant'
+import { useRestaurantLanguage } from '../utils/restaurantLanguage'
 
 const PROFILE_REQUIRED_MESSAGE =
   'Complete your restaurant profile to start exploring jobs.'
 
 function RestaurantExplorePage() {
+  const { direction, language } = useRestaurantLanguage()
   const [jobs, setJobs] = useState<RestaurantExploreJob[]>([])
   const [activeIndex, setActiveIndex] = useState(0)
   const [excludeJobIds, setExcludeJobIds] = useState<string[]>([])
@@ -19,6 +22,39 @@ function RestaurantExplorePage() {
   const [needsProfile, setNeedsProfile] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
+  const text = {
+    title: language === 'he' ? 'משמרות סביבך' : 'Jobs near you',
+    subtitle:
+      language === 'he'
+        ? 'החלק ימינה כדי להגיש בקשה, שמאלה כדי לדלג.'
+        : 'Swipe right to apply, left to skip.',
+    loading:
+      language === 'he'
+        ? 'מחפש משמרות במסעדות...'
+        : 'Finding restaurant jobs...',
+    completeProfile:
+      language === 'he'
+        ? 'צריך להשלים פרופיל'
+        : 'Complete your restaurant profile',
+    completeProfileMessage:
+      language === 'he'
+        ? 'השלים פרופיל קצר כדי להתחיל לראות משמרות.'
+        : PROFILE_REQUIRED_MESSAGE,
+    goToProfile: language === 'he' ? 'לפרופיל' : 'Go to Profile',
+    tryAgain: language === 'he' ? 'נסה שוב' : 'Try again',
+    noMore:
+      language === 'he'
+        ? 'אין עוד משמרות כרגע.'
+        : 'No more restaurant jobs right now.',
+    noMoreHint:
+      language === 'he'
+        ? 'אפשר לבדוק שוב מאוחר יותר או לעדכן תפקידים ומיקום.'
+        : 'Check again later or update your wanted roles and location.',
+    updateProfile: language === 'he' ? 'עדכון פרופיל' : 'Update profile',
+    findMore: language === 'he' ? 'חפש עוד משמרות' : 'Find more jobs',
+    skipped: language === 'he' ? 'דילגת' : 'Skipped',
+    applied: language === 'he' ? 'הבקשה נשלחה' : 'Application sent',
+  }
 
   const loadJobs = useCallback(async (excludedIds: string[]) => {
     setIsLoading(true)
@@ -104,7 +140,7 @@ function RestaurantExplorePage() {
 
     rememberJob(activeJob.id)
     setError(null)
-    setFeedback('Skipped')
+    setFeedback(text.skipped)
     setActiveIndex((currentIndex) => currentIndex + 1)
     return true
   }
@@ -121,7 +157,7 @@ function RestaurantExplorePage() {
     try {
       await applyToRestaurantJob(activeJob.id)
       rememberJob(activeJob.id)
-      setFeedback('Application sent')
+      setFeedback(text.applied)
       setActiveIndex((currentIndex) => currentIndex + 1)
       return true
     } catch (error) {
@@ -138,31 +174,33 @@ function RestaurantExplorePage() {
 
   if (isLoading) {
     return (
-      <section className="restaurant-explore-page">
+      <section className="restaurant-explore-page" dir={direction}>
         <div className="page-header">
           <div>
-            <h1>Explore</h1>
-            <p>Simple restaurant jobs picked for your profile.</p>
+            <h1>{text.title}</h1>
+            <p>{text.subtitle}</p>
           </div>
+          <RestaurantLanguageToggle />
         </div>
-        <p className="status-message">Finding restaurant jobs...</p>
+        <p className="status-message">{text.loading}</p>
       </section>
     )
   }
 
   if (needsProfile) {
     return (
-      <section className="restaurant-explore-page">
+      <section className="restaurant-explore-page" dir={direction}>
         <div className="page-header">
           <div>
-            <h1>Explore</h1>
-            <p>Simple restaurant jobs picked for your profile.</p>
+            <h1>{text.title}</h1>
+            <p>{text.subtitle}</p>
           </div>
+          <RestaurantLanguageToggle />
         </div>
         <div className="empty-state restaurant-empty-state">
-          <h2>Complete your restaurant profile</h2>
-          <p>{PROFILE_REQUIRED_MESSAGE}</p>
-          <Link to="/restaurant/profile">Go to Profile</Link>
+          <h2>{text.completeProfile}</h2>
+          <p>{text.completeProfileMessage}</p>
+          <Link to="/restaurant/profile">{text.goToProfile}</Link>
         </div>
       </section>
     )
@@ -170,12 +208,13 @@ function RestaurantExplorePage() {
 
   if (error && jobs.length === 0) {
     return (
-      <section className="restaurant-explore-page">
+      <section className="restaurant-explore-page" dir={direction}>
         <div className="page-header">
           <div>
-            <h1>Explore</h1>
-            <p>Simple restaurant jobs picked for your profile.</p>
+            <h1>{text.title}</h1>
+            <p>{text.subtitle}</p>
           </div>
+          <RestaurantLanguageToggle />
         </div>
         <p className="message message-error" role="alert">
           {error}
@@ -185,7 +224,7 @@ function RestaurantExplorePage() {
           type="button"
           onClick={() => void loadJobs(excludeJobIds)}
         >
-          Try again
+          {text.tryAgain}
         </button>
       </section>
     )
@@ -193,23 +232,24 @@ function RestaurantExplorePage() {
 
   if (!activeJob) {
     return (
-      <section className="restaurant-explore-page">
+      <section className="restaurant-explore-page" dir={direction}>
         <div className="page-header">
           <div>
-            <h1>Explore</h1>
-            <p>Simple restaurant jobs picked for your profile.</p>
+            <h1>{text.title}</h1>
+            <p>{text.subtitle}</p>
           </div>
+          <RestaurantLanguageToggle />
         </div>
         <div className="empty-state restaurant-empty-state">
-          <h2>No more restaurant jobs right now.</h2>
-          <p>Check again later or update your wanted roles and location.</p>
+          <h2>{text.noMore}</h2>
+          <p>{text.noMoreHint}</p>
           <div className="restaurant-empty-actions">
-            <Link to="/restaurant/profile">Update profile</Link>
+            <Link to="/restaurant/profile">{text.updateProfile}</Link>
             <button
               type="button"
               onClick={() => void loadJobs(excludeJobIds)}
             >
-              Find more jobs
+              {text.findMore}
             </button>
           </div>
         </div>
@@ -223,12 +263,13 @@ function RestaurantExplorePage() {
   }
 
   return (
-    <section className="restaurant-explore-page">
+    <section className="restaurant-explore-page" dir={direction}>
       <div className="page-header restaurant-explore-header">
         <div>
-          <h1>Explore</h1>
-          <p>Like means apply. Skip moves to the next job.</p>
+          <h1>{text.title}</h1>
+          <p>{text.subtitle}</p>
         </div>
+        <RestaurantLanguageToggle />
         <span>
           {activeIndex + 1} of {jobs.length}
         </span>
@@ -250,6 +291,7 @@ function RestaurantExplorePage() {
         key={activeJob.id}
         job={activeJob}
         isApplying={isApplying}
+        language={language}
         onApply={handleApply}
         onSkip={handleSkip}
       />

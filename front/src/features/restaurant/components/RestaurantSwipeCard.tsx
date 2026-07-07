@@ -1,9 +1,9 @@
 import { useRef, useState, type PointerEvent } from 'react'
 import {
-  RESTAURANT_ROLES,
+  getRestaurantRoleLabel,
   type RestaurantExploreJob,
-  type RestaurantRole,
 } from '../types/restaurant'
+import type { AppLanguage } from '../utils/restaurantLanguage'
 
 const SWIPE_THRESHOLD = 100
 const SWIPE_EXIT_DISTANCE = 900
@@ -11,19 +11,15 @@ const SWIPE_EXIT_DISTANCE = 900
 type RestaurantSwipeCardProps = {
   job: RestaurantExploreJob
   isApplying: boolean
+  language: AppLanguage
   onApply: () => Promise<boolean>
   onSkip: () => boolean
-}
-
-function getRoleLabel(role: RestaurantRole) {
-  return (
-    RESTAURANT_ROLES.find((option) => option.value === role)?.label ?? role
-  )
 }
 
 function RestaurantSwipeCard({
   job,
   isApplying,
+  language,
   onApply,
   onSkip,
 }: RestaurantSwipeCardProps) {
@@ -40,6 +36,18 @@ function RestaurantSwipeCard({
     Math.abs(dragOffsetX) / SWIPE_THRESHOLD,
   )
   const whatsappNumber = job.contactWhatsapp.replace(/\D/g, '')
+  const text = {
+    applyHint: language === 'he' ? 'הגש' : 'APPLY',
+    skipHint: language === 'he' ? 'דלג' : 'SKIP',
+    shift: language === 'he' ? 'משמרות' : 'Shift',
+    requirements: language === 'he' ? 'דרישות' : 'Need',
+    contact: language === 'he' ? 'יצירת קשר' : 'Contact',
+    call: language === 'he' ? 'טלפון' : 'Call',
+    whatsapp: language === 'he' ? 'וואטסאפ' : 'WhatsApp',
+    skip: language === 'he' ? 'דלג' : 'Skip',
+    apply: language === 'he' ? 'הגש בקשה' : 'Like · Apply',
+    applying: language === 'he' ? 'שולח...' : 'Applying...',
+  }
 
   function resetDrag() {
     dragStartX.current = null
@@ -141,7 +149,7 @@ function RestaurantSwipeCard({
         }}
         aria-hidden="true"
       >
-        APPLY
+        {text.applyHint}
       </span>
       <span
         className="restaurant-swipe-hint restaurant-skip-hint"
@@ -150,18 +158,18 @@ function RestaurantSwipeCard({
         }}
         aria-hidden="true"
       >
-        SKIP
+        {text.skipHint}
       </span>
 
       <p className="restaurant-job-name">{job.restaurantName}</p>
-      <h2>{getRoleLabel(job.role)}</h2>
+      <h2>{getRestaurantRoleLabel(job.role, language)}</h2>
       <p className="restaurant-job-location">
         {[job.city, job.street].filter(Boolean).join(' · ')}
       </p>
 
       {job.shiftInfo && (
         <div className="restaurant-job-highlight">
-          <span>Shift</span>
+          <span>{text.shift}</span>
           <strong>{job.shiftInfo}</strong>
         </div>
       )}
@@ -172,17 +180,17 @@ function RestaurantSwipeCard({
 
       {job.requirements && (
         <div className="restaurant-job-requirements">
-          <strong>Need</strong>
+          <strong>{text.requirements}</strong>
           <p>{job.requirements}</p>
         </div>
       )}
 
       {(job.contactPhone || whatsappNumber) && (
         <div className="restaurant-job-contact">
-          <strong>Contact</strong>
+          <strong>{text.contact}</strong>
           <div>
             {job.contactPhone && (
-              <a href={`tel:${job.contactPhone}`}>Call</a>
+              <a href={`tel:${job.contactPhone}`}>{text.call}</a>
             )}
             {whatsappNumber && (
               <a
@@ -190,7 +198,7 @@ function RestaurantSwipeCard({
                 target="_blank"
                 rel="noreferrer"
               >
-                WhatsApp
+                {text.whatsapp}
               </a>
             )}
           </div>
@@ -204,7 +212,7 @@ function RestaurantSwipeCard({
           disabled={isApplying || isCommittingSwipe}
           onClick={onSkip}
         >
-          Skip
+          {text.skip}
         </button>
         <button
           className="restaurant-apply-button"
@@ -212,7 +220,7 @@ function RestaurantSwipeCard({
           disabled={isApplying || isCommittingSwipe}
           onClick={() => void onApply()}
         >
-          {isApplying ? 'Applying...' : 'Like · Apply'}
+          {isApplying ? text.applying : text.apply}
         </button>
       </div>
     </article>

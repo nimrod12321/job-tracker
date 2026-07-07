@@ -2,27 +2,47 @@ export const RESTAURANT_ROLES = [
   {
     value: 'waiter',
     label: 'Waiter',
+    labelHe: 'מלצר/ית',
   },
   {
     value: 'bartender',
     label: 'Bartender',
+    labelHe: 'ברמן/ית',
   },
   {
     value: 'host',
     label: 'Host',
+    labelHe: 'מארח/ת',
   },
   {
     value: 'floorManager',
     label: 'Floor manager',
+    labelHe: 'מנהל/ת רצפה',
   },
   {
     value: 'cook',
     label: 'Cook',
+    labelHe: 'טבח/ית',
   },
 ] as const
 
 export type RestaurantRole =
   (typeof RESTAURANT_ROLES)[number]['value']
+
+export function getRestaurantRoleLabel(
+  role: RestaurantRole,
+  language: 'he' | 'en' = 'en',
+) {
+  const roleOption = RESTAURANT_ROLES.find(
+    (option) => option.value === role,
+  )
+
+  if (!roleOption) {
+    return role
+  }
+
+  return language === 'he' ? roleOption.labelHe : roleOption.label
+}
 
 export type RestaurantWorkerProfile = {
   id: string
