@@ -366,7 +366,7 @@ function RestaurantExplorePage() {
             isAnimating={isAnimating}
             isApplying={false}
             isPreview
-            key={`${nextJob.id}-preview`}
+            key={nextJob.id}
             language={language}
             onApply={handlePreviewApply}
             onSkip={handlePreviewSkip}

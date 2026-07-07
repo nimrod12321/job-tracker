@@ -3005,8 +3005,8 @@ textarea:focus-visible {
 }
 
 .restaurant-card-next.is-promoting {
-  opacity: 0.95;
-  transform: translateY(4px) scale(0.99);
+  opacity: 1;
+  transform: translateY(0) scale(1);
 }
 
 .restaurant-card-exit-right {
@@ -4418,7 +4418,7 @@ textarea:focus-visible {
   }
 
   .restaurant-shell .restaurant-card-next.is-promoting {
-    transform: translateY(3px) scale(0.99);
+    transform: translateY(0) scale(1);
   }
 
   .restaurant-shell .restaurant-job-name {
