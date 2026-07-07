@@ -15,6 +15,13 @@ const avatarColors = [
   '#7c3aed',
   '#be123c',
 ]
+const roleIcons: Record<RestaurantExploreJob['role'], string> = {
+  bartender: '🍸',
+  cook: '🍳',
+  floorManager: '📋',
+  host: '👋',
+  waiter: '🍽️',
+}
 
 type RestaurantSwipeCardProps = {
   job: RestaurantExploreJob
@@ -36,6 +43,65 @@ function getRestaurantAvatar(job: RestaurantExploreJob) {
     backgroundColor: avatarColors[colorIndex % avatarColors.length],
     initial,
   }
+}
+
+function getPlaceIcon(job: RestaurantExploreJob) {
+  const searchableText =
+    `${job.restaurantName} ${job.description} ${job.requirements}`.toLowerCase()
+
+  if (searchableText.includes('cafe') || searchableText.includes('coffee')) {
+    return '☕'
+  }
+
+  if (searchableText.includes('bar') || searchableText.includes('drinks')) {
+    return '🍹'
+  }
+
+  if (searchableText.includes('pasta') || searchableText.includes('bistro')) {
+    return '🍝'
+  }
+
+  return roleIcons[job.role] ?? '🍝'
+}
+
+function getVibeBadges(job: RestaurantExploreJob, language: AppLanguage) {
+  const searchableText =
+    `${job.restaurantName} ${job.description} ${job.requirements} ${job.shiftInfo}`.toLowerCase()
+  const badges: string[] = []
+
+  if (
+    searchableText.includes('morning') ||
+    searchableText.includes('breakfast')
+  ) {
+    badges.push(language === 'he' ? 'בוקר' : 'Morning')
+  }
+
+  if (
+    searchableText.includes('night') ||
+    searchableText.includes('evening')
+  ) {
+    badges.push(language === 'he' ? 'ערב' : 'Evening')
+  }
+
+  if (
+    searchableText.includes('busy') ||
+    searchableText.includes('fast')
+  ) {
+    badges.push(language === 'he' ? 'קצב גבוה' : 'Fast pace')
+  }
+
+  if (
+    searchableText.includes('team') ||
+    searchableText.includes('friendly')
+  ) {
+    badges.push(language === 'he' ? 'צוותי' : 'Team vibe')
+  }
+
+  if (badges.length === 0) {
+    badges.push(language === 'he' ? 'מסעדה' : 'Restaurant')
+  }
+
+  return badges.slice(0, 2)
 }
 
 function RestaurantSwipeCard({
@@ -67,6 +133,8 @@ function RestaurantSwipeCard({
     applying: language === 'he' ? 'שולח...' : 'Applying...',
   }
   const avatar = getRestaurantAvatar(job)
+  const placeIcon = getPlaceIcon(job)
+  const vibeBadges = getVibeBadges(job, language)
 
   function resetDrag() {
     dragStartX.current = null
@@ -190,12 +258,22 @@ function RestaurantSwipeCard({
         </div>
         <div>
           <p className="restaurant-job-name">{job.restaurantName}</p>
-          <h2>{getRestaurantRoleLabel(job.role, language)}</h2>
+          <div className="restaurant-job-role-line">
+            <h2>{getRestaurantRoleLabel(job.role, language)}</h2>
+            <span className="restaurant-job-role-icon" aria-hidden="true">
+              {placeIcon}
+            </span>
+          </div>
         </div>
       </div>
       <p className="restaurant-job-location">
         {[job.city, job.street].filter(Boolean).join(' · ')}
       </p>
+      <div className="restaurant-vibe-badges" aria-label="Restaurant vibe">
+        {vibeBadges.map((badge) => (
+          <span key={badge}>{badge}</span>
+        ))}
+      </div>
 
       {job.shiftInfo && (
         <div className="restaurant-job-highlight">

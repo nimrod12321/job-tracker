@@ -2931,10 +2931,45 @@ textarea:focus-visible {
   letter-spacing: -0.05em;
 }
 
+.restaurant-job-role-line {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.restaurant-job-role-icon {
+  display: grid;
+  flex: 0 0 auto;
+  width: 2.45rem;
+  height: 2.45rem;
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: 999px;
+  background: #fff3e7;
+  font-size: 1.2rem;
+  place-items: center;
+}
+
 .restaurant-job-location {
   margin: 0.65rem 0 0;
   color: var(--muted);
   font-weight: 650;
+}
+
+.restaurant-vibe-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.7rem;
+}
+
+.restaurant-vibe-badges span {
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: 999px;
+  padding: 0.3rem 0.55rem;
+  background: #fff7ed;
+  color: var(--restaurant-ink, var(--text));
+  font-size: 0.74rem;
+  font-weight: 850;
 }
 
 .restaurant-job-highlight {
@@ -4192,13 +4227,33 @@ textarea:focus-visible {
     font-size: clamp(1.55rem, 8.5vw, 2.2rem);
   }
 
+  .restaurant-shell .restaurant-job-role-line {
+    gap: 0.4rem;
+  }
+
+  .restaurant-shell .restaurant-job-role-icon {
+    width: 2rem;
+    height: 2rem;
+    font-size: 1rem;
+  }
+
   .restaurant-shell .restaurant-job-location {
     margin-top: 0.12rem;
     font-size: 0.82rem;
   }
 
+  .restaurant-shell .restaurant-vibe-badges {
+    gap: 0.3rem;
+    margin-top: 0.25rem;
+  }
+
+  .restaurant-shell .restaurant-vibe-badges span {
+    padding: 0.22rem 0.45rem;
+    font-size: 0.68rem;
+  }
+
   .restaurant-shell .restaurant-job-highlight {
-    margin-top: 0.2rem;
+    margin-top: 0.1rem;
     padding: 0.5rem 0.6rem;
   }
 
