@@ -36,6 +36,8 @@ const shiftOptions = [
   { he: 'גמיש', en: 'Flexible' },
 ]
 
+type OwnerJobsSection = 'drafts' | 'posted'
+
 function getQrWidgetStorageKey(slug: string | null | undefined) {
   return slug ? `peepss_owner_qr_widget_open_${slug}` : ''
 }
@@ -118,8 +120,8 @@ function OwnerJobsPage() {
     () => new Set(),
   )
   const [highlightedJobId, setHighlightedJobId] = useState<string | null>(null)
-  const draftsSectionRef = useRef<HTMLElement | null>(null)
-  const postedSectionRef = useRef<HTMLElement | null>(null)
+  const [openJobsSection, setOpenJobsSection] =
+    useState<OwnerJobsSection | null>(null)
   const pendingJobIds = useRef(new Set<string>())
   const publicHiringLink = profile?.slug
     ? `${window.location.origin}/r/${profile.slug}`
@@ -270,10 +272,19 @@ function OwnerJobsPage() {
         ])
 
         if (isActive) {
+          const storedPostedJobIds = getStoredPostedJobIds(ownerProfile?.slug)
+          const postedCount = ownerJobs.filter(
+            (job) => job.isActive || storedPostedJobIds.has(job.id),
+          ).length
+          const draftCount = ownerJobs.length - postedCount
+
           setProfile(ownerProfile)
           setJobs(ownerJobs)
           setIsQrExpanded(getStoredQrWidgetOpen(ownerProfile?.slug))
-          setPostedJobIds(getStoredPostedJobIds(ownerProfile?.slug))
+          setPostedJobIds(storedPostedJobIds)
+          setOpenJobsSection(
+            postedCount > 0 ? 'posted' : draftCount > 0 ? 'drafts' : null,
+          )
         }
       } catch (error) {
         if (isActive) {
@@ -423,13 +434,10 @@ function OwnerJobsPage() {
     })
   }
 
-  function scrollToPostedJobs() {
-    window.setTimeout(() => {
-      postedSectionRef.current?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      })
-    }, 50)
+  function toggleJobsSection(section: OwnerJobsSection) {
+    setOpenJobsSection((currentSection) =>
+      currentSection === section ? null : section,
+    )
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -485,8 +493,8 @@ function OwnerJobsPage() {
       setJobs((currentJobs) => [postedJob, ...currentJobs])
       setSuccess(text.posted)
       setHighlightedJobId(postedJob.id)
+      setOpenJobsSection('posted')
       resetForm()
-      scrollToPostedJobs()
     } catch (error) {
       setError(
         error instanceof Error
@@ -868,18 +876,26 @@ function OwnerJobsPage() {
 
       <div className="owner-jobs-local-nav" aria-label={text.title}>
         <button
+          className={openJobsSection === 'drafts' ? 'is-active' : ''}
           type="button"
-          onClick={() =>
-            draftsSectionRef.current?.scrollIntoView({
-              behavior: 'smooth',
-              block: 'start',
-            })
-          }
+          aria-expanded={openJobsSection === 'drafts'}
+          onClick={() => toggleJobsSection('drafts')}
         >
-          {text.drafts} · {draftJobs.length}
+          {text.drafts} · {draftJobs.length}{' '}
+          <span aria-hidden="true">
+            {openJobsSection === 'drafts' ? '▲' : '▼'}
+          </span>
         </button>
-        <button type="button" onClick={scrollToPostedJobs}>
-          {text.postedJobs} · {postedJobs.length}
+        <button
+          className={openJobsSection === 'posted' ? 'is-active' : ''}
+          type="button"
+          aria-expanded={openJobsSection === 'posted'}
+          onClick={() => toggleJobsSection('posted')}
+        >
+          {text.postedJobs} · {postedJobs.length}{' '}
+          <span aria-hidden="true">
+            {openJobsSection === 'posted' ? '▲' : '▼'}
+          </span>
         </button>
       </div>
 
@@ -1093,41 +1109,39 @@ function OwnerJobsPage() {
         </p>
       )}
 
-      <section
-        className="owner-job-list-section"
-        ref={draftsSectionRef}
-      >
-        <div className="owner-list-heading">
-          <h2>{text.drafts}</h2>
-          <span>{draftJobs.length}</span>
-        </div>
-
-        {draftJobs.length > 0 ? (
-          <div className="owner-job-list owner-job-draft-list">
-            {draftJobs.map((job) => renderJobCard(job, 'draft'))}
+      {openJobsSection === 'drafts' && (
+        <section className="owner-job-list-section">
+          <div className="owner-list-heading">
+            <h2>{text.drafts}</h2>
+            <span>{draftJobs.length}</span>
           </div>
-        ) : (
-          <p className="owner-empty-small">{text.emptyDrafts}</p>
-        )}
-      </section>
 
-      <section
-        className="owner-job-list-section"
-        ref={postedSectionRef}
-      >
-        <div className="owner-list-heading">
-          <h2>{text.postedJobs}</h2>
-          <span>{postedJobs.length}</span>
-        </div>
+          {draftJobs.length > 0 ? (
+            <div className="owner-job-list owner-job-draft-list">
+              {draftJobs.map((job) => renderJobCard(job, 'draft'))}
+            </div>
+          ) : (
+            <p className="owner-empty-small">{text.emptyDrafts}</p>
+          )}
+        </section>
+      )}
 
-        {postedJobs.length > 0 ? (
-          <div className="owner-job-list owner-job-posted-grid">
-            {postedJobs.map((job) => renderJobCard(job, 'posted'))}
+      {openJobsSection === 'posted' && (
+        <section className="owner-job-list-section">
+          <div className="owner-list-heading">
+            <h2>{text.postedJobs}</h2>
+            <span>{postedJobs.length}</span>
           </div>
-        ) : (
-          <p className="owner-empty-small">{text.emptyPosted}</p>
-        )}
-      </section>
+
+          {postedJobs.length > 0 ? (
+            <div className="owner-job-list owner-job-posted-grid">
+              {postedJobs.map((job) => renderJobCard(job, 'posted'))}
+            </div>
+          ) : (
+            <p className="owner-empty-small">{text.emptyPosted}</p>
+          )}
+        </section>
+      )}
     </section>
   )
 }

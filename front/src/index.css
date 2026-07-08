@@ -3651,6 +3651,19 @@ textarea:focus-visible {
   font-weight: 850;
 }
 
+.owner-jobs-local-nav button.is-active {
+  border-color: rgb(239 75 35 / 42%);
+  background: var(--restaurant-soft, #fff3e7);
+  color: var(--restaurant-ink, var(--text));
+}
+
+.owner-jobs-local-nav button span {
+  display: inline-block;
+  margin-inline-start: 0.15rem;
+  color: var(--restaurant-primary, var(--accent));
+  font-size: 0.72rem;
+}
+
 .owner-empty-small {
   margin: 0;
   border: 1px dashed var(--restaurant-border, var(--border));
