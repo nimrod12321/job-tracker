@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { getRestaurantRoleLabel } from '../../restaurant/types/restaurant'
 import { useRestaurantLanguage } from '../../restaurant/utils/restaurantLanguage'
 import {
+  deleteOwnerApplication,
+  deleteOwnerLead,
   getOwnerApplications,
   getOwnerLeads,
   updateOwnerApplicationStatus,
@@ -38,11 +40,21 @@ function getWorkerInitial(name: string) {
   return Array.from(name.trim() || '?')[0]
 }
 
+function canRemoveLead(lead: RestaurantCandidateLead) {
+  return lead.status === 'rejected' || lead.status === 'relevant'
+}
+
+function canRemoveApplication(application: OwnerApplication) {
+  return application.status === 'rejected' || application.status === 'selected'
+}
+
 function OwnerApplicationsPage() {
   const { direction, language } = useRestaurantLanguage()
   const [applications, setApplications] = useState<OwnerApplication[]>([])
   const [leads, setLeads] = useState<RestaurantCandidateLead[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isQrSectionOpen, setIsQrSectionOpen] = useState(true)
+  const [isJobSectionOpen, setIsJobSectionOpen] = useState(false)
   const [busyApplicationId, setBusyApplicationId] = useState<string | null>(
     null,
   )
@@ -89,6 +101,11 @@ function OwnerApplicationsPage() {
     leadRejected: language === 'he' ? 'נדחה' : 'Rejected',
     call: language === 'he' ? 'שיחה' : 'Call',
     whatsapp: language === 'he' ? 'וואטסאפ' : 'WhatsApp',
+    remove: language === 'he' ? 'הסר מהרשימה' : 'Remove from list',
+    removeConfirm:
+      language === 'he'
+        ? 'להסיר את המועמד מהרשימה?'
+        : 'Remove this applicant from your list?',
   }
 
   useEffect(() => {
@@ -104,6 +121,8 @@ function OwnerApplicationsPage() {
         if (isActive) {
           setApplications(ownerApplications)
           setLeads(ownerLeads)
+          setIsQrSectionOpen(true)
+          setIsJobSectionOpen(ownerLeads.length === 0)
         }
       } catch (error) {
         if (isActive) {
@@ -172,10 +191,7 @@ function OwnerApplicationsPage() {
       setApplications((currentApplications) =>
         currentApplications.map((currentApplication) =>
           currentApplication.id === application.id
-            ? {
-                ...currentApplication,
-                status: application.status,
-              }
+            ? application
             : currentApplication,
         ),
       )
@@ -232,6 +248,108 @@ function OwnerApplicationsPage() {
     }
   }
 
+  async function handleRemoveLead(lead: RestaurantCandidateLead) {
+    if (!canRemoveLead(lead) || pendingLeadIds.current.has(lead.id)) {
+      return
+    }
+
+    if (!window.confirm(text.removeConfirm)) {
+      return
+    }
+
+    const leadIndex = leads.findIndex((currentLead) => currentLead.id === lead.id)
+
+    pendingLeadIds.current.add(lead.id)
+    setBusyLeadId(lead.id)
+    setError(null)
+    setLeads((currentLeads) =>
+      currentLeads.filter((currentLead) => currentLead.id !== lead.id),
+    )
+
+    try {
+      await deleteOwnerLead(lead.id)
+    } catch (error) {
+      setLeads((currentLeads) => {
+        if (currentLeads.some((currentLead) => currentLead.id === lead.id)) {
+          return currentLeads
+        }
+
+        const insertAt = leadIndex >= 0 ? Math.min(leadIndex, currentLeads.length) : 0
+
+        return [
+          ...currentLeads.slice(0, insertAt),
+          lead,
+          ...currentLeads.slice(insertAt),
+        ]
+      })
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to remove QR candidate',
+      )
+    } finally {
+      pendingLeadIds.current.delete(lead.id)
+      setBusyLeadId(null)
+    }
+  }
+
+  async function handleRemoveApplication(application: OwnerApplication) {
+    if (
+      !canRemoveApplication(application) ||
+      pendingApplicationIds.current.has(application.id)
+    ) {
+      return
+    }
+
+    if (!window.confirm(text.removeConfirm)) {
+      return
+    }
+
+    const applicationIndex = applications.findIndex(
+      (currentApplication) => currentApplication.id === application.id,
+    )
+
+    pendingApplicationIds.current.add(application.id)
+    setBusyApplicationId(application.id)
+    setError(null)
+    setApplications((currentApplications) =>
+      currentApplications.filter(
+        (currentApplication) => currentApplication.id !== application.id,
+      ),
+    )
+
+    try {
+      await deleteOwnerApplication(application.id)
+    } catch (error) {
+      setApplications((currentApplications) => {
+        if (
+          currentApplications.some(
+            (currentApplication) => currentApplication.id === application.id,
+          )
+        ) {
+          return currentApplications
+        }
+
+        const insertAt =
+          applicationIndex >= 0
+            ? Math.min(applicationIndex, currentApplications.length)
+            : 0
+
+        return [
+          ...currentApplications.slice(0, insertAt),
+          application,
+          ...currentApplications.slice(insertAt),
+        ]
+      })
+      setError(
+        error instanceof Error ? error.message : 'Failed to remove application',
+      )
+    } finally {
+      pendingApplicationIds.current.delete(application.id)
+      setBusyApplicationId(null)
+    }
+  }
+
   function getLeadStatusLabel(status: CandidateLeadStatus) {
     const labels = {
       new: text.new,
@@ -241,6 +359,27 @@ function OwnerApplicationsPage() {
     }
 
     return labels[status]
+  }
+
+  function renderSectionHeader(
+    title: string,
+    count: number,
+    isOpen: boolean,
+    onToggle: () => void,
+  ) {
+    return (
+      <button
+        className="owner-candidate-section-header"
+        type="button"
+        aria-expanded={isOpen}
+        onClick={onToggle}
+      >
+        <span>
+          {title} · {count}
+        </span>
+        <span aria-hidden="true">{isOpen ? '⌃' : '⌄'}</span>
+      </button>
+    )
   }
 
   if (isLoading) {
@@ -280,255 +419,299 @@ function OwnerApplicationsPage() {
       ) : (
         <>
           <section className="owner-candidate-section">
-            <div className="owner-list-heading">
-              <h2>{text.jobApplicants}</h2>
-              <span>{applications.length}</span>
-            </div>
-            {applications.length === 0 ? (
-              <div className="empty-state owner-applications-empty">
-                <p>{text.emptyHint}</p>
-              </div>
-            ) : (
-              <div className="owner-application-list">
-                {applications.map((application) => {
-            const whatsappNumber = application.worker.phoneNumber.replace(
-              /\D/g,
-              '',
-            )
-            const workerName = application.worker.fullName || text.unnamed
-
-                  return (
-                    <article
-                      className="owner-application-card"
-                      key={application.id}
-                    >
-                <div className="owner-application-header">
-                  <div className="owner-worker-heading">
-                    <span className="owner-worker-avatar" aria-hidden="true">
-                      {getWorkerInitial(workerName)}
-                    </span>
-                    <div>
-                      <p>
-                        {getRestaurantRoleLabel(
-                          application.job.role,
-                          language,
-                        )}
-                      </p>
-                      <h2>{workerName}</h2>
-                    </div>
-                  </div>
-                  <span
-                    className={`application-status ${application.status}`}
-                  >
-                    {getStatusLabel(application.status, language)}
-                  </span>
-                </div>
-
-                <dl className="owner-worker-details">
-                  <div>
-                    <dt>{text.location}</dt>
-                    <dd>{application.worker.location || text.notProvided}</dd>
-                  </div>
-                  <div>
-                    <dt>{text.age}</dt>
-                    <dd>{application.worker.age ?? text.notProvided}</dd>
-                  </div>
-                  <div>
-                    <dt>{text.availability}</dt>
-                    <dd>
-                      {application.worker.availability || text.notProvided}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>{text.phone}</dt>
-                    <dd>
-                      {application.worker.phoneNumber || text.notProvided}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>{text.appliedAt}</dt>
-                    <dd>
-                      {new Date(application.createdAt).toLocaleDateString()}
-                    </dd>
-                  </div>
-                </dl>
-
-                <div className="owner-application-section">
-                  <strong>{text.wantedRoles}</strong>
-                  <p>
-                    {application.worker.wantedRoles.length > 0
-                      ? application.worker.wantedRoles
-                          .map((role) =>
-                            getRestaurantRoleLabel(role, language),
-                          )
-                          .join(', ')
-                      : text.notProvided}
-                  </p>
-                </div>
-
-                <div className="owner-application-section">
-                  <strong>{text.experience}</strong>
-                  <p>
-                    {application.worker.experienceText || text.notProvided}
-                  </p>
-                </div>
-
-                {application.worker.phoneNumber && (
-                  <div className="owner-applicant-contact">
-                    <a href={`tel:${application.worker.phoneNumber}`}>
-                      {text.call}
-                    </a>
-                    {whatsappNumber && (
-                      <a
-                        href={`https://wa.me/${whatsappNumber}`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        {text.whatsapp}
-                      </a>
-                    )}
-                  </div>
-                )}
-
-                <div className="owner-application-actions">
-                  <button
-                    type="button"
-                    disabled={
-                      busyApplicationId === application.id ||
-                      application.status === 'selected'
-                    }
-                    onClick={() =>
-                      void handleStatusChange(application, 'selected')
-                    }
-                  >
-                    {text.select}
-                  </button>
-                  <button
-                    className="owner-reject-button"
-                    type="button"
-                    disabled={
-                      busyApplicationId === application.id ||
-                      application.status === 'rejected'
-                    }
-                    onClick={() =>
-                      void handleStatusChange(application, 'rejected')
-                    }
-                  >
-                    {text.reject}
-                  </button>
-                </div>
-                    </article>
-                  )
-                })}
-              </div>
+            {renderSectionHeader(
+              text.qrCandidates,
+              leads.length,
+              isQrSectionOpen,
+              () => setIsQrSectionOpen((currentValue) => !currentValue),
             )}
+
+            {isQrSectionOpen &&
+              (leads.length === 0 ? (
+                <div className="empty-state owner-applications-empty">
+                  <p>{text.noQrCandidates}</p>
+                </div>
+              ) : (
+                <div className="owner-application-list">
+                  {leads.map((lead) => {
+                    const whatsappNumber = lead.phoneNumber.replace(/\D/g, '')
+                    const candidateName = lead.fullName || text.unnamed
+
+                    return (
+                      <article className="owner-application-card" key={lead.id}>
+                        <div className="owner-application-header">
+                          <div className="owner-worker-heading">
+                            <span
+                              className="owner-worker-avatar"
+                              aria-hidden="true"
+                            >
+                              {getWorkerInitial(candidateName)}
+                            </span>
+                            <div>
+                              <p>{text.sourceQr}</p>
+                              <h2>{candidateName}</h2>
+                            </div>
+                          </div>
+                          <span className={`application-status ${lead.status}`}>
+                            {getLeadStatusLabel(lead.status)}
+                          </span>
+                        </div>
+
+                        <dl className="owner-worker-details">
+                          <div>
+                            <dt>{text.phone}</dt>
+                            <dd>{lead.phoneNumber || text.notProvided}</dd>
+                          </div>
+                          <div>
+                            <dt>{text.age}</dt>
+                            <dd>{lead.age ?? text.notProvided}</dd>
+                          </div>
+                          <div>
+                            <dt>{text.availability}</dt>
+                            <dd>{lead.availability || text.notProvided}</dd>
+                          </div>
+                          <div>
+                            <dt>{text.appliedAt}</dt>
+                            <dd>
+                              {new Date(lead.createdAt).toLocaleDateString()}
+                            </dd>
+                          </div>
+                        </dl>
+
+                        <div className="owner-application-section">
+                          <strong>{text.wantedRoles}</strong>
+                          <p>
+                            {lead.wantedRoles.length > 0
+                              ? lead.wantedRoles
+                                  .map((role) =>
+                                    getRestaurantRoleLabel(role, language),
+                                  )
+                                  .join(', ')
+                              : text.notProvided}
+                          </p>
+                        </div>
+
+                        <div className="owner-application-section">
+                          <strong>{text.experience}</strong>
+                          <p>{lead.experienceText || text.notProvided}</p>
+                        </div>
+
+                        {lead.phoneNumber && (
+                          <div className="owner-applicant-contact">
+                            <a href={`tel:${lead.phoneNumber}`}>{text.call}</a>
+                            {whatsappNumber && (
+                              <a
+                                href={`https://wa.me/${whatsappNumber}`}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                {text.whatsapp}
+                              </a>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="owner-application-actions">
+                          {leadStatuses.map((status) => (
+                            <button
+                              type="button"
+                              disabled={
+                                busyLeadId === lead.id || lead.status === status
+                              }
+                              key={status}
+                              onClick={() =>
+                                void handleLeadStatusChange(lead, status)
+                              }
+                            >
+                              {getLeadStatusLabel(status)}
+                            </button>
+                          ))}
+                          {canRemoveLead(lead) && (
+                            <button
+                              className="owner-remove-button"
+                              type="button"
+                              disabled={busyLeadId === lead.id}
+                              onClick={() => void handleRemoveLead(lead)}
+                            >
+                              {text.remove}
+                            </button>
+                          )}
+                        </div>
+                      </article>
+                    )
+                  })}
+                </div>
+              ))}
           </section>
 
           <section className="owner-candidate-section">
-            <div className="owner-list-heading">
-              <h2>{text.qrCandidates}</h2>
-              <span>{leads.length}</span>
-            </div>
-            {leads.length === 0 ? (
-              <div className="empty-state owner-applications-empty">
-                <p>{text.noQrCandidates}</p>
-              </div>
-            ) : (
-              <div className="owner-application-list">
-                {leads.map((lead) => {
-                  const whatsappNumber = lead.phoneNumber.replace(/\D/g, '')
-                  const candidateName = lead.fullName || text.unnamed
+            {renderSectionHeader(
+              text.jobApplicants,
+              applications.length,
+              isJobSectionOpen,
+              () => setIsJobSectionOpen((currentValue) => !currentValue),
+            )}
 
-                  return (
-                    <article className="owner-application-card" key={lead.id}>
-                      <div className="owner-application-header">
-                        <div className="owner-worker-heading">
-                          <span className="owner-worker-avatar" aria-hidden="true">
-                            {getWorkerInitial(candidateName)}
-                          </span>
-                          <div>
-                            <p>{text.sourceQr}</p>
-                            <h2>{candidateName}</h2>
-                          </div>
-                        </div>
-                        <span className={`application-status ${lead.status}`}>
-                          {getLeadStatusLabel(lead.status)}
-                        </span>
-                      </div>
+            {isJobSectionOpen &&
+              (applications.length === 0 ? (
+                <div className="empty-state owner-applications-empty">
+                  <p>{text.emptyHint}</p>
+                </div>
+              ) : (
+                <div className="owner-application-list">
+                  {applications.map((application) => {
+                    const whatsappNumber =
+                      application.worker.phoneNumber.replace(/\D/g, '')
+                    const workerName =
+                      application.worker.fullName || text.unnamed
 
-                      <dl className="owner-worker-details">
-                        <div>
-                          <dt>{text.phone}</dt>
-                          <dd>{lead.phoneNumber || text.notProvided}</dd>
-                        </div>
-                        <div>
-                          <dt>{text.age}</dt>
-                          <dd>{lead.age ?? text.notProvided}</dd>
-                        </div>
-                        <div>
-                          <dt>{text.availability}</dt>
-                          <dd>{lead.availability || text.notProvided}</dd>
-                        </div>
-                        <div>
-                          <dt>{text.appliedAt}</dt>
-                          <dd>{new Date(lead.createdAt).toLocaleDateString()}</dd>
-                        </div>
-                      </dl>
-
-                      <div className="owner-application-section">
-                        <strong>{text.wantedRoles}</strong>
-                        <p>
-                          {lead.wantedRoles.length > 0
-                            ? lead.wantedRoles
-                                .map((role) =>
-                                  getRestaurantRoleLabel(role, language),
-                                )
-                                .join(', ')
-                            : text.notProvided}
-                        </p>
-                      </div>
-
-                      <div className="owner-application-section">
-                        <strong>{text.experience}</strong>
-                        <p>{lead.experienceText || text.notProvided}</p>
-                      </div>
-
-                      {lead.phoneNumber && (
-                        <div className="owner-applicant-contact">
-                          <a href={`tel:${lead.phoneNumber}`}>{text.call}</a>
-                          {whatsappNumber && (
-                            <a
-                              href={`https://wa.me/${whatsappNumber}`}
-                              target="_blank"
-                              rel="noreferrer"
+                    return (
+                      <article
+                        className="owner-application-card"
+                        key={application.id}
+                      >
+                        <div className="owner-application-header">
+                          <div className="owner-worker-heading">
+                            <span
+                              className="owner-worker-avatar"
+                              aria-hidden="true"
                             >
-                              {text.whatsapp}
-                            </a>
-                          )}
+                              {getWorkerInitial(workerName)}
+                            </span>
+                            <div>
+                              <p>
+                                {getRestaurantRoleLabel(
+                                  application.job.role,
+                                  language,
+                                )}
+                              </p>
+                              <h2>{workerName}</h2>
+                            </div>
+                          </div>
+                          <span
+                            className={`application-status ${application.status}`}
+                          >
+                            {getStatusLabel(application.status, language)}
+                          </span>
                         </div>
-                      )}
 
-                      <div className="owner-application-actions">
-                        {leadStatuses.map((status) => (
+                        <dl className="owner-worker-details">
+                          <div>
+                            <dt>{text.location}</dt>
+                            <dd>
+                              {application.worker.location || text.notProvided}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt>{text.age}</dt>
+                            <dd>{application.worker.age ?? text.notProvided}</dd>
+                          </div>
+                          <div>
+                            <dt>{text.availability}</dt>
+                            <dd>
+                              {application.worker.availability ||
+                                text.notProvided}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt>{text.phone}</dt>
+                            <dd>
+                              {application.worker.phoneNumber ||
+                                text.notProvided}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt>{text.appliedAt}</dt>
+                            <dd>
+                              {new Date(
+                                application.createdAt,
+                              ).toLocaleDateString()}
+                            </dd>
+                          </div>
+                        </dl>
+
+                        <div className="owner-application-section">
+                          <strong>{text.wantedRoles}</strong>
+                          <p>
+                            {application.worker.wantedRoles.length > 0
+                              ? application.worker.wantedRoles
+                                  .map((role) =>
+                                    getRestaurantRoleLabel(role, language),
+                                  )
+                                  .join(', ')
+                              : text.notProvided}
+                          </p>
+                        </div>
+
+                        <div className="owner-application-section">
+                          <strong>{text.experience}</strong>
+                          <p>
+                            {application.worker.experienceText ||
+                              text.notProvided}
+                          </p>
+                        </div>
+
+                        {application.worker.phoneNumber && (
+                          <div className="owner-applicant-contact">
+                            <a href={`tel:${application.worker.phoneNumber}`}>
+                              {text.call}
+                            </a>
+                            {whatsappNumber && (
+                              <a
+                                href={`https://wa.me/${whatsappNumber}`}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                {text.whatsapp}
+                              </a>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="owner-application-actions">
                           <button
                             type="button"
                             disabled={
-                              busyLeadId === lead.id || lead.status === status
+                              busyApplicationId === application.id ||
+                              application.status === 'selected'
                             }
-                            key={status}
                             onClick={() =>
-                              void handleLeadStatusChange(lead, status)
+                              void handleStatusChange(application, 'selected')
                             }
                           >
-                            {getLeadStatusLabel(status)}
+                            {text.select}
                           </button>
-                        ))}
-                      </div>
-                    </article>
-                  )
-                })}
-              </div>
-            )}
+                          <button
+                            className="owner-reject-button"
+                            type="button"
+                            disabled={
+                              busyApplicationId === application.id ||
+                              application.status === 'rejected'
+                            }
+                            onClick={() =>
+                              void handleStatusChange(application, 'rejected')
+                            }
+                          >
+                            {text.reject}
+                          </button>
+                          {canRemoveApplication(application) && (
+                            <button
+                              className="owner-remove-button"
+                              type="button"
+                              disabled={busyApplicationId === application.id}
+                              onClick={() =>
+                                void handleRemoveApplication(application)
+                              }
+                            >
+                              {text.remove}
+                            </button>
+                          )}
+                        </div>
+                      </article>
+                    )
+                  })}
+                </div>
+              ))}
           </section>
         </>
       )}

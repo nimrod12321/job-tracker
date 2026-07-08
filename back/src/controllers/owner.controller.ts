@@ -735,6 +735,67 @@ export async function updateOwnerApplicationStatus(
   }
 }
 
+export async function deleteOwnerApplication(req: Request, res: Response) {
+  try {
+    const userId = getUserId(req)
+
+    if (!userId) {
+      return res.status(401).json({
+        message: 'unauthorized',
+      })
+    }
+
+    const idResult = ownerApplicationIdSchema.safeParse(req.params.id)
+
+    if (!idResult.success) {
+      return res.status(400).json({
+        message: getValidationErrorMessage(idResult.error),
+      })
+    }
+
+    const profile = await findOwnerProfile(userId)
+    const application = profile
+      ? await prisma.restaurantApplication.findFirst({
+          where: {
+            id: idResult.data,
+            restaurantJob: {
+              ownerProfileId: profile.id,
+            },
+          },
+        })
+      : null
+
+    if (!application) {
+      return res.status(404).json({
+        message: 'restaurant application not found',
+      })
+    }
+
+    if (
+      application.status !== 'selected' &&
+      application.status !== 'rejected'
+    ) {
+      return res.status(400).json({
+        message: 'Mark applicant as rejected or accepted before removing.',
+      })
+    }
+
+    await prisma.restaurantApplication.delete({
+      where: {
+        id: application.id,
+      },
+    })
+
+    return res.status(204).send()
+  } catch (error) {
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to remove restaurant application',
+    })
+  }
+}
+
 export async function getOwnerLeads(req: Request, res: Response) {
   try {
     const userId = getUserId(req)
@@ -826,6 +887,62 @@ export async function updateOwnerLeadStatus(req: Request, res: Response) {
 
     return res.status(500).json({
       message: 'failed to update candidate lead',
+    })
+  }
+}
+
+export async function deleteOwnerLead(req: Request, res: Response) {
+  try {
+    const userId = getUserId(req)
+
+    if (!userId) {
+      return res.status(401).json({
+        message: 'unauthorized',
+      })
+    }
+
+    const idResult = leadIdSchema.safeParse(req.params.id)
+
+    if (!idResult.success) {
+      return res.status(400).json({
+        message: getValidationErrorMessage(idResult.error),
+      })
+    }
+
+    const profile = await findOwnerProfile(userId)
+    const lead = profile
+      ? await prisma.restaurantCandidateLead.findFirst({
+          where: {
+            id: idResult.data,
+            ownerProfileId: profile.id,
+          },
+        })
+      : null
+
+    if (!lead) {
+      return res.status(404).json({
+        message: 'candidate lead not found',
+      })
+    }
+
+    if (lead.status !== 'rejected' && lead.status !== 'relevant') {
+      return res.status(400).json({
+        message: 'Mark candidate as rejected or relevant before removing.',
+      })
+    }
+
+    await prisma.restaurantCandidateLead.delete({
+      where: {
+        id: lead.id,
+      },
+    })
+
+    return res.status(204).send()
+  } catch (error) {
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to remove QR candidate lead',
     })
   }
 }

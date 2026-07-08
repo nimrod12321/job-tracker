@@ -36,6 +36,17 @@ const shiftOptions = [
   { he: 'גמיש', en: 'Flexible' },
 ]
 
+function getStoredQrExpanded(slug: string | null | undefined) {
+  if (!slug) {
+    return false
+  }
+
+  const storageKey = `peepss_owner_qr_collapsed_${slug}`
+  const storedValue = localStorage.getItem(storageKey)
+
+  return storedValue === null ? true : storedValue !== 'true'
+}
+
 function OwnerJobsPage() {
   const { direction, language } = useRestaurantLanguage()
   const [profile, setProfile] = useState<OwnerProfile | null>(null)
@@ -50,9 +61,13 @@ function OwnerJobsPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [qrCodeUrl, setQrCodeUrl] = useState('')
+  const [isQrExpanded, setIsQrExpanded] = useState(false)
   const pendingJobIds = useRef(new Set<string>())
   const publicHiringLink = profile?.slug
     ? `${window.location.origin}/r/${profile.slug}`
+    : ''
+  const qrStorageKey = profile?.slug
+    ? `peepss_owner_qr_collapsed_${profile.slug}`
     : ''
 
   const text = {
@@ -146,6 +161,12 @@ function OwnerJobsPage() {
       language === 'he'
         ? 'השלימו ושמרו פרופיל מסעדה כדי ליצור קישור גיוס.'
         : 'Complete your restaurant profile to generate your hiring QR.',
+    qrCollapsedSubtitle:
+      language === 'he'
+        ? 'פתח את הברקוד להדפסה ושיתוף.'
+        : 'Open your printable QR hiring link.',
+    openQr: language === 'he' ? 'פתח ברקוד' : 'Open QR',
+    hideQr: language === 'he' ? 'סגור ברקוד' : 'Hide QR',
     copyLink: language === 'he' ? 'העתק קישור' : 'Copy link',
     downloadQr: language === 'he' ? 'הורד QR' : 'Download QR',
     copied: language === 'he' ? 'הקישור הועתק.' : 'Link copied.',
@@ -164,6 +185,7 @@ function OwnerJobsPage() {
         if (isActive) {
           setProfile(ownerProfile)
           setJobs(ownerJobs)
+          setIsQrExpanded(getStoredQrExpanded(ownerProfile?.slug))
         }
       } catch (error) {
         if (isActive) {
@@ -429,6 +451,16 @@ function OwnerJobsPage() {
     }
   }
 
+  function handleToggleQr() {
+    const nextIsExpanded = !isQrExpanded
+
+    setIsQrExpanded(nextIsExpanded)
+
+    if (qrStorageKey) {
+      localStorage.setItem(qrStorageKey, String(!nextIsExpanded))
+    }
+  }
+
   if (isLoading) {
     return (
       <section className="owner-jobs-page owner-guided-page" dir={direction}>
@@ -485,31 +517,44 @@ function OwnerJobsPage() {
         </div>
       </div>
 
-      <section className="owner-qr-card">
+      <section
+        className={`owner-qr-card${isQrExpanded ? ' is-expanded' : ''}`}
+      >
         <div>
           <h2>{text.qrTitle}</h2>
-          <p>{profile.slug ? text.qrDescription : text.qrMissing}</p>
-          {publicHiringLink && (
+          <p>
+            {profile.slug
+              ? isQrExpanded
+                ? text.qrDescription
+                : text.qrCollapsedSubtitle
+              : text.qrMissing}
+          </p>
+          {publicHiringLink && isQrExpanded && (
             <p className="owner-qr-link" dir="ltr">
               {publicHiringLink}
             </p>
           )}
           <div className="owner-qr-actions">
+            {publicHiringLink && (
+              <button type="button" onClick={handleToggleQr}>
+                {isQrExpanded ? text.hideQr : text.openQr}
+              </button>
+            )}
             <button
               type="button"
-              disabled={!publicHiringLink}
+              disabled={!publicHiringLink || !isQrExpanded}
               onClick={() => void handleCopyQrLink()}
             >
               {text.copyLink}
             </button>
-            {qrCodeUrl && (
+            {qrCodeUrl && isQrExpanded && (
               <a href={qrCodeUrl} download="peepss-restaurant-qr.png">
                 {text.downloadQr}
               </a>
             )}
           </div>
         </div>
-        {qrCodeUrl && (
+        {qrCodeUrl && isQrExpanded && (
           <img
             src={qrCodeUrl}
             alt={text.qrTitle}

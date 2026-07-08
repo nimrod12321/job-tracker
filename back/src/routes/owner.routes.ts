@@ -1,7 +1,9 @@
 import { Router, type RequestHandler } from 'express'
 import {
   createOwnerJob,
+  deleteOwnerApplication,
   deleteOwnerJob,
+  deleteOwnerLead,
   getOwnerApplications,
   getOwnerJobs,
   getOwnerLeads,
@@ -66,7 +68,9 @@ ownerRouter.patch(
   '/applications/:id/status',
   updateOwnerApplicationStatus,
 )
+ownerRouter.delete('/applications/:id', deleteOwnerApplication)
 ownerRouter.get('/leads', getOwnerLeads)
 ownerRouter.patch('/leads/:id/status', updateOwnerLeadStatus)
+ownerRouter.delete('/leads/:id', deleteOwnerLead)
 
 export default ownerRouter

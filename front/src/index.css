@@ -3614,6 +3614,10 @@ textarea:focus-visible {
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
+.owner-qr-card:not(.is-expanded) {
+  grid-template-columns: 1fr;
+}
+
 .owner-qr-card h2,
 .public-apply-card h1,
 .public-apply-card h2 {
@@ -3651,6 +3655,29 @@ textarea:focus-visible {
 
 .owner-qr-actions {
   margin-top: 0.9rem;
+}
+
+.owner-candidate-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: 20px;
+  padding: 0.9rem 1rem;
+  background: rgb(255 250 243 / 96%);
+  box-shadow: 0 12px 28px rgb(93 49 13 / 8%);
+  color: #1f1d1e;
+  font-size: 1rem;
+  font-weight: 900;
+  text-align: inherit;
+}
+
+.owner-candidate-section-header:hover {
+  border-color: rgb(239 75 35 / 35%);
+  background: #fff3e7;
+  box-shadow: 0 14px 32px rgb(93 49 13 / 10%);
+  transform: none;
 }
 
 .owner-qr-actions a {
@@ -4380,6 +4407,19 @@ textarea:focus-visible {
   background: #fff1f2;
   box-shadow: none;
   color: #b42318;
+}
+
+.owner-remove-button {
+  border: 1px solid #fed7aa;
+  background: #fff7ed;
+  box-shadow: none;
+  color: #c2410c;
+}
+
+.owner-remove-button:hover {
+  background: #ffedd5;
+  box-shadow: none;
+  color: #9a3412;
 }
 
 .owner-application-actions button:disabled {

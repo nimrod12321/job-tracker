@@ -188,6 +188,17 @@ export async function updateOwnerApplicationStatus(
   return response.json()
 }
 
+export async function deleteOwnerApplication(id: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/owner/applications/${id}`, {
+    method: 'DELETE',
+    headers: getHeaders(),
+  })
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to remove application')
+  }
+}
+
 export async function getOwnerLeads(): Promise<RestaurantCandidateLead[]> {
   const response = await fetch(`${API_BASE_URL}/owner/leads`, {
     headers: getHeaders(),
@@ -217,4 +228,15 @@ export async function updateOwnerLeadStatus(
   }
 
   return response.json()
+}
+
+export async function deleteOwnerLead(id: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/owner/leads/${id}`, {
+    method: 'DELETE',
+    headers: getHeaders(),
+  })
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to remove QR candidate')
+  }
 }
