@@ -3698,6 +3698,29 @@ textarea:focus-visible {
   writing-mode: horizontal-tb;
 }
 
+.owner-qr-expanded-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  width: 100%;
+  max-width: 100%;
+  gap: clamp(1.25rem, 4vw, 2rem);
+}
+
+.owner-qr-main {
+  display: grid;
+  min-width: 0;
+  gap: 0.9rem;
+}
+
+.owner-qr-code-panel {
+  display: grid;
+  place-items: center;
+  justify-self: end;
+  width: 180px;
+  max-width: 100%;
+}
+
 .owner-qr-widget-copy {
   display: flex;
   align-items: center;
@@ -3706,7 +3729,7 @@ textarea:focus-visible {
   gap: 0.65rem;
 }
 
-.owner-qr-widget-copy > div {
+.owner-qr-text {
   min-width: 0;
 }
 
@@ -3761,8 +3784,13 @@ textarea:focus-visible {
   max-width: 100%;
 }
 
+.owner-qr-public-link {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
 .owner-qr-widget-expanded .owner-qr-image {
-  justify-self: center;
+  justify-self: end;
 }
 
 .owner-qr-widget-expanded .owner-qr-actions {
@@ -5358,6 +5386,43 @@ textarea:focus-visible {
     grid-template-columns: 1fr;
   }
 
+  .owner-qr-widget-collapsed {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    border-radius: 22px;
+    padding: 0.95rem;
+  }
+
+  .owner-qr-widget-collapsed .owner-qr-widget-copy {
+    min-width: 0;
+  }
+
+  .owner-qr-widget-collapsed .owner-qr-text {
+    min-width: 0;
+  }
+
+  .owner-qr-widget-collapsed h2,
+  .owner-qr-widget-collapsed p {
+    max-width: 100%;
+    white-space: normal;
+    word-break: normal;
+    overflow-wrap: normal;
+  }
+
+  .owner-qr-widget-collapsed .owner-qr-actions {
+    width: 100%;
+  }
+
+  .owner-qr-widget-collapsed .owner-qr-open-button {
+    width: auto;
+    max-width: 100%;
+    justify-self: start;
+  }
+
   .owner-qr-widget-expanded {
     display: grid;
     width: 100%;
@@ -5373,6 +5438,15 @@ textarea:focus-visible {
   .owner-qr-widget-expanded .owner-qr-widget-copy > div {
     width: 100%;
     min-width: 0;
+  }
+
+  .owner-qr-expanded-content {
+    grid-template-columns: 1fr;
+  }
+
+  .owner-qr-code-panel {
+    justify-self: center;
+    width: 100%;
   }
 
   .owner-qr-widget-expanded .owner-qr-actions {

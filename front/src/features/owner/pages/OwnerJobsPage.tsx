@@ -787,57 +787,83 @@ function OwnerJobsPage() {
             : 'owner-qr-widget-collapsed'
         }`}
       >
-        <div className="owner-qr-widget-copy">
-          <span aria-hidden="true">▦</span>
-          <div>
-            <h2>{text.qrTitle}</h2>
-            <p>
-              {profile.slug
-                ? isQrExpanded
-                  ? text.qrDescription
-                  : text.qrCollapsedSubtitle
-                : text.qrMissing}
-            </p>
-          </div>
-        </div>
+        {isQrExpanded ? (
+          <div className="owner-qr-expanded-content">
+            <div className="owner-qr-main">
+              <div className="owner-qr-widget-copy">
+                <span aria-hidden="true">▦</span>
+                <div className="owner-qr-text">
+                  <h2>{text.qrTitle}</h2>
+                  <p>{profile.slug ? text.qrDescription : text.qrMissing}</p>
+                </div>
+              </div>
 
-        {publicHiringLink && isQrExpanded && (
-          <p className="owner-qr-link" dir="ltr">
-            {publicHiringLink}
-          </p>
-        )}
-
-        {qrCodeUrl && isQrExpanded && (
-          <img
-            src={qrCodeUrl}
-            alt={text.qrTitle}
-            className="owner-qr-image"
-          />
-        )}
-
-        <div className="owner-qr-actions">
-          {publicHiringLink && (
-            <button type="button" onClick={handleToggleQr}>
-              {isQrExpanded ? text.hideQr : text.openQr}
-            </button>
-          )}
-          {isQrExpanded && (
-            <>
-              <button
-                type="button"
-                disabled={!publicHiringLink}
-                onClick={() => void handleCopyQrLink()}
-              >
-                {text.copyLink}
-              </button>
-              {qrCodeUrl && (
-                <a href={qrCodeUrl} download="peepss-restaurant-qr.png">
-                  {text.downloadQr}
-                </a>
+              {publicHiringLink && (
+                <p className="owner-qr-link owner-qr-public-link" dir="ltr">
+                  {publicHiringLink}
+                </p>
               )}
-            </>
-          )}
-        </div>
+
+              <div className="owner-qr-actions">
+                {publicHiringLink && (
+                  <button
+                    className="owner-qr-open-button"
+                    type="button"
+                    onClick={handleToggleQr}
+                  >
+                    {text.hideQr}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  disabled={!publicHiringLink}
+                  onClick={() => void handleCopyQrLink()}
+                >
+                  {text.copyLink}
+                </button>
+                {qrCodeUrl && (
+                  <a href={qrCodeUrl} download="peepss-restaurant-qr.png">
+                    {text.downloadQr}
+                  </a>
+                )}
+              </div>
+            </div>
+
+            {qrCodeUrl && (
+              <div className="owner-qr-code-panel">
+                <img
+                  src={qrCodeUrl}
+                  alt={text.qrTitle}
+                  className="owner-qr-image"
+                />
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="owner-qr-widget-copy">
+              <span aria-hidden="true">▦</span>
+              <div className="owner-qr-text">
+                <h2>{text.qrTitle}</h2>
+                <p>
+                  {profile.slug ? text.qrCollapsedSubtitle : text.qrMissing}
+                </p>
+              </div>
+            </div>
+
+            <div className="owner-qr-actions">
+              {publicHiringLink && (
+                <button
+                  className="owner-qr-open-button"
+                  type="button"
+                  onClick={handleToggleQr}
+                >
+                  {text.openQr}
+                </button>
+              )}
+            </div>
+          </>
+        )}
       </section>
 
       <div className="owner-jobs-local-nav" aria-label={text.title}>
