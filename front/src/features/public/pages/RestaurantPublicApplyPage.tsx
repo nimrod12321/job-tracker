@@ -18,8 +18,8 @@ const experienceOptions = {
   en: ['No experience', '1 year', '2 years', '3 years', 'More than 3 years'],
 }
 const availabilityOptions = {
-  he: ['בוקר', 'ערב', 'סופי שבוע', 'גמיש'],
-  en: ['Morning', 'Evening', 'Weekends', 'Flexible'],
+  he: ['בוקר', 'צהריים', 'ערב', 'לילה', 'סופי שבוע', 'גמיש'],
+  en: ['Morning', 'Afternoon', 'Evening', 'Night', 'Weekends', 'Flexible'],
 }
 
 function RestaurantPublicApplyPage() {
@@ -32,7 +32,7 @@ function RestaurantPublicApplyPage() {
   const [wantedRoles, setWantedRoles] = useState<RestaurantRole[]>([])
   const [experienceLevel, setExperienceLevel] = useState('')
   const [extraExperienceText, setExtraExperienceText] = useState('')
-  const [availability, setAvailability] = useState('')
+  const [availability, setAvailability] = useState<string[]>([])
   const [age, setAge] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -74,8 +74,12 @@ function RestaurantPublicApplyPage() {
     submitting: language === 'he' ? 'שולח...' : 'Submitting...',
     success:
       language === 'he'
-        ? 'הפרטים נשלחו למסעדה. אם זה מתאים, יחזרו אליך.'
-        : 'Your application was sent to the restaurant. If it fits, they will contact you.',
+        ? 'הפרטים נשלחו למסעדה ✅'
+        : 'Your application was sent ✅',
+    successHint:
+      language === 'he'
+        ? 'אם זה מתאים, יחזרו אליך.'
+        : 'If it fits, the restaurant will contact you.',
     intro:
       language === 'he'
         ? 'רק תשאירו כמה פרטים, אנחנו נדאג לשאר.'
@@ -117,6 +121,14 @@ function RestaurantPublicApplyPage() {
       currentRoles.includes(role)
         ? currentRoles.filter((currentRole) => currentRole !== role)
         : [...currentRoles, role],
+    )
+  }
+
+  function toggleAvailability(option: string) {
+    setAvailability((currentAvailability) =>
+      currentAvailability.includes(option)
+        ? currentAvailability.filter((currentOption) => currentOption !== option)
+        : [...currentAvailability, option],
     )
   }
 
@@ -189,7 +201,7 @@ function RestaurantPublicApplyPage() {
         phoneNumber,
         wantedRoles,
         experienceText,
-        availability,
+        availability: availability.join(', '),
         age: parsedAge,
       })
       setIsSubmitted(true)
@@ -240,17 +252,20 @@ function RestaurantPublicApplyPage() {
           <RestaurantLanguageToggle />
         </header>
 
-        <div className="public-apply-card">
-          <h1>{restaurant.restaurantName}</h1>
-          <p className="public-apply-location">
-            {[restaurant.city, restaurant.street].filter(Boolean).join(' · ')}
-          </p>
-          {restaurant.description && <p>{restaurant.description}</p>}
-          <p className="public-apply-kicker">{text.intro}</p>
+        {isSubmitted ? (
+          <div className="public-apply-card public-apply-success-card">
+            <h1>{text.success}</h1>
+            <p>{text.successHint}</p>
+          </div>
+        ) : (
+          <div className="public-apply-card">
+            <h1>{restaurant.restaurantName}</h1>
+            <p className="public-apply-location">
+              {[restaurant.city, restaurant.street].filter(Boolean).join(' · ')}
+            </p>
+            {restaurant.description && <p>{restaurant.description}</p>}
+            <p className="public-apply-kicker">{text.intro}</p>
 
-          {isSubmitted ? (
-            <p className="message message-success">{text.success}</p>
-          ) : (
             <form className="public-apply-form" onSubmit={handleSubmit}>
               <div className="guided-form-progress">
                 <span>{step}/3</span>
@@ -358,10 +373,9 @@ function RestaurantPublicApplyPage() {
                       {availabilityOptions[language].map((option) => (
                         <label key={option}>
                           <input
-                            type="radio"
-                            name="availability"
-                            checked={availability === option}
-                            onChange={() => setAvailability(option)}
+                            type="checkbox"
+                            checked={availability.includes(option)}
+                            onChange={() => toggleAvailability(option)}
                           />
                           <span>{option}</span>
                         </label>
@@ -396,8 +410,8 @@ function RestaurantPublicApplyPage() {
                 </button>
               </div>
             </form>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </section>
   )

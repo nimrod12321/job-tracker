@@ -4212,23 +4212,62 @@ textarea:focus-visible {
 }
 
 .public-apply-form .restaurant-role-options > div {
-  gap: 0.65rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 132px), 1fr));
+  gap: 0.7rem;
 }
 
 .public-apply-form .restaurant-role-options label {
+  position: relative;
+  justify-content: center;
+  min-height: 48px;
   border-color: var(--restaurant-border, #ead7c7);
-  padding: 0.68rem 0.9rem;
+  border-radius: 999px;
+  padding: 0.78rem 0.95rem;
   background: #fffdf8;
   color: #5f463c;
-  font-size: 0.92rem;
-  box-shadow: 0 8px 18px rgb(93 49 13 / 5%);
+  font-size: 0.94rem;
+  font-weight: 900;
+  text-align: center;
+  box-shadow: 0 8px 18px rgb(93 49 13 / 6%);
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.public-apply-form .restaurant-role-options label:hover {
+  border-color: rgb(239 75 35 / 42%);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px rgb(93 49 13 / 9%);
 }
 
 .public-apply-form .restaurant-role-options label:has(input:checked) {
   border-color: #ef4b23;
-  background: #fff3e7;
-  color: #1f1d1e;
-  box-shadow: 0 10px 24px rgb(239 75 35 / 12%);
+  background: #ef4b23;
+  color: #fffaf3;
+  box-shadow: 0 14px 30px rgb(239 75 35 / 22%);
+}
+
+.public-apply-form .restaurant-role-options label:has(input:focus-visible) {
+  outline: 3px solid rgb(239 75 35 / 24%);
+  outline-offset: 3px;
+}
+
+.public-apply-form .restaurant-role-options input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.public-apply-form .restaurant-role-options span {
+  position: relative;
+  z-index: 1;
 }
 
 .public-apply-form .message-error {
@@ -4236,6 +4275,27 @@ textarea:focus-visible {
   border-radius: 18px;
   padding: 0.85rem 1rem;
   background: #fff1f2;
+}
+
+.public-apply-success-card {
+  justify-items: center;
+  padding-block: clamp(2rem, 9vw, 3.5rem);
+  text-align: center;
+}
+
+.public-apply-success-card h1 {
+  max-width: 12ch;
+  color: #1f1d1e;
+  font-size: clamp(2.15rem, 10vw, 3.4rem);
+  line-height: 1;
+  letter-spacing: -0.06em;
+}
+
+.public-apply-success-card p {
+  max-width: 28ch;
+  color: #7a5142;
+  font-size: 1.05rem;
+  font-weight: 850;
 }
 
 .owner-worker-details {
