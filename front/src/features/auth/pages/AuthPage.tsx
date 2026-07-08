@@ -80,109 +80,107 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
   return (
     <section className="auth-page" dir={direction}>
       <div className="auth-shell">
-        <button
-          className="auth-language-toggle"
-          type="button"
-          aria-label={text.switchLanguageLabel}
-          onClick={() => setLanguage(isHebrew ? 'en' : 'he')}
-        >
-          {text.switchLanguage}
-        </button>
+        <div className="auth-topbar">
+          <span className="peepss-logo auth-logo" aria-label="Peepss" dir="ltr">
+            <span className="peepss-logo-circle" />
+            <span className="peepss-logo-thin">p</span>
+            <span className="peepss-logo-bold">ee</span>
+            <span className="peepss-logo-thin">pss</span>
+          </span>
+          <button
+            className="auth-language-toggle"
+            type="button"
+            aria-label={text.switchLanguageLabel}
+            onClick={() => setLanguage(isHebrew ? 'en' : 'he')}
+          >
+            {text.switchLanguage}
+          </button>
+        </div>
 
-        <div className="auth-hero">
-          <div>
-            <span className="peepss-logo auth-logo" aria-label="Peepss" dir="ltr">
-              <span className="peepss-logo-circle" />
-              <span className="peepss-logo-thin">p</span>
-              <span className="peepss-logo-bold">ee</span>
-              <span className="peepss-logo-thin">pss</span>
-            </span>
+        <div className="auth-center">
+          <div className="auth-card">
+            <nav className="auth-mode-tabs" aria-label={text.authModeLabel}>
+              <Link className={mode === 'login' ? 'active' : ''} to="/login">
+                {text.loginTab}
+              </Link>
+              <Link
+                className={mode === 'register' ? 'active' : ''}
+                to="/register"
+              >
+                {text.registerTab}
+              </Link>
+            </nav>
+
+            <form className="auth-form" onSubmit={handleSubmit}>
+              <label>
+                {text.email}
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  required
+                />
+              </label>
+
+              <label>
+                {text.password}
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  required
+                  minLength={6}
+                />
+              </label>
+
+              {mode === 'register' && (
+                <fieldset className="auth-track-choice">
+                  <legend>{text.trackLegend}</legend>
+                  <label>
+                    <input
+                      type="radio"
+                      name="track"
+                      value="restaurant"
+                      checked={track === 'restaurant'}
+                      onChange={() => setTrack('restaurant')}
+                    />
+                    <span>
+                      <strong>{text.worker}</strong>
+                    </span>
+                  </label>
+                  <label>
+                    <input
+                      type="radio"
+                      name="track"
+                      value="restaurantOwner"
+                      checked={track === 'restaurantOwner'}
+                      onChange={() => setTrack('restaurantOwner')}
+                    />
+                    <span>
+                      <strong>{text.owner}</strong>
+                    </span>
+                  </label>
+                </fieldset>
+              )}
+
+              {error && (
+                <p className="message message-error" role="alert">
+                  {error}
+                </p>
+              )}
+
+              <button type="submit" disabled={isLoading}>
+                {isLoading
+                  ? mode === 'login'
+                    ? text.loadingLogin
+                    : text.loadingRegister
+                  : mode === 'login'
+                    ? text.submitLogin
+                    : text.submitRegister}
+              </button>
+            </form>
           </div>
         </div>
-
-        <div className="auth-card">
-          <nav className="auth-mode-tabs" aria-label={text.authModeLabel}>
-            <Link className={mode === 'login' ? 'active' : ''} to="/login">
-              {text.loginTab}
-            </Link>
-            <Link
-              className={mode === 'register' ? 'active' : ''}
-              to="/register"
-            >
-              {text.registerTab}
-            </Link>
-          </nav>
-
-          <form className="auth-form" onSubmit={handleSubmit}>
-            <label>
-              {text.email}
-              <input
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                required
-              />
-            </label>
-
-            <label>
-              {text.password}
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                required
-                minLength={6}
-              />
-            </label>
-
-            {mode === 'register' && (
-              <fieldset className="auth-track-choice">
-                <legend>{text.trackLegend}</legend>
-                <label>
-                  <input
-                    type="radio"
-                    name="track"
-                    value="restaurant"
-                    checked={track === 'restaurant'}
-                    onChange={() => setTrack('restaurant')}
-                  />
-                  <span>
-                    <strong>{text.worker}</strong>
-                  </span>
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    name="track"
-                    value="restaurantOwner"
-                    checked={track === 'restaurantOwner'}
-                    onChange={() => setTrack('restaurantOwner')}
-                  />
-                  <span>
-                    <strong>{text.owner}</strong>
-                  </span>
-                </label>
-              </fieldset>
-            )}
-
-            {error && (
-              <p className="message message-error" role="alert">
-                {error}
-              </p>
-            )}
-
-            <button type="submit" disabled={isLoading}>
-              {isLoading
-                ? mode === 'login'
-                  ? text.loadingLogin
-                  : text.loadingRegister
-                : mode === 'login'
-                  ? text.submitLogin
-                  : text.submitRegister}
-            </button>
-          </form>
-        </div>
-
       </div>
     </section>
   )

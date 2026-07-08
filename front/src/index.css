@@ -130,11 +130,9 @@ textarea:focus-visible {
 
 .auth-page {
   position: relative;
-  display: grid;
-  min-height: 100vh;
-  place-items: start center;
-  overflow-x: hidden;
-  padding: max(1.5rem, env(safe-area-inset-top)) 1rem 1.5rem;
+  min-height: 100dvh;
+  overflow: hidden;
+  padding: max(0.85rem, env(safe-area-inset-top)) 1rem 1rem;
   background:
     radial-gradient(circle at 18% 12%, rgb(239 75 35 / 13%), transparent 18rem),
     radial-gradient(circle at 92% 28%, rgb(134 91 89 / 14%), transparent 20rem),
@@ -142,13 +140,25 @@ textarea:focus-visible {
 }
 
 .auth-shell {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   width: min(100%, 470px);
+  min-height: calc(100dvh - max(0.85rem, env(safe-area-inset-top)) - 1rem);
+  margin-inline: auto;
+  gap: 0.75rem;
+}
+
+.auth-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 0 0 auto;
+  width: 100%;
   gap: 1rem;
 }
 
 .auth-language-toggle {
-  justify-self: end;
+  flex: 0 0 auto;
   min-height: 36px;
   border: 1px solid #ead1b6;
   border-radius: 999px;
@@ -166,33 +176,33 @@ textarea:focus-visible {
   transform: none;
 }
 
-.auth-hero {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding-top: 0.25rem;
-  overflow: visible;
-  text-align: center;
+.auth-center {
+  display: grid;
+  place-items: center;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
 }
 
 .auth-logo.peepss-logo {
   display: inline-flex;
+  flex: 0 0 auto;
   min-width: 0;
-  width: auto;
-  max-width: 100%;
-  height: auto;
-  min-height: clamp(4.75rem, 18vw, 6.5rem);
+  width: 96px;
+  max-width: 38vw;
+  height: 36px;
+  min-height: 36px;
   object-fit: contain;
   overflow: visible;
-  font-size: clamp(3.15rem, 13vw, 4.35rem);
+  font-size: 2rem;
   letter-spacing: -0.14em;
   line-height: 1;
 }
 
 .auth-logo .peepss-logo-circle {
-  left: 2.25rem;
-  width: 5.6rem;
-  height: 5.6rem;
+  left: 1.45rem;
+  width: 3.25rem;
+  height: 3.25rem;
 }
 
 .auth-hero h1 {
@@ -6231,6 +6241,77 @@ textarea:focus-visible {
     overflow-x: clip;
   }
 
+  .auth-page {
+    height: 100dvh;
+    min-height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+    padding: max(0.75rem, env(safe-area-inset-top)) 0.85rem 0.85rem;
+  }
+
+  .auth-shell {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100dvh - max(0.75rem, env(safe-area-inset-top)) - 0.85rem);
+    gap: 0.5rem;
+  }
+
+  .auth-topbar {
+    min-height: 38px;
+  }
+
+  .auth-language-toggle {
+    min-height: 34px;
+    padding: 0.38rem 0.65rem;
+    font-size: 0.78rem;
+  }
+
+  .auth-center {
+    display: grid;
+    place-items: center;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .auth-card {
+    border-radius: 24px;
+    padding: 0.85rem;
+  }
+
+  .auth-mode-tabs {
+    margin-bottom: 0.75rem;
+  }
+
+  .auth-mode-tabs a {
+    padding: 0.62rem 0.7rem;
+  }
+
+  .auth-form {
+    gap: 0.65rem;
+  }
+
+  .auth-form input {
+    padding: 0.68rem 0.78rem;
+  }
+
+  .auth-track-choice {
+    gap: 0.45rem;
+  }
+
+  .auth-track-choice legend {
+    margin-bottom: 0.4rem;
+  }
+
+  .auth-track-choice label {
+    border-radius: 16px;
+    padding: 0.65rem 0.72rem;
+  }
+
+  .auth-form button[type="submit"] {
+    min-height: 48px;
+    margin-top: 0.1rem;
+  }
+
   .auth-page *,
   .restaurant-shell * {
     min-width: 0;
@@ -6271,10 +6352,11 @@ textarea:focus-visible {
   }
 
   .auth-logo.peepss-logo {
-    width: auto !important;
-    max-width: 100% !important;
-    height: auto !important;
-    min-height: clamp(4.75rem, 18vw, 6.5rem);
+    width: 96px !important;
+    max-width: 38vw !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    font-size: 2rem !important;
     overflow: visible;
   }
 
