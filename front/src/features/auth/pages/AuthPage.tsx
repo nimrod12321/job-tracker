@@ -5,6 +5,7 @@ import {
   registerUser,
   type UserTrack,
 } from '../services/authApi'
+import { useRestaurantLanguage } from '../../restaurant/utils/restaurantLanguage'
 
 type AuthPageProps = {
   mode: 'login' | 'register'
@@ -12,11 +13,36 @@ type AuthPageProps = {
 }
 
 function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
+  const { direction, language, setLanguage } = useRestaurantLanguage()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [track, setTrack] = useState<UserTrack>('restaurant')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const isHebrew = language === 'he'
+  const text = {
+    authModeLabel: isHebrew ? 'מצב התחברות' : 'Auth mode',
+    loginTab: isHebrew ? 'התחברות' : 'Login',
+    registerTab: isHebrew ? 'הרשמה' : 'Register',
+    email: isHebrew ? 'אימייל' : 'Email',
+    password: isHebrew ? 'סיסמה' : 'Password',
+    trackLegend: isHebrew
+      ? 'בחרו איך להתחיל.'
+      : 'Choose how you want to start.',
+    worker: isHebrew
+      ? 'מחפש/ת עבודה במסעדה'
+      : 'Looking for restaurant work',
+    owner: isHebrew
+      ? 'מנהל/ת מסעדה'
+      : 'Restaurant owner / manager',
+    loadingLogin: isHebrew ? 'מתחבר...' : 'Signing in...',
+    loadingRegister: isHebrew ? 'יוצר חשבון...' : 'Creating account...',
+    submitLogin: isHebrew ? 'כניסה' : 'Sign in',
+    submitRegister: isHebrew ? 'יצירת חשבון' : 'Create account',
+    fallbackError: isHebrew ? 'משהו השתבש' : 'Something went wrong',
+    switchLanguage: isHebrew ? 'English' : 'עברית',
+    switchLanguageLabel: isHebrew ? 'Switch to English' : 'החלפה לעברית',
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -41,7 +67,7 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
 
       await onAuthSuccess(response.token)
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Something went wrong')
+      setError(error instanceof Error ? error.message : text.fallbackError)
     } finally {
       setIsLoading(false)
     }
@@ -52,8 +78,17 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
   }, [mode])
 
   return (
-    <section className="auth-page">
+    <section className="auth-page" dir={direction}>
       <div className="auth-shell">
+        <button
+          className="auth-language-toggle"
+          type="button"
+          aria-label={text.switchLanguageLabel}
+          onClick={() => setLanguage(isHebrew ? 'en' : 'he')}
+        >
+          {text.switchLanguage}
+        </button>
+
         <div className="auth-hero">
           <div>
             <span className="peepss-logo auth-logo" aria-label="Peepss" dir="ltr">
@@ -62,27 +97,25 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
               <span className="peepss-logo-bold">ee</span>
               <span className="peepss-logo-thin">pss</span>
             </span>
-            <h1>Peepss for restaurants</h1>
-            <p>Jobs, candidates, and QR hiring in one place.</p>
           </div>
         </div>
 
         <div className="auth-card">
-          <nav className="auth-mode-tabs" aria-label="Auth mode">
+          <nav className="auth-mode-tabs" aria-label={text.authModeLabel}>
             <Link className={mode === 'login' ? 'active' : ''} to="/login">
-              Login
+              {text.loginTab}
             </Link>
             <Link
               className={mode === 'register' ? 'active' : ''}
               to="/register"
             >
-              Register
+              {text.registerTab}
             </Link>
           </nav>
 
           <form className="auth-form" onSubmit={handleSubmit}>
             <label>
-              Email
+              {text.email}
               <input
                 type="email"
                 value={email}
@@ -92,7 +125,7 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
             </label>
 
             <label>
-              Password
+              {text.password}
               <input
                 type="password"
                 value={password}
@@ -104,7 +137,7 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
 
             {mode === 'register' && (
               <fieldset className="auth-track-choice">
-                <legend>Choose how you want to start.</legend>
+                <legend>{text.trackLegend}</legend>
                 <label>
                   <input
                     type="radio"
@@ -114,8 +147,7 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
                     onChange={() => setTrack('restaurant')}
                   />
                   <span>
-                    <strong>מחפש/ת עבודה במסעדה</strong>
-                    <small>Looking for restaurant work</small>
+                    <strong>{text.worker}</strong>
                   </span>
                 </label>
                 <label>
@@ -127,8 +159,7 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
                     onChange={() => setTrack('restaurantOwner')}
                   />
                   <span>
-                    <strong>מנהל/ת מסעדה</strong>
-                    <small>Restaurant owner / manager</small>
+                    <strong>{text.owner}</strong>
                   </span>
                 </label>
               </fieldset>
@@ -143,11 +174,11 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
             <button type="submit" disabled={isLoading}>
               {isLoading
                 ? mode === 'login'
-                  ? 'Logging in...'
-                  : 'Creating account...'
+                  ? text.loadingLogin
+                  : text.loadingRegister
                 : mode === 'login'
-                  ? 'Login'
-                  : 'Register'}
+                  ? text.submitLogin
+                  : text.submitRegister}
             </button>
           </form>
         </div>

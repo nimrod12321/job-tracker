@@ -147,6 +147,25 @@ textarea:focus-visible {
   gap: 1rem;
 }
 
+.auth-language-toggle {
+  justify-self: end;
+  min-height: 36px;
+  border: 1px solid #ead1b6;
+  border-radius: 999px;
+  padding: 0.45rem 0.75rem;
+  background: rgb(255 250 244 / 88%);
+  box-shadow: none;
+  color: #3a2a25;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.auth-language-toggle:hover {
+  background: #fff1e8;
+  box-shadow: none;
+  transform: none;
+}
+
 .auth-hero {
   display: flex;
   align-items: center;
