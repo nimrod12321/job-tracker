@@ -190,7 +190,7 @@ model RestaurantJob {
   shiftInfo       String         @default("")
   contactPhone    String         @default("")
   contactWhatsapp String         @default("")
-  kind            RestaurantJobKind @default(posted)
+  kind            RestaurantJobKind @default(draft)
   isActive        Boolean        @default(true)
 
   ownerProfileId String?

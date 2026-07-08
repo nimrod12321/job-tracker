@@ -1,4 +1,7 @@
-import { RestaurantRole } from '../generated/prisma/client.js'
+import {
+  RestaurantJobKind,
+  RestaurantRole,
+} from '../generated/prisma/client.js'
 import { prisma } from '../lib/prisma.js'
 
 const DEMO_REAL_PLACE_SOURCE = 'source=demo_real_place'
@@ -508,7 +511,10 @@ async function seedRestaurantJobs() {
 
     if (!existingJob) {
       await prisma.restaurantJob.create({
-        data: job,
+        data: {
+          ...job,
+          kind: RestaurantJobKind.posted,
+        },
       })
       createdCount += 1
     }
