@@ -17,7 +17,7 @@ export const RESTAURANT_ROLES = [
   {
     value: 'floorManager',
     label: 'Floor manager',
-    labelHe: 'מנהל/ת רצפה',
+    labelHe: 'אחמ״ש',
   },
   {
     value: 'cook',

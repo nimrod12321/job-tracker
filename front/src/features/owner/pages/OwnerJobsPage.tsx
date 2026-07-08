@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import QRCode from 'qrcode'
 import { Link } from 'react-router-dom'
 import {
@@ -36,15 +36,67 @@ const shiftOptions = [
   { he: 'גמיש', en: 'Flexible' },
 ]
 
-function getStoredQrExpanded(slug: string | null | undefined) {
-  if (!slug) {
+function getQrWidgetStorageKey(slug: string | null | undefined) {
+  return slug ? `peepss_owner_qr_widget_open_${slug}` : ''
+}
+
+function getPostedJobsStorageKey(slug: string | null | undefined) {
+  return slug ? `peepss_owner_posted_job_ids_${slug}` : ''
+}
+
+function getStoredQrWidgetOpen(slug: string | null | undefined) {
+  const storageKey = getQrWidgetStorageKey(slug)
+
+  if (!storageKey) {
     return false
   }
 
-  const storageKey = `peepss_owner_qr_collapsed_${slug}`
   const storedValue = localStorage.getItem(storageKey)
 
-  return storedValue === null ? true : storedValue !== 'true'
+  return storedValue === null ? true : storedValue === 'true'
+}
+
+function getStoredPostedJobIds(slug: string | null | undefined) {
+  const storageKey = getPostedJobsStorageKey(slug)
+
+  if (!storageKey) {
+    return new Set<string>()
+  }
+
+  try {
+    const parsedValue = JSON.parse(localStorage.getItem(storageKey) ?? '[]')
+
+    return new Set(
+      Array.isArray(parsedValue)
+        ? parsedValue.filter((value): value is string => typeof value === 'string')
+        : [],
+    )
+  } catch {
+    return new Set<string>()
+  }
+}
+
+function getJobInputFromJob(job: OwnerJob): OwnerJobInput {
+  return {
+    role: job.role,
+    description: job.description,
+    requirements: job.requirements,
+    shiftInfo: job.shiftInfo,
+    contactPhone: job.contactPhone,
+    contactWhatsapp: job.contactWhatsapp,
+  }
+}
+
+function getPreview(value: string, fallback: string) {
+  const trimmedValue = value.trim()
+
+  if (!trimmedValue) {
+    return fallback
+  }
+
+  return trimmedValue.length > 120
+    ? `${trimmedValue.slice(0, 120).trim()}...`
+    : trimmedValue
 }
 
 function OwnerJobsPage() {
@@ -62,20 +114,25 @@ function OwnerJobsPage() {
   const [success, setSuccess] = useState<string | null>(null)
   const [qrCodeUrl, setQrCodeUrl] = useState('')
   const [isQrExpanded, setIsQrExpanded] = useState(false)
+  const [postedJobIds, setPostedJobIds] = useState<Set<string>>(
+    () => new Set(),
+  )
+  const [highlightedJobId, setHighlightedJobId] = useState<string | null>(null)
+  const draftsSectionRef = useRef<HTMLElement | null>(null)
+  const postedSectionRef = useRef<HTMLElement | null>(null)
   const pendingJobIds = useRef(new Set<string>())
   const publicHiringLink = profile?.slug
     ? `${window.location.origin}/r/${profile.slug}`
     : ''
-  const qrStorageKey = profile?.slug
-    ? `peepss_owner_qr_collapsed_${profile.slug}`
-    : ''
+  const qrStorageKey = getQrWidgetStorageKey(profile?.slug)
+  const postedJobsStorageKey = getPostedJobsStorageKey(profile?.slug)
 
   const text = {
     title: language === 'he' ? 'המשרות שלי' : 'My jobs',
     subtitle:
       language === 'he'
-        ? 'יוצרים טיוטה ומפעילים אותה כשהיא מוכנה.'
-        : 'Create drafts, then activate them when they are ready.',
+        ? 'נהלו טיוטות ומשרות שפורסמו בצורה ברורה.'
+        : 'Manage drafts and posted jobs clearly.',
     loading:
       language === 'he'
         ? 'טוען משרות מסעדה...'
@@ -102,8 +159,8 @@ function OwnerJobsPage() {
         : 'We created basic job drafts for you.',
     defaultDraftsHint:
       language === 'he'
-        ? 'אפשר לערוך, למחוק או להפעיל כל משרה.'
-        : 'You can edit, delete, or activate each job.',
+        ? 'אפשר לערוך, למחוק או לפרסם כל טיוטה.'
+        : 'You can edit, delete, or publish each draft.',
     editJob: language === 'he' ? 'עריכת משרה' : 'Edit job',
     cancelEdit: language === 'he' ? 'ביטול עריכה' : 'Cancel edit',
     roleStep: language === 'he' ? 'את מי אתם מחפשים?' : 'Who are you hiring?',
@@ -128,31 +185,52 @@ function OwnerJobsPage() {
     createDraft: language === 'he' ? 'צור טיוטה' : 'Create draft',
     next: language === 'he' ? 'הבא' : 'Next',
     back: language === 'he' ? 'חזרה' : 'Back',
+    drafts: language === 'he' ? 'טיוטות' : 'Drafts',
     postedJobs: language === 'he' ? 'משרות שפורסמו' : 'Posted jobs',
     active: language === 'he' ? 'פעילה' : 'Active',
+    inactive: language === 'he' ? 'כבויה' : 'Inactive',
     draft: language === 'he' ? 'טיוטה' : 'Draft',
     activeHint:
       language === 'he'
         ? 'משרה פעילה — עובדים יכולים לראות אותה'
         : 'Active — workers can see this job',
+    inactiveHint:
+      language === 'he'
+        ? 'משרה שפורסמה אך כבויה כרגע'
+        : 'Posted, but currently inactive',
     draftHint:
       language === 'he'
         ? 'טיוטה — עובדים עדיין לא רואים אותה'
         : 'Draft — workers cannot see this yet',
     locationNotSet:
       language === 'he' ? 'כתובת לא הוגדרה' : 'Location not set',
+    noDetails:
+      language === 'he' ? 'אין תיאור עדיין.' : 'No description yet.',
     edit: language === 'he' ? 'ערוך' : 'Edit',
-    activate: language === 'he' ? 'הפעל משרה' : 'Activate job',
-    deactivate: language === 'he' ? 'כבה משרה' : 'Deactivate',
+    publish: language === 'he' ? 'פרסם משרה' : 'Publish',
+    activate: language === 'he' ? 'הפעל' : 'Activate',
+    deactivate: language === 'he' ? 'כבה' : 'Deactivate',
+    deleteDraft: language === 'he' ? 'מחק טיוטה' : 'Delete draft',
     delete: language === 'he' ? 'מחק' : 'Delete',
     updated: language === 'he' ? 'המשרה עודכנה.' : 'Job updated.',
     created:
       language === 'he' ? 'טיוטת משרה נוצרה.' : 'Draft job created.',
+    posted:
+      language === 'he'
+        ? 'המשרה פורסמה בהצלחה'
+        : 'Job posted successfully',
     activated: language === 'he' ? 'המשרה הופעלה.' : 'Job activated.',
     deactivated: language === 'he' ? 'המשרה כובתה.' : 'Job deactivated.',
     deleted: language === 'he' ? 'המשרה נמחקה.' : 'Job deleted.',
-    qrTitle:
-      language === 'he' ? 'קישור גיוס למסעדה' : 'Restaurant hiring QR',
+    emptyDrafts:
+      language === 'he'
+        ? 'אין טיוטות כרגע.'
+        : 'No drafts right now.',
+    emptyPosted:
+      language === 'he'
+        ? 'עוד לא פורסמו משרות.'
+        : 'No posted jobs yet.',
+    qrTitle: language === 'he' ? 'ברקוד גיוס' : 'QR hiring link',
     qrDescription:
       language === 'he'
         ? 'תלו את הברקוד במסעדה כדי שעובדים יוכלו להשאיר פרטים.'
@@ -163,14 +241,23 @@ function OwnerJobsPage() {
         : 'Complete your restaurant profile to generate your hiring QR.',
     qrCollapsedSubtitle:
       language === 'he'
-        ? 'פתח את הברקוד להדפסה ושיתוף.'
-        : 'Open your printable QR hiring link.',
-    openQr: language === 'he' ? 'פתח ברקוד' : 'Open QR',
-    hideQr: language === 'he' ? 'סגור ברקוד' : 'Hide QR',
+        ? 'קישור מוכן לשיתוף והדפסה'
+        : 'Ready to share or print',
+    openQr: language === 'he' ? 'פתח' : 'Open',
+    hideQr: language === 'he' ? 'סגור' : 'Close',
     copyLink: language === 'he' ? 'העתק קישור' : 'Copy link',
     downloadQr: language === 'he' ? 'הורד QR' : 'Download QR',
     copied: language === 'he' ? 'הקישור הועתק.' : 'Link copied.',
   }
+
+  const postedJobs = useMemo(
+    () => jobs.filter((job) => job.isActive || postedJobIds.has(job.id)),
+    [jobs, postedJobIds],
+  )
+  const draftJobs = useMemo(
+    () => jobs.filter((job) => !job.isActive && !postedJobIds.has(job.id)),
+    [jobs, postedJobIds],
+  )
 
   useEffect(() => {
     let isActive = true
@@ -185,7 +272,8 @@ function OwnerJobsPage() {
         if (isActive) {
           setProfile(ownerProfile)
           setJobs(ownerJobs)
-          setIsQrExpanded(getStoredQrExpanded(ownerProfile?.slug))
+          setIsQrExpanded(getStoredQrWidgetOpen(ownerProfile?.slug))
+          setPostedJobIds(getStoredPostedJobIds(ownerProfile?.slug))
         }
       } catch (error) {
         if (isActive) {
@@ -245,6 +333,29 @@ function OwnerJobsPage() {
     }
   }, [publicHiringLink])
 
+  useEffect(() => {
+    if (!postedJobsStorageKey) {
+      return
+    }
+
+    localStorage.setItem(
+      postedJobsStorageKey,
+      JSON.stringify(Array.from(postedJobIds)),
+    )
+  }, [postedJobIds, postedJobsStorageKey])
+
+  useEffect(() => {
+    if (!highlightedJobId) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setHighlightedJobId(null)
+    }, 3500)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [highlightedJobId])
+
   function updateField<K extends keyof OwnerJobInput>(
     field: K,
     value: OwnerJobInput[K],
@@ -276,14 +387,7 @@ function OwnerJobsPage() {
   }
 
   function startEditing(job: OwnerJob) {
-    setForm({
-      role: job.role,
-      description: job.description,
-      requirements: job.requirements,
-      shiftInfo: job.shiftInfo,
-      contactPhone: job.contactPhone,
-      contactWhatsapp: job.contactWhatsapp,
-    })
+    setForm(getJobInputFromJob(job))
     setEditingJobId(job.id)
     setIsCreating(true)
     setJobStep(1)
@@ -297,6 +401,35 @@ function OwnerJobsPage() {
         job.id === updatedJob.id ? updatedJob : job,
       ),
     )
+  }
+
+  function rememberPostedJob(jobId: string) {
+    setPostedJobIds((currentIds) => {
+      const nextIds = new Set(currentIds)
+
+      nextIds.add(jobId)
+
+      return nextIds
+    })
+  }
+
+  function forgetPostedJob(jobId: string) {
+    setPostedJobIds((currentIds) => {
+      const nextIds = new Set(currentIds)
+
+      nextIds.delete(jobId)
+
+      return nextIds
+    })
+  }
+
+  function scrollToPostedJobs() {
+    window.setTimeout(() => {
+      postedSectionRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      })
+    }, 50)
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -334,6 +467,38 @@ function OwnerJobsPage() {
     }
   }
 
+  async function handlePublishDraft(job: OwnerJob) {
+    if (pendingJobIds.current.has(job.id)) {
+      return
+    }
+
+    pendingJobIds.current.add(job.id)
+    setBusyJobId(job.id)
+    setError(null)
+    setSuccess(null)
+
+    try {
+      const createdJob = await createOwnerJob(getJobInputFromJob(job))
+      const postedJob = await setOwnerJobActive(createdJob.id, true)
+
+      rememberPostedJob(postedJob.id)
+      setJobs((currentJobs) => [postedJob, ...currentJobs])
+      setSuccess(text.posted)
+      setHighlightedJobId(postedJob.id)
+      resetForm()
+      scrollToPostedJobs()
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to publish restaurant job',
+      )
+    } finally {
+      pendingJobIds.current.delete(job.id)
+      setBusyJobId(null)
+    }
+  }
+
   async function handleActiveChange(job: OwnerJob) {
     if (pendingJobIds.current.has(job.id)) {
       return
@@ -345,6 +510,7 @@ function OwnerJobsPage() {
     setBusyJobId(job.id)
     setError(null)
     setSuccess(nextIsActive ? text.activated : text.deactivated)
+    rememberPostedJob(job.id)
     replaceJob({ ...job, isActive: nextIsActive })
 
     try {
@@ -386,6 +552,7 @@ function OwnerJobsPage() {
     setBusyJobId(job.id)
     setError(null)
     setSuccess(text.deleted)
+    forgetPostedJob(job.id)
     setJobs((currentJobs) =>
       currentJobs.filter((currentJob) => currentJob.id !== job.id),
     )
@@ -411,6 +578,9 @@ function OwnerJobsPage() {
           ...currentJobs.slice(insertAt),
         ]
       })
+      if (job.isActive || postedJobIds.has(job.id)) {
+        rememberPostedJob(job.id)
+      }
       setSuccess(null)
       setError(
         error instanceof Error
@@ -457,8 +627,101 @@ function OwnerJobsPage() {
     setIsQrExpanded(nextIsExpanded)
 
     if (qrStorageKey) {
-      localStorage.setItem(qrStorageKey, String(!nextIsExpanded))
+      localStorage.setItem(qrStorageKey, String(nextIsExpanded))
     }
+  }
+
+  function renderJobCard(job: OwnerJob, variant: 'draft' | 'posted') {
+    const isBusy = busyJobId === job.id
+    const location =
+      [job.city, job.street].filter(Boolean).join(' · ') ||
+      text.locationNotSet
+    const isPosted = variant === 'posted'
+
+    return (
+      <article
+        className={`owner-job-card owner-job-card-${variant}${
+          highlightedJobId === job.id ? ' is-highlighted' : ''
+        }`}
+        key={job.id}
+      >
+        <div className="owner-job-card-header">
+          <div>
+            <p>{job.restaurantName}</p>
+            <h3>{getRestaurantRoleLabel(job.role, language)}</h3>
+          </div>
+          <span
+            className={`owner-job-status ${
+              isPosted ? (job.isActive ? 'active' : 'inactive') : 'draft'
+            }`}
+          >
+            {isPosted
+              ? job.isActive
+                ? text.active
+                : text.inactive
+              : text.draft}
+          </span>
+        </div>
+
+        <p className="owner-job-status-note">
+          {isPosted
+            ? job.isActive
+              ? text.activeHint
+              : text.inactiveHint
+            : text.draftHint}
+        </p>
+
+        <div className="owner-job-compact-meta">
+          <span>{location}</span>
+          {job.shiftInfo && <span>{job.shiftInfo}</span>}
+        </div>
+
+        <p className="owner-job-requirements">
+          {getPreview(job.requirements || job.description, text.noDetails)}
+        </p>
+
+        <div className="owner-job-actions">
+          <button
+            type="button"
+            disabled={isBusy}
+            onClick={() => startEditing(job)}
+          >
+            {text.edit}
+          </button>
+          {isPosted ? (
+            <button
+              className="owner-active-button"
+              type="button"
+              disabled={isBusy}
+              onClick={() => void handleActiveChange(job)}
+            >
+              {isBusy
+                ? text.saving
+                : job.isActive
+                  ? text.deactivate
+                  : text.activate}
+            </button>
+          ) : (
+            <button
+              className="owner-active-button"
+              type="button"
+              disabled={isBusy}
+              onClick={() => void handlePublishDraft(job)}
+            >
+              {isBusy ? text.saving : text.publish}
+            </button>
+          )}
+          <button
+            className="owner-delete-button"
+            type="button"
+            disabled={isBusy}
+            onClick={() => void handleDelete(job)}
+          >
+            {isPosted ? text.delete : text.deleteDraft}
+          </button>
+        </div>
+      </article>
+    )
   }
 
   if (isLoading) {
@@ -518,42 +781,30 @@ function OwnerJobsPage() {
       </div>
 
       <section
-        className={`owner-qr-card${isQrExpanded ? ' is-expanded' : ''}`}
+        className={`owner-qr-card owner-qr-widget${
+          isQrExpanded ? ' is-expanded' : ''
+        }`}
       >
-        <div>
-          <h2>{text.qrTitle}</h2>
-          <p>
-            {profile.slug
-              ? isQrExpanded
-                ? text.qrDescription
-                : text.qrCollapsedSubtitle
-              : text.qrMissing}
-          </p>
-          {publicHiringLink && isQrExpanded && (
-            <p className="owner-qr-link" dir="ltr">
-              {publicHiringLink}
+        <div className="owner-qr-widget-copy">
+          <span aria-hidden="true">▦</span>
+          <div>
+            <h2>{text.qrTitle}</h2>
+            <p>
+              {profile.slug
+                ? isQrExpanded
+                  ? text.qrDescription
+                  : text.qrCollapsedSubtitle
+                : text.qrMissing}
             </p>
-          )}
-          <div className="owner-qr-actions">
-            {publicHiringLink && (
-              <button type="button" onClick={handleToggleQr}>
-                {isQrExpanded ? text.hideQr : text.openQr}
-              </button>
-            )}
-            <button
-              type="button"
-              disabled={!publicHiringLink || !isQrExpanded}
-              onClick={() => void handleCopyQrLink()}
-            >
-              {text.copyLink}
-            </button>
-            {qrCodeUrl && isQrExpanded && (
-              <a href={qrCodeUrl} download="peepss-restaurant-qr.png">
-                {text.downloadQr}
-              </a>
-            )}
           </div>
         </div>
+
+        {publicHiringLink && isQrExpanded && (
+          <p className="owner-qr-link" dir="ltr">
+            {publicHiringLink}
+          </p>
+        )}
+
         {qrCodeUrl && isQrExpanded && (
           <img
             src={qrCodeUrl}
@@ -561,7 +812,48 @@ function OwnerJobsPage() {
             className="owner-qr-image"
           />
         )}
+
+        <div className="owner-qr-actions">
+          {publicHiringLink && (
+            <button type="button" onClick={handleToggleQr}>
+              {isQrExpanded ? text.hideQr : text.openQr}
+            </button>
+          )}
+          {isQrExpanded && (
+            <>
+              <button
+                type="button"
+                disabled={!publicHiringLink}
+                onClick={() => void handleCopyQrLink()}
+              >
+                {text.copyLink}
+              </button>
+              {qrCodeUrl && (
+                <a href={qrCodeUrl} download="peepss-restaurant-qr.png">
+                  {text.downloadQr}
+                </a>
+              )}
+            </>
+          )}
+        </div>
       </section>
+
+      <div className="owner-jobs-local-nav" aria-label={text.title}>
+        <button
+          type="button"
+          onClick={() =>
+            draftsSectionRef.current?.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start',
+            })
+          }
+        >
+          {text.drafts} · {draftJobs.length}
+        </button>
+        <button type="button" onClick={scrollToPostedJobs}>
+          {text.postedJobs} · {postedJobs.length}
+        </button>
+      </div>
 
       {!isCreating && jobs.length === 0 && (
         <div className="owner-step-card owner-jobs-empty">
@@ -582,7 +874,7 @@ function OwnerJobsPage() {
         </button>
       )}
 
-      {!isCreating && jobs.some((job) => !job.isActive) && (
+      {!isCreating && draftJobs.length > 0 && (
         <div className="owner-step-card owner-default-drafts-note">
           <h2>{text.defaultDraftsTitle}</h2>
           <p>{text.defaultDraftsHint}</p>
@@ -773,80 +1065,41 @@ function OwnerJobsPage() {
         </p>
       )}
 
-      {jobs.length > 0 && (
-        <section className="owner-job-list-section">
-          <div className="owner-list-heading">
-            <h2>{text.postedJobs}</h2>
-            <span>{jobs.length}</span>
+      <section
+        className="owner-job-list-section"
+        ref={draftsSectionRef}
+      >
+        <div className="owner-list-heading">
+          <h2>{text.drafts}</h2>
+          <span>{draftJobs.length}</span>
+        </div>
+
+        {draftJobs.length > 0 ? (
+          <div className="owner-job-list owner-job-draft-list">
+            {draftJobs.map((job) => renderJobCard(job, 'draft'))}
           </div>
+        ) : (
+          <p className="owner-empty-small">{text.emptyDrafts}</p>
+        )}
+      </section>
 
-          <div className="owner-job-list">
-            {jobs.map((job) => (
-              <article className="owner-job-card" key={job.id}>
-                <div className="owner-job-card-header">
-                  <div>
-                    <p>{job.restaurantName}</p>
-                    <h3>{getRestaurantRoleLabel(job.role, language)}</h3>
-                  </div>
-                  <span
-                    className={`owner-job-status ${
-                      job.isActive ? 'active' : 'draft'
-                    }`}
-                  >
-                    {job.isActive ? text.active : text.draft}
-                  </span>
-                </div>
+      <section
+        className="owner-job-list-section"
+        ref={postedSectionRef}
+      >
+        <div className="owner-list-heading">
+          <h2>{text.postedJobs}</h2>
+          <span>{postedJobs.length}</span>
+        </div>
 
-                <p className="owner-job-status-note">
-                  {job.isActive ? text.activeHint : text.draftHint}
-                </p>
-
-                <p className="owner-job-meta">
-                  {[job.city, job.street].filter(Boolean).join(' · ') ||
-                    text.locationNotSet}
-                </p>
-
-                {job.shiftInfo && <p>{job.shiftInfo}</p>}
-                {job.requirements && (
-                  <p className="owner-job-requirements">
-                    {job.requirements}
-                  </p>
-                )}
-
-                <div className="owner-job-actions">
-                  <button
-                    type="button"
-                    disabled={busyJobId === job.id}
-                    onClick={() => startEditing(job)}
-                  >
-                    {text.edit}
-                  </button>
-                  <button
-                    className="owner-active-button"
-                    type="button"
-                    disabled={busyJobId === job.id}
-                    onClick={() => void handleActiveChange(job)}
-                  >
-                    {busyJobId === job.id
-                      ? text.saving
-                      : job.isActive
-                        ? text.deactivate
-                        : text.activate}
-                  </button>
-                  <button
-                    className="owner-delete-button"
-                    type="button"
-                    disabled={busyJobId === job.id}
-                    onClick={() => void handleDelete(job)}
-                  >
-                    {text.delete}
-                  </button>
-                </div>
-              </article>
-            ))}
+        {postedJobs.length > 0 ? (
+          <div className="owner-job-list owner-job-posted-grid">
+            {postedJobs.map((job) => renderJobCard(job, 'posted'))}
           </div>
-        </section>
-      )}
+        ) : (
+          <p className="owner-empty-small">{text.emptyPosted}</p>
+        )}
+      </section>
     </section>
   )
 }
