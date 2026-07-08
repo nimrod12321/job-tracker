@@ -356,6 +356,49 @@ textarea:focus-visible {
   transform: none;
 }
 
+.restaurant-only-page {
+  display: grid;
+  min-height: 100dvh;
+  place-items: center;
+  padding: max(1.5rem, env(safe-area-inset-top)) 1rem 1.5rem;
+  background:
+    radial-gradient(circle at 18% 12%, rgb(239 75 35 / 13%), transparent 18rem),
+    radial-gradient(circle at 92% 28%, rgb(134 91 89 / 14%), transparent 20rem),
+    linear-gradient(180deg, #fff8ed 0%, #f8ead8 100%);
+}
+
+.restaurant-only-card {
+  display: grid;
+  justify-items: center;
+  width: min(100%, 470px);
+  border: 1px solid rgb(232 203 178 / 78%);
+  border-radius: 30px;
+  padding: clamp(1.2rem, 5vw, 1.8rem);
+  background: rgb(255 252 246 / 94%);
+  box-shadow: 0 22px 55px rgb(93 49 13 / 13%);
+  text-align: center;
+}
+
+.restaurant-only-card h1 {
+  margin: 0.4rem 0 0;
+  color: #1f1d1e;
+  font-size: clamp(1.55rem, 6vw, 2.25rem);
+  line-height: 1.05;
+  letter-spacing: -0.055em;
+}
+
+.restaurant-only-card p {
+  margin: 0.75rem 0 1rem;
+  color: #7a5142;
+  font-weight: 800;
+}
+
+.restaurant-only-card button {
+  min-height: 44px;
+  border-radius: 999px;
+  padding: 0.7rem 1rem;
+}
+
 .auth-card .text-button {
   display: block;
   width: 100%;

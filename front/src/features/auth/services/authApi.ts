@@ -43,7 +43,7 @@ type RegisterResponse = {
 export async function registerUser(
   email: string,
   password: string,
-  track: UserTrack = 'highTech',
+  track: UserTrack = 'restaurant',
 ): Promise<RegisterResponse> {
   const response = await fetch(`${API_BASE_URL}/auth/register`, {
     method: 'POST',

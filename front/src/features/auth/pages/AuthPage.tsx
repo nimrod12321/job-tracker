@@ -14,7 +14,7 @@ type AuthPageProps = {
 function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [track, setTrack] = useState<UserTrack>('highTech')
+  const [track, setTrack] = useState<UserTrack>('restaurant')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -55,12 +55,16 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
     <section className="auth-page">
       <div className="auth-shell">
         <div className="auth-hero">
-          <span className="peepss-logo auth-logo" aria-label="Peepss" dir="ltr">
-            <span className="peepss-logo-circle" />
-            <span className="peepss-logo-thin">p</span>
-            <span className="peepss-logo-bold">ee</span>
-            <span className="peepss-logo-thin">pss</span>
-          </span>
+          <div>
+            <span className="peepss-logo auth-logo" aria-label="Peepss" dir="ltr">
+              <span className="peepss-logo-circle" />
+              <span className="peepss-logo-thin">p</span>
+              <span className="peepss-logo-bold">ee</span>
+              <span className="peepss-logo-thin">pss</span>
+            </span>
+            <h1>Peepss for restaurants</h1>
+            <p>Jobs, candidates, and QR hiring in one place.</p>
+          </div>
         </div>
 
         <div className="auth-card">
@@ -100,20 +104,7 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
 
             {mode === 'register' && (
               <fieldset className="auth-track-choice">
-                <legend>What kind of work are you looking for?</legend>
-                <label>
-                  <input
-                    type="radio"
-                    name="track"
-                    value="highTech"
-                    checked={track === 'highTech'}
-                    onChange={() => setTrack('highTech')}
-                  />
-                  <span>
-                    <strong>High-tech job seeker</strong>
-                    <small>Track applications and use AI job matching.</small>
-                  </span>
-                </label>
+                <legend>Choose how you want to start.</legend>
                 <label>
                   <input
                     type="radio"
@@ -123,8 +114,8 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
                     onChange={() => setTrack('restaurant')}
                   />
                   <span>
-                    <strong>Restaurant worker</strong>
-                    <small>Swipe restaurant shifts and apply quickly.</small>
+                    <strong>מחפש/ת עבודה במסעדה</strong>
+                    <small>Looking for restaurant work</small>
                   </span>
                 </label>
                 <label>
@@ -136,8 +127,8 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
                     onChange={() => setTrack('restaurantOwner')}
                   />
                   <span>
-                    <strong>Restaurant owner</strong>
-                    <small>Post jobs and review applicants.</small>
+                    <strong>מנהל/ת מסעדה</strong>
+                    <small>Restaurant owner / manager</small>
                   </span>
                 </label>
               </fieldset>

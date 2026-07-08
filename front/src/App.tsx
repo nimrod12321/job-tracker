@@ -45,7 +45,7 @@ function getHomePath(user: AuthUser | null) {
     return '/owner/jobs'
   }
 
-  return '/dashboard'
+  return '/restaurants-only'
 }
 
 function ScrollToTop() {
@@ -193,13 +193,40 @@ function App() {
         <Route path="/admin/leads" element={<AdminLeadsPage />} />
 
         <Route
+          path="/restaurants-only"
           element={
-            userTrack === 'highTech' ? (
-              <AppLayout
-                userEmail={currentUser?.email}
-                userTrack={userTrack}
-                onLogout={handleLogout}
-              />
+            currentUser?.isAdmin ? (
+              <Navigate to="/admin/leads" replace />
+            ) : (
+              <section className="restaurant-only-page">
+                <div className="restaurant-only-card">
+                  <span
+                    className="peepss-logo auth-logo"
+                    aria-label="Peepss"
+                    dir="ltr"
+                  >
+                    <span className="peepss-logo-circle" />
+                    <span className="peepss-logo-thin">p</span>
+                    <span className="peepss-logo-bold">ee</span>
+                    <span className="peepss-logo-thin">pss</span>
+                  </span>
+                  <h1>Peepss is currently open for restaurants only.</h1>
+                  <p>כרגע Peepss פתוחה למסעדות בלבד.</p>
+                  <button type="button" onClick={handleLogout}>
+                    Logout
+                  </button>
+                </div>
+              </section>
+            )
+          }
+        />
+
+        <Route
+          element={
+            currentUser?.isAdmin ? (
+              <Navigate to="/admin/leads" replace />
+            ) : userTrack === 'highTech' ? (
+              <Navigate to="/restaurants-only" replace />
             ) : (
               <Navigate to={homePath} replace />
             )
