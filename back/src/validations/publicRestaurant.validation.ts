@@ -46,9 +46,8 @@ export const publicRestaurantLeadSchema = z
     age: z
       .number({ error: 'age must be a number' })
       .int('age must be a whole number')
-      .min(14, 'age is too low')
-      .max(100, 'age is too high')
-      .optional(),
+      .min(16, 'age must be at least 16')
+      .max(80, 'age must be 80 or below'),
   })
   .strict()
 

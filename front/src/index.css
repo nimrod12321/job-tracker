@@ -4143,6 +4143,101 @@ textarea:focus-visible {
   margin-top: 1rem;
 }
 
+.public-apply-form h2 {
+  margin: 0;
+  color: #1f1d1e;
+  font-size: clamp(1.5rem, 6vw, 2rem);
+  letter-spacing: -0.045em;
+}
+
+.public-apply-form label {
+  display: grid;
+  min-width: 0;
+  gap: 0.45rem;
+  color: #7a5142;
+  font-size: 0.9rem;
+  font-weight: 850;
+}
+
+.public-apply-form input,
+.public-apply-form textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--restaurant-border, #ead7c7);
+  border-radius: 18px;
+  padding: 0.95rem 1rem;
+  background: #fffdf8;
+  color: #1f1d1e;
+  font: inherit;
+  font-size: 16px;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 70%);
+  outline: none;
+}
+
+.public-apply-form input::placeholder,
+.public-apply-form textarea::placeholder {
+  color: rgb(122 81 66 / 58%);
+}
+
+.public-apply-form input:focus,
+.public-apply-form textarea:focus {
+  border-color: #ef4b23;
+  box-shadow: 0 0 0 4px rgb(239 75 35 / 14%);
+}
+
+.public-apply-form input[type='number'] {
+  appearance: textfield;
+}
+
+.public-apply-form input[type='number']::-webkit-outer-spin-button,
+.public-apply-form input[type='number']::-webkit-inner-spin-button {
+  margin: 0;
+  appearance: none;
+}
+
+.public-apply-form textarea {
+  min-height: 118px;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.public-apply-field-wide {
+  grid-column: 1 / -1;
+}
+
+.public-apply-form .restaurant-role-options legend {
+  color: #7a5142;
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.public-apply-form .restaurant-role-options > div {
+  gap: 0.65rem;
+}
+
+.public-apply-form .restaurant-role-options label {
+  border-color: var(--restaurant-border, #ead7c7);
+  padding: 0.68rem 0.9rem;
+  background: #fffdf8;
+  color: #5f463c;
+  font-size: 0.92rem;
+  box-shadow: 0 8px 18px rgb(93 49 13 / 5%);
+}
+
+.public-apply-form .restaurant-role-options label:has(input:checked) {
+  border-color: #ef4b23;
+  background: #fff3e7;
+  color: #1f1d1e;
+  box-shadow: 0 10px 24px rgb(239 75 35 / 12%);
+}
+
+.public-apply-form .message-error {
+  border: 1px solid #fecaca;
+  border-radius: 18px;
+  padding: 0.85rem 1rem;
+  background: #fff1f2;
+}
+
 .owner-worker-details {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

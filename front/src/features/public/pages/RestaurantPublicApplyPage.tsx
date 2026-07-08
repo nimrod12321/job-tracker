@@ -14,8 +14,8 @@ import {
 } from '../services/publicRestaurantApi'
 
 const experienceOptions = {
-  he: ['אין ניסיון', 'עד שנה', '1–3 שנים', 'מעל 3 שנים'],
-  en: ['No experience', 'Up to 1 year', '1–3 years', 'More than 3 years'],
+  he: ['אין ניסיון', 'שנה', 'שנתיים', 'שלוש שנים', 'מעל 3 שנים'],
+  en: ['No experience', '1 year', '2 years', '3 years', 'More than 3 years'],
 }
 const availabilityOptions = {
   he: ['בוקר', 'ערב', 'סופי שבוע', 'גמיש'],
@@ -30,7 +30,8 @@ function RestaurantPublicApplyPage() {
   const [fullName, setFullName] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
   const [wantedRoles, setWantedRoles] = useState<RestaurantRole[]>([])
-  const [experienceText, setExperienceText] = useState('')
+  const [experienceLevel, setExperienceLevel] = useState('')
+  const [extraExperienceText, setExtraExperienceText] = useState('')
   const [availability, setAvailability] = useState('')
   const [age, setAge] = useState('')
   const [isLoading, setIsLoading] = useState(true)
@@ -53,7 +54,20 @@ function RestaurantPublicApplyPage() {
       language === 'he' ? 'ניסיון וזמינות' : 'Experience and availability',
     experience: language === 'he' ? 'ניסיון' : 'Experience',
     availability: language === 'he' ? 'זמינות' : 'Availability',
-    age: language === 'he' ? 'גיל (לא חובה)' : 'Age (optional)',
+    age: language === 'he' ? 'גיל' : 'Age',
+    extraExperience:
+      language === 'he'
+        ? 'רוצה להוסיף משהו על הניסיון שלך?'
+        : 'Want to add anything about your experience?',
+    extraExperiencePlaceholder:
+      language === 'he'
+        ? 'לדוגמה: עבדתי כבר במסעדה, אני חזק/ה במשמרות ערב, יש לי ניסיון בבר...'
+        : 'For example: I worked in a restaurant before, I’m available evenings, I have bar experience...',
+    fullNamePlaceholder:
+      language === 'he' ? 'השם שלך' : 'Your name',
+    phonePlaceholder:
+      language === 'he' ? '050-1234567' : 'Your phone number',
+    agePlaceholder: language === 'he' ? 'לדוגמה: 24' : 'For example: 24',
     next: language === 'he' ? 'הבא' : 'Next',
     back: language === 'he' ? 'חזרה' : 'Back',
     submit: language === 'he' ? 'שלח פרטים' : 'Submit application',
@@ -62,10 +76,10 @@ function RestaurantPublicApplyPage() {
       language === 'he'
         ? 'הפרטים נשלחו למסעדה. אם זה מתאים, יחזרו אליך.'
         : 'Your application was sent to the restaurant. If it fits, they will contact you.',
-    noLogin:
+    intro:
       language === 'he'
-        ? 'לא צריך להירשם — רק להשאיר פרטים קצרים.'
-        : 'No registration needed — just leave a few details.',
+        ? 'רק תשאירו כמה פרטים, אנחנו נדאג לשאר.'
+        : 'Just leave a few details, we’ll take care of the rest.',
   }
 
   useEffect(() => {
@@ -108,7 +122,16 @@ function RestaurantPublicApplyPage() {
 
   function validateCurrentStep() {
     if (step === 1) {
-      return fullName.trim() && phoneNumber.trim()
+      const parsedAge = Number(age)
+
+      return (
+        fullName.trim() &&
+        phoneNumber.trim() &&
+        age.trim() &&
+        Number.isInteger(parsedAge) &&
+        parsedAge >= 16 &&
+        parsedAge <= 80
+      )
     }
 
     if (step === 2) {
@@ -118,17 +141,31 @@ function RestaurantPublicApplyPage() {
     return true
   }
 
+  function getStepValidationMessage() {
+    if (step === 1) {
+      return language === 'he'
+        ? 'צריך למלא שם, טלפון וגיל תקין בין 16 ל-80.'
+        : 'Please enter your name, phone, and a valid age between 16 and 80.'
+    }
+
+    if (step === 2) {
+      return language === 'he'
+        ? 'צריך לבחור לפחות תפקיד אחד.'
+        : 'Please choose at least one role.'
+    }
+
+    return language === 'he'
+      ? 'צריך להשלים את השדות בשלב הזה.'
+      : 'Please complete this step.'
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError(null)
 
     if (step < 3) {
       if (!validateCurrentStep()) {
-        setError(
-          language === 'he'
-            ? 'צריך להשלים את השדות בשלב הזה.'
-            : 'Please complete this step.',
-        )
+        setError(getStepValidationMessage())
         return
       }
 
@@ -139,13 +176,21 @@ function RestaurantPublicApplyPage() {
     setIsSubmitting(true)
 
     try {
+      const parsedAge = Number(age)
+      const experienceText = [
+        experienceLevel,
+        extraExperienceText.trim(),
+      ]
+        .filter(Boolean)
+        .join('\n\n')
+
       await submitPublicRestaurantLead(restaurantSlug, {
         fullName,
         phoneNumber,
         wantedRoles,
         experienceText,
         availability,
-        age: age ? Number(age) : undefined,
+        age: parsedAge,
       })
       setIsSubmitted(true)
     } catch (error) {
@@ -196,12 +241,12 @@ function RestaurantPublicApplyPage() {
         </header>
 
         <div className="public-apply-card">
-          <p className="public-apply-kicker">{text.noLogin}</p>
           <h1>{restaurant.restaurantName}</h1>
           <p className="public-apply-location">
             {[restaurant.city, restaurant.street].filter(Boolean).join(' · ')}
           </p>
           {restaurant.description && <p>{restaurant.description}</p>}
+          <p className="public-apply-kicker">{text.intro}</p>
 
           {isSubmitted ? (
             <p className="message message-success">{text.success}</p>
@@ -226,6 +271,7 @@ function RestaurantPublicApplyPage() {
                     {text.fullName}
                     <input
                       value={fullName}
+                      placeholder={text.fullNamePlaceholder}
                       onChange={(event) => setFullName(event.target.value)}
                       required
                     />
@@ -235,7 +281,21 @@ function RestaurantPublicApplyPage() {
                     <input
                       type="tel"
                       value={phoneNumber}
+                      placeholder={text.phonePlaceholder}
                       onChange={(event) => setPhoneNumber(event.target.value)}
+                      required
+                    />
+                  </label>
+                  <label>
+                    {text.age}
+                    <input
+                      type="number"
+                      min="16"
+                      max="80"
+                      inputMode="numeric"
+                      value={age}
+                      placeholder={text.agePlaceholder}
+                      onChange={(event) => setAge(event.target.value)}
                       required
                     />
                   </label>
@@ -273,14 +333,25 @@ function RestaurantPublicApplyPage() {
                           <input
                             type="radio"
                             name="experience"
-                            checked={experienceText === option}
-                            onChange={() => setExperienceText(option)}
+                            checked={experienceLevel === option}
+                            onChange={() => setExperienceLevel(option)}
                           />
                           <span>{option}</span>
                         </label>
                       ))}
                     </div>
                   </fieldset>
+                  <label className="public-apply-field-wide">
+                    {text.extraExperience}
+                    <textarea
+                      rows={4}
+                      value={extraExperienceText}
+                      placeholder={text.extraExperiencePlaceholder}
+                      onChange={(event) =>
+                        setExtraExperienceText(event.target.value)
+                      }
+                    />
+                  </label>
                   <fieldset className="restaurant-role-options">
                     <legend>{text.availability}</legend>
                     <div>
@@ -297,16 +368,6 @@ function RestaurantPublicApplyPage() {
                       ))}
                     </div>
                   </fieldset>
-                  <label>
-                    {text.age}
-                    <input
-                      type="number"
-                      min="14"
-                      max="100"
-                      value={age}
-                      onChange={(event) => setAge(event.target.value)}
-                    />
-                  </label>
                 </>
               )}
 
