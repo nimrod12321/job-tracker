@@ -3678,6 +3678,8 @@ textarea:focus-visible {
 }
 
 .owner-qr-widget {
+  width: 100%;
+  max-width: 100%;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.7rem;
   border-radius: 999px;
@@ -3685,17 +3687,27 @@ textarea:focus-visible {
   box-shadow: 0 10px 24px rgb(93 49 13 / 8%);
 }
 
-.owner-qr-widget.is-expanded {
-  grid-template-columns: minmax(0, 1fr) auto;
+.owner-qr-widget-expanded {
+  align-items: start;
+  grid-template-columns: 1fr;
   border-radius: 26px;
   padding: clamp(1.1rem, 4vw, 1.6rem);
+}
+
+.owner-qr-widget-expanded * {
+  writing-mode: horizontal-tb;
 }
 
 .owner-qr-widget-copy {
   display: flex;
   align-items: center;
+  width: 100%;
   min-width: 0;
   gap: 0.65rem;
+}
+
+.owner-qr-widget-copy > div {
+  min-width: 0;
 }
 
 .owner-qr-widget-copy > span {
@@ -3712,20 +3724,49 @@ textarea:focus-visible {
   font-weight: 900;
 }
 
-.owner-qr-widget:not(.is-expanded) .owner-qr-widget-copy p {
+.owner-qr-widget-collapsed .owner-qr-widget-copy p {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.owner-qr-widget:not(.is-expanded) .owner-qr-actions {
+.owner-qr-widget-expanded .owner-qr-widget-copy {
+  align-items: flex-start;
+}
+
+.owner-qr-widget-expanded .owner-qr-widget-copy h2 {
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.owner-qr-widget-expanded .owner-qr-widget-copy p {
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.owner-qr-widget-collapsed .owner-qr-actions {
   margin-top: 0;
 }
 
-.owner-qr-widget:not(.is-expanded) .owner-qr-actions button {
+.owner-qr-widget-collapsed .owner-qr-actions button {
   min-height: 34px;
   padding: 0.35rem 0.7rem;
   font-size: 0.78rem;
+}
+
+.owner-qr-widget-expanded .owner-qr-link {
+  width: 100%;
+  max-width: 100%;
+}
+
+.owner-qr-widget-expanded .owner-qr-image {
+  justify-self: center;
+}
+
+.owner-qr-widget-expanded .owner-qr-actions {
+  width: 100%;
 }
 
 .owner-qr-card h2,
@@ -5315,6 +5356,34 @@ textarea:focus-visible {
 
   .owner-qr-card {
     grid-template-columns: 1fr;
+  }
+
+  .owner-qr-widget-expanded {
+    display: grid;
+    width: 100%;
+    max-width: 100%;
+    border-radius: 24px;
+    padding: 1.1rem;
+  }
+
+  .owner-qr-widget-expanded .owner-qr-widget-copy {
+    align-items: flex-start;
+  }
+
+  .owner-qr-widget-expanded .owner-qr-widget-copy > div {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .owner-qr-widget-expanded .owner-qr-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+
+  .owner-qr-widget-expanded .owner-qr-actions button,
+  .owner-qr-widget-expanded .owner-qr-actions a {
+    width: 100%;
   }
 
   .owner-qr-image {

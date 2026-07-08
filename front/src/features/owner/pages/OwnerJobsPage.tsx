@@ -781,8 +781,10 @@ function OwnerJobsPage() {
       </div>
 
       <section
-        className={`owner-qr-card owner-qr-widget${
-          isQrExpanded ? ' is-expanded' : ''
+        className={`owner-qr-card owner-qr-widget ${
+          isQrExpanded
+            ? 'owner-qr-widget-expanded'
+            : 'owner-qr-widget-collapsed'
         }`}
       >
         <div className="owner-qr-widget-copy">
