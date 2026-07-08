@@ -40,6 +40,11 @@ enum RestaurantRole {
   cook
 }
 
+enum RestaurantJobKind {
+  draft
+  posted
+}
+
 enum RestaurantApplicationStatus {
   applied
   selected
@@ -185,6 +190,7 @@ model RestaurantJob {
   shiftInfo       String         @default("")
   contactPhone    String         @default("")
   contactWhatsapp String         @default("")
+  kind            RestaurantJobKind @default(posted)
   isActive        Boolean        @default(true)
 
   ownerProfileId String?
@@ -197,6 +203,7 @@ model RestaurantJob {
 
   @@index([role])
   @@index([location])
+  @@index([kind])
   @@index([isActive])
   @@index([ownerProfileId])
 }

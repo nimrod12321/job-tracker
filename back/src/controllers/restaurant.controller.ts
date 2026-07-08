@@ -169,6 +169,7 @@ export async function getRestaurantExploreJobs(
 
     const jobs = await prisma.restaurantJob.findMany({
       where: {
+        kind: 'posted',
         isActive: true,
         role: {
           in: profile.wantedRoles,
@@ -234,6 +235,7 @@ export async function createRestaurantApplication(
     const restaurantJob = await prisma.restaurantJob.findFirst({
       where: {
         id: result.data.restaurantJobId,
+        kind: 'posted',
         isActive: true,
       },
       select: {

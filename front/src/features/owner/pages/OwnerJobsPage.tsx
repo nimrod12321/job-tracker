@@ -11,6 +11,7 @@ import {
   deleteOwnerJob,
   getOwnerJobs,
   getOwnerProfile,
+  publishOwnerJob,
   setOwnerJobActive,
   updateOwnerJob,
 } from '../services/ownerApi'
@@ -42,10 +43,6 @@ function getQrWidgetStorageKey(slug: string | null | undefined) {
   return slug ? `peepss_owner_qr_widget_open_${slug}` : ''
 }
 
-function getPostedJobsStorageKey(slug: string | null | undefined) {
-  return slug ? `peepss_owner_posted_job_ids_${slug}` : ''
-}
-
 function getStoredQrWidgetOpen(slug: string | null | undefined) {
   const storageKey = getQrWidgetStorageKey(slug)
 
@@ -56,26 +53,6 @@ function getStoredQrWidgetOpen(slug: string | null | undefined) {
   const storedValue = localStorage.getItem(storageKey)
 
   return storedValue === null ? true : storedValue === 'true'
-}
-
-function getStoredPostedJobIds(slug: string | null | undefined) {
-  const storageKey = getPostedJobsStorageKey(slug)
-
-  if (!storageKey) {
-    return new Set<string>()
-  }
-
-  try {
-    const parsedValue = JSON.parse(localStorage.getItem(storageKey) ?? '[]')
-
-    return new Set(
-      Array.isArray(parsedValue)
-        ? parsedValue.filter((value): value is string => typeof value === 'string')
-        : [],
-    )
-  } catch {
-    return new Set<string>()
-  }
 }
 
 function getJobInputFromJob(job: OwnerJob): OwnerJobInput {
@@ -116,9 +93,6 @@ function OwnerJobsPage() {
   const [success, setSuccess] = useState<string | null>(null)
   const [qrCodeUrl, setQrCodeUrl] = useState('')
   const [isQrExpanded, setIsQrExpanded] = useState(false)
-  const [postedJobIds, setPostedJobIds] = useState<Set<string>>(
-    () => new Set(),
-  )
   const [highlightedJobId, setHighlightedJobId] = useState<string | null>(null)
   const [openJobsSection, setOpenJobsSection] =
     useState<OwnerJobsSection | null>(null)
@@ -127,7 +101,6 @@ function OwnerJobsPage() {
     ? `${window.location.origin}/r/${profile.slug}`
     : ''
   const qrStorageKey = getQrWidgetStorageKey(profile?.slug)
-  const postedJobsStorageKey = getPostedJobsStorageKey(profile?.slug)
 
   const text = {
     title: language === 'he' ? 'המשרות שלי' : 'My jobs',
@@ -253,12 +226,12 @@ function OwnerJobsPage() {
   }
 
   const postedJobs = useMemo(
-    () => jobs.filter((job) => job.isActive || postedJobIds.has(job.id)),
-    [jobs, postedJobIds],
+    () => jobs.filter((job) => job.kind === 'posted'),
+    [jobs],
   )
   const draftJobs = useMemo(
-    () => jobs.filter((job) => !job.isActive && !postedJobIds.has(job.id)),
-    [jobs, postedJobIds],
+    () => jobs.filter((job) => job.kind === 'draft'),
+    [jobs],
   )
 
   useEffect(() => {
@@ -272,16 +245,16 @@ function OwnerJobsPage() {
         ])
 
         if (isActive) {
-          const storedPostedJobIds = getStoredPostedJobIds(ownerProfile?.slug)
           const postedCount = ownerJobs.filter(
-            (job) => job.isActive || storedPostedJobIds.has(job.id),
+            (job) => job.kind === 'posted',
           ).length
-          const draftCount = ownerJobs.length - postedCount
+          const draftCount = ownerJobs.filter(
+            (job) => job.kind === 'draft',
+          ).length
 
           setProfile(ownerProfile)
           setJobs(ownerJobs)
           setIsQrExpanded(getStoredQrWidgetOpen(ownerProfile?.slug))
-          setPostedJobIds(storedPostedJobIds)
           setOpenJobsSection(
             postedCount > 0 ? 'posted' : draftCount > 0 ? 'drafts' : null,
           )
@@ -345,17 +318,6 @@ function OwnerJobsPage() {
   }, [publicHiringLink])
 
   useEffect(() => {
-    if (!postedJobsStorageKey) {
-      return
-    }
-
-    localStorage.setItem(
-      postedJobsStorageKey,
-      JSON.stringify(Array.from(postedJobIds)),
-    )
-  }, [postedJobIds, postedJobsStorageKey])
-
-  useEffect(() => {
     if (!highlightedJobId) {
       return
     }
@@ -414,26 +376,6 @@ function OwnerJobsPage() {
     )
   }
 
-  function rememberPostedJob(jobId: string) {
-    setPostedJobIds((currentIds) => {
-      const nextIds = new Set(currentIds)
-
-      nextIds.add(jobId)
-
-      return nextIds
-    })
-  }
-
-  function forgetPostedJob(jobId: string) {
-    setPostedJobIds((currentIds) => {
-      const nextIds = new Set(currentIds)
-
-      nextIds.delete(jobId)
-
-      return nextIds
-    })
-  }
-
   function toggleJobsSection(section: OwnerJobsSection) {
     setOpenJobsSection((currentSection) =>
       currentSection === section ? null : section,
@@ -486,10 +428,8 @@ function OwnerJobsPage() {
     setSuccess(null)
 
     try {
-      const createdJob = await createOwnerJob(getJobInputFromJob(job))
-      const postedJob = await setOwnerJobActive(createdJob.id, true)
+      const postedJob = await publishOwnerJob(job.id)
 
-      rememberPostedJob(postedJob.id)
       setJobs((currentJobs) => [postedJob, ...currentJobs])
       setSuccess(text.posted)
       setHighlightedJobId(postedJob.id)
@@ -518,7 +458,6 @@ function OwnerJobsPage() {
     setBusyJobId(job.id)
     setError(null)
     setSuccess(nextIsActive ? text.activated : text.deactivated)
-    rememberPostedJob(job.id)
     replaceJob({ ...job, isActive: nextIsActive })
 
     try {
@@ -560,7 +499,6 @@ function OwnerJobsPage() {
     setBusyJobId(job.id)
     setError(null)
     setSuccess(text.deleted)
-    forgetPostedJob(job.id)
     setJobs((currentJobs) =>
       currentJobs.filter((currentJob) => currentJob.id !== job.id),
     )
@@ -586,9 +524,6 @@ function OwnerJobsPage() {
           ...currentJobs.slice(insertAt),
         ]
       })
-      if (job.isActive || postedJobIds.has(job.id)) {
-        rememberPostedJob(job.id)
-      }
       setSuccess(null)
       setError(
         error instanceof Error

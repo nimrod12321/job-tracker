@@ -103,6 +103,7 @@ function mapOwnerJob(job: RestaurantJob) {
     shiftInfo: job.shiftInfo,
     contactPhone: job.contactPhone,
     contactWhatsapp: job.contactWhatsapp,
+    kind: job.kind,
     isActive: job.isActive,
     createdAt: job.createdAt.toISOString(),
     updatedAt: job.updatedAt.toISOString(),
@@ -228,6 +229,7 @@ async function createDefaultRestaurantJobsIfNeeded(
       contactPhone: profile.phoneNumber,
       contactWhatsapp: profile.whatsappNumber,
       ownerProfileId: profile.id,
+      kind: 'draft',
       isActive: false,
     })),
   })
@@ -395,6 +397,7 @@ export async function createOwnerJob(req: Request, res: Response) {
         contactWhatsapp:
           result.data.contactWhatsapp || profile.whatsappNumber,
         ownerProfileId: profile.id,
+        kind: 'draft',
         isActive: false,
       },
     })
@@ -405,6 +408,74 @@ export async function createOwnerJob(req: Request, res: Response) {
 
     return res.status(500).json({
       message: 'failed to create restaurant job',
+    })
+  }
+}
+
+export async function publishOwnerJob(req: Request, res: Response) {
+  try {
+    const userId = getUserId(req)
+
+    if (!userId) {
+      return res.status(401).json({
+        message: 'unauthorized',
+      })
+    }
+
+    const idResult = ownerJobIdSchema.safeParse(req.params.id)
+
+    if (!idResult.success) {
+      return res.status(400).json({
+        message: getValidationErrorMessage(idResult.error),
+      })
+    }
+
+    const profile = await findOwnerProfile(userId)
+
+    if (!hasCompleteOwnerProfile(profile)) {
+      return res.status(400).json({
+        message: PROFILE_REQUIRED_MESSAGE,
+      })
+    }
+
+    const draftJob = await findOwnedJob(idResult.data, profile.id)
+
+    if (!draftJob) {
+      return res.status(404).json({
+        message: 'restaurant job not found',
+      })
+    }
+
+    if (draftJob.kind !== 'draft') {
+      return res.status(400).json({
+        message: 'only draft jobs can be published',
+      })
+    }
+
+    const postedJob = await prisma.restaurantJob.create({
+      data: {
+        restaurantName: profile.restaurantName,
+        role: draftJob.role,
+        location: profile.city,
+        area: profile.street,
+        description: draftJob.description,
+        requirements: draftJob.requirements,
+        shiftInfo: draftJob.shiftInfo,
+        contactPhone: draftJob.contactPhone || profile.phoneNumber,
+        contactWhatsapp:
+          draftJob.contactWhatsapp || profile.whatsappNumber,
+        ownerProfileId: profile.id,
+        kind: 'posted',
+        isActive: true,
+      },
+    })
+
+    return res.status(201).json(mapOwnerJob(postedJob))
+  } catch (error) {
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to publish restaurant job',
     })
   }
 }
@@ -524,6 +595,12 @@ export async function setOwnerJobActive(req: Request, res: Response) {
     if (!existingJob) {
       return res.status(404).json({
         message: 'restaurant job not found',
+      })
+    }
+
+    if (bodyResult.data.isActive && existingJob.kind !== 'posted') {
+      return res.status(400).json({
+        message: 'publish the draft before activating it',
       })
     }
 

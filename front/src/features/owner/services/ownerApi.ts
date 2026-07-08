@@ -124,6 +124,19 @@ export async function updateOwnerJob(
   return response.json()
 }
 
+export async function publishOwnerJob(id: string): Promise<OwnerJob> {
+  const response = await fetch(`${API_BASE_URL}/owner/jobs/${id}/publish`, {
+    method: 'POST',
+    headers: getHeaders(),
+  })
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to publish restaurant job')
+  }
+
+  return response.json()
+}
+
 export async function setOwnerJobActive(
   id: string,
   isActive: boolean,

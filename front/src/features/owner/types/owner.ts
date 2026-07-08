@@ -33,6 +33,7 @@ export type OwnerJob = OwnerJobInput & {
   restaurantName: string
   city: string
   street: string
+  kind: 'draft' | 'posted'
   isActive: boolean
   createdAt: string
   updatedAt: string

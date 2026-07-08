@@ -8,6 +8,7 @@ import {
   getOwnerJobs,
   getOwnerLeads,
   getOwnerProfile,
+  publishOwnerJob,
   setOwnerJobActive,
   updateOwnerApplicationStatus,
   updateOwnerJob,
@@ -61,6 +62,7 @@ ownerRouter.put('/profile', updateOwnerProfile)
 ownerRouter.get('/jobs', getOwnerJobs)
 ownerRouter.post('/jobs', createOwnerJob)
 ownerRouter.put('/jobs/:id', updateOwnerJob)
+ownerRouter.post('/jobs/:id/publish', publishOwnerJob)
 ownerRouter.patch('/jobs/:id/active', setOwnerJobActive)
 ownerRouter.delete('/jobs/:id', deleteOwnerJob)
 ownerRouter.get('/applications', getOwnerApplications)
