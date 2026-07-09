@@ -20,12 +20,18 @@ export const requireAdmin: RequestHandler = async (req, res, next) => {
       },
       select: {
         email: true,
+        phoneNumber: true,
       },
     })
 
+    const normalizedEmail = user?.email?.trim().toLowerCase()
+
     if (
       !user ||
-      !env.adminEmails.includes(user.email.trim().toLowerCase())
+      !(
+        (normalizedEmail && env.adminEmails.includes(normalizedEmail)) ||
+        (user.phoneNumber && env.adminPhones.includes(user.phoneNumber))
+      )
     ) {
       res.status(403).json({
         message: 'admin access required',

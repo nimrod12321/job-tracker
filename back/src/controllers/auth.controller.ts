@@ -4,27 +4,47 @@ import { env } from '../config/env.js'
 import { prisma } from '../lib/prisma.js'
 import { signAuthToken } from '../lib/jwt.js'
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js'
+import { requestOtpCode, verifyOtpCode } from '../services/otp.service.js'
+import { normalizeIsraeliPhoneNumber } from '../utils/phone.js'
 import { getValidationErrorMessage } from '../utils/validation.js'
 import {
   loginSchema,
   registerSchema,
+  requestCodeSchema,
+  verifyCodeSchema,
 } from '../validations/auth.validation.js'
 
-function isAdminEmail(email: string) {
-  return env.adminEmails.includes(email.trim().toLowerCase())
-}
-
-function mapAuthUser(user: {
+type AuthUserRecord = {
   id: string
-  email: string
+  email: string | null
+  phoneNumber: string | null
+  phoneVerifiedAt: Date | null
+  fullName: string
   track: 'highTech' | 'restaurant' | 'restaurantOwner'
   createdAt?: Date
+}
+
+function isAdminUser(user: {
+  email: string | null
+  phoneNumber: string | null
 }) {
+  const normalizedEmail = user.email?.trim().toLowerCase()
+
+  return Boolean(
+    (normalizedEmail && env.adminEmails.includes(normalizedEmail)) ||
+      (user.phoneNumber && env.adminPhones.includes(user.phoneNumber)),
+  )
+}
+
+function mapAuthUser(user: AuthUserRecord) {
   return {
     id: user.id,
-    email: user.email,
+    ...(user.email ? { email: user.email } : {}),
+    phoneNumber: user.phoneNumber,
+    phoneVerifiedAt: user.phoneVerifiedAt?.toISOString() ?? null,
+    fullName: user.fullName,
     track: user.track,
-    isAdmin: isAdminEmail(user.email),
+    isAdmin: isAdminUser(user),
     ...(user.createdAt
       ? {
           createdAt: user.createdAt.toISOString(),
@@ -97,13 +117,16 @@ export async function login(req: Request, res: Response) {
       },
     })
 
-    if (!user) {
+    if (!user || !user.passwordHash) {
       return res.status(401).json({
         message: 'invalid email or password',
       })
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.passwordHash)
+    const isPasswordValid = await bcrypt.compare(
+      password,
+      user.passwordHash,
+    )
 
     if (!isPasswordValid) {
       return res.status(401).json({
@@ -125,6 +148,7 @@ export async function login(req: Request, res: Response) {
     })
   }
 }
+
 export async function getMe(req: Request, res: Response) {
   try {
     const userId = (req as AuthenticatedRequest).userId
@@ -142,6 +166,9 @@ export async function getMe(req: Request, res: Response) {
       select: {
         id: true,
         email: true,
+        phoneNumber: true,
+        phoneVerifiedAt: true,
+        fullName: true,
         track: true,
         createdAt: true,
       },
@@ -159,6 +186,170 @@ export async function getMe(req: Request, res: Response) {
 
     return res.status(500).json({
       message: 'failed to fetch current user',
+    })
+  }
+}
+
+export async function requestCode(req: Request, res: Response) {
+  try {
+    const result = requestCodeSchema.safeParse(req.body)
+
+    if (!result.success) {
+      return res.status(400).json({
+        message: getValidationErrorMessage(result.error),
+      })
+    }
+
+    let phoneNumber: string
+
+    try {
+      phoneNumber = normalizeIsraeliPhoneNumber(result.data.phoneNumber)
+    } catch {
+      return res.status(400).json({
+        message: 'phone number is invalid',
+      })
+    }
+
+    try {
+      await requestOtpCode(phoneNumber, result.data.purpose)
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === 'OTP provider is not configured'
+      ) {
+        return res.status(503).json({
+          message: 'OTP delivery is not configured',
+        })
+      }
+
+      throw error
+    }
+
+    return res.json({
+      ok: true,
+    })
+  } catch (error) {
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to request code',
+    })
+  }
+}
+
+export async function verifyCode(req: Request, res: Response) {
+  try {
+    const result = verifyCodeSchema.safeParse(req.body)
+
+    if (!result.success) {
+      return res.status(400).json({
+        message: getValidationErrorMessage(result.error),
+      })
+    }
+
+    if (
+      result.data.purpose === 'register' ||
+      result.data.purpose === 'qrApply'
+    ) {
+      if (!result.data.fullName?.trim()) {
+        return res.status(400).json({
+          message: 'full name is required',
+        })
+      }
+
+      if (result.data.purpose === 'register' && !result.data.track) {
+        return res.status(400).json({
+          message: 'track is required',
+        })
+      }
+    }
+
+    let phoneNumber: string
+
+    try {
+      phoneNumber = normalizeIsraeliPhoneNumber(result.data.phoneNumber)
+    } catch {
+      return res.status(400).json({
+        message: 'phone number is invalid',
+      })
+    }
+
+    try {
+      await verifyOtpCode(
+        phoneNumber,
+        result.data.purpose,
+        result.data.code,
+      )
+    } catch (error) {
+      return res.status(400).json({
+        message:
+          error instanceof Error
+            ? error.message
+            : 'invalid or expired code',
+      })
+    }
+
+    const existingUser = await prisma.user.findUnique({
+      where: {
+        phoneNumber,
+      },
+    })
+
+    if (result.data.purpose === 'login') {
+      if (!existingUser) {
+        return res.status(404).json({
+          message: 'account not found. please register first.',
+        })
+      }
+
+      const token = signAuthToken(existingUser.id)
+
+      return res.json({
+        token,
+        user: mapAuthUser(existingUser),
+      })
+    }
+
+    const now = new Date()
+    const fullName = result.data.fullName?.trim() ?? ''
+    const track =
+      result.data.purpose === 'qrApply'
+        ? 'restaurant'
+        : result.data.track ?? 'restaurant'
+    const user = existingUser
+      ? await prisma.user.update({
+          where: {
+            id: existingUser.id,
+          },
+          data: {
+            fullName: existingUser.fullName || fullName,
+            phoneVerifiedAt: existingUser.phoneVerifiedAt ?? now,
+            track:
+              result.data.purpose === 'qrApply'
+                ? existingUser.track
+                : track,
+          },
+        })
+      : await prisma.user.create({
+          data: {
+            phoneNumber,
+            phoneVerifiedAt: now,
+            fullName,
+            track,
+          },
+        })
+
+    const token = signAuthToken(user.id)
+
+    return res.json({
+      token,
+      user: mapAuthUser(user),
+    })
+  } catch (error) {
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to verify code',
     })
   }
 }

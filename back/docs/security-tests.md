@@ -19,6 +19,8 @@ The current suite checks the highest-risk restaurant launch paths:
 - public QR restaurant pages expose only public restaurant fields
 - duplicate public QR lead submissions do not create duplicate leads
 - worker Explore only returns active posted jobs, not drafts or inactive jobs
+- phone OTP request/verify/register/login behavior
+- OTP attempt limits, expiry, invalidation, and admin phone detection
 
 ## Create a test database
 
@@ -123,3 +125,21 @@ npm run build
 ```
 
 Security tests should be run manually or in a dedicated CI/staging job with a dedicated test database.
+
+## Phone OTP test notes
+
+Phone OTP tests use the same gated command:
+
+```bash
+TEST_DATABASE_URL="postgresql://jobtracker:jobtracker_password@127.0.0.1:5433/peepss_security_test?schema=public" npm run test:security
+```
+
+The OTP tests do not read codes from API responses. In `NODE_ENV=test`, the backend OTP provider captures the generated code in memory for tests only.
+
+In development, OTP codes are printed in backend logs:
+
+```txt
+OTP code for +972501234567: 1234
+```
+
+In production, OTP delivery returns a safe error until a real SMS/WhatsApp provider is added.

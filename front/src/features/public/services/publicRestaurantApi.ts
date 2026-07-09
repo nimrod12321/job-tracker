@@ -18,6 +18,13 @@ export type PublicRestaurantLeadInput = {
   age?: number
 }
 
+export type VerifiedPublicRestaurantLeadInput = {
+  wantedRoles: RestaurantRole[]
+  experienceText: string
+  availability: string
+  age: number
+}
+
 async function handleApiError(
   response: Response,
   fallbackMessage: string,
@@ -35,6 +42,30 @@ async function handleApiError(
   }
 
   throw new Error(message)
+}
+
+export async function submitVerifiedPublicRestaurantLead(
+  slug: string,
+  input: VerifiedPublicRestaurantLeadInput,
+  token: string,
+): Promise<{ ok: true; message?: string }> {
+  const response = await fetch(
+    `${API_BASE_URL}/public/restaurants/${encodeURIComponent(slug)}/verified-leads`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(input),
+    },
+  )
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to submit application')
+  }
+
+  return response.json()
 }
 
 export async function getPublicRestaurant(

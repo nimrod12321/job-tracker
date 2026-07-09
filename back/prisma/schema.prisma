@@ -58,6 +58,12 @@ enum CandidateLeadStatus {
   rejected
 }
 
+enum OtpPurpose {
+  login
+  register
+  qrApply
+}
+
 model Job {
   id             String      @id @default(uuid())
   company        String
@@ -85,8 +91,11 @@ model Job {
 
 model User {
   id           String    @id @default(uuid())
-  email        String    @unique
-  passwordHash String
+  email        String?   @unique
+  passwordHash String?
+  phoneNumber  String?   @unique
+  phoneVerifiedAt DateTime?
+  fullName     String    @default("")
   track        UserTrack @default(highTech)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -97,6 +106,26 @@ model User {
   restaurantWorkerProfile RestaurantWorkerProfile?
   restaurantOwnerProfile  RestaurantOwnerProfile?
   restaurantApplications  RestaurantApplication[]
+}
+
+model OtpVerification {
+  id String @id @default(uuid())
+
+  phoneNumber String
+  codeHash    String
+  purpose     OtpPurpose
+  attempts    Int        @default(0)
+  maxAttempts Int        @default(5)
+  expiresAt   DateTime
+  consumedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([phoneNumber])
+  @@index([purpose])
+  @@index([expiresAt])
+  @@index([consumedAt])
 }
 
 model ResumeProfile {

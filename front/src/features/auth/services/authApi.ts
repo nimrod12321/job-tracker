@@ -21,7 +21,10 @@ export type UserTrack = 'highTech' | 'restaurant' | 'restaurantOwner'
 
 export type AuthUser = {
   id: string
-  email: string
+  email?: string
+  phoneNumber?: string | null
+  phoneVerifiedAt?: string | null
+  fullName?: string
   track?: UserTrack
   isAdmin: boolean
   createdAt?: string
@@ -38,6 +41,15 @@ type RegisterResponse = {
   track: UserTrack
   isAdmin: boolean
   createdAt: string
+}
+
+type RequestCodeResponse = {
+  ok: boolean
+}
+
+type VerifyCodeResponse = {
+  token: string
+  user: AuthUser
 }
 
 export async function registerUser(
@@ -88,6 +100,47 @@ export async function getCurrentUser(token: string): Promise<AuthUser> {
 
   if (!response.ok) {
     throw new Error(await getErrorMessage(response, 'Invalid session'))
+  }
+
+  return response.json()
+}
+
+export async function requestAuthCode(input: {
+  phoneNumber: string
+  purpose: 'login' | 'register' | 'qrApply'
+}): Promise<RequestCodeResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/request-code`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(input),
+  })
+
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response, 'Failed to send code'))
+  }
+
+  return response.json()
+}
+
+export async function verifyAuthCode(input: {
+  phoneNumber: string
+  code: string
+  purpose: 'login' | 'register' | 'qrApply'
+  fullName?: string
+  track?: 'restaurant' | 'restaurantOwner'
+}): Promise<VerifyCodeResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/verify-code`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(input),
+  })
+
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response, 'Failed to verify code'))
   }
 
   return response.json()

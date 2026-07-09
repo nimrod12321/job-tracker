@@ -1,10 +1,10 @@
 import type { Request, Response } from 'express'
 import { prisma } from '../lib/prisma.js'
-import { normalizePhoneNumber } from '../utils/phone.js'
+import type { AuthenticatedRequest } from '../middleware/auth.middleware.js'
 import { getValidationErrorMessage } from '../utils/validation.js'
 import {
-  publicRestaurantLeadSchema,
   restaurantSlugSchema,
+  verifiedPublicRestaurantLeadSchema,
 } from '../validations/publicRestaurant.validation.js'
 
 const DUPLICATE_WINDOW_MS = 24 * 60 * 60 * 1000
@@ -70,9 +70,25 @@ export async function createPublicRestaurantLead(
   req: Request,
   res: Response,
 ) {
+  return res.status(410).json({
+    message: 'Phone verification is required before applying.',
+  })
+}
+
+export async function createVerifiedPublicRestaurantLead(
+  req: Request,
+  res: Response,
+) {
   try {
+    const userId = (req as AuthenticatedRequest).userId
     const slugResult = restaurantSlugSchema.safeParse(req.params.slug)
-    const bodyResult = publicRestaurantLeadSchema.safeParse(req.body)
+    const bodyResult = verifiedPublicRestaurantLeadSchema.safeParse(req.body)
+
+    if (!userId) {
+      return res.status(401).json({
+        message: 'unauthorized',
+      })
+    }
 
     if (!slugResult.success) {
       return res.status(400).json({
@@ -86,14 +102,26 @@ export async function createPublicRestaurantLead(
       })
     }
 
-    const profile = await prisma.restaurantOwnerProfile.findUnique({
-      where: {
-        slug: slugResult.data,
-      },
-      select: {
-        id: true,
-      },
-    })
+    const [profile, user] = await Promise.all([
+      prisma.restaurantOwnerProfile.findUnique({
+        where: {
+          slug: slugResult.data,
+        },
+        select: {
+          id: true,
+        },
+      }),
+      prisma.user.findUnique({
+        where: {
+          id: userId,
+        },
+        select: {
+          fullName: true,
+          phoneNumber: true,
+          track: true,
+        },
+      }),
+    ])
 
     if (!profile) {
       return res.status(404).json({
@@ -101,20 +129,46 @@ export async function createPublicRestaurantLead(
       })
     }
 
-    const normalizedPhoneNumber = normalizePhoneNumber(
-      bodyResult.data.phoneNumber,
-    )
+    if (!user?.phoneNumber || user.track !== 'restaurant') {
+      return res.status(403).json({
+        message: 'verified restaurant worker account required',
+      })
+    }
+
     const duplicateSince = new Date(Date.now() - DUPLICATE_WINDOW_MS)
     const existingLead = await prisma.restaurantCandidateLead.findFirst({
       where: {
         ownerProfileId: profile.id,
-        phoneNumber: normalizedPhoneNumber,
+        phoneNumber: user.phoneNumber,
         createdAt: {
           gte: duplicateSince,
         },
       },
       select: {
         id: true,
+      },
+    })
+
+    await prisma.restaurantWorkerProfile.upsert({
+      where: {
+        userId,
+      },
+      update: {
+        fullName: user.fullName,
+        phoneNumber: user.phoneNumber,
+        wantedRoles: bodyResult.data.wantedRoles,
+        experienceText: bodyResult.data.experienceText,
+        availability: bodyResult.data.availability,
+        age: bodyResult.data.age,
+      },
+      create: {
+        userId,
+        fullName: user.fullName,
+        phoneNumber: user.phoneNumber,
+        wantedRoles: bodyResult.data.wantedRoles,
+        experienceText: bodyResult.data.experienceText,
+        availability: bodyResult.data.availability,
+        age: bodyResult.data.age,
       },
     })
 
@@ -128,12 +182,12 @@ export async function createPublicRestaurantLead(
     await prisma.restaurantCandidateLead.create({
       data: {
         ownerProfileId: profile.id,
-        fullName: bodyResult.data.fullName,
-        phoneNumber: normalizedPhoneNumber,
+        fullName: user.fullName,
+        phoneNumber: user.phoneNumber,
         wantedRoles: bodyResult.data.wantedRoles,
         experienceText: bodyResult.data.experienceText,
         availability: bodyResult.data.availability,
-        age: bodyResult.data.age ?? null,
+        age: bodyResult.data.age,
         source: 'qr',
       },
     })

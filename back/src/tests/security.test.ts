@@ -229,7 +229,7 @@ test(
         0,
       )
 
-      const leadCreate = await request<{ ok: boolean }>(
+      const unverifiedLeadCreate = await request<{ message?: string }>(
         `/public/restaurants/${ownerA.profile.slug}/leads`,
         {
           method: 'POST',
@@ -244,11 +244,30 @@ test(
           }),
         },
       )
-      assert.equal(leadCreate.status, 201)
+      assert.equal(unverifiedLeadCreate.status, 410)
+      assert.equal(
+        unverifiedLeadCreate.body.message,
+        'Phone verification is required before applying.',
+      )
 
-      const ownerALead = await prisma.restaurantCandidateLead.findFirstOrThrow({
-        where: {
+      const unverifiedLeadCount =
+        await prisma.restaurantCandidateLead.count({
+          where: {
+            ownerProfileId: ownerA.profile.id,
+          },
+        })
+      assert.equal(unverifiedLeadCount, 0)
+
+      const ownerALead = await prisma.restaurantCandidateLead.create({
+        data: {
           ownerProfileId: ownerA.profile.id,
+          fullName: 'Lead One',
+          phoneNumber: '0501234567',
+          wantedRoles: ['waiter'],
+          experienceText: 'Two years',
+          availability: 'Evenings',
+          age: 24,
+          source: 'security-test',
         },
       })
 
@@ -377,7 +396,7 @@ test(
         'street',
       ])
 
-      const duplicateLead = await request<{ ok: boolean }>(
+      const duplicateUnverifiedLead = await request<{ message?: string }>(
         `/public/restaurants/${ownerA.profile.slug}/leads`,
         {
           method: 'POST',
@@ -392,7 +411,11 @@ test(
           }),
         },
       )
-      assert.equal(duplicateLead.status, 200)
+      assert.equal(duplicateUnverifiedLead.status, 410)
+      assert.equal(
+        duplicateUnverifiedLead.body.message,
+        'Phone verification is required before applying.',
+      )
 
       const leadCount = await prisma.restaurantCandidateLead.count({
         where: {
@@ -401,42 +424,6 @@ test(
         },
       })
       assert.equal(leadCount, 1)
-
-      for (let index = 0; index < 30; index += 1) {
-        const rateLimitedLead: ApiResponse<{ ok: boolean }> = await request(
-          `/public/restaurants/${ownerB.profile.slug}/leads`,
-          {
-            method: 'POST',
-            headers: jsonHeaders(),
-            body: JSON.stringify({
-              fullName: `Rate Limit ${index}`,
-              phoneNumber: `05100000${index.toString().padStart(2, '0')}`,
-              wantedRoles: ['waiter'],
-              experienceText: '',
-              availability: '',
-              age: 24,
-            }),
-          },
-        )
-        assert.equal(rateLimitedLead.status, 201)
-      }
-
-      const blockedRateLimitedLead = await request(
-        `/public/restaurants/${ownerB.profile.slug}/leads`,
-        {
-          method: 'POST',
-          headers: jsonHeaders(),
-          body: JSON.stringify({
-            fullName: 'Rate Limit Blocked',
-            phoneNumber: '0519999999',
-            wantedRoles: ['waiter'],
-            experienceText: '',
-            availability: '',
-            age: 24,
-          }),
-        },
-      )
-      assert.equal(blockedRateLimitedLead.status, 429)
 
       const workerToken = await registerAndLogin(
         `worker-${runId}@example.test`,
@@ -455,6 +442,118 @@ test(
           age: 25,
         }),
       })
+      const workerUser = await prisma.user.update({
+        where: {
+          email: `worker-${runId}@example.test`,
+        },
+        data: {
+          phoneNumber: '+972509999999',
+          phoneVerifiedAt: new Date(),
+          fullName: 'Worker',
+        },
+      })
+
+      const unauthorizedVerifiedLead = await request(
+        `/public/restaurants/${ownerA.profile.slug}/verified-leads`,
+        {
+          method: 'POST',
+          headers: jsonHeaders(),
+          body: JSON.stringify({
+            phoneNumber: '0500000000',
+            wantedRoles: ['waiter'],
+            experienceText: '',
+            availability: '',
+            age: 25,
+          }),
+        },
+      )
+      assert.equal(unauthorizedVerifiedLead.status, 401)
+
+      const spoofedVerifiedLead = await request(
+        `/public/restaurants/${ownerA.profile.slug}/verified-leads`,
+        {
+          method: 'POST',
+          headers: jsonHeaders(workerToken),
+          body: JSON.stringify({
+            phoneNumber: '0529999999',
+            wantedRoles: ['waiter', 'host'],
+            experienceText: 'Verified QR experience',
+            availability: 'Evenings',
+            age: 25,
+          }),
+        },
+      )
+      assert.equal(spoofedVerifiedLead.status, 400)
+
+      const verifiedLeadCreate = await request<{ ok: boolean }>(
+        `/public/restaurants/${ownerA.profile.slug}/verified-leads`,
+        {
+          method: 'POST',
+          headers: jsonHeaders(workerToken),
+          body: JSON.stringify({
+            wantedRoles: ['waiter', 'host'],
+            experienceText: 'Verified QR experience',
+            availability: 'Evenings',
+            age: 25,
+          }),
+        },
+      )
+      assert.equal(verifiedLeadCreate.status, 201)
+
+      const verifiedLead = await prisma.restaurantCandidateLead.findFirstOrThrow({
+        where: {
+          ownerProfileId: ownerA.profile.id,
+          phoneNumber: '+972509999999',
+        },
+      })
+      assert.equal(verifiedLead.fullName, 'Worker')
+      assert.deepEqual(verifiedLead.wantedRoles.sort(), ['host', 'waiter'])
+
+      assert.equal(
+        await prisma.restaurantCandidateLead.count({
+          where: {
+            ownerProfileId: ownerA.profile.id,
+            phoneNumber: '+972529999999',
+          },
+        }),
+        0,
+      )
+
+      const workerProfile =
+        await prisma.restaurantWorkerProfile.findUniqueOrThrow({
+          where: {
+            userId: workerUser.id,
+          },
+        })
+      assert.deepEqual(workerProfile.wantedRoles.sort(), [
+        'host',
+        'waiter',
+      ])
+      assert.equal(workerProfile.experienceText, 'Verified QR experience')
+
+      const duplicateVerifiedLead = await request<{ ok: boolean }>(
+        `/public/restaurants/${ownerA.profile.slug}/verified-leads`,
+        {
+          method: 'POST',
+          headers: jsonHeaders(workerToken),
+          body: JSON.stringify({
+            wantedRoles: ['waiter'],
+            experienceText: 'Duplicate should not create second lead',
+            availability: 'Morning',
+            age: 25,
+          }),
+        },
+      )
+      assert.equal(duplicateVerifiedLead.status, 200)
+      assert.equal(
+        await prisma.restaurantCandidateLead.count({
+          where: {
+            ownerProfileId: ownerA.profile.id,
+            phoneNumber: '+972509999999',
+          },
+        }),
+        1,
+      )
 
       const activePostedJob = await prisma.restaurantJob.create({
         data: {

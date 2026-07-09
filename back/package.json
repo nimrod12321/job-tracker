@@ -5,8 +5,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "tsx --test src/tests/security.test.ts",
-    "test:security": "RUN_SECURITY_TESTS=true tsx --test src/tests/security.test.ts",
+    "test": "tsx --test src/tests/*.test.ts",
+    "test:security": "RUN_SECURITY_TESTS=true tsx --test src/tests/*.test.ts",
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",

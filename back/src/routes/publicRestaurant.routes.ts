@@ -1,8 +1,10 @@
 import { Router } from 'express'
 import {
   createPublicRestaurantLead,
+  createVerifiedPublicRestaurantLead,
   getPublicRestaurant,
 } from '../controllers/publicRestaurant.controller.js'
+import { requireAuth } from '../middleware/auth.middleware.js'
 import { createInMemoryRateLimit } from '../middleware/rateLimit.middleware.js'
 
 const publicRestaurantRouter = Router()
@@ -17,6 +19,12 @@ publicRestaurantRouter.post(
   '/restaurants/:slug/leads',
   publicRestaurantLeadRateLimit,
   createPublicRestaurantLead,
+)
+publicRestaurantRouter.post(
+  '/restaurants/:slug/verified-leads',
+  requireAuth,
+  publicRestaurantLeadRateLimit,
+  createVerifiedPublicRestaurantLead,
 )
 
 export default publicRestaurantRouter

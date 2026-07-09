@@ -6,6 +6,7 @@ type RateLimitEntry = {
 }
 
 type RateLimitOptions = {
+  keyGenerator?: (req: Parameters<RequestHandler>[0]) => string
   maxRequests: number
   message: string
   windowMs: number
@@ -22,6 +23,7 @@ function getClientKey(req: Parameters<RequestHandler>[0]) {
 }
 
 export function createInMemoryRateLimit({
+  keyGenerator,
   maxRequests,
   message,
   windowMs,
@@ -30,7 +32,9 @@ export function createInMemoryRateLimit({
 
   return (req, res, next) => {
     const now = Date.now()
-    const key = `${getClientKey(req)}:${req.method}:${req.originalUrl}`
+    const key = keyGenerator
+      ? keyGenerator(req)
+      : `${getClientKey(req)}:${req.method}:${req.originalUrl}`
     const existingEntry = entries.get(key)
 
     if (!existingEntry || existingEntry.resetAt <= now) {

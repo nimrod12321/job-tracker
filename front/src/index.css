@@ -394,6 +394,61 @@ textarea:focus-visible {
   transform: none;
 }
 
+.auth-code-form {
+  text-align: center;
+}
+
+.auth-code-heading {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.auth-code-heading h2 {
+  margin: 0;
+  color: #1f1d1e;
+  font-size: clamp(1.35rem, 5vw, 1.8rem);
+  line-height: 1.05;
+  letter-spacing: -0.045em;
+}
+
+.auth-code-heading p {
+  margin: 0;
+  color: #7a5142;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.auth-form .auth-code-input {
+  max-width: 190px;
+  margin-inline: auto;
+  padding-inline: 1.15rem;
+  font-size: 1.75rem;
+  font-weight: 950;
+  letter-spacing: 0.28em;
+  text-align: center;
+}
+
+.auth-dev-hint {
+  margin: 0;
+  border: 1px dashed #e4c8ad;
+  border-radius: 16px;
+  padding: 0.65rem 0.75rem;
+  background: #fff6ec;
+  color: #7a5142;
+  font-size: 0.82rem;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.auth-code-actions {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.auth-code-actions .text-button {
+  margin-top: 0;
+}
+
 .restaurant-only-page {
   display: grid;
   min-height: 100dvh;

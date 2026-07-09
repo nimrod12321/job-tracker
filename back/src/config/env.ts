@@ -1,4 +1,5 @@
 import 'dotenv/config'
+import { normalizeIsraeliPhoneNumber } from '../utils/phone.js'
 
 function getRequiredEnvironmentVariable(name: string) {
   const value = process.env[name]?.trim()
@@ -20,6 +21,25 @@ function getPort() {
   return port
 }
 
+function getPositiveIntegerEnvironmentVariable(
+  name: string,
+  defaultValue: number,
+) {
+  const rawValue = process.env[name]?.trim()
+
+  if (!rawValue) {
+    return defaultValue
+  }
+
+  const value = Number(rawValue)
+
+  if (!Number.isInteger(value) || value < 1) {
+    throw new Error(`${name} must be a positive integer`)
+  }
+
+  return value
+}
+
 const nodeEnv = process.env.NODE_ENV?.trim() || 'development'
 const configuredFrontendUrl = process.env.FRONTEND_URL?.trim()
 
@@ -39,4 +59,27 @@ export const env = {
     .split(',')
     .map((email) => email.trim().toLowerCase())
     .filter(Boolean),
+  adminPhones: (process.env.ADMIN_PHONES ?? '')
+    .split(',')
+    .map((phoneNumber) => phoneNumber.trim())
+    .filter(Boolean)
+    .flatMap((phoneNumber) => {
+      try {
+        return [normalizeIsraeliPhoneNumber(phoneNumber)]
+      } catch {
+        return []
+      }
+    }),
+  otpCodeLength: getPositiveIntegerEnvironmentVariable(
+    'OTP_CODE_LENGTH',
+    4,
+  ),
+  otpExpiresMinutes: getPositiveIntegerEnvironmentVariable(
+    'OTP_EXPIRES_MINUTES',
+    5,
+  ),
+  otpMaxAttempts: getPositiveIntegerEnvironmentVariable(
+    'OTP_MAX_ATTEMPTS',
+    5,
+  ),
 }

@@ -51,6 +51,32 @@ export const publicRestaurantLeadSchema = z
   })
   .strict()
 
+export const verifiedPublicRestaurantLeadSchema = z
+  .object({
+    wantedRoles: z
+      .array(z.enum(restaurantRoles, { error: 'role is invalid' }))
+      .min(1, 'choose at least one role')
+      .max(restaurantRoles.length, 'too many wanted roles'),
+    experienceText: z
+      .string({ error: 'experience must be a string' })
+      .trim()
+      .max(1_000, 'experience is too long')
+      .optional()
+      .default(''),
+    availability: z
+      .string({ error: 'availability must be a string' })
+      .trim()
+      .max(500, 'availability is too long')
+      .optional()
+      .default(''),
+    age: z
+      .number({ error: 'age must be a number' })
+      .int('age must be a whole number')
+      .min(16, 'age must be at least 16')
+      .max(80, 'age must be 80 or below'),
+  })
+  .strict()
+
 export const leadIdSchema = z.string().uuid('lead id must be valid')
 
 export const candidateLeadStatusBodySchema = z

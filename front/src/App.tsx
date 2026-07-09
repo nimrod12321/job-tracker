@@ -60,6 +60,10 @@ function ScrollToTop() {
   return null
 }
 
+function getUserDisplayName(user: AuthUser | null) {
+  return user?.email ?? user?.fullName ?? user?.phoneNumber ?? undefined
+}
+
 function App() {
   const navigate = useNavigate()
   const [token, setToken] = useState<string | null>(() => getAuthToken())
@@ -125,6 +129,20 @@ function App() {
     }
   }
 
+  async function handlePublicAuthVerified(newToken: string) {
+    saveAuthToken(newToken)
+    setToken(newToken)
+
+    try {
+      const user = await getCurrentUser(newToken)
+      setCurrentUser(user)
+    } catch {
+      clearAuthToken()
+      setCurrentUser(null)
+      setToken(null)
+    }
+  }
+
   function handleLogout() {
     clearAuthToken()
     setCurrentUser(null)
@@ -187,7 +205,14 @@ function App() {
           )
         }
       />
-      <Route path="/r/:restaurantSlug" element={<RestaurantPublicApplyPage />} />
+      <Route
+        path="/r/:restaurantSlug"
+        element={
+          <RestaurantPublicApplyPage
+            onAuthVerified={handlePublicAuthVerified}
+          />
+        }
+      />
 
       <Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
         <Route path="/admin/leads" element={<AdminLeadsPage />} />
@@ -245,7 +270,7 @@ function App() {
           element={
             userTrack === 'restaurant' ? (
               <AppLayout
-                userEmail={currentUser?.email}
+                userEmail={getUserDisplayName(currentUser)}
                 userTrack={userTrack}
                 onLogout={handleLogout}
               />
@@ -272,7 +297,7 @@ function App() {
           element={
             userTrack === 'restaurantOwner' ? (
               <AppLayout
-                userEmail={currentUser?.email}
+                userEmail={getUserDisplayName(currentUser)}
                 userTrack={userTrack}
                 onLogout={handleLogout}
               />
