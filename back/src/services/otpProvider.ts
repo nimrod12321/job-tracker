@@ -34,6 +34,8 @@ export async function sendOtpCode(
       apiKeySid: env.twilioApiKeySid,
       apiKeySecret: env.twilioApiKeySecret,
       whatsappFrom: env.twilioWhatsappFrom,
+      otpMode: env.otpMode,
+      authContentSid: env.twilioWhatsappAuthContentSid,
     })
 
     await provider.sendOtpCode(phoneNumber, code, purpose)

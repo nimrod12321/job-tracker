@@ -63,6 +63,12 @@ const twilioApiKeySecret = getOptionalEnvironmentVariable(
 const twilioWhatsappFrom = getOptionalEnvironmentVariable(
   'TWILIO_WHATSAPP_FROM',
 )
+const twilioWhatsappAuthContentSid = getOptionalEnvironmentVariable(
+  'TWILIO_WHATSAPP_AUTH_CONTENT_SID',
+)
+const twilioMessagingServiceSid = getOptionalEnvironmentVariable(
+  'TWILIO_MESSAGING_SERVICE_SID',
+)
 
 if (nodeEnv === 'production' && !configuredFrontendUrl) {
   throw new Error('FRONTEND_URL is not set')
@@ -74,13 +80,21 @@ if (otpProvider === 'twilio' && nodeEnv !== 'test') {
   }
 
   const missingTwilioVariables = [
-    ['TWILIO_ACCOUNT_SID', twilioAccountSid],
-    ['TWILIO_API_KEY_SID', twilioApiKeySid],
-    ['TWILIO_API_KEY_SECRET', twilioApiKeySecret],
-    ['TWILIO_WHATSAPP_FROM', twilioWhatsappFrom],
+    { name: 'TWILIO_ACCOUNT_SID', value: twilioAccountSid },
+    { name: 'TWILIO_API_KEY_SID', value: twilioApiKeySid },
+    { name: 'TWILIO_API_KEY_SECRET', value: twilioApiKeySecret },
+    { name: 'TWILIO_WHATSAPP_FROM', value: twilioWhatsappFrom },
+    ...(otpMode === 'production'
+      ? [
+          {
+            name: 'TWILIO_WHATSAPP_AUTH_CONTENT_SID',
+            value: twilioWhatsappAuthContentSid,
+          },
+        ]
+      : []),
   ]
-    .filter(([, value]) => !value)
-    .map(([name]) => name)
+    .filter(({ value }) => !value)
+    .map(({ name }) => name)
 
   if (missingTwilioVariables.length > 0) {
     throw new Error(
@@ -88,6 +102,10 @@ if (otpProvider === 'twilio' && nodeEnv !== 'test') {
         ', ',
       )}`,
     )
+  }
+
+  if (otpMode !== 'sandbox' && otpMode !== 'production') {
+    throw new Error('OTP_MODE must be sandbox or production')
   }
 }
 
@@ -133,4 +151,6 @@ export const env = {
   twilioApiKeySid,
   twilioApiKeySecret,
   twilioWhatsappFrom,
+  twilioWhatsappAuthContentSid,
+  twilioMessagingServiceSid,
 }
