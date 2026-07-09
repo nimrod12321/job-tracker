@@ -215,10 +215,10 @@ export async function requestCode(req: Request, res: Response) {
     } catch (error) {
       if (
         error instanceof Error &&
-        error.message === 'OTP provider is not configured'
+        error.message === 'Failed to send verification code'
       ) {
         return res.status(503).json({
-          message: 'OTP delivery is not configured',
+          message: 'Failed to send verification code',
         })
       }
 

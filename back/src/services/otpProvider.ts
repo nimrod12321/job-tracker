@@ -1,4 +1,8 @@
 import { env } from '../config/env.js'
+import {
+  createTwilioWhatsAppOtpProvider,
+  resolveOtpProviderKind,
+} from './twilioOtpProvider.js'
 
 type OtpPurpose = 'login' | 'register' | 'qrApply'
 
@@ -13,17 +17,33 @@ export async function sendOtpCode(
   code: string,
   purpose: OtpPurpose,
 ) {
-  if (env.nodeEnv === 'test') {
+  const providerKind = resolveOtpProviderKind({
+    nodeEnv: env.nodeEnv,
+    otpProvider: env.otpProvider,
+    otpChannel: env.otpChannel,
+  })
+
+  if (providerKind === 'test') {
     testOtpCodes.set(getOtpKey(phoneNumber, purpose), code)
     return
   }
 
-  if (env.nodeEnv !== 'production') {
-    console.log(`OTP code for ${phoneNumber}: ${code}`)
+  if (providerKind === 'twilio-whatsapp') {
+    const provider = createTwilioWhatsAppOtpProvider({
+      accountSid: env.twilioAccountSid,
+      apiKeySid: env.twilioApiKeySid,
+      apiKeySecret: env.twilioApiKeySecret,
+      whatsappFrom: env.twilioWhatsappFrom,
+    })
+
+    await provider.sendOtpCode(phoneNumber, code, purpose)
     return
   }
 
-  throw new Error('OTP provider is not configured')
+  if (providerKind === 'console') {
+    console.log(`OTP code for ${phoneNumber}: ${code}`)
+    return
+  }
 }
 
 export function getCapturedOtpCodeForTest(

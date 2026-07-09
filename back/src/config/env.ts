@@ -40,11 +40,55 @@ function getPositiveIntegerEnvironmentVariable(
   return value
 }
 
+function getOptionalEnvironmentVariable(name: string) {
+  const value = process.env[name]?.trim()
+
+  return value || ''
+}
+
 const nodeEnv = process.env.NODE_ENV?.trim() || 'development'
 const configuredFrontendUrl = process.env.FRONTEND_URL?.trim()
+const otpProvider = process.env.OTP_PROVIDER?.trim() || 'console'
+const otpChannel = process.env.OTP_CHANNEL?.trim() || 'whatsapp'
+const otpMode = process.env.OTP_MODE?.trim() || 'sandbox'
+const twilioAccountSid = getOptionalEnvironmentVariable(
+  'TWILIO_ACCOUNT_SID',
+)
+const twilioApiKeySid = getOptionalEnvironmentVariable(
+  'TWILIO_API_KEY_SID',
+)
+const twilioApiKeySecret = getOptionalEnvironmentVariable(
+  'TWILIO_API_KEY_SECRET',
+)
+const twilioWhatsappFrom = getOptionalEnvironmentVariable(
+  'TWILIO_WHATSAPP_FROM',
+)
 
 if (nodeEnv === 'production' && !configuredFrontendUrl) {
   throw new Error('FRONTEND_URL is not set')
+}
+
+if (otpProvider === 'twilio' && nodeEnv !== 'test') {
+  if (otpChannel !== 'whatsapp') {
+    throw new Error('OTP_CHANNEL must be whatsapp when OTP_PROVIDER=twilio')
+  }
+
+  const missingTwilioVariables = [
+    ['TWILIO_ACCOUNT_SID', twilioAccountSid],
+    ['TWILIO_API_KEY_SID', twilioApiKeySid],
+    ['TWILIO_API_KEY_SECRET', twilioApiKeySecret],
+    ['TWILIO_WHATSAPP_FROM', twilioWhatsappFrom],
+  ]
+    .filter(([, value]) => !value)
+    .map(([name]) => name)
+
+  if (missingTwilioVariables.length > 0) {
+    throw new Error(
+      `Missing Twilio OTP environment variables: ${missingTwilioVariables.join(
+        ', ',
+      )}`,
+    )
+  }
 }
 
 export const env = {
@@ -82,4 +126,11 @@ export const env = {
     'OTP_MAX_ATTEMPTS',
     5,
   ),
+  otpProvider,
+  otpChannel,
+  otpMode,
+  twilioAccountSid,
+  twilioApiKeySid,
+  twilioApiKeySecret,
+  twilioWhatsappFrom,
 }
