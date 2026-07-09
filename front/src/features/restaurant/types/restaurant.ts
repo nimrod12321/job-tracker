@@ -71,8 +71,6 @@ export type RestaurantExploreJob = {
   description: string
   requirements: string
   shiftInfo: string
-  contactPhone: string
-  contactWhatsapp: string
 }
 
 export type RestaurantApplication = {

@@ -44,8 +44,6 @@ function mapRestaurantJob(job: RestaurantJob) {
     description: job.description,
     requirements: job.requirements,
     shiftInfo: job.shiftInfo,
-    contactPhone: job.contactPhone,
-    contactWhatsapp: job.contactWhatsapp,
   }
 }
 

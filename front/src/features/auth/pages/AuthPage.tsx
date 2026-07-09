@@ -97,6 +97,10 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
           </button>
         </div>
 
+        <h1 className="auth-headline" dir="ltr">
+          Swipe, apply.
+        </h1>
+
         <div className="auth-center">
           <div className="auth-card">
             <nav className="auth-mode-tabs" aria-label={text.authModeLabel}>

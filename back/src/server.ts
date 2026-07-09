@@ -15,7 +15,7 @@ import profileRouter from './routes/profile.routes.js'
 import publicRestaurantRouter from './routes/publicRestaurant.routes.js'
 import restaurantRouter from './routes/restaurant.routes.js'
 
-const app = express()
+export const app = express()
 const allowedOrigins = new Set([env.frontendUrl])
 
 if (env.nodeEnv !== 'production') {
@@ -69,6 +69,8 @@ const errorHandler = (
 
 app.use(errorHandler)
 
-app.listen(env.port, () => {
-  console.log(`Server is running on port ${env.port}`)
-})
+if (env.nodeEnv !== 'test') {
+  app.listen(env.port, () => {
+    console.log(`Server is running on port ${env.port}`)
+  })
+}

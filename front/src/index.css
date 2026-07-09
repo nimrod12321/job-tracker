@@ -184,6 +184,15 @@ textarea:focus-visible {
   width: 100%;
 }
 
+.auth-headline {
+  margin: 0;
+  color: #1f1d1e;
+  font-size: clamp(1.85rem, 7vw, 2.8rem);
+  line-height: 0.95;
+  letter-spacing: -0.065em;
+  text-align: center;
+}
+
 .auth-logo.peepss-logo {
   display: inline-flex;
   flex: 0 0 auto;
@@ -6258,6 +6267,10 @@ textarea:focus-visible {
 
   .auth-topbar {
     min-height: 38px;
+  }
+
+  .auth-headline {
+    font-size: clamp(1.65rem, 8vw, 2.15rem);
   }
 
   .auth-language-toggle {
