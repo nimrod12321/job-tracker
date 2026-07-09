@@ -75,23 +75,34 @@ if (nodeEnv === 'production' && !configuredFrontendUrl) {
 }
 
 if (otpProvider === 'twilio' && nodeEnv !== 'test') {
-  if (otpChannel !== 'whatsapp') {
-    throw new Error('OTP_CHANNEL must be whatsapp when OTP_PROVIDER=twilio')
+  if (otpChannel !== 'whatsapp' && otpChannel !== 'sms') {
+    throw new Error(
+      'OTP_CHANNEL must be whatsapp or sms when OTP_PROVIDER=twilio',
+    )
   }
 
   const missingTwilioVariables = [
     { name: 'TWILIO_ACCOUNT_SID', value: twilioAccountSid },
     { name: 'TWILIO_API_KEY_SID', value: twilioApiKeySid },
     { name: 'TWILIO_API_KEY_SECRET', value: twilioApiKeySecret },
-    { name: 'TWILIO_WHATSAPP_FROM', value: twilioWhatsappFrom },
-    ...(otpMode === 'production'
+    ...(otpChannel === 'whatsapp'
       ? [
-          {
-            name: 'TWILIO_WHATSAPP_AUTH_CONTENT_SID',
-            value: twilioWhatsappAuthContentSid,
-          },
+          { name: 'TWILIO_WHATSAPP_FROM', value: twilioWhatsappFrom },
+          ...(otpMode === 'production'
+            ? [
+                {
+                  name: 'TWILIO_WHATSAPP_AUTH_CONTENT_SID',
+                  value: twilioWhatsappAuthContentSid,
+                },
+              ]
+            : []),
         ]
-      : []),
+      : [
+          {
+            name: 'TWILIO_MESSAGING_SERVICE_SID',
+            value: twilioMessagingServiceSid,
+          },
+        ]),
   ]
     .filter(({ value }) => !value)
     .map(({ name }) => name)

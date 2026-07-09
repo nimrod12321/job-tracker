@@ -1,5 +1,6 @@
 import { env } from '../config/env.js'
 import {
+  createTwilioSmsOtpProvider,
   createTwilioWhatsAppOtpProvider,
   resolveOtpProviderKind,
 } from './twilioOtpProvider.js'
@@ -36,6 +37,18 @@ export async function sendOtpCode(
       whatsappFrom: env.twilioWhatsappFrom,
       otpMode: env.otpMode,
       authContentSid: env.twilioWhatsappAuthContentSid,
+    })
+
+    await provider.sendOtpCode(phoneNumber, code, purpose)
+    return
+  }
+
+  if (providerKind === 'twilio-sms') {
+    const provider = createTwilioSmsOtpProvider({
+      accountSid: env.twilioAccountSid,
+      apiKeySid: env.twilioApiKeySid,
+      apiKeySecret: env.twilioApiKeySecret,
+      messagingServiceSid: env.twilioMessagingServiceSid,
     })
 
     await provider.sendOtpCode(phoneNumber, code, purpose)
