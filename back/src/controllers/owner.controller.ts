@@ -909,15 +909,6 @@ export async function deleteOwnerApplication(req: Request, res: Response) {
       })
     }
 
-    if (
-      application.status !== 'selected' &&
-      application.status !== 'rejected'
-    ) {
-      return res.status(400).json({
-        message: 'Mark applicant as rejected or accepted before removing.',
-      })
-    }
-
     await prisma.restaurantApplication.delete({
       where: {
         id: application.id,
@@ -1060,12 +1051,6 @@ export async function deleteOwnerLead(req: Request, res: Response) {
     if (!lead) {
       return res.status(404).json({
         message: 'candidate lead not found',
-      })
-    }
-
-    if (lead.status !== 'rejected' && lead.status !== 'relevant') {
-      return res.status(400).json({
-        message: 'Mark candidate as rejected or relevant before removing.',
       })
     }
 

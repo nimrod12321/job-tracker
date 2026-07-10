@@ -23,7 +23,6 @@ function OwnerProfilePage() {
   const navigate = useNavigate()
   const { direction, language } = useRestaurantLanguage()
   const [form, setForm] = useState<OwnerProfileInput>(emptyProfile)
-  const [step, setStep] = useState(1)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -41,22 +40,23 @@ function OwnerProfilePage() {
       language === 'he'
         ? 'טוען פרופיל מסעדה...'
         : 'Loading restaurant profile...',
-    back: language === 'he' ? 'חזרה' : 'Back',
-    next: language === 'he' ? 'הבא' : 'Next',
     finish:
-      language === 'he' ? 'שמור והמשך למשרות' : 'Save and continue to jobs',
+      language === 'he' ? 'שמירה והמשך למשרות' : 'Save and continue to jobs',
     saving: language === 'he' ? 'שומר...' : 'Saving...',
     saved:
       language === 'he'
         ? 'פרופיל המסעדה נשמר.'
         : 'Restaurant profile saved.',
-    step: language === 'he' ? 'שלב' : 'Step',
-    contactHeading:
+    restaurantSection:
+      language === 'he' ? 'פרטי המסעדה' : 'Restaurant details',
+    contactSection:
+      language === 'he' ? 'איך ליצור איתכם קשר' : 'How to contact you',
+    descriptionSection:
       language === 'he'
-        ? 'איך ליצור איתך קשר?'
-        : 'How should candidates contact you?',
-    contactPhone:
-      language === 'he' ? 'טלפון ליצירת קשר' : 'Contact phone',
+        ? 'ספרו לנו קצת על המסעדה'
+        : 'Tell us a bit about the restaurant',
+    address: language === 'he' ? 'כתובת' : 'Address',
+    contactPhone: language === 'he' ? 'טלפון' : 'Contact phone',
     incompleteSummary:
       language === 'he'
         ? 'כדי לפרסם משרות צריך להשלים את פרטי המסעדה.'
@@ -69,8 +69,8 @@ function OwnerProfilePage() {
     phoneNumber: text.contactPhone,
     whatsappNumber: text.contactPhone,
     city: language === 'he' ? 'עיר' : 'City',
-    street: language === 'he' ? 'רחוב' : 'Street',
-    description: language === 'he' ? 'תיאור קצר' : 'Short description',
+    street: text.address,
+    description: language === 'he' ? 'על המסעדה' : 'About the restaurant',
   }
 
   useEffect(() => {
@@ -143,11 +143,6 @@ function OwnerProfilePage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    if (step < 3) {
-      setStep((currentStep) => currentStep + 1)
-      return
-    }
-
     setError(null)
     setSuccess(null)
 
@@ -217,32 +212,13 @@ function OwnerProfilePage() {
         className="owner-profile-form guided-form"
         onSubmit={handleSubmit}
       >
-        <div className="guided-form-progress">
-          <span>
-            {text.step} {step}/3
-          </span>
-          <div>
-            {[1, 2, 3].map((currentStep) => (
-              <span
-                className={currentStep <= step ? 'active' : ''}
-                key={currentStep}
-              />
-            ))}
+        <section className="owner-profile-section-card">
+          <div className="guided-form-heading">
+            <h2>{text.restaurantSection}</h2>
           </div>
-        </div>
-
-        {step === 1 && (
-          <>
-            <div className="guided-form-heading">
-              <h2>
-                {language === 'he'
-                  ? 'ספר לנו על המסעדה'
-                  : 'Tell us about the restaurant'}
-              </h2>
-            </div>
-
+          <div className="owner-profile-section-fields">
             <label>
-              {language === 'he' ? 'שם המסעדה' : 'Restaurant name'}
+              {fieldLabels.restaurantName}
               <input
                 aria-invalid={isMissing('restaurantName')}
                 className={isMissing('restaurantName') ? 'field-error' : ''}
@@ -259,32 +235,39 @@ function OwnerProfilePage() {
             </label>
 
             <label>
-              {language === 'he' ? 'איש קשר' : 'Contact person'}
+              {fieldLabels.city}
               <input
-                aria-invalid={isMissing('contactPerson')}
-                className={isMissing('contactPerson') ? 'field-error' : ''}
-                value={form.contactPerson}
-                onChange={(event) =>
-                  updateField('contactPerson', event.target.value)
-                }
+                aria-invalid={isMissing('city')}
+                className={isMissing('city') ? 'field-error' : ''}
+                value={form.city}
+                onChange={(event) => updateField('city', event.target.value)}
               />
-              {isMissing('contactPerson') && (
-                <span className="field-error-text">
-                  {fieldLabels.contactPerson}
-                </span>
+              {isMissing('city') && (
+                <span className="field-error-text">{fieldLabels.city}</span>
               )}
             </label>
-          </>
-        )}
+            <label className="owner-field-wide">
+              {fieldLabels.street}
+              <input
+                aria-invalid={isMissing('street')}
+                className={isMissing('street') ? 'field-error' : ''}
+                value={form.street}
+                onChange={(event) =>
+                  updateField('street', event.target.value)
+                }
+              />
+              {isMissing('street') && (
+                <span className="field-error-text">{fieldLabels.street}</span>
+              )}
+            </label>
+          </div>
+        </section>
 
-        {step === 2 && (
-          <>
-            <div className="guided-form-heading">
-              <h2>
-                {text.contactHeading}
-              </h2>
-            </div>
-
+        <section className="owner-profile-section-card">
+          <div className="guided-form-heading">
+            <h2>{text.contactSection}</h2>
+          </div>
+          <div className="owner-profile-section-fields">
             <label>
               {text.contactPhone}
               <input
@@ -304,47 +287,31 @@ function OwnerProfilePage() {
             </label>
 
             <label>
-              {language === 'he' ? 'עיר' : 'City'}
+              {fieldLabels.contactPerson}
               <input
-                aria-invalid={isMissing('city')}
-                className={isMissing('city') ? 'field-error' : ''}
-                value={form.city}
-                onChange={(event) => updateField('city', event.target.value)}
-              />
-              {isMissing('city') && (
-                <span className="field-error-text">{fieldLabels.city}</span>
-              )}
-            </label>
-
-            <label>
-              {language === 'he' ? 'רחוב' : 'Street'}
-              <input
-                aria-invalid={isMissing('street')}
-                className={isMissing('street') ? 'field-error' : ''}
-                value={form.street}
+                aria-invalid={isMissing('contactPerson')}
+                className={isMissing('contactPerson') ? 'field-error' : ''}
+                value={form.contactPerson}
                 onChange={(event) =>
-                  updateField('street', event.target.value)
+                  updateField('contactPerson', event.target.value)
                 }
               />
-              {isMissing('street') && (
-                <span className="field-error-text">{fieldLabels.street}</span>
+              {isMissing('contactPerson') && (
+                <span className="field-error-text">
+                  {fieldLabels.contactPerson}
+                </span>
               )}
             </label>
-          </>
-        )}
+          </div>
+        </section>
 
-        {step === 3 && (
-          <>
-            <div className="guided-form-heading">
-              <h2>
-                {language === 'he'
-                  ? 'מה הסגנון של המקום?'
-                  : 'What is the vibe of the place?'}
-              </h2>
-            </div>
-
+        <section className="owner-profile-section-card">
+          <div className="guided-form-heading">
+            <h2>{text.descriptionSection}</h2>
+          </div>
+          <div className="owner-profile-section-fields">
             <label className="owner-field-wide">
-              {language === 'he' ? 'תיאור קצר' : 'Short description'}
+              {fieldLabels.description}
               <textarea
                 aria-invalid={isMissing('description')}
                 className={isMissing('description') ? 'field-error' : ''}
@@ -360,8 +327,8 @@ function OwnerProfilePage() {
                 </span>
               )}
             </label>
-          </>
-        )}
+          </div>
+        </section>
 
         {error && (
           <div className="message message-error owner-profile-error-summary" role="alert">
@@ -383,17 +350,8 @@ function OwnerProfilePage() {
         )}
 
         <div className="guided-form-actions">
-          {step > 1 && (
-            <button
-              className="restaurant-skip-button"
-              type="button"
-              onClick={() => setStep((currentStep) => currentStep - 1)}
-            >
-              {text.back}
-            </button>
-          )}
           <button type="submit" disabled={isSaving}>
-            {isSaving ? text.saving : step === 3 ? text.finish : text.next}
+            {isSaving ? text.saving : text.finish}
           </button>
         </div>
       </form>

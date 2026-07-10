@@ -32,7 +32,9 @@ const emptyJobForm: OwnerJobInput = {
 
 const shiftOptions = [
   { he: 'בוקר', en: 'Morning' },
+  { he: 'צהריים', en: 'Afternoon' },
   { he: 'ערב', en: 'Evening' },
+  { he: 'לילה', en: 'Night' },
   { he: 'סופי שבוע', en: 'Weekends' },
   { he: 'גמיש', en: 'Flexible' },
 ]
@@ -52,7 +54,11 @@ function getStoredQrWidgetOpen(slug: string | null | undefined) {
 
   const storedValue = localStorage.getItem(storageKey)
 
-  return storedValue === null ? true : storedValue === 'true'
+  return storedValue === null ? false : storedValue === 'true'
+}
+
+function getDraftIntroStorageKey(profileId: string | null | undefined) {
+  return profileId ? `peepss_owner_starter_drafts_seen_${profileId}` : ''
 }
 
 function isOwnerProfileComplete(profile: OwnerProfile | null) {
@@ -108,6 +114,7 @@ function OwnerJobsPage() {
   const [highlightedJobId, setHighlightedJobId] = useState<string | null>(null)
   const [expandedDraftId, setExpandedDraftId] = useState<string | null>(null)
   const [showFirstPublishModal, setShowFirstPublishModal] = useState(false)
+  const [showDraftIntro, setShowDraftIntro] = useState(false)
   const [openJobsSection, setOpenJobsSection] =
     useState<OwnerJobsSection | null>(null)
   const pendingJobIds = useRef(new Set<string>())
@@ -142,14 +149,6 @@ function OwnerJobsPage() {
       language === 'he'
         ? 'משרות חדשות מתחילות כטיוטה.'
         : 'New jobs start as drafts.',
-    defaultDraftsTitle:
-      language === 'he'
-        ? 'יצרנו עבורך משרות בסיסיות לעריכה מהירה.'
-        : 'We created basic job drafts for you.',
-    defaultDraftsHint:
-      language === 'he'
-        ? 'אפשר לערוך, למחוק או לפרסם כל טיוטה.'
-        : 'You can edit, delete, or publish each draft.',
     editJob: language === 'he' ? 'עריכת משרה' : 'Edit job',
     cancelEdit: language === 'he' ? 'ביטול עריכה' : 'Cancel edit',
     roleStep: language === 'he' ? 'את מי אתם מחפשים?' : 'Who are you hiring?',
@@ -232,8 +231,6 @@ function OwnerJobsPage() {
       language === 'he'
         ? 'קישור מוכן לשיתוף והדפסה'
         : 'Ready to share or print',
-    openQr: language === 'he' ? 'פתח' : 'Open',
-    hideQr: language === 'he' ? 'סגור' : 'Close',
     closeQr: language === 'he' ? 'סגור אזור ברקוד' : 'Close QR section',
     copyLink: language === 'he' ? 'העתק קישור' : 'Copy link',
     downloadQr: language === 'he' ? 'הורד QR' : 'Download QR',
@@ -251,6 +248,16 @@ function OwnerJobsPage() {
     gotIt: language === 'he' ? 'הבנתי' : 'Got it',
     viewApplications:
       language === 'he' ? 'למועמדים' : 'View applications',
+    starterDraftsIntro:
+      language === 'he'
+        ? 'יצרנו בשבילך כמה טיוטות התחלתיות לפי תפקידים נפוצים במסעדות. אפשר לערוך, לפרסם או למחוק כל טיוטה.'
+        : 'We created a few starter drafts for common restaurant roles. You can edit, publish, or delete each draft.',
+    closeDraftIntro:
+      language === 'he' ? 'סגור הסבר טיוטות' : 'Close draft explanation',
+    closeCreateJob:
+      language === 'he' ? 'סגור יצירת משרה' : 'Close create job',
+    closeEditJob:
+      language === 'he' ? 'סגור עריכת משרה' : 'Close edit job',
   }
 
   const postedJobs = useMemo(
@@ -275,6 +282,7 @@ function OwnerJobsPage() {
           if (!isOwnerProfileComplete(ownerProfile)) {
             setJobs([])
             setIsQrExpanded(false)
+            setShowDraftIntro(false)
             setOpenJobsSection(null)
             return
           }
@@ -292,6 +300,12 @@ function OwnerJobsPage() {
 
           setJobs(ownerJobs)
           setIsQrExpanded(getStoredQrWidgetOpen(ownerProfile?.slug))
+          setShowDraftIntro(
+            draftCount > 0 &&
+              !localStorage.getItem(
+                getDraftIntroStorageKey(ownerProfile?.id),
+              ),
+          )
           setOpenJobsSection(
             postedCount > 0 ? 'posted' : draftCount > 0 ? 'drafts' : null,
           )
@@ -425,6 +439,16 @@ function OwnerJobsPage() {
     setOpenJobsSection((currentSection) =>
       currentSection === section ? null : section,
     )
+  }
+
+  function dismissDraftIntro() {
+    const storageKey = getDraftIntroStorageKey(profile?.id)
+
+    if (storageKey) {
+      localStorage.setItem(storageKey, 'true')
+    }
+
+    setShowDraftIntro(false)
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -840,6 +864,23 @@ function OwnerJobsPage() {
             ? 'owner-qr-widget-expanded'
             : 'owner-qr-widget-collapsed'
         }`}
+        role={!isQrExpanded && publicHiringLink ? 'button' : undefined}
+        tabIndex={!isQrExpanded && publicHiringLink ? 0 : undefined}
+        onClick={() => {
+          if (!isQrExpanded && publicHiringLink) {
+            handleToggleQr()
+          }
+        }}
+        onKeyDown={(event) => {
+          if (
+            !isQrExpanded &&
+            publicHiringLink &&
+            (event.key === 'Enter' || event.key === ' ')
+          ) {
+            event.preventDefault()
+            handleToggleQr()
+          }
+        }}
       >
         {isQrExpanded ? (
           <div className="owner-qr-expanded-content">
@@ -903,70 +944,66 @@ function OwnerJobsPage() {
                 </p>
               </div>
             </div>
-
-            <div className="owner-qr-actions">
-              {publicHiringLink && (
-                <button
-                  className="owner-qr-open-button"
-                  type="button"
-                  onClick={handleToggleQr}
-                >
-                  {text.openQr}
-                </button>
-              )}
-            </div>
           </>
         )}
       </section>
 
-      <div className="owner-jobs-local-nav" aria-label={text.title}>
+      <div className="owner-job-action-cards" aria-label={text.title}>
         <button
-          className={openJobsSection === 'drafts' ? 'is-active' : ''}
+          className={`owner-job-action-card${isCreating ? ' is-active' : ''}`}
+          type="button"
+          aria-expanded={isCreating}
+          onClick={startCreating}
+        >
+          <span className="owner-job-action-card-title">{text.createJob}</span>
+          <span className="owner-job-action-card-count" aria-hidden="true">
+            +
+          </span>
+        </button>
+        <button
+          className={`owner-job-action-card${
+            openJobsSection === 'drafts' ? ' is-active' : ''
+          }`}
           type="button"
           aria-expanded={openJobsSection === 'drafts'}
           onClick={() => toggleJobsSection('drafts')}
         >
-          {text.drafts} · {draftJobs.length}{' '}
-          <span aria-hidden="true">
+          <span className="owner-job-action-card-title">{text.drafts}</span>
+          <span className="owner-job-action-card-count">{draftJobs.length}</span>
+          <span className="owner-job-action-card-indicator" aria-hidden="true">
             {openJobsSection === 'drafts' ? '▲' : '▼'}
           </span>
         </button>
         <button
-          className={openJobsSection === 'posted' ? 'is-active' : ''}
+          className={`owner-job-action-card${
+            openJobsSection === 'posted' ? ' is-active' : ''
+          }`}
           type="button"
           aria-expanded={openJobsSection === 'posted'}
           onClick={() => toggleJobsSection('posted')}
         >
-          {text.postedJobs} · {postedJobs.length}{' '}
-          <span aria-hidden="true">
+          <span className="owner-job-action-card-title">
+            {text.postedJobs}
+          </span>
+          <span className="owner-job-action-card-count">
+            {postedJobs.length}
+          </span>
+          <span className="owner-job-action-card-indicator" aria-hidden="true">
             {openJobsSection === 'posted' ? '▲' : '▼'}
           </span>
         </button>
       </div>
 
-      {!isCreating && jobs.length === 0 && (
-        <div className="owner-step-card owner-jobs-empty">
-          <h2>{text.firstJob}</h2>
-          <button type="button" onClick={startCreating}>
-            {text.createJob}
+      {showDraftIntro && draftJobs.length > 0 && (
+        <div className="owner-draft-intro-note">
+          <p>{text.starterDraftsIntro}</p>
+          <button
+            type="button"
+            aria-label={text.closeDraftIntro}
+            onClick={dismissDraftIntro}
+          >
+            ×
           </button>
-        </div>
-      )}
-
-      {!isCreating && jobs.length > 0 && (
-        <button
-          className="owner-create-job-button"
-          type="button"
-          onClick={startCreating}
-        >
-          {text.createJob}
-        </button>
-      )}
-
-      {!isCreating && draftJobs.length > 0 && (
-        <div className="owner-step-card owner-default-drafts-note">
-          <h2>{text.defaultDraftsTitle}</h2>
-          <p>{text.defaultDraftsHint}</p>
         </div>
       )}
 
@@ -975,6 +1012,14 @@ function OwnerJobsPage() {
           className="owner-job-form owner-step-card"
           onSubmit={handleSubmit}
         >
+          <button
+            className="owner-form-close-button"
+            type="button"
+            aria-label={editingJobId ? text.closeEditJob : text.closeCreateJob}
+            onClick={resetForm}
+          >
+            ×
+          </button>
           <div className="guided-form-progress">
             <span>{jobStep}/4</span>
             <div>
@@ -992,13 +1037,6 @@ function OwnerJobsPage() {
               <h2>{editingJobId ? text.editJob : text.createJob}</h2>
               <p>{jobStep === 4 ? text.contactHint : text.draftHint}</p>
             </div>
-            <button
-              className="owner-cancel-button"
-              type="button"
-              onClick={resetForm}
-            >
-              {text.cancelEdit}
-            </button>
           </div>
 
           {jobStep === 1 && (
@@ -1051,15 +1089,6 @@ function OwnerJobsPage() {
                   })}
                 </div>
               </fieldset>
-              <label className="owner-field-wide">
-                {text.shiftInfo}
-                <input
-                  value={form.shiftInfo}
-                  onChange={(event) =>
-                    updateField('shiftInfo', event.target.value)
-                  }
-                />
-              </label>
             </>
           )}
 

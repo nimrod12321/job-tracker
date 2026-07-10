@@ -143,6 +143,20 @@ export async function updateAdminRestaurant(
   return response.json()
 }
 
+export async function deleteAdminRestaurant(id: string): Promise<void> {
+  const response = await fetch(
+    `${API_BASE_URL}/admin/restaurants/${encodeURIComponent(id)}`,
+    {
+      method: 'DELETE',
+      headers: getHeaders(),
+    },
+  )
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to delete restaurant')
+  }
+}
+
 export async function updateAdminRestaurantLeadStatus(
   id: string,
   status: CandidateLeadStatus,

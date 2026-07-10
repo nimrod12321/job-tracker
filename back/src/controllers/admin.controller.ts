@@ -798,6 +798,77 @@ export async function markAdminRestaurantSeen(req: Request, res: Response) {
   }
 }
 
+export async function deleteAdminRestaurant(req: Request, res: Response) {
+  try {
+    const idResult = adminRestaurantIdSchema.safeParse(req.params.id)
+
+    if (!idResult.success) {
+      return res.status(400).json({
+        message: getValidationErrorMessage(idResult.error),
+      })
+    }
+
+    const restaurant = await prisma.restaurantOwnerProfile.findUnique({
+      where: {
+        id: idResult.data,
+      },
+      select: {
+        id: true,
+      },
+    })
+
+    if (!restaurant) {
+      return res.status(404).json({
+        message: 'restaurant not found',
+      })
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const jobs = await tx.restaurantJob.findMany({
+        where: {
+          ownerProfileId: restaurant.id,
+        },
+        select: {
+          id: true,
+        },
+      })
+      const jobIds = jobs.map((job) => job.id)
+
+      if (jobIds.length > 0) {
+        await tx.restaurantApplication.deleteMany({
+          where: {
+            restaurantJobId: {
+              in: jobIds,
+            },
+          },
+        })
+
+        await tx.restaurantJob.deleteMany({
+          where: {
+            id: {
+              in: jobIds,
+            },
+          },
+        })
+      }
+
+      await tx.restaurantOwnerProfile.delete({
+        where: {
+          id: restaurant.id,
+        },
+      })
+    })
+
+    return res.status(204).send()
+  } catch (error) {
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to delete restaurant',
+    })
+  }
+}
+
 export async function getAdminRestaurantLeads(
   _req: Request,
   res: Response,

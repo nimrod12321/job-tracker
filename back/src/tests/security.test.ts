@@ -687,6 +687,63 @@ test(
       )
       assert.equal(hiringManagerStolenOwnerBJob.status, 404)
 
+      const removableNewLead =
+        await prisma.restaurantCandidateLead.create({
+          data: {
+            ownerProfileId: ownerA.profile.id,
+            fullName: 'Removable New Lead',
+            phoneNumber: '0504444444',
+            wantedRoles: ['waiter'],
+            source: 'security-test',
+            status: 'new',
+          },
+        })
+      const hiringManagerDeleteNewLead = await request(
+        `/owner/leads/${removableNewLead.id}`,
+        {
+          method: 'DELETE',
+          headers: jsonHeaders(hiringManagerToken),
+        },
+      )
+      assert.equal(hiringManagerDeleteNewLead.status, 204)
+
+      const ownerBLeadForDelete =
+        await prisma.restaurantCandidateLead.create({
+          data: {
+            ownerProfileId: ownerB.profile.id,
+            fullName: 'Owner B Delete Guard Lead',
+            phoneNumber: '0504445555',
+            wantedRoles: ['host'],
+            source: 'security-test',
+            status: 'new',
+          },
+        })
+      const hiringManagerDeleteOtherRestaurantLead = await request(
+        `/owner/leads/${ownerBLeadForDelete.id}`,
+        {
+          method: 'DELETE',
+          headers: jsonHeaders(hiringManagerToken),
+        },
+      )
+      assert.equal(hiringManagerDeleteOtherRestaurantLead.status, 404)
+
+      const removableAppliedApplication =
+        await prisma.restaurantApplication.create({
+          data: {
+            userId: hiringManagerAuth.body.user.id,
+            restaurantJobId: ownerAJob.body.id,
+            status: 'applied',
+          },
+        })
+      const hiringManagerDeleteAppliedApplication = await request(
+        `/owner/applications/${removableAppliedApplication.id}`,
+        {
+          method: 'DELETE',
+          headers: jsonHeaders(hiringManagerToken),
+        },
+      )
+      assert.equal(hiringManagerDeleteAppliedApplication.status, 204)
+
       const hiringManagerDeleteJob = await request(
         `/owner/jobs/${hiringManagerCreatedJob.body.id}`,
         {
@@ -771,7 +828,7 @@ test(
         (restaurant) => restaurant.id === ownerB.profile.id,
       )
       assert.equal(ownerBAdminRestaurant?.hasNewCandidate, true)
-      assert.equal(ownerBAdminRestaurant?.newCandidateCount, 1)
+      assert.equal(ownerBAdminRestaurant?.newCandidateCount, 2)
 
       const nonAdminMarkSeen = await request(
         `/admin/restaurants/${ownerA.profile.id}/mark-seen`,
@@ -815,7 +872,7 @@ test(
       assert.equal(ownerAAfterSeen?.hasNewCandidate, false)
       assert.equal(ownerAAfterSeen?.newCandidateCount, 0)
       assert.equal(ownerBAfterOwnerASeen?.hasNewCandidate, true)
-      assert.equal(ownerBAfterOwnerASeen?.newCandidateCount, 1)
+      assert.equal(ownerBAfterOwnerASeen?.newCandidateCount, 2)
 
       const secondAdminRestaurantsAfterFirstAdminSeen = await request<
         AdminRestaurantResponse[]
@@ -910,8 +967,67 @@ test(
           select: {
             userId: true,
           },
-        })
+      })
       createdUserIds.push(duplicateProfile.userId)
+
+      const deletableRestaurant = await request<AdminRestaurantResponse>(
+        '/admin/restaurants',
+        {
+          method: 'POST',
+          headers: jsonHeaders(adminToken),
+          body: JSON.stringify({
+            restaurantName: `Admin Delete ${runId}`,
+          }),
+        },
+      )
+      assert.equal(deletableRestaurant.status, 201)
+      assert.ok(deletableRestaurant.body.slug)
+      const deletableProfile =
+        await prisma.restaurantOwnerProfile.findUniqueOrThrow({
+          where: {
+            id: deletableRestaurant.body.id,
+          },
+          select: {
+            userId: true,
+          },
+        })
+      createdUserIds.push(deletableProfile.userId)
+
+      const nonAdminDeleteRestaurant = await request(
+        `/admin/restaurants/${deletableRestaurant.body.id}`,
+        {
+          method: 'DELETE',
+          headers: jsonHeaders(nonAdminToken),
+        },
+      )
+      assert.equal(nonAdminDeleteRestaurant.status, 403)
+
+      const adminDeleteRestaurant = await request(
+        `/admin/restaurants/${deletableRestaurant.body.id}`,
+        {
+          method: 'DELETE',
+          headers: jsonHeaders(adminToken),
+        },
+      )
+      assert.equal(adminDeleteRestaurant.status, 204)
+
+      const adminRestaurantsAfterDelete = await request<
+        AdminRestaurantResponse[]
+      >('/admin/restaurants', {
+        headers: jsonHeaders(adminToken),
+      })
+      assert.equal(adminRestaurantsAfterDelete.status, 200)
+      assert.ok(
+        adminRestaurantsAfterDelete.body.every(
+          (restaurant) => restaurant.id !== deletableRestaurant.body.id,
+        ),
+      )
+
+      const publicDeletedRestaurant =
+        await request<Record<string, unknown>>(
+          `/public/restaurants/${deletableRestaurant.body.slug}`,
+        )
+      assert.equal(publicDeletedRestaurant.status, 404)
 
       const editedAdminRestaurant = await request<AdminRestaurantResponse>(
         `/admin/restaurants/${adminCreatedRestaurant.body.id}`,
@@ -1080,6 +1196,25 @@ test(
         headers: jsonHeaders(workerToken),
       })
       assert.equal(workerOwnerJobs.status, 403)
+
+      const workerDeleteGuardLead =
+        await prisma.restaurantCandidateLead.create({
+          data: {
+            ownerProfileId: ownerA.profile.id,
+            fullName: 'Worker Delete Guard Lead',
+            phoneNumber: '0501313131',
+            wantedRoles: ['waiter'],
+            source: 'security-test',
+          },
+        })
+      const workerDeleteLead = await request(
+        `/owner/leads/${workerDeleteGuardLead.id}`,
+        {
+          method: 'DELETE',
+          headers: jsonHeaders(workerToken),
+        },
+      )
+      assert.equal(workerDeleteLead.status, 403)
 
       await request('/restaurant/profile', {
         method: 'PUT',

@@ -40,14 +40,6 @@ function getWorkerInitial(name: string) {
   return Array.from(name.trim() || '?')[0]
 }
 
-function canRemoveLead(lead: RestaurantCandidateLead) {
-  return lead.status === 'rejected' || lead.status === 'relevant'
-}
-
-function canRemoveApplication(application: OwnerApplication) {
-  return application.status === 'rejected' || application.status === 'selected'
-}
-
 function OwnerApplicationsPage() {
   const { direction, language } = useRestaurantLanguage()
   const [applications, setApplications] = useState<OwnerApplication[]>([])
@@ -95,6 +87,7 @@ function OwnerApplicationsPage() {
     notProvided: language === 'he' ? 'לא צוין' : 'Not provided',
     select: language === 'he' ? 'בחר' : 'Select',
     reject: language === 'he' ? 'דחה' : 'Reject',
+    status: language === 'he' ? 'סטטוס' : 'Status',
     new: language === 'he' ? 'חדש' : 'New',
     contacted: language === 'he' ? 'נוצר קשר' : 'Contacted',
     relevant: language === 'he' ? 'רלוונטי' : 'Relevant',
@@ -249,7 +242,7 @@ function OwnerApplicationsPage() {
   }
 
   async function handleRemoveLead(lead: RestaurantCandidateLead) {
-    if (!canRemoveLead(lead) || pendingLeadIds.current.has(lead.id)) {
+    if (pendingLeadIds.current.has(lead.id)) {
       return
     }
 
@@ -294,10 +287,7 @@ function OwnerApplicationsPage() {
   }
 
   async function handleRemoveApplication(application: OwnerApplication) {
-    if (
-      !canRemoveApplication(application) ||
-      pendingApplicationIds.current.has(application.id)
-    ) {
+    if (pendingApplicationIds.current.has(application.id)) {
       return
     }
 
@@ -359,6 +349,14 @@ function OwnerApplicationsPage() {
     }
 
     return labels[status]
+  }
+
+  function handleLeadContactClick(lead: RestaurantCandidateLead) {
+    if (lead.status !== 'new' || pendingLeadIds.current.has(lead.id)) {
+      return
+    }
+
+    void handleLeadStatusChange(lead, 'contacted')
   }
 
   function renderSectionHeader(
@@ -452,9 +450,27 @@ function OwnerApplicationsPage() {
                               <h2>{candidateName}</h2>
                             </div>
                           </div>
-                          <span className={`application-status ${lead.status}`}>
-                            {getLeadStatusLabel(lead.status)}
-                          </span>
+                          <label
+                            className={`owner-status-pill-select ${lead.status}`}
+                          >
+                            <select
+                              aria-label={text.status}
+                              value={lead.status}
+                              disabled={busyLeadId === lead.id}
+                              onChange={(event) =>
+                                void handleLeadStatusChange(
+                                  lead,
+                                  event.target.value as CandidateLeadStatus,
+                                )
+                              }
+                            >
+                              {leadStatuses.map((status) => (
+                                <option key={status} value={status}>
+                                  {getLeadStatusLabel(status)}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
                         </div>
 
                         <dl className="owner-worker-details">
@@ -498,12 +514,18 @@ function OwnerApplicationsPage() {
 
                         {lead.phoneNumber && (
                           <div className="owner-applicant-contact">
-                            <a href={`tel:${lead.phoneNumber}`}>{text.call}</a>
+                            <a
+                              href={`tel:${lead.phoneNumber}`}
+                              onClick={() => handleLeadContactClick(lead)}
+                            >
+                              {text.call}
+                            </a>
                             {whatsappNumber && (
                               <a
                                 href={`https://wa.me/${whatsappNumber}`}
                                 target="_blank"
                                 rel="noreferrer"
+                                onClick={() => handleLeadContactClick(lead)}
                               >
                                 {text.whatsapp}
                               </a>
@@ -512,30 +534,14 @@ function OwnerApplicationsPage() {
                         )}
 
                         <div className="owner-application-actions">
-                          {leadStatuses.map((status) => (
-                            <button
-                              type="button"
-                              disabled={
-                                busyLeadId === lead.id || lead.status === status
-                              }
-                              key={status}
-                              onClick={() =>
-                                void handleLeadStatusChange(lead, status)
-                              }
-                            >
-                              {getLeadStatusLabel(status)}
-                            </button>
-                          ))}
-                          {canRemoveLead(lead) && (
-                            <button
-                              className="owner-remove-button"
-                              type="button"
-                              disabled={busyLeadId === lead.id}
-                              onClick={() => void handleRemoveLead(lead)}
-                            >
-                              {text.remove}
-                            </button>
-                          )}
+                          <button
+                            className="owner-remove-button"
+                            type="button"
+                            disabled={busyLeadId === lead.id}
+                            onClick={() => void handleRemoveLead(lead)}
+                          >
+                            {text.remove}
+                          </button>
                         </div>
                       </article>
                     )
@@ -588,11 +594,34 @@ function OwnerApplicationsPage() {
                               <h2>{workerName}</h2>
                             </div>
                           </div>
-                          <span
-                            className={`application-status ${application.status}`}
+                          <label
+                            className={`owner-status-pill-select ${application.status}`}
                           >
-                            {getStatusLabel(application.status, language)}
-                          </span>
+                            <select
+                              aria-label={text.status}
+                              value={application.status}
+                              disabled={busyApplicationId === application.id}
+                              onChange={(event) => {
+                                const nextStatus = event.target.value as
+                                  | 'applied'
+                                  | 'selected'
+                                  | 'rejected'
+
+                                if (nextStatus !== 'applied') {
+                                  void handleStatusChange(
+                                    application,
+                                    nextStatus,
+                                  )
+                                }
+                              }}
+                            >
+                              <option value="applied">
+                                {getStatusLabel('applied', language)}
+                              </option>
+                              <option value="selected">{text.select}</option>
+                              <option value="rejected">{text.reject}</option>
+                            </select>
+                          </label>
                         </div>
 
                         <dl className="owner-worker-details">
@@ -670,42 +699,15 @@ function OwnerApplicationsPage() {
 
                         <div className="owner-application-actions">
                           <button
+                            className="owner-remove-button"
                             type="button"
-                            disabled={
-                              busyApplicationId === application.id ||
-                              application.status === 'selected'
-                            }
+                            disabled={busyApplicationId === application.id}
                             onClick={() =>
-                              void handleStatusChange(application, 'selected')
+                              void handleRemoveApplication(application)
                             }
                           >
-                            {text.select}
+                            {text.remove}
                           </button>
-                          <button
-                            className="owner-reject-button"
-                            type="button"
-                            disabled={
-                              busyApplicationId === application.id ||
-                              application.status === 'rejected'
-                            }
-                            onClick={() =>
-                              void handleStatusChange(application, 'rejected')
-                            }
-                          >
-                            {text.reject}
-                          </button>
-                          {canRemoveApplication(application) && (
-                            <button
-                              className="owner-remove-button"
-                              type="button"
-                              disabled={busyApplicationId === application.id}
-                              onClick={() =>
-                                void handleRemoveApplication(application)
-                              }
-                            >
-                              {text.remove}
-                            </button>
-                          )}
                         </div>
                       </article>
                     )

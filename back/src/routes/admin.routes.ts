@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import {
   createAdminRestaurant,
+  deleteAdminRestaurant,
   getAdminRestaurantDetail,
   getAdminRestaurantLeads,
   getAdminRestaurants,
@@ -19,6 +20,7 @@ adminRouter.post('/restaurants', createAdminRestaurant)
 adminRouter.post('/restaurants/:id/mark-seen', markAdminRestaurantSeen)
 adminRouter.get('/restaurants/:id', getAdminRestaurantDetail)
 adminRouter.patch('/restaurants/:id', updateAdminRestaurant)
+adminRouter.delete('/restaurants/:id', deleteAdminRestaurant)
 adminRouter.get('/restaurant-leads', getAdminRestaurantLeads)
 adminRouter.patch(
   '/restaurant-leads/:id/status',

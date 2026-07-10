@@ -3652,6 +3652,19 @@ textarea:focus-visible {
 }
 
 @media (max-width: 700px) {
+  .owner-profile-section-fields,
+  .admin-danger-zone {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-danger-zone {
+    display: grid;
+  }
+
+  .admin-danger-button {
+    width: 100%;
+  }
+
   .owner-team-form,
   .owner-team-list .owner-team-card {
     grid-template-columns: 1fr;
@@ -3735,8 +3748,24 @@ textarea:focus-visible {
 
 .owner-field-wide,
 .owner-profile-form > .message,
+.owner-profile-section-card,
 .owner-form-heading {
   grid-column: 1 / -1;
+}
+
+.owner-profile-section-card {
+  display: grid;
+  gap: 1rem;
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: 22px;
+  padding: clamp(1rem, 3vw, 1.25rem);
+  background: #fffaf3;
+}
+
+.owner-profile-section-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
 }
 
 .owner-profile-form > button,
@@ -3810,6 +3839,40 @@ textarea:focus-visible {
   background: var(--surface-soft);
   box-shadow: none;
   color: var(--text);
+}
+
+.owner-job-form {
+  position: relative;
+}
+
+.owner-form-close-button {
+  position: absolute;
+  inset-block-start: 10px;
+  inset-inline-end: 10px;
+  z-index: 1;
+  display: inline-grid;
+  place-items: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  min-height: 0;
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: 999px;
+  padding: 0;
+  background: #fffdf8;
+  box-shadow: 0 10px 24px rgb(93 49 13 / 10%);
+  color: var(--restaurant-ink, var(--text));
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.owner-job-form .guided-form-progress,
+.owner-job-form .owner-form-heading {
+  padding-inline-end: 2.5rem;
+}
+
+.owner-form-close-button:hover {
+  background: var(--restaurant-soft, #fff3e7);
+  transform: none;
 }
 
 .owner-job-list-section {
@@ -4001,6 +4064,107 @@ textarea:focus-visible {
   font-size: 0.72rem;
 }
 
+.owner-job-action-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.owner-job-action-card {
+  position: relative;
+  display: grid;
+  align-content: space-between;
+  justify-items: start;
+  min-height: 108px;
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: 24px;
+  padding: 1rem;
+  background: rgb(255 250 243 / 92%);
+  box-shadow: 0 14px 32px rgb(93 49 13 / 8%);
+  color: var(--restaurant-ink, var(--text));
+  text-align: start;
+}
+
+.owner-job-action-card:hover {
+  border-color: rgb(239 75 35 / 34%);
+  background: #fffdf8;
+  box-shadow: 0 18px 38px rgb(93 49 13 / 11%);
+  transform: translateY(-1px);
+}
+
+.owner-job-action-card.is-active {
+  border-color: rgb(239 75 35 / 48%);
+  background: var(--restaurant-soft, #fff3e7);
+}
+
+.owner-job-action-card-title {
+  max-width: 100%;
+  font-size: clamp(1.05rem, 3vw, 1.35rem);
+  font-weight: 950;
+  line-height: 1.05;
+}
+
+.owner-job-action-card-count {
+  margin-top: 0.9rem;
+  border-radius: 999px;
+  padding: 0.28rem 0.62rem;
+  background: #1f1d1e;
+  color: #fffaf3;
+  font-size: 0.82rem;
+  font-weight: 950;
+}
+
+.owner-job-action-card-indicator {
+  position: absolute;
+  inset-block-end: 1rem;
+  inset-inline-end: 1rem;
+  color: var(--restaurant-primary, var(--accent));
+  font-size: 0.78rem;
+  font-weight: 950;
+}
+
+.owner-draft-intro-note {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid rgb(239 75 35 / 20%);
+  border-radius: 18px;
+  padding: 0.85rem 0.9rem;
+  background: rgb(255 243 231 / 72%);
+  color: #7a5142;
+  font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.owner-draft-intro-note p {
+  margin: 0;
+}
+
+.owner-draft-intro-note button {
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  min-height: 0;
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: 999px;
+  padding: 0;
+  background: #fffdf8;
+  box-shadow: none;
+  color: var(--restaurant-ink, var(--text));
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.owner-draft-intro-note button:hover {
+  background: var(--restaurant-soft, #fff3e7);
+  transform: none;
+}
+
 .owner-empty-small {
   margin: 0;
   border: 1px dashed var(--restaurant-border, var(--border));
@@ -4035,6 +4199,15 @@ textarea:focus-visible {
   border-radius: 999px;
   padding: 0.55rem 0.65rem 0.55rem 0.8rem;
   box-shadow: 0 10px 24px rgb(93 49 13 / 8%);
+}
+
+.owner-qr-widget-collapsed {
+  cursor: pointer;
+}
+
+.owner-qr-widget-collapsed:focus-visible {
+  outline: 3px solid rgb(239 75 35 / 32%);
+  outline-offset: 3px;
 }
 
 .owner-qr-widget-expanded {
@@ -4791,6 +4964,35 @@ textarea:focus-visible {
   color: #9a3412 !important;
 }
 
+.admin-danger-zone {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-color: #fecaca;
+  background: #fff7f7;
+}
+
+.admin-danger-zone h2,
+.admin-danger-zone p {
+  margin: 0;
+}
+
+.admin-danger-button {
+  flex: 0 0 auto;
+  border: 1px solid #fecaca;
+  border-radius: 999px;
+  padding: 0.75rem 1rem;
+  background: #dc2626;
+  color: white;
+  font-weight: 900;
+}
+
+.admin-danger-button:hover {
+  background: #b91c1c;
+  transform: none;
+}
+
 .admin-compact-list article {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
@@ -4918,6 +5120,79 @@ textarea:focus-visible {
 .application-status.relevant {
   background: #dcfce7;
   color: var(--success);
+}
+
+.owner-status-pill-select {
+  position: relative;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+}
+
+.owner-status-pill-select::after {
+  position: absolute;
+  inset-inline-end: 0.62rem;
+  color: currentColor;
+  font-size: 0.68rem;
+  font-weight: 950;
+  pointer-events: none;
+  content: '⌄';
+}
+
+.owner-status-pill-select select {
+  min-height: 34px;
+  max-width: 9.5rem;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.35rem 1.65rem 0.35rem 0.68rem;
+  background: #f3f4f6;
+  color: #4b5563;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1;
+  appearance: none;
+  cursor: pointer;
+}
+
+[dir='rtl'] .owner-status-pill-select select {
+  padding: 0.35rem 0.68rem 0.35rem 1.65rem;
+}
+
+.owner-status-pill-select select:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
+.owner-status-pill-select select:focus-visible {
+  outline: 3px solid rgb(239 75 35 / 22%);
+  outline-offset: 2px;
+}
+
+.owner-status-pill-select.applied select {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.owner-status-pill-select.selected select,
+.owner-status-pill-select.relevant select {
+  background: #dcfce7;
+  color: var(--success);
+}
+
+.owner-status-pill-select.rejected select {
+  background: #fff1f2;
+  color: #b42318;
+}
+
+.owner-status-pill-select.new select {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.owner-status-pill-select.contacted select {
+  background: #eff6ff;
+  color: #1d4ed8;
 }
 
 .public-apply-page {
@@ -5187,6 +5462,26 @@ textarea:focus-visible {
 
 .owner-application-actions {
   margin-top: auto;
+}
+
+.owner-status-select {
+  display: grid;
+  min-width: min(100%, 180px);
+  gap: 0.3rem;
+  color: var(--restaurant-muted, var(--muted));
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.owner-status-select select {
+  min-height: 42px;
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: 12px;
+  padding: 0.55rem 0.75rem;
+  background: #fffdf8;
+  color: var(--restaurant-ink, var(--text));
+  font: inherit;
+  font-size: 0.9rem;
 }
 
 .owner-application-actions button {
@@ -6547,6 +6842,38 @@ textarea:focus-visible {
     border-radius: 999px;
   }
 
+  .restaurant-shell .owner-job-action-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+
+  .restaurant-shell .owner-job-action-card {
+    min-height: 88px;
+    border-radius: 20px;
+    padding: 0.75rem;
+  }
+
+  .restaurant-shell .owner-job-action-card-title {
+    font-size: clamp(0.9rem, 4.5vw, 1.08rem);
+  }
+
+  .restaurant-shell .owner-job-action-card-count {
+    margin-top: 0.55rem;
+    padding: 0.22rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .restaurant-shell .owner-job-action-card-indicator {
+    inset-block-end: 0.72rem;
+    inset-inline-end: 0.72rem;
+  }
+
+  .restaurant-shell .owner-draft-intro-note {
+    border-radius: 18px;
+    padding: 0.78rem;
+    font-size: 0.83rem;
+  }
+
   .restaurant-shell .restaurant-match-list {
     grid-template-columns: 1fr;
     gap: 0.85rem;
@@ -6602,7 +6929,8 @@ textarea:focus-visible {
   }
 
   .restaurant-shell .owner-job-status,
-  .restaurant-shell .application-status {
+  .restaurant-shell .application-status,
+  .restaurant-shell .owner-status-pill-select select {
     border-radius: 999px;
   }
 

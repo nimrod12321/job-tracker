@@ -108,14 +108,12 @@ function RestaurantPublicApplyPage({
     submitting: language === 'he' ? 'שולח...' : 'Submitting...',
     success:
       language === 'he'
-        ? 'הפרטים נשלחו למסעדה ✅'
-        : 'Your application was sent ✅',
+        ? 'הפרטים נשלחו למסעדה'
+        : 'Your application was sent',
     successHint:
       language === 'he'
         ? 'אם זה מתאים, יחזרו אליך.'
         : 'If it fits, the restaurant will contact you.',
-    seeMoreJobs:
-      language === 'he' ? 'לראות עוד משרות' : 'See more jobs',
     devHint:
       language === 'he'
         ? 'בפיתוח: הקוד מופיע בטרמינל של הבקאנד.'
@@ -409,9 +407,6 @@ function RestaurantPublicApplyPage({
           <div className="public-apply-card public-apply-success-card">
             <h1>{text.success}</h1>
             <p>{text.successHint}</p>
-            <Link className="primary-link-button" to="/restaurant/explore">
-              {text.seeMoreJobs}
-            </Link>
           </div>
         ) : (
           <div className="public-apply-card">

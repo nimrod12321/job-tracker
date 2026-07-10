@@ -1,9 +1,10 @@
 import QRCode from 'qrcode'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { getRestaurantRoleLabel } from '../../restaurant/types/restaurant'
 import AdminShell from '../components/AdminShell'
 import {
+  deleteAdminRestaurant,
   getAdminRestaurantDetail,
   markAdminRestaurantSeen,
   updateAdminRestaurant,
@@ -33,6 +34,7 @@ function getPublicQrLink(slug: string | null) {
 }
 
 function AdminRestaurantDetailPage() {
+  const navigate = useNavigate()
   const { restaurantId = '' } = useParams()
   const [detail, setDetail] = useState<AdminRestaurantDetail | null>(null)
   const [form, setForm] = useState<AdminRestaurantInput>(emptyRestaurantForm)
@@ -189,6 +191,35 @@ function AdminRestaurantDetailPage() {
     } catch (error) {
       setError(
         error instanceof Error ? error.message : 'Failed to update restaurant',
+      )
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  async function handleDeleteRestaurant() {
+    if (!restaurant) {
+      return
+    }
+
+    const shouldDelete = window.confirm(
+      'Delete this restaurant?\nThis may affect the restaurant’s jobs and candidates.',
+    )
+
+    if (!shouldDelete) {
+      return
+    }
+
+    setError(null)
+    setMessage(null)
+    setIsSubmitting(true)
+
+    try {
+      await deleteAdminRestaurant(restaurant.id)
+      navigate('/admin/restaurants', { replace: true })
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : 'Failed to delete restaurant',
       )
     } finally {
       setIsSubmitting(false)
@@ -396,6 +427,24 @@ function AdminRestaurantDetailPage() {
             {isSubmitting ? 'Saving...' : 'Save restaurant'}
           </button>
         </form>
+
+        <section className="admin-restaurant-panel admin-danger-zone">
+          <div>
+            <h2>Delete restaurant</h2>
+            <p>
+              Delete this restaurant? This may affect the restaurant’s jobs and
+              candidates.
+            </p>
+          </div>
+          <button
+            className="admin-danger-button"
+            type="button"
+            disabled={isSubmitting}
+            onClick={() => void handleDeleteRestaurant()}
+          >
+            Delete restaurant
+          </button>
+        </section>
 
         <section className="admin-restaurant-panel">
           <h2>Jobs</h2>
