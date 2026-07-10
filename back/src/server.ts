@@ -71,6 +71,10 @@ app.use(errorHandler)
 
 if (env.nodeEnv !== 'test') {
   app.listen(env.port, () => {
+    console.log(`Environment: ${env.nodeEnv}`)
+    console.log(`Database target: ${env.databaseTarget}`)
+    console.log(`OTP provider selected: ${env.otpRuntimeProvider}`)
+    console.log(`OTP channel selected: ${env.otpRuntimeChannel}`)
     console.log(`Server is running on port ${env.port}`)
   })
 }

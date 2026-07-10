@@ -26,6 +26,7 @@ export type AuthUser = {
   phoneVerifiedAt?: string | null
   fullName?: string
   track?: UserTrack
+  restaurantMemberRole?: 'owner' | 'hiringManager' | null
   isAdmin: boolean
   createdAt?: string
 }

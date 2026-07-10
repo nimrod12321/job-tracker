@@ -16,6 +16,8 @@ import {
   saveAuthToken,
 } from './features/auth/utils/authStorage'
 import AdminLeadsPage from './features/admin/pages/AdminLeadsPage'
+import AdminRestaurantDetailPage from './features/admin/pages/AdminRestaurantDetailPage'
+import AdminRestaurantsPage from './features/admin/pages/AdminRestaurantsPage'
 import AuthPage from './features/auth/pages/AuthPage'
 import DashboardPage from './features/dashboard/pages/DashboardPage'
 import DiscoverPage from './features/discovery/pages/DiscoverPage'
@@ -26,6 +28,9 @@ import JobsPage from './features/jobs/pages/jobsPage'
 import OwnerApplicationsPage from './features/owner/pages/OwnerApplicationsPage'
 import OwnerJobsPage from './features/owner/pages/OwnerJobsPage'
 import OwnerProfilePage from './features/owner/pages/OwnerProfilePage'
+import OwnerTeamPage from './features/owner/pages/OwnerTeamPage'
+import { getOwnerProfile } from './features/owner/services/ownerApi'
+import type { OwnerProfile } from './features/owner/types/owner'
 import ProfilePage from './features/profile/pages/ProfilePage'
 import RestaurantPublicApplyPage from './features/public/pages/RestaurantPublicApplyPage'
 import RestaurantExplorePage from './features/restaurant/pages/RestaurantExplorePage'
@@ -34,7 +39,11 @@ import RestaurantProfilePage from './features/restaurant/pages/RestaurantProfile
 
 function getHomePath(user: AuthUser | null) {
   if (user?.isAdmin) {
-    return '/admin/leads'
+    return '/admin/restaurants'
+  }
+
+  if (user?.restaurantMemberRole) {
+    return '/owner/jobs'
   }
 
   if (user?.track === 'restaurant') {
@@ -46,6 +55,34 @@ function getHomePath(user: AuthUser | null) {
   }
 
   return '/restaurants-only'
+}
+
+function isOwnerProfileComplete(profile: OwnerProfile | null) {
+  return Boolean(
+    profile?.restaurantName.trim() &&
+      profile.contactPerson.trim() &&
+      profile.phoneNumber.trim() &&
+      profile.city.trim() &&
+      profile.street.trim() &&
+      profile.description.trim(),
+  )
+}
+
+async function getPostAuthPath(user: AuthUser | null) {
+  if (
+    (!user?.restaurantMemberRole && user?.track !== 'restaurantOwner') ||
+    user.isAdmin
+  ) {
+    return getHomePath(user)
+  }
+
+  try {
+    const profile = await getOwnerProfile()
+
+    return isOwnerProfileComplete(profile) ? '/owner/jobs' : '/owner/profile'
+  } catch {
+    return '/owner/profile'
+  }
 }
 
 function ScrollToTop() {
@@ -118,8 +155,10 @@ function App() {
 
     try {
       const user = await getCurrentUser(newToken)
+      const nextPath = await getPostAuthPath(user)
+
       setCurrentUser(user)
-      navigate(getHomePath(user), { replace: true })
+      navigate(nextPath, { replace: true })
     } catch {
       clearAuthToken()
       setCurrentUser(null)
@@ -172,6 +211,12 @@ function App() {
 
   const isAuthenticated = Boolean(token && currentUser)
   const userTrack = currentUser?.track ?? 'highTech'
+  const isRestaurantOwnerAreaUser = Boolean(
+    currentUser?.restaurantMemberRole || userTrack === 'restaurantOwner',
+  )
+  const isRestaurantWorkerOnly = Boolean(
+    userTrack === 'restaurant' && !currentUser?.restaurantMemberRole,
+  )
   const homePath = getHomePath(currentUser)
   const authRedirect = isAuthenticated ? (
     <Navigate to={homePath} replace />
@@ -216,12 +261,20 @@ function App() {
 
       <Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
         <Route path="/admin/leads" element={<AdminLeadsPage />} />
+        <Route
+          path="/admin/restaurants"
+          element={<AdminRestaurantsPage />}
+        />
+        <Route
+          path="/admin/restaurants/:restaurantId"
+          element={<AdminRestaurantDetailPage />}
+        />
 
         <Route
           path="/restaurants-only"
           element={
             currentUser?.isAdmin ? (
-              <Navigate to="/admin/leads" replace />
+              <Navigate to="/admin/restaurants" replace />
             ) : (
               <section className="restaurant-only-page">
                 <div className="restaurant-only-card">
@@ -249,8 +302,8 @@ function App() {
         <Route
           element={
             currentUser?.isAdmin ? (
-              <Navigate to="/admin/leads" replace />
-            ) : userTrack === 'highTech' ? (
+              <Navigate to="/admin/restaurants" replace />
+            ) : userTrack === 'highTech' && !currentUser?.restaurantMemberRole ? (
               <Navigate to="/restaurants-only" replace />
             ) : (
               <Navigate to={homePath} replace />
@@ -268,7 +321,7 @@ function App() {
 
         <Route
           element={
-            userTrack === 'restaurant' ? (
+            isRestaurantWorkerOnly ? (
               <AppLayout
                 userEmail={getUserDisplayName(currentUser)}
                 userTrack={userTrack}
@@ -295,10 +348,11 @@ function App() {
 
         <Route
           element={
-            userTrack === 'restaurantOwner' ? (
+            isRestaurantOwnerAreaUser ? (
               <AppLayout
                 userEmail={getUserDisplayName(currentUser)}
-                userTrack={userTrack}
+                userTrack="restaurantOwner"
+                restaurantMemberRole={currentUser?.restaurantMemberRole}
                 onLogout={handleLogout}
               />
             ) : (
@@ -311,7 +365,26 @@ function App() {
             path="/owner/applications"
             element={<OwnerApplicationsPage />}
           />
-          <Route path="/owner/profile" element={<OwnerProfilePage />} />
+          <Route
+            path="/owner/profile"
+            element={
+              currentUser?.restaurantMemberRole === 'hiringManager' ? (
+                <Navigate to="/owner/jobs" replace />
+              ) : (
+                <OwnerProfilePage />
+              )
+            }
+          />
+          <Route
+            path="/owner/team"
+            element={
+              currentUser?.restaurantMemberRole === 'hiringManager' ? (
+                <Navigate to="/owner/jobs" replace />
+              ) : (
+                <OwnerTeamPage />
+              )
+            }
+          />
         </Route>
       </Route>
 

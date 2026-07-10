@@ -7,12 +7,14 @@ import { useRestaurantLanguage } from '../../features/restaurant/utils/restauran
 type AppLayoutProps = {
   userEmail?: string
   userTrack?: UserTrack
+  restaurantMemberRole?: 'owner' | 'hiringManager' | null
   onLogout: () => void
 }
 
 function AppLayout({
   userEmail,
   userTrack = 'highTech',
+  restaurantMemberRole = null,
   onLogout,
 }: AppLayoutProps) {
   const location = useLocation()
@@ -22,6 +24,8 @@ function AppLayout({
   const optionsRef = useRef<HTMLDivElement | null>(null)
   const { direction, language } = useRestaurantLanguage()
   const isRestaurantSide = isRestaurantUser || isRestaurantOwner
+  const canManageOwnerTeam =
+    isRestaurantOwner && restaurantMemberRole !== 'hiringManager'
   const layoutClassName = [
     'app-layout',
     isRestaurantSide ? 'restaurant-shell' : '',
@@ -33,8 +37,8 @@ function AppLayout({
   const restaurantNavLabels = {
     ownerJobs: language === 'he' ? 'המשרות שלי' : 'My jobs',
     ownerApplications: language === 'he' ? 'מועמדים' : 'Applications',
-    ownerProfile:
-      language === 'he' ? 'פרופיל מסעדה' : 'Restaurant profile',
+    ownerTeam: language === 'he' ? 'צוות' : 'Team',
+    ownerProfile: language === 'he' ? 'פרופיל' : 'Profile',
     workerExplore: language === 'he' ? 'משמרות' : 'Explore',
     workerMatches: language === 'he' ? 'התאמות' : 'Matches',
     workerProfile: language === 'he' ? 'פרופיל' : 'Profile',
@@ -203,18 +207,28 @@ function AppLayout({
 
             {isOptionsOpen && (
               <div className="restaurant-options-menu">
-                <Link
-                  to={
-                    isRestaurantOwner
-                      ? '/owner/profile'
-                      : '/restaurant/profile'
-                  }
-                  onClick={() => setIsOptionsOpen(false)}
-                >
-                  {isRestaurantOwner
-                    ? restaurantNavLabels.ownerProfile
-                    : restaurantNavLabels.workerProfile}
-                </Link>
+                {(!isRestaurantOwner || canManageOwnerTeam) && (
+                  <Link
+                    to={
+                      isRestaurantOwner
+                        ? '/owner/profile'
+                        : '/restaurant/profile'
+                    }
+                    onClick={() => setIsOptionsOpen(false)}
+                  >
+                    {isRestaurantOwner
+                      ? restaurantNavLabels.ownerProfile
+                      : restaurantNavLabels.workerProfile}
+                  </Link>
+                )}
+                {isRestaurantOwner && canManageOwnerTeam && (
+                  <Link
+                    to="/owner/team"
+                    onClick={() => setIsOptionsOpen(false)}
+                  >
+                    {restaurantNavLabels.ownerTeam}
+                  </Link>
+                )}
                 <RestaurantLanguageToggle
                   onChange={() => setIsOptionsOpen(false)}
                 />

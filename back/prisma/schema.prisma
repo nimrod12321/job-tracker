@@ -64,6 +64,17 @@ enum OtpPurpose {
   qrApply
 }
 
+enum RestaurantMemberRole {
+  owner
+  hiringManager
+}
+
+enum RestaurantMemberStatus {
+  active
+  pending
+  removed
+}
+
 model Job {
   id             String      @id @default(uuid())
   company        String
@@ -106,6 +117,9 @@ model User {
   restaurantWorkerProfile RestaurantWorkerProfile?
   restaurantOwnerProfile  RestaurantOwnerProfile?
   restaurantApplications  RestaurantApplication[]
+  restaurantMemberships   RestaurantMember[] @relation("RestaurantMemberUser")
+  restaurantInvitesSent   RestaurantMember[] @relation("RestaurantMemberInviter")
+  adminRestaurantReadStates AdminRestaurantReadState[]
 }
 
 model OtpVerification {
@@ -254,9 +268,59 @@ model RestaurantOwnerProfile {
 
   jobs  RestaurantJob[]
   leads RestaurantCandidateLead[]
+  members RestaurantMember[]
+  adminReadStates AdminRestaurantReadState[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model AdminRestaurantReadState {
+  id String @id @default(uuid())
+
+  adminUserId String
+  adminUser   User   @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+
+  restaurantId String
+  restaurant   RestaurantOwnerProfile @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  lastViewedCandidatesAt DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([adminUserId, restaurantId])
+  @@index([adminUserId])
+  @@index([restaurantId])
+  @@index([lastViewedCandidatesAt])
+}
+
+model RestaurantMember {
+  id String @id @default(uuid())
+
+  restaurantId String
+  restaurant   RestaurantOwnerProfile @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  userId String?
+  user   User?   @relation("RestaurantMemberUser", fields: [userId], references: [id], onDelete: SetNull)
+
+  phoneNumber String
+  displayName String @default("")
+  role        RestaurantMemberRole
+  status      RestaurantMemberStatus @default(pending)
+
+  invitedByUserId String?
+  invitedByUser   User?   @relation("RestaurantMemberInviter", fields: [invitedByUserId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([restaurantId, phoneNumber])
+  @@unique([restaurantId, userId])
+  @@index([phoneNumber])
+  @@index([userId])
+  @@index([restaurantId])
+  @@index([status])
 }
 
 model RestaurantCandidateLead {

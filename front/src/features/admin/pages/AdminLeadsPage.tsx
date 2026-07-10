@@ -3,14 +3,13 @@ import {
   useMemo,
   useRef,
   useState,
-  type ReactNode,
 } from 'react'
-import { NavLink } from 'react-router-dom'
 import {
   RESTAURANT_ROLES,
   getRestaurantRoleLabel,
   type RestaurantRole,
 } from '../../restaurant/types/restaurant'
+import AdminShell from '../components/AdminShell'
 import {
   getAdminRestaurantLeads,
   updateAdminRestaurantLeadStatus,
@@ -18,7 +17,7 @@ import {
 import type {
   AdminRestaurantCandidateLead,
   CandidateLeadStatus,
-} from '../../owner/types/owner'
+} from '../types/admin'
 
 const statuses: CandidateLeadStatus[] = [
   'new',
@@ -350,29 +349,6 @@ function AdminLeadsPage() {
         )}
       </section>
     </AdminShell>
-  )
-}
-
-function AdminShell({ children }: { children: ReactNode }) {
-  return (
-    <section className="admin-shell">
-      <aside className="admin-sidebar">
-        <div className="admin-brand">
-          <span className="peepss-logo admin-logo" dir="ltr">
-            <span className="peepss-logo-circle" />
-            <span className="peepss-logo-thin">p</span>
-            <span className="peepss-logo-bold">ee</span>
-            <span className="peepss-logo-thin">pss</span>
-          </span>
-          <p>Admin</p>
-        </div>
-        <nav className="admin-nav" aria-label="Admin navigation">
-          <NavLink to="/admin/leads">Leads</NavLink>
-          <span aria-disabled="true">Stats</span>
-        </nav>
-      </aside>
-      <main className="admin-main">{children}</main>
-    </section>
   )
 }
 

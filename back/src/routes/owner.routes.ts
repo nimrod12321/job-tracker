@@ -4,11 +4,14 @@ import {
   deleteOwnerApplication,
   deleteOwnerJob,
   deleteOwnerLead,
+  addOwnerTeamMember,
   getOwnerApplications,
   getOwnerJobs,
   getOwnerLeads,
   getOwnerProfile,
+  getOwnerTeam,
   publishOwnerJob,
+  removeOwnerTeamMember,
   setOwnerJobActive,
   updateOwnerApplicationStatus,
   updateOwnerJob,
@@ -20,6 +23,7 @@ import {
   requireAuth,
   type AuthenticatedRequest,
 } from '../middleware/auth.middleware.js'
+import { getRestaurantAccessForUser } from '../services/restaurantAccess.service.js'
 
 const ownerRouter = Router()
 
@@ -43,9 +47,11 @@ const requireRestaurantOwner: RequestHandler = async (req, res, next) => {
       },
     })
 
-    if (user?.track !== 'restaurantOwner') {
+    const access = await getRestaurantAccessForUser(userId)
+
+    if (user?.track !== 'restaurantOwner' && !access) {
       res.status(403).json({
-        message: 'restaurant owner access required',
+        message: 'restaurant access required',
       })
       return
     }
@@ -59,6 +65,9 @@ const requireRestaurantOwner: RequestHandler = async (req, res, next) => {
 ownerRouter.use(requireAuth, requireRestaurantOwner)
 ownerRouter.get('/profile', getOwnerProfile)
 ownerRouter.put('/profile', updateOwnerProfile)
+ownerRouter.get('/team', getOwnerTeam)
+ownerRouter.post('/team/members', addOwnerTeamMember)
+ownerRouter.delete('/team/members/:memberId', removeOwnerTeamMember)
 ownerRouter.get('/jobs', getOwnerJobs)
 ownerRouter.post('/jobs', createOwnerJob)
 ownerRouter.put('/jobs/:id', updateOwnerJob)

@@ -1,6 +1,11 @@
 import { Router } from 'express'
 import {
+  createAdminRestaurant,
+  getAdminRestaurantDetail,
   getAdminRestaurantLeads,
+  getAdminRestaurants,
+  markAdminRestaurantSeen,
+  updateAdminRestaurant,
   updateAdminRestaurantLeadStatus,
 } from '../controllers/admin.controller.js'
 import { requireAdmin } from '../middleware/admin.middleware.js'
@@ -9,6 +14,11 @@ import { requireAuth } from '../middleware/auth.middleware.js'
 const adminRouter = Router()
 
 adminRouter.use(requireAuth, requireAdmin)
+adminRouter.get('/restaurants', getAdminRestaurants)
+adminRouter.post('/restaurants', createAdminRestaurant)
+adminRouter.post('/restaurants/:id/mark-seen', markAdminRestaurantSeen)
+adminRouter.get('/restaurants/:id', getAdminRestaurantDetail)
+adminRouter.patch('/restaurants/:id', updateAdminRestaurant)
 adminRouter.get('/restaurant-leads', getAdminRestaurantLeads)
 adminRouter.patch(
   '/restaurant-leads/:id/status',

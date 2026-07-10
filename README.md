@@ -42,6 +42,8 @@ job-tracker/
 
 Never commit real `.env` files or secrets.
 
+For the full local/test/production separation guide, see [docs/environments.md](docs/environments.md).
+
 ### Backend
 
 ```bash
@@ -53,10 +55,13 @@ Configure:
 
 ```env
 DATABASE_URL="postgresql://jobtracker:jobtracker_password@127.0.0.1:5433/jobtracker?schema=public"
-JWT_SECRET="replace_me_with_a_real_secret"
+JWT_SECRET="local-dev-secret"
 PORT=4000
 FRONTEND_URL="http://localhost:5173"
 NODE_ENV="development"
+OTP_PROVIDER=console
+OTP_CHANNEL=sms
+OTP_MODE=development
 OPENAI_API_KEY="replace_me_with_your_openai_api_key"
 OPENAI_MODEL="replace_me_with_model_name"
 ```

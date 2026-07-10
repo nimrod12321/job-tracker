@@ -26,6 +26,56 @@
   --shadow-soft: 0 18px 45px rgb(15 23 42 / 8%);
 }
 
+.owner-publish-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(31 29 30 / 46%);
+}
+
+.owner-publish-modal {
+  display: grid;
+  width: min(100%, 420px);
+  gap: 1rem;
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: 28px;
+  padding: clamp(1.25rem, 5vw, 1.75rem);
+  background: #fffaf3;
+  box-shadow: 0 24px 70px rgb(31 29 30 / 24%);
+  color: var(--restaurant-ink, var(--text));
+}
+
+.owner-publish-modal h2,
+.owner-publish-modal p {
+  margin: 0;
+}
+
+.owner-publish-modal h2 {
+  font-size: clamp(1.8rem, 8vw, 2.4rem);
+  line-height: 1;
+  letter-spacing: -0.05em;
+}
+
+.owner-publish-modal p {
+  color: var(--restaurant-muted, var(--muted));
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+.owner-publish-modal-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+}
+
+.owner-publish-modal-actions button {
+  min-height: 48px;
+  border-radius: 999px;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -3003,7 +3053,8 @@ textarea:focus-visible {
 .restaurant-matches-page[dir='rtl'],
 .owner-profile-page[dir='rtl'],
 .owner-jobs-page[dir='rtl'],
-.owner-applications-page[dir='rtl'] {
+.owner-applications-page[dir='rtl'],
+.owner-team-page[dir='rtl'] {
   text-align: right;
 }
 
@@ -3012,7 +3063,8 @@ textarea:focus-visible {
 .restaurant-matches-page .page-header,
 .owner-profile-page .page-header,
 .owner-jobs-page .page-header,
-.owner-applications-page .page-header {
+.owner-applications-page .page-header,
+.owner-team-page .page-header {
   align-items: flex-start;
 }
 
@@ -3021,7 +3073,8 @@ textarea:focus-visible {
 .restaurant-matches-page .page-header h1,
 .owner-profile-page .page-header h1,
 .owner-jobs-page .page-header h1,
-.owner-applications-page .page-header h1 {
+.owner-applications-page .page-header h1,
+.owner-team-page .page-header h1 {
   color: var(--restaurant-ink, var(--text));
   font-size: clamp(2.15rem, 8vw, 4.5rem);
   line-height: 0.95;
@@ -3518,9 +3571,104 @@ textarea:focus-visible {
 }
 
 .owner-profile-page,
-.owner-jobs-page {
+.owner-jobs-page,
+.owner-team-page {
   display: grid;
   gap: 1.25rem;
+}
+
+.owner-team-card {
+  display: grid;
+  gap: 0.85rem;
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: var(--radius-lg);
+  padding: clamp(1rem, 3vw, 1.35rem);
+  background: var(--restaurant-card, var(--surface));
+  box-shadow: var(--restaurant-shadow, var(--shadow));
+}
+
+.owner-team-form {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.owner-team-form label {
+  display: grid;
+  gap: 0.45rem;
+  color: var(--restaurant-muted, #5f5a54);
+  font-weight: 800;
+}
+
+.owner-team-form input {
+  width: 100%;
+  border: 1px solid var(--restaurant-border, #eadfd3);
+  border-radius: 14px;
+  padding: 0.85rem 0.95rem;
+  background: #fffdf8;
+  color: var(--restaurant-ink, var(--text));
+  font: inherit;
+}
+
+.owner-team-list {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.owner-team-list .owner-team-card {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+}
+
+.owner-team-card h1,
+.owner-team-card h2,
+.owner-team-card p {
+  margin: 0;
+}
+
+.owner-team-card h2 {
+  color: var(--restaurant-ink, var(--text));
+  font-size: 1.05rem;
+}
+
+.owner-team-card p {
+  color: var(--restaurant-muted, var(--muted));
+}
+
+.owner-team-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
+
+.owner-team-badges span {
+  border: 1px solid var(--restaurant-border, #eadfd3);
+  border-radius: 999px;
+  padding: 0.35rem 0.65rem;
+  background: #fff7ed;
+  color: var(--restaurant-ink, var(--text));
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+@media (max-width: 700px) {
+  .owner-team-form,
+  .owner-team-list .owner-team-card {
+    grid-template-columns: 1fr;
+  }
+
+  .owner-team-form button,
+  .owner-team-list .owner-team-card button {
+    width: 100%;
+  }
+
+  .owner-team-badges {
+    justify-content: flex-start;
+  }
+
+  .owner-team-page[dir='rtl'] .owner-team-badges {
+    justify-content: flex-end;
+  }
 }
 
 .owner-profile-form,
@@ -3559,6 +3707,32 @@ textarea:focus-visible {
   resize: vertical;
 }
 
+.owner-profile-form .field-error,
+.owner-job-form .field-error {
+  border-color: #dc2626;
+  background: #fff7f7;
+}
+
+.field-error-text {
+  color: #b42318;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.owner-profile-error-summary {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.owner-profile-error-summary p {
+  margin: 0;
+}
+
+.owner-profile-error-summary ul {
+  margin: 0;
+  padding-inline-start: 1.1rem;
+}
+
 .owner-field-wide,
 .owner-profile-form > .message,
 .owner-form-heading {
@@ -3590,6 +3764,32 @@ textarea:focus-visible {
 .owner-job-card-header h3,
 .owner-job-card-header p {
   margin: 0;
+}
+
+.owner-job-card-side {
+  display: grid;
+  justify-items: end;
+  gap: 0.35rem;
+}
+
+.owner-draft-toggle-button {
+  display: none;
+  min-height: 32px;
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: 999px;
+  padding: 0.3rem 0.55rem;
+  background: #fffdf8;
+  box-shadow: none;
+  color: var(--restaurant-primary, var(--accent));
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.owner-draft-manage-hint {
+  display: none;
+  color: var(--restaurant-muted, var(--muted));
+  font-size: 0.75rem;
+  font-weight: 850;
 }
 
 .owner-form-heading p {
@@ -3646,6 +3846,7 @@ textarea:focus-visible {
 }
 
 .owner-job-card {
+  position: relative;
   display: grid;
   align-content: start;
   gap: 0.65rem;
@@ -3848,12 +4049,38 @@ textarea:focus-visible {
 }
 
 .owner-qr-expanded-content {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   width: 100%;
   max-width: 100%;
   gap: clamp(1.25rem, 4vw, 2rem);
+}
+
+.owner-qr-close-button {
+  position: absolute;
+  inset-block-start: -0.35rem;
+  inset-inline-end: -0.35rem;
+  z-index: 1;
+  display: inline-grid;
+  place-items: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  min-height: 0;
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: 999px;
+  padding: 0;
+  background: #fffdf8;
+  box-shadow: 0 10px 24px rgb(93 49 13 / 10%);
+  color: var(--restaurant-ink, var(--text));
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.owner-qr-close-button:hover {
+  background: var(--restaurant-soft, #fff3e7);
+  transform: none;
 }
 
 .owner-qr-main {
@@ -4028,6 +4255,7 @@ textarea:focus-visible {
 }
 
 .owner-applications-page,
+.owner-team-page,
 .restaurant-matches-page {
   display: grid;
   gap: 1.25rem;
@@ -4058,7 +4286,9 @@ textarea:focus-visible {
 }
 
 .admin-brand {
-  display: grid;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 0.5rem;
   overflow: visible;
 }
@@ -4103,6 +4333,26 @@ textarea:focus-visible {
   text-decoration: none;
 }
 
+.admin-logout-button {
+  flex: 0 0 auto;
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: 999px;
+  padding: 0.42rem 0.62rem;
+  background: #fffdf8;
+  color: #7a5142;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 900;
+  line-height: 1;
+  text-align: center;
+}
+
+.admin-logout-button:hover {
+  background: #fff7ed;
+  color: #b42318;
+}
+
 .admin-nav a.active {
   background: var(--restaurant-soft, #fff3e7);
   color: var(--restaurant-ink, var(--text));
@@ -4119,7 +4369,8 @@ textarea:focus-visible {
   padding: clamp(1rem, 3vw, 2rem);
 }
 
-.admin-leads-page {
+.admin-leads-page,
+.admin-restaurants-page {
   display: grid;
   gap: 1.25rem;
   width: min(100%, 1180px);
@@ -4165,8 +4416,11 @@ textarea:focus-visible {
 
 .admin-stat-card,
 .admin-lead-card,
+.admin-restaurant-card,
+.admin-restaurant-panel,
 .admin-forbidden-card,
-.admin-leads-toolbar {
+.admin-leads-toolbar,
+.admin-restaurant-form {
   border: 1px solid var(--restaurant-border, var(--border));
   border-radius: 22px;
   background: rgb(255 250 243 / 96%);
@@ -4224,13 +4478,16 @@ textarea:focus-visible {
   gap: 1rem;
 }
 
-.admin-lead-card {
+.admin-lead-card,
+.admin-restaurant-card,
+.admin-restaurant-panel {
   display: grid;
   gap: 1rem;
   padding: 1.15rem;
 }
 
 .admin-lead-header,
+.admin-restaurant-card-main,
 .admin-lead-badges,
 .admin-actions,
 .admin-status-actions {
@@ -4244,13 +4501,23 @@ textarea:focus-visible {
   justify-content: space-between;
 }
 
-.admin-lead-header h2 {
+.admin-restaurant-card-main {
+  justify-content: space-between;
+}
+
+.admin-lead-header h2,
+.admin-restaurant-card h2,
+.admin-restaurant-panel h2,
+.admin-restaurant-form h2 {
   margin: 0;
   color: #1f1d1e;
   font-size: 1.35rem;
 }
 
-.admin-lead-header p {
+.admin-lead-header p,
+.admin-restaurant-card p,
+.admin-restaurant-panel p,
+.admin-restaurant-form p {
   margin: 0.25rem 0 0;
   color: #7a5142;
   font-size: 0.9rem;
@@ -4313,6 +4580,7 @@ textarea:focus-visible {
 }
 
 .admin-actions a,
+.admin-actions button,
 .admin-status-actions button {
   display: inline-flex;
   align-items: center;
@@ -4328,6 +4596,11 @@ textarea:focus-visible {
   text-decoration: none;
 }
 
+.admin-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .admin-status-actions button:not(:disabled) {
   background: #1f1d1e;
   color: #fffaf3;
@@ -4340,6 +4613,204 @@ textarea:focus-visible {
 
 .admin-empty-state {
   background: rgb(255 250 243 / 96%);
+}
+
+.admin-restaurants-list,
+.admin-compact-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.admin-restaurants-list {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+  gap: 0.85rem;
+}
+
+.admin-restaurant-compact-card,
+.admin-create-restaurant-card {
+  position: relative;
+  display: grid;
+  align-content: center;
+  min-height: 118px;
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: 24px;
+  padding: 1rem;
+  background: rgb(255 250 243 / 96%);
+  box-shadow: 0 14px 30px rgb(93 49 13 / 8%);
+  color: #1f1d1e;
+  text-align: start;
+  text-decoration: none;
+  transition:
+    border-color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.admin-restaurant-compact-card:hover,
+.admin-create-restaurant-card:hover {
+  border-color: #ef4b23;
+  box-shadow: 0 18px 38px rgb(93 49 13 / 12%);
+  transform: translateY(-2px);
+}
+
+.admin-restaurant-compact-card h2 {
+  margin: 0;
+  overflow: hidden;
+  font-size: clamp(1.1rem, 3vw, 1.45rem);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  text-overflow: ellipsis;
+}
+
+.admin-new-candidate-dot {
+  position: absolute;
+  inset-block-start: 0.85rem;
+  inset-inline-end: 0.85rem;
+  width: 0.68rem;
+  height: 0.68rem;
+  border: 2px solid #fffaf3;
+  border-radius: 999px;
+  background: #16a34a;
+  box-shadow: 0 0 0 4px rgb(22 163 74 / 14%);
+}
+
+.admin-create-restaurant-card {
+  border-style: dashed;
+  color: #7a5142;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 900;
+}
+
+.admin-create-restaurant-card span {
+  margin-bottom: 0.25rem;
+  color: #ef4b23;
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
+.admin-restaurant-form {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+  padding: 1.15rem;
+}
+
+.admin-create-restaurant-form {
+  padding-block-start: 3rem;
+}
+
+.admin-form-close-button {
+  position: absolute;
+  inset-block-start: 0.85rem;
+  inset-inline-end: 0.85rem;
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  min-height: 0;
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: 999px;
+  padding: 0;
+  background: #fffdf8;
+  color: #1f1d1e;
+  font-size: 1.25rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.admin-form-close-button:hover {
+  background: #fff3e7;
+}
+
+.admin-restaurant-form > div:first-child,
+.admin-form-wide {
+  grid-column: 1 / -1;
+}
+
+.admin-restaurant-form label {
+  display: grid;
+  gap: 0.35rem;
+  color: #7a5142;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.admin-restaurant-form input,
+.admin-restaurant-form textarea {
+  min-width: 0;
+  width: 100%;
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: 14px;
+  padding: 0.72rem 0.8rem;
+  background: #fffdf8;
+  color: var(--text);
+  font: inherit;
+}
+
+.admin-restaurant-form button[type='submit'] {
+  justify-self: start;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.78rem 1.05rem;
+  background: #1f1d1e;
+  color: #fffaf3;
+  font-weight: 900;
+}
+
+.admin-restaurant-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+  gap: 1rem;
+}
+
+.admin-qr-panel {
+  align-items: center;
+  text-align: center;
+}
+
+.admin-qr-link {
+  max-width: 100%;
+}
+
+.admin-back-link {
+  display: inline-flex;
+  margin-bottom: 0.65rem;
+  color: #7a5142;
+  font-size: 0.9rem;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.admin-warning {
+  border: 1px solid #fed7aa;
+  border-radius: 14px;
+  padding: 0.72rem 0.8rem;
+  background: #fff7ed;
+  color: #9a3412 !important;
+}
+
+.admin-compact-list article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.8rem;
+  border-top: 1px solid var(--restaurant-border, var(--border));
+  padding-top: 0.85rem;
+}
+
+.admin-compact-list article:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.admin-compact-list strong {
+  color: #1f1d1e;
+}
+
+.admin-compact-list p {
+  overflow-wrap: anywhere;
 }
 
 .admin-forbidden-page {
@@ -4839,8 +5310,15 @@ textarea:focus-visible {
   }
 
   .admin-leads-toolbar,
-  .admin-lead-details {
+  .admin-lead-details,
+  .admin-restaurant-form,
+  .admin-restaurant-detail-grid,
+  .admin-compact-list article {
     grid-template-columns: 1fr;
+  }
+
+  .admin-compact-list article {
+    align-items: start;
   }
 
   .admin-main {
@@ -4862,6 +5340,7 @@ textarea:focus-visible {
   .owner-profile-page,
   .owner-jobs-page,
   .owner-applications-page,
+  .owner-team-page,
   .restaurant-profile-form,
   .restaurant-job-card,
   .restaurant-match-card,
@@ -4894,7 +5373,8 @@ textarea:focus-visible {
   .restaurant-matches-page,
   .owner-profile-page,
   .owner-jobs-page,
-  .owner-applications-page {
+  .owner-applications-page,
+  .owner-team-page {
     overflow-wrap: anywhere;
   }
 
@@ -5426,7 +5906,8 @@ textarea:focus-visible {
   .restaurant-shell:has(.restaurant-matches-page),
   .restaurant-shell:has(.owner-profile-page),
   .restaurant-shell:has(.owner-jobs-page),
-  .restaurant-shell:has(.owner-applications-page) {
+  .restaurant-shell:has(.owner-applications-page),
+  .restaurant-shell:has(.owner-team-page) {
     display: flex;
     flex-direction: column;
     min-height: 100dvh;
@@ -5630,7 +6111,8 @@ textarea:focus-visible {
   .restaurant-shell:has(.restaurant-matches-page) .app-header,
   .restaurant-shell:has(.owner-profile-page) .app-header,
   .restaurant-shell:has(.owner-jobs-page) .app-header,
-  .restaurant-shell:has(.owner-applications-page) .app-header {
+  .restaurant-shell:has(.owner-applications-page) .app-header,
+  .restaurant-shell:has(.owner-team-page) .app-header {
     position: relative;
     flex: 0 0 auto;
   }
@@ -5640,7 +6122,8 @@ textarea:focus-visible {
   .restaurant-shell:has(.restaurant-matches-page) .app-content,
   .restaurant-shell:has(.owner-profile-page) .app-content,
   .restaurant-shell:has(.owner-jobs-page) .app-content,
-  .restaurant-shell:has(.owner-applications-page) .app-content {
+  .restaurant-shell:has(.owner-applications-page) .app-content,
+  .restaurant-shell:has(.owner-team-page) .app-content {
     display: flex;
     flex-direction: column;
   }
@@ -5820,7 +6303,8 @@ textarea:focus-visible {
   .restaurant-shell .restaurant-matches-page,
   .restaurant-shell .owner-profile-page,
   .restaurant-shell .owner-jobs-page,
-  .restaurant-shell .owner-applications-page {
+  .restaurant-shell .owner-applications-page,
+  .restaurant-shell .owner-team-page {
     display: grid;
     gap: 0.85rem;
     width: 100%;
@@ -5831,7 +6315,8 @@ textarea:focus-visible {
 
   .restaurant-shell:has(.owner-profile-page),
   .restaurant-shell:has(.owner-jobs-page),
-  .restaurant-shell:has(.owner-applications-page) {
+  .restaurant-shell:has(.owner-applications-page),
+  .restaurant-shell:has(.owner-team-page) {
     height: auto;
     min-height: 100dvh;
     overflow-x: hidden;
@@ -5840,7 +6325,8 @@ textarea:focus-visible {
 
   .restaurant-shell:has(.owner-profile-page) .app-content,
   .restaurant-shell:has(.owner-jobs-page) .app-content,
-  .restaurant-shell:has(.owner-applications-page) .app-content {
+  .restaurant-shell:has(.owner-applications-page) .app-content,
+  .restaurant-shell:has(.owner-team-page) .app-content {
     display: block;
     flex: 0 0 auto;
     min-height: auto;
@@ -5875,7 +6361,8 @@ textarea:focus-visible {
 
   .restaurant-owner-shell .owner-profile-page,
   .restaurant-owner-shell .owner-jobs-page,
-  .restaurant-owner-shell .owner-applications-page {
+  .restaurant-owner-shell .owner-applications-page,
+  .restaurant-owner-shell .owner-team-page {
     display: grid;
     min-height: auto;
     width: 100%;
@@ -5909,7 +6396,8 @@ textarea:focus-visible {
   .restaurant-shell .restaurant-matches-page .page-header,
   .restaurant-shell .owner-profile-page .page-header,
   .restaurant-shell .owner-jobs-page .page-header,
-  .restaurant-shell .owner-applications-page .page-header {
+  .restaurant-shell .owner-applications-page .page-header,
+  .restaurant-shell .owner-team-page .page-header {
     margin: 0;
   }
 
@@ -5917,7 +6405,8 @@ textarea:focus-visible {
   .restaurant-shell .restaurant-matches-page .page-header h1,
   .restaurant-shell .owner-profile-page .page-header h1,
   .restaurant-shell .owner-jobs-page .page-header h1,
-  .restaurant-shell .owner-applications-page .page-header h1 {
+  .restaurant-shell .owner-applications-page .page-header h1,
+  .restaurant-shell .owner-team-page .page-header h1 {
     font-size: clamp(1.85rem, 9vw, 2.75rem);
     line-height: 0.95;
   }
@@ -5926,7 +6415,8 @@ textarea:focus-visible {
   .restaurant-shell .restaurant-matches-page .page-header p,
   .restaurant-shell .owner-profile-page .page-header p,
   .restaurant-shell .owner-jobs-page .page-header p,
-  .restaurant-shell .owner-applications-page .page-header p {
+  .restaurant-shell .owner-applications-page .page-header p,
+  .restaurant-shell .owner-team-page .page-header p {
     margin-top: 0.35rem;
     color: var(--restaurant-muted);
     font-size: 0.9rem;
@@ -6264,7 +6754,8 @@ textarea:focus-visible {
   .owner-profile-page textarea,
   .owner-jobs-page input,
   .owner-jobs-page select,
-  .owner-jobs-page textarea {
+  .owner-jobs-page textarea,
+  .owner-team-page input {
     font-size: 16px !important;
     line-height: 1.3;
   }
@@ -6284,6 +6775,7 @@ textarea:focus-visible {
   .owner-profile-page,
   .owner-jobs-page,
   .owner-applications-page,
+  .owner-team-page,
   .restaurant-profile-form,
   .restaurant-card-stack,
   .restaurant-swipe-card,
@@ -6393,7 +6885,8 @@ textarea:focus-visible {
   .restaurant-matches-page,
   .owner-profile-page,
   .owner-jobs-page,
-  .owner-applications-page {
+  .owner-applications-page,
+  .owner-team-page {
     width: 100% !important;
   }
 
@@ -6406,9 +6899,11 @@ textarea:focus-visible {
   .owner-profile-page,
   .owner-jobs-page,
   .owner-applications-page,
+  .owner-team-page,
   .owner-profile-page *,
   .owner-jobs-page *,
-  .owner-applications-page * {
+  .owner-applications-page *,
+  .owner-team-page * {
     overflow-wrap: anywhere;
   }
 
@@ -6479,7 +6974,8 @@ textarea:focus-visible {
   .restaurant-owner-shell .app-content,
   .restaurant-owner-shell .owner-profile-page,
   .restaurant-owner-shell .owner-jobs-page,
-  .restaurant-owner-shell .owner-applications-page {
+  .restaurant-owner-shell .owner-applications-page,
+  .restaurant-owner-shell .owner-team-page {
     height: auto !important;
     overflow-y: visible;
   }
@@ -6487,7 +6983,180 @@ textarea:focus-visible {
   [dir="rtl"] .restaurant-swipe-card,
   [dir="rtl"] .owner-profile-page,
   [dir="rtl"] .owner-jobs-page,
-  [dir="rtl"] .owner-applications-page {
+  [dir="rtl"] .owner-applications-page,
+  [dir="rtl"] .owner-team-page {
     text-align: right;
+  }
+}
+
+@media (max-width: 640px) {
+  .restaurant-shell .owner-job-draft-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.6rem;
+  }
+
+  .restaurant-shell .owner-job-card-draft.is-draft-expanded {
+    grid-column: 1 / -1;
+  }
+
+  .restaurant-shell .owner-job-card-draft.is-mobile-collapsed {
+    display: grid;
+    min-height: 104px;
+    gap: 0;
+    border-color: var(--restaurant-border);
+    border-radius: 22px;
+    padding: 0.85rem;
+    background: #fffaf3;
+    box-shadow: 0 10px 22px rgb(93 49 13 / 8%);
+  }
+
+  .restaurant-shell .owner-job-card-draft.is-mobile-collapsed .owner-job-card-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 0.55rem;
+  }
+
+  .restaurant-shell .owner-job-card-draft.is-mobile-collapsed .owner-job-card-header h3 {
+    margin: 0;
+    overflow: hidden;
+    font-size: clamp(1.05rem, 5.5vw, 1.35rem);
+    line-height: 1.05;
+    letter-spacing: -0.04em;
+    text-overflow: ellipsis;
+  }
+
+  .restaurant-shell .owner-job-card-draft.is-mobile-collapsed .owner-job-card-header p,
+  .restaurant-shell .owner-job-card-draft.is-mobile-collapsed .owner-job-status-note,
+  .restaurant-shell .owner-job-card-draft.is-mobile-collapsed .owner-job-requirements,
+  .restaurant-shell .owner-job-card-draft.is-mobile-collapsed .owner-job-actions,
+  .restaurant-shell .owner-job-card-draft.is-mobile-collapsed .owner-job-compact-meta,
+  .restaurant-shell .owner-job-card-draft.is-mobile-collapsed .owner-draft-toggle-button {
+    display: none !important;
+  }
+
+  .restaurant-shell .owner-job-card-draft.is-mobile-collapsed .owner-job-card-side {
+    justify-items: end;
+  }
+
+  .restaurant-shell .owner-job-card-draft.is-mobile-collapsed .owner-job-status.draft {
+    padding: 0.25rem 0.5rem;
+    background: #fff3e7;
+    color: var(--restaurant-primary, #ef4b23);
+    font-size: 0.68rem;
+    white-space: nowrap;
+  }
+
+  .restaurant-shell .owner-job-card-draft.is-mobile-collapsed .owner-draft-manage-hint {
+    display: block;
+    margin-top: 0.45rem;
+    white-space: nowrap;
+  }
+
+  .restaurant-shell .owner-job-card-draft.is-draft-expanded {
+    cursor: default;
+  }
+
+  .restaurant-shell .owner-job-card-draft.is-draft-expanded .owner-job-card-header {
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .restaurant-shell .owner-job-card-draft.is-draft-expanded .owner-job-card-side {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.45rem;
+  }
+
+  .restaurant-shell .owner-job-card-draft.is-draft-expanded .owner-draft-toggle-button {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 1.9rem;
+    height: 1.9rem;
+    min-height: 0;
+    border: 1px solid var(--restaurant-border);
+    border-radius: 999px;
+    padding: 0;
+    background: #fffdf8;
+    box-shadow: 0 10px 24px rgb(93 49 13 / 10%);
+    color: var(--restaurant-ink);
+    font-size: 1.2rem;
+    line-height: 1;
+  }
+
+  .restaurant-shell .owner-job-card-draft.is-draft-expanded .owner-draft-toggle-button:hover {
+    background: var(--restaurant-soft);
+    transform: none;
+  }
+}
+
+.owner-team-page .page-header {
+  display: block;
+  padding-block: 0.25rem 0.1rem;
+}
+
+.owner-team-page .page-header > div {
+  display: grid;
+  gap: 0.35rem;
+  max-width: 42rem;
+}
+
+.owner-team-page .page-header span {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid var(--restaurant-border, #eadfd3);
+  border-radius: 999px;
+  padding: 0.32rem 0.65rem;
+  background: #fffaf3;
+  color: var(--restaurant-muted, #7a6a5d);
+  font-size: 0.78rem;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.owner-team-page .page-header h1 {
+  margin: 0;
+  color: var(--restaurant-ink, var(--text));
+  font-size: clamp(2rem, 6vw, 3.4rem);
+  line-height: 0.98;
+  letter-spacing: -0.055em;
+}
+
+.owner-team-page .page-header p {
+  max-width: 34rem;
+  margin: 0;
+  color: var(--restaurant-muted, var(--muted));
+  font-size: clamp(0.94rem, 2.5vw, 1.02rem);
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.owner-team-list .owner-team-card > div:first-child {
+  min-width: 0;
+}
+
+.owner-team-list .owner-team-card h2 {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+  .owner-team-page .page-header > div {
+    gap: 0.3rem;
+  }
+
+  .owner-team-page .page-header h1 {
+    font-size: clamp(2rem, 11vw, 2.65rem);
+  }
+
+  .owner-team-page .page-header span,
+  .owner-team-page .page-header p {
+    overflow-wrap: normal;
+    word-break: normal;
   }
 }

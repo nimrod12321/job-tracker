@@ -14,6 +14,30 @@ export type OwnerProfile = {
   updatedAt: string
 }
 
+export type RestaurantMemberRole = 'owner' | 'hiringManager'
+export type RestaurantMemberStatus = 'active' | 'pending' | 'removed'
+
+export type OwnerTeamMember = {
+  id: string
+  phoneNumber: string
+  displayName: string
+  role: RestaurantMemberRole
+  status: RestaurantMemberStatus
+  user: {
+    id: string
+    fullName: string
+    phoneNumber: string | null
+  } | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type OwnerTeam = {
+  restaurant: OwnerProfile
+  currentRole: RestaurantMemberRole
+  members: OwnerTeamMember[]
+}
+
 export type OwnerProfileInput = Omit<
   OwnerProfile,
   'id' | 'slug' | 'createdAt' | 'updatedAt'

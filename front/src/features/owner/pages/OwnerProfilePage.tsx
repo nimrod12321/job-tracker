@@ -17,6 +17,8 @@ const emptyProfile: OwnerProfileInput = {
   description: '',
 }
 
+type ProfileField = keyof OwnerProfileInput
+
 function OwnerProfilePage() {
   const navigate = useNavigate()
   const { direction, language } = useRestaurantLanguage()
@@ -25,6 +27,7 @@ function OwnerProfilePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [missingFields, setMissingFields] = useState<ProfileField[]>([])
   const [success, setSuccess] = useState<string | null>(null)
 
   const text = {
@@ -48,6 +51,26 @@ function OwnerProfilePage() {
         ? 'פרופיל המסעדה נשמר.'
         : 'Restaurant profile saved.',
     step: language === 'he' ? 'שלב' : 'Step',
+    contactHeading:
+      language === 'he'
+        ? 'איך ליצור איתך קשר?'
+        : 'How should candidates contact you?',
+    contactPhone:
+      language === 'he' ? 'טלפון ליצירת קשר' : 'Contact phone',
+    incompleteSummary:
+      language === 'he'
+        ? 'כדי לפרסם משרות צריך להשלים את פרטי המסעדה.'
+        : 'Complete your restaurant profile before posting jobs.',
+  }
+
+  const fieldLabels: Record<ProfileField, string> = {
+    restaurantName: language === 'he' ? 'שם המסעדה' : 'Restaurant name',
+    contactPerson: language === 'he' ? 'איש קשר' : 'Contact person',
+    phoneNumber: text.contactPhone,
+    whatsappNumber: text.contactPhone,
+    city: language === 'he' ? 'עיר' : 'City',
+    street: language === 'he' ? 'רחוב' : 'Street',
+    description: language === 'he' ? 'תיאור קצר' : 'Short description',
   }
 
   useEffect(() => {
@@ -95,6 +118,26 @@ function OwnerProfilePage() {
       ...currentForm,
       [field]: value,
     }))
+    setMissingFields((currentFields) =>
+      currentFields.filter((currentField) => currentField !== field),
+    )
+  }
+
+  function getMissingProfileFields() {
+    return (
+      [
+        'restaurantName',
+        'contactPerson',
+        'phoneNumber',
+        'city',
+        'street',
+        'description',
+      ] as ProfileField[]
+    ).filter((field) => !form[field].trim())
+  }
+
+  function isMissing(field: ProfileField) {
+    return missingFields.includes(field)
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -107,10 +150,23 @@ function OwnerProfilePage() {
 
     setError(null)
     setSuccess(null)
+
+    const nextMissingFields = getMissingProfileFields()
+
+    if (nextMissingFields.length > 0) {
+      setMissingFields(nextMissingFields)
+      setError(text.incompleteSummary)
+      return
+    }
+
     setIsSaving(true)
 
     try {
-      const savedProfile = await saveOwnerProfile(form)
+      const profileInput = {
+        ...form,
+        whatsappNumber: form.phoneNumber,
+      }
+      const savedProfile = await saveOwnerProfile(profileInput)
 
       setForm({
         restaurantName: savedProfile.restaurantName,
@@ -188,21 +244,35 @@ function OwnerProfilePage() {
             <label>
               {language === 'he' ? 'שם המסעדה' : 'Restaurant name'}
               <input
+                aria-invalid={isMissing('restaurantName')}
+                className={isMissing('restaurantName') ? 'field-error' : ''}
                 value={form.restaurantName}
                 onChange={(event) =>
                   updateField('restaurantName', event.target.value)
                 }
               />
+              {isMissing('restaurantName') && (
+                <span className="field-error-text">
+                  {fieldLabels.restaurantName}
+                </span>
+              )}
             </label>
 
             <label>
               {language === 'he' ? 'איש קשר' : 'Contact person'}
               <input
+                aria-invalid={isMissing('contactPerson')}
+                className={isMissing('contactPerson') ? 'field-error' : ''}
                 value={form.contactPerson}
                 onChange={(event) =>
                   updateField('contactPerson', event.target.value)
                 }
               />
+              {isMissing('contactPerson') && (
+                <span className="field-error-text">
+                  {fieldLabels.contactPerson}
+                </span>
+              )}
             </label>
           </>
         )}
@@ -211,50 +281,54 @@ function OwnerProfilePage() {
           <>
             <div className="guided-form-heading">
               <h2>
-                {language === 'he'
-                  ? 'איפה ואיך יוצרים קשר?'
-                  : 'Where and how do workers contact you?'}
+                {text.contactHeading}
               </h2>
             </div>
 
             <label>
-              {language === 'he' ? 'טלפון' : 'Phone number'}
+              {text.contactPhone}
               <input
                 type="tel"
+                aria-invalid={isMissing('phoneNumber')}
+                className={isMissing('phoneNumber') ? 'field-error' : ''}
                 value={form.phoneNumber}
                 onChange={(event) =>
                   updateField('phoneNumber', event.target.value)
                 }
               />
-            </label>
-
-            <label>
-              {language === 'he' ? 'וואטסאפ' : 'WhatsApp number'}
-              <input
-                type="tel"
-                value={form.whatsappNumber}
-                onChange={(event) =>
-                  updateField('whatsappNumber', event.target.value)
-                }
-              />
+              {isMissing('phoneNumber') && (
+                <span className="field-error-text">
+                  {fieldLabels.phoneNumber}
+                </span>
+              )}
             </label>
 
             <label>
               {language === 'he' ? 'עיר' : 'City'}
               <input
+                aria-invalid={isMissing('city')}
+                className={isMissing('city') ? 'field-error' : ''}
                 value={form.city}
                 onChange={(event) => updateField('city', event.target.value)}
               />
+              {isMissing('city') && (
+                <span className="field-error-text">{fieldLabels.city}</span>
+              )}
             </label>
 
             <label>
               {language === 'he' ? 'רחוב' : 'Street'}
               <input
+                aria-invalid={isMissing('street')}
+                className={isMissing('street') ? 'field-error' : ''}
                 value={form.street}
                 onChange={(event) =>
                   updateField('street', event.target.value)
                 }
               />
+              {isMissing('street') && (
+                <span className="field-error-text">{fieldLabels.street}</span>
+              )}
             </label>
           </>
         )}
@@ -272,20 +346,34 @@ function OwnerProfilePage() {
             <label className="owner-field-wide">
               {language === 'he' ? 'תיאור קצר' : 'Short description'}
               <textarea
+                aria-invalid={isMissing('description')}
+                className={isMissing('description') ? 'field-error' : ''}
                 rows={5}
                 value={form.description}
                 onChange={(event) =>
                   updateField('description', event.target.value)
                 }
               />
+              {isMissing('description') && (
+                <span className="field-error-text">
+                  {fieldLabels.description}
+                </span>
+              )}
             </label>
           </>
         )}
 
         {error && (
-          <p className="message message-error" role="alert">
-            {error}
-          </p>
+          <div className="message message-error owner-profile-error-summary" role="alert">
+            <p>{error}</p>
+            {missingFields.length > 0 && (
+              <ul>
+                {missingFields.map((field) => (
+                  <li key={field}>{fieldLabels[field]}</li>
+                ))}
+              </ul>
+            )}
+          </div>
         )}
 
         {success && (

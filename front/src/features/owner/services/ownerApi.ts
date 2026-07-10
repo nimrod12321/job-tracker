@@ -10,6 +10,8 @@ import type {
   OwnerJobInput,
   OwnerProfile,
   OwnerProfileInput,
+  OwnerTeam,
+  OwnerTeamMember,
   RestaurantCandidateLead,
 } from '../types/owner'
 
@@ -251,5 +253,45 @@ export async function deleteOwnerLead(id: string): Promise<void> {
 
   if (!response.ok) {
     await handleApiError(response, 'Failed to remove QR candidate')
+  }
+}
+
+export async function getOwnerTeam(): Promise<OwnerTeam> {
+  const response = await fetch(`${API_BASE_URL}/owner/team`, {
+    headers: getHeaders(),
+  })
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to load restaurant team')
+  }
+
+  return response.json()
+}
+
+export async function addOwnerTeamMember(input: {
+  displayName: string
+  phoneNumber: string
+}): Promise<OwnerTeamMember> {
+  const response = await fetch(`${API_BASE_URL}/owner/team/members`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(input),
+  })
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to add team member')
+  }
+
+  return response.json()
+}
+
+export async function removeOwnerTeamMember(id: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/owner/team/members/${id}`, {
+    method: 'DELETE',
+    headers: getHeaders(),
+  })
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to remove team member')
   }
 }

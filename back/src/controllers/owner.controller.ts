@@ -5,6 +5,11 @@ import type {
 } from '../generated/prisma/client.js'
 import { prisma } from '../lib/prisma.js'
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js'
+import {
+  ensureOwnerMembershipForUser,
+  getRestaurantAccessForUser,
+} from '../services/restaurantAccess.service.js'
+import { normalizeIsraeliPhoneNumber } from '../utils/phone.js'
 import { getValidationErrorMessage } from '../utils/validation.js'
 import {
   candidateLeadStatusBodySchema,
@@ -17,6 +22,8 @@ import {
   ownerJobIdSchema,
   ownerJobSchema,
   ownerProfileSchema,
+  ownerTeamMemberIdSchema,
+  ownerTeamMemberSchema,
 } from '../validations/owner.validation.js'
 
 const PROFILE_REQUIRED_MESSAGE =
@@ -111,11 +118,9 @@ function mapOwnerJob(job: RestaurantJob) {
 }
 
 async function findOwnerProfile(userId: string) {
-  return prisma.restaurantOwnerProfile.findUnique({
-    where: {
-      userId,
-    },
-  })
+  const access = await getRestaurantAccessForUser(userId)
+
+  return access?.restaurant ?? null
 }
 
 function hasCompleteOwnerProfile(
@@ -195,6 +200,38 @@ function mapCandidateLead(
   }
 }
 
+function mapTeamMember(member: {
+  id: string
+  phoneNumber: string
+  displayName: string
+  role: 'owner' | 'hiringManager'
+  status: 'active' | 'pending' | 'removed'
+  createdAt: Date
+  updatedAt: Date
+  user: {
+    id: string
+    fullName: string
+    phoneNumber: string | null
+  } | null
+}) {
+  return {
+    id: member.id,
+    phoneNumber: member.phoneNumber,
+    displayName: member.displayName || member.user?.fullName || '',
+    role: member.role,
+    status: member.status,
+    user: member.user
+      ? {
+          id: member.user.id,
+          fullName: member.user.fullName,
+          phoneNumber: member.user.phoneNumber,
+        }
+      : null,
+    createdAt: member.createdAt.toISOString(),
+    updatedAt: member.updatedAt.toISOString(),
+  }
+}
+
 async function findOwnedJob(
   jobId: string,
   ownerProfileId: string,
@@ -267,6 +304,14 @@ export async function updateOwnerProfile(req: Request, res: Response) {
       })
     }
 
+    const access = await getRestaurantAccessForUser(userId)
+
+    if (access && access.role !== 'owner') {
+      return res.status(403).json({
+        message: 'owner access required',
+      })
+    }
+
     const result = ownerProfileSchema.safeParse(req.body)
 
     if (!result.success) {
@@ -275,7 +320,13 @@ export async function updateOwnerProfile(req: Request, res: Response) {
       })
     }
 
-    const existingProfile = await findOwnerProfile(userId)
+    const existingProfile =
+      access?.restaurant ??
+      (await prisma.restaurantOwnerProfile.findUnique({
+        where: {
+          userId,
+        },
+      }))
     const shouldGenerateSlug =
       !existingProfile?.slug &&
       result.data.restaurantName.trim() &&
@@ -315,6 +366,8 @@ export async function updateOwnerProfile(req: Request, res: Response) {
       })
       await createDefaultRestaurantJobsIfNeeded(profile)
     }
+
+    await ensureOwnerMembershipForUser(profile, userId)
 
     return res.json(mapOwnerProfile(profile))
   } catch (error) {
@@ -630,6 +683,14 @@ export async function deleteOwnerJob(req: Request, res: Response) {
     if (!userId) {
       return res.status(401).json({
         message: 'unauthorized',
+      })
+    }
+
+    const access = await getRestaurantAccessForUser(userId)
+
+    if (access?.role !== 'owner') {
+      return res.status(403).json({
+        message: 'owner access required',
       })
     }
 
@@ -1020,6 +1081,249 @@ export async function deleteOwnerLead(req: Request, res: Response) {
 
     return res.status(500).json({
       message: 'failed to remove QR candidate lead',
+    })
+  }
+}
+
+export async function getOwnerTeam(req: Request, res: Response) {
+  try {
+    const userId = getUserId(req)
+
+    if (!userId) {
+      return res.status(401).json({
+        message: 'unauthorized',
+      })
+    }
+
+    const access = await getRestaurantAccessForUser(userId)
+
+    if (!access) {
+      return res.status(403).json({
+        message: 'restaurant access required',
+      })
+    }
+
+    if (access.role !== 'owner') {
+      return res.status(403).json({
+        message: 'owner access required',
+      })
+    }
+
+    const members = await prisma.restaurantMember.findMany({
+      where: {
+        restaurantId: access.restaurant.id,
+        status: {
+          not: 'removed',
+        },
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            phoneNumber: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    })
+
+    return res.json({
+      restaurant: mapOwnerProfile(access.restaurant),
+      currentRole: access.role,
+      members: members.map(mapTeamMember),
+    })
+  } catch (error) {
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to fetch restaurant team',
+    })
+  }
+}
+
+export async function addOwnerTeamMember(req: Request, res: Response) {
+  try {
+    const userId = getUserId(req)
+
+    if (!userId) {
+      return res.status(401).json({
+        message: 'unauthorized',
+      })
+    }
+
+    const access = await getRestaurantAccessForUser(userId)
+
+    if (!access) {
+      return res.status(403).json({
+        message: 'restaurant access required',
+      })
+    }
+
+    if (access.role !== 'owner') {
+      return res.status(403).json({
+        message: 'owner access required',
+      })
+    }
+
+    const result = ownerTeamMemberSchema.safeParse(req.body)
+
+    if (!result.success) {
+      return res.status(400).json({
+        message: getValidationErrorMessage(result.error),
+      })
+    }
+
+    let phoneNumber: string
+
+    try {
+      phoneNumber = normalizeIsraeliPhoneNumber(result.data.phoneNumber)
+    } catch {
+      return res.status(400).json({
+        message: 'phone number is invalid',
+      })
+    }
+
+    const existingUser = await prisma.user.findUnique({
+      where: {
+        phoneNumber,
+      },
+      select: {
+        id: true,
+        fullName: true,
+        phoneNumber: true,
+      },
+    })
+    const existingMember = await prisma.restaurantMember.findUnique({
+      where: {
+        restaurantId_phoneNumber: {
+          restaurantId: access.restaurant.id,
+          phoneNumber,
+        },
+      },
+    })
+
+    if (existingMember?.role === 'owner') {
+      return res.status(400).json({
+        message: 'owner member cannot be changed',
+      })
+    }
+
+    const member = await prisma.restaurantMember.upsert({
+      where: {
+        restaurantId_phoneNumber: {
+          restaurantId: access.restaurant.id,
+          phoneNumber,
+        },
+      },
+      update: {
+        userId: existingUser?.id ?? null,
+        displayName:
+          result.data.displayName || existingUser?.fullName || '',
+        role: 'hiringManager',
+        status: existingUser ? 'active' : 'pending',
+        invitedByUserId: userId,
+      },
+      create: {
+        restaurantId: access.restaurant.id,
+        userId: existingUser?.id ?? null,
+        phoneNumber,
+        displayName:
+          result.data.displayName || existingUser?.fullName || '',
+        role: 'hiringManager',
+        status: existingUser ? 'active' : 'pending',
+        invitedByUserId: userId,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            phoneNumber: true,
+          },
+        },
+      },
+    })
+
+    return res.status(existingMember ? 200 : 201).json(mapTeamMember(member))
+  } catch (error) {
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to add team member',
+    })
+  }
+}
+
+export async function removeOwnerTeamMember(req: Request, res: Response) {
+  try {
+    const userId = getUserId(req)
+
+    if (!userId) {
+      return res.status(401).json({
+        message: 'unauthorized',
+      })
+    }
+
+    const access = await getRestaurantAccessForUser(userId)
+
+    if (!access) {
+      return res.status(403).json({
+        message: 'restaurant access required',
+      })
+    }
+
+    if (access.role !== 'owner') {
+      return res.status(403).json({
+        message: 'owner access required',
+      })
+    }
+
+    const idResult = ownerTeamMemberIdSchema.safeParse(req.params.memberId)
+
+    if (!idResult.success) {
+      return res.status(400).json({
+        message: getValidationErrorMessage(idResult.error),
+      })
+    }
+
+    const member = await prisma.restaurantMember.findFirst({
+      where: {
+        id: idResult.data,
+        restaurantId: access.restaurant.id,
+      },
+    })
+
+    if (!member) {
+      return res.status(404).json({
+        message: 'team member not found',
+      })
+    }
+
+    if (member.role === 'owner') {
+      return res.status(400).json({
+        message: 'owner member cannot be removed',
+      })
+    }
+
+    await prisma.restaurantMember.update({
+      where: {
+        id: member.id,
+      },
+      data: {
+        status: 'removed',
+        userId: null,
+      },
+    })
+
+    return res.status(204).send()
+  } catch (error) {
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to remove team member',
     })
   }
 }

@@ -55,3 +55,18 @@ export const ownerApplicationStatusSchema = z
 export const ownerApplicationIdSchema = z
   .string()
   .uuid('application id must be valid')
+
+export const ownerTeamMemberSchema = z
+  .object({
+    displayName: optionalText('name', 150),
+    phoneNumber: z
+      .string({ error: 'phone number is required' })
+      .trim()
+      .min(1, 'phone number is required')
+      .max(50, 'phone number is too long'),
+  })
+  .strict()
+
+export const ownerTeamMemberIdSchema = z
+  .string()
+  .uuid('member id must be valid')

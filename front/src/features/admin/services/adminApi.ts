@@ -5,9 +5,12 @@ import {
   notifyAuthSessionExpired,
 } from '../../auth/utils/authStorage'
 import type {
+  AdminRestaurant,
   AdminRestaurantCandidateLead,
+  AdminRestaurantDetail,
+  AdminRestaurantInput,
   CandidateLeadStatus,
-} from '../../owner/types/owner'
+} from '../types/admin'
 
 function getHeaders(): Headers {
   const headers = new Headers({
@@ -56,6 +59,85 @@ export async function getAdminRestaurantLeads(): Promise<
 
   if (!response.ok) {
     await handleApiError(response, 'Failed to load restaurant leads')
+  }
+
+  return response.json()
+}
+
+export async function getAdminRestaurants(): Promise<AdminRestaurant[]> {
+  const response = await fetch(`${API_BASE_URL}/admin/restaurants`, {
+    headers: getHeaders(),
+  })
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to load restaurants')
+  }
+
+  return response.json()
+}
+
+export async function createAdminRestaurant(
+  input: AdminRestaurantInput,
+): Promise<AdminRestaurant> {
+  const response = await fetch(`${API_BASE_URL}/admin/restaurants`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(input),
+  })
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to create restaurant')
+  }
+
+  return response.json()
+}
+
+export async function getAdminRestaurantDetail(
+  id: string,
+): Promise<AdminRestaurantDetail> {
+  const response = await fetch(
+    `${API_BASE_URL}/admin/restaurants/${encodeURIComponent(id)}`,
+    {
+      headers: getHeaders(),
+    },
+  )
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to load restaurant')
+  }
+
+  return response.json()
+}
+
+export async function markAdminRestaurantSeen(id: string): Promise<void> {
+  const response = await fetch(
+    `${API_BASE_URL}/admin/restaurants/${encodeURIComponent(id)}/mark-seen`,
+    {
+      method: 'POST',
+      headers: getHeaders(),
+    },
+  )
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to mark restaurant seen')
+  }
+}
+
+export async function updateAdminRestaurant(
+  id: string,
+  input: Partial<AdminRestaurantInput>,
+): Promise<AdminRestaurant> {
+  const response = await fetch(
+    `${API_BASE_URL}/admin/restaurants/${encodeURIComponent(id)}`,
+    {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify(input),
+    },
+  )
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to update restaurant')
   }
 
   return response.json()

@@ -60,6 +60,29 @@ type ApiResponse<T> = {
 
 type AuthResponse = {
   token: string
+  user?: {
+    id?: string
+    phoneNumber?: string | null
+    restaurantMemberRole?: 'owner' | 'hiringManager' | null
+  }
+}
+
+type OwnerTeamMemberResponse = {
+  id: string
+  phoneNumber: string
+  displayName: string
+  role: 'owner' | 'hiringManager'
+  status: 'active' | 'pending' | 'removed'
+  user: {
+    id: string
+    fullName: string
+    phoneNumber: string | null
+  } | null
+}
+
+type OwnerTeamResponse = {
+  currentRole: 'owner' | 'hiringManager'
+  members: OwnerTeamMemberResponse[]
 }
 
 type OwnerProfileResponse = {
@@ -82,7 +105,35 @@ type RestaurantExploreResponse = {
   }>
 }
 
+type AdminRestaurantResponse = {
+  id: string
+  restaurantName: string
+  slug: string | null
+  city: string
+  street: string
+  qrLeadsCount: number
+  hasNewCandidate: boolean
+  newCandidateCount: number
+  ownerUser: {
+    id: string
+    phoneNumber: string | null
+  } | null
+}
+
+type AdminRestaurantDetailResponse = {
+  restaurant: AdminRestaurantResponse
+  ownerAccountPhone: string | null
+  restaurantContactPhone: string
+  qrLeads: Array<{
+    id: string
+    fullName: string
+  }>
+  jobs: unknown[]
+  applications: unknown[]
+}
+
 type PrismaModule = typeof import('../lib/prisma.js')
+type OtpProviderModule = typeof import('../services/otpProvider.js')
 
 async function readJson<T>(response: Response): Promise<ApiResponse<T>> {
   const text = await response.text()
@@ -110,12 +161,15 @@ test(
       .toString(36)
       .slice(2)}`
     const adminEmail = `admin-${runId}@example.test`
+    const secondAdminEmail = `admin-two-${runId}@example.test`
 
-    process.env.ADMIN_EMAILS = adminEmail
+    process.env.ADMIN_EMAILS = `${adminEmail},${secondAdminEmail}`
 
-    const [{ app }, { prisma }] = await Promise.all([
+    const [{ app }, { prisma }, { getCapturedOtpCodeForTest }] =
+      await Promise.all([
       import('../server.js') as Promise<{ app: Express }>,
       import('../lib/prisma.js') as Promise<PrismaModule>,
+      import('../services/otpProvider.js') as Promise<OtpProviderModule>,
     ])
 
     const server = createServer(app)
@@ -129,6 +183,7 @@ test(
     const createdOwnerProfileIds: string[] = []
     const createdRestaurantNames: string[] = []
     const createdEmails: string[] = []
+    const createdUserIds: string[] = []
 
     async function request<T>(
       path: string,
@@ -142,6 +197,28 @@ test(
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       }
+    }
+
+    async function requestPhoneCode(
+      phoneNumber: string,
+      purpose: 'login' | 'register' | 'qrApply',
+    ) {
+      return request<Record<string, unknown>>('/auth/request-code', {
+        method: 'POST',
+        headers: jsonHeaders(),
+        body: JSON.stringify({
+          phoneNumber,
+          purpose,
+        }),
+      })
+    }
+
+    async function verifyPhoneCode(body: Record<string, unknown>) {
+      return request<AuthResponse>('/auth/verify-code', {
+        method: 'POST',
+        headers: jsonHeaders(),
+        body: JSON.stringify(body),
+      })
     }
 
     async function registerAndLogin(
@@ -369,6 +446,270 @@ test(
         assert.equal(response.status, 404)
       }
 
+      await prisma.user.update({
+        where: {
+          email: ownerA.email,
+        },
+        data: {
+          phoneNumber: '+972501234321',
+          phoneVerifiedAt: new Date(),
+        },
+      })
+
+      const ownerTeamBeforeInvite = await request<OwnerTeamResponse>(
+        '/owner/team',
+        {
+          headers: jsonHeaders(ownerA.token),
+        },
+      )
+      assert.equal(ownerTeamBeforeInvite.status, 200)
+      assert.equal(ownerTeamBeforeInvite.body.currentRole, 'owner')
+
+      const ownerMember = ownerTeamBeforeInvite.body.members.find(
+        (member) => member.role === 'owner',
+      )
+      assert.ok(ownerMember)
+      assert.equal(ownerMember.status, 'active')
+
+      const removeOwnerMember = await request(
+        `/owner/team/members/${ownerMember.id}`,
+        {
+          method: 'DELETE',
+          headers: jsonHeaders(ownerA.token),
+        },
+      )
+      assert.equal(removeOwnerMember.status, 400)
+
+      const invitedPhoneInput = '050-222-3333'
+      const invitedPhone = '+972502223333'
+      const invitedMember = await request<OwnerTeamMemberResponse>(
+        '/owner/team/members',
+        {
+          method: 'POST',
+          headers: jsonHeaders(ownerA.token),
+          body: JSON.stringify({
+            displayName: 'Hiring Manager',
+            phoneNumber: invitedPhoneInput,
+          }),
+        },
+      )
+      assert.equal(invitedMember.status, 201)
+      assert.equal(invitedMember.body.phoneNumber, invitedPhone)
+      assert.equal(invitedMember.body.role, 'hiringManager')
+      assert.equal(invitedMember.body.status, 'pending')
+      assert.equal(invitedMember.body.user, null)
+
+      const duplicateInvite = await request<OwnerTeamMemberResponse>(
+        '/owner/team/members',
+        {
+          method: 'POST',
+          headers: jsonHeaders(ownerA.token),
+          body: JSON.stringify({
+            displayName: 'Hiring Manager Duplicate',
+            phoneNumber: invitedPhone,
+          }),
+        },
+      )
+      assert.equal(duplicateInvite.status, 200)
+      assert.equal(duplicateInvite.body.id, invitedMember.body.id)
+      assert.equal(
+        await prisma.restaurantMember.count({
+          where: {
+            restaurantId: ownerA.profile.id,
+            phoneNumber: invitedPhone,
+            status: {
+              not: 'removed',
+            },
+          },
+        }),
+        1,
+      )
+
+      const requestedHiringManagerCode = await requestPhoneCode(
+        invitedPhoneInput,
+        'register',
+      )
+      assert.equal(requestedHiringManagerCode.status, 200)
+      const capturedHiringManagerCode = getCapturedOtpCodeForTest(
+        invitedPhone,
+        'register',
+      )
+      assert.match(capturedHiringManagerCode ?? '', /^\d{4}$/)
+
+      const hiringManagerAuth = await verifyPhoneCode({
+        phoneNumber: invitedPhoneInput,
+        code: capturedHiringManagerCode,
+        purpose: 'register',
+        fullName: 'Hiring Manager',
+        track: 'restaurant',
+      })
+      assert.equal(hiringManagerAuth.status, 200)
+      assert.equal(
+        hiringManagerAuth.body.user?.restaurantMemberRole,
+        'hiringManager',
+      )
+      assert.ok(hiringManagerAuth.body.user?.id)
+      createdUserIds.push(hiringManagerAuth.body.user.id)
+      const hiringManagerToken = hiringManagerAuth.body.token
+
+      const activeHiringMember =
+        await prisma.restaurantMember.findUniqueOrThrow({
+          where: {
+            id: invitedMember.body.id,
+          },
+        })
+      assert.equal(activeHiringMember.status, 'active')
+      assert.equal(activeHiringMember.userId, hiringManagerAuth.body.user.id)
+
+      const hiringManagerJobs = await request<OwnerJobResponse[]>(
+        '/owner/jobs',
+        {
+          headers: jsonHeaders(hiringManagerToken),
+        },
+      )
+      assert.equal(hiringManagerJobs.status, 200)
+      assert.ok(
+        hiringManagerJobs.body.some((job) => job.id === ownerAJob.body.id),
+      )
+
+      const hiringManagerCreatedJob = await request<OwnerJobResponse>(
+        '/owner/jobs',
+        {
+          method: 'POST',
+          headers: jsonHeaders(hiringManagerToken),
+          body: JSON.stringify({
+            role: 'host',
+            description: 'Manager created draft',
+            requirements: '',
+            shiftInfo: 'Morning',
+            contactPhone: '',
+            contactWhatsapp: '',
+          }),
+        },
+      )
+      assert.equal(hiringManagerCreatedJob.status, 201)
+      assert.equal(hiringManagerCreatedJob.body.kind, 'draft')
+
+      const hiringManagerUpdatedJob = await request<OwnerJobResponse>(
+        `/owner/jobs/${hiringManagerCreatedJob.body.id}`,
+        {
+          method: 'PUT',
+          headers: jsonHeaders(hiringManagerToken),
+          body: JSON.stringify({
+            role: 'bartender',
+            description: 'Manager updated draft',
+            requirements: '',
+            shiftInfo: 'Evening',
+            contactPhone: '',
+            contactWhatsapp: '',
+          }),
+        },
+      )
+      assert.equal(hiringManagerUpdatedJob.status, 200)
+
+      const hiringManagerPublishedJob = await request<OwnerJobResponse>(
+        `/owner/jobs/${hiringManagerCreatedJob.body.id}/publish`,
+        {
+          method: 'POST',
+          headers: jsonHeaders(hiringManagerToken),
+        },
+      )
+      assert.equal(hiringManagerPublishedJob.status, 201)
+      assert.equal(hiringManagerPublishedJob.body.kind, 'posted')
+
+      const hiringManagerProfileUpdate = await request(
+        '/owner/profile',
+        {
+          method: 'PUT',
+          headers: jsonHeaders(hiringManagerToken),
+          body: JSON.stringify({
+            restaurantName: 'Should Not Change',
+            contactPerson: 'Manager',
+            phoneNumber: '0501111111',
+            whatsappNumber: '',
+            city: 'Tel Aviv',
+            street: 'Nope',
+            description: '',
+          }),
+        },
+      )
+      assert.equal(hiringManagerProfileUpdate.status, 403)
+
+      const hiringManagerTeamRead = await request('/owner/team', {
+        headers: jsonHeaders(hiringManagerToken),
+      })
+      assert.equal(hiringManagerTeamRead.status, 403)
+
+      const hiringManagerTeamInvite = await request(
+        '/owner/team/members',
+        {
+          method: 'POST',
+          headers: jsonHeaders(hiringManagerToken),
+          body: JSON.stringify({
+            displayName: 'Other',
+            phoneNumber: '0503334444',
+          }),
+        },
+      )
+      assert.equal(hiringManagerTeamInvite.status, 403)
+
+      const ownerBPrivateJob = await request<OwnerJobResponse>(
+        '/owner/jobs',
+        {
+          method: 'POST',
+          headers: jsonHeaders(ownerB.token),
+          body: JSON.stringify({
+            role: 'waiter',
+            description: 'Owner B private draft',
+            requirements: '',
+            shiftInfo: '',
+            contactPhone: '',
+            contactWhatsapp: '',
+          }),
+        },
+      )
+      assert.equal(ownerBPrivateJob.status, 201)
+
+      const hiringManagerStolenOwnerBJob = await request(
+        `/owner/jobs/${ownerBPrivateJob.body.id}`,
+        {
+          method: 'PUT',
+          headers: jsonHeaders(hiringManagerToken),
+          body: JSON.stringify({
+            role: 'cook',
+            description: 'Cross restaurant edit',
+            requirements: '',
+            shiftInfo: '',
+            contactPhone: '',
+            contactWhatsapp: '',
+          }),
+        },
+      )
+      assert.equal(hiringManagerStolenOwnerBJob.status, 404)
+
+      const hiringManagerDeleteJob = await request(
+        `/owner/jobs/${hiringManagerCreatedJob.body.id}`,
+        {
+          method: 'DELETE',
+          headers: jsonHeaders(hiringManagerToken),
+        },
+      )
+      assert.equal(hiringManagerDeleteJob.status, 403)
+
+      const removedHiringMember = await request(
+        `/owner/team/members/${invitedMember.body.id}`,
+        {
+          method: 'DELETE',
+          headers: jsonHeaders(ownerA.token),
+        },
+      )
+      assert.equal(removedHiringMember.status, 204)
+
+      const removedHiringManagerJobs = await request('/owner/jobs', {
+        headers: jsonHeaders(hiringManagerToken),
+      })
+      assert.equal(removedHiringManagerJobs.status, 403)
+
       const nonAdminToken = ownerA.token
       const nonAdminAdminRequest = await request(
         '/admin/restaurant-leads',
@@ -379,10 +720,305 @@ test(
       assert.equal(nonAdminAdminRequest.status, 403)
 
       const adminToken = await registerAndLogin(adminEmail, 'restaurantOwner')
+      const secondAdminToken = await registerAndLogin(
+        secondAdminEmail,
+        'restaurantOwner',
+      )
       const adminRequest = await request('/admin/restaurant-leads', {
         headers: jsonHeaders(adminToken),
       })
       assert.equal(adminRequest.status, 200)
+
+      const nonAdminRestaurantsRequest = await request(
+        '/admin/restaurants',
+        {
+          headers: jsonHeaders(nonAdminToken),
+        },
+      )
+      assert.equal(nonAdminRestaurantsRequest.status, 403)
+
+      await prisma.restaurantCandidateLead.create({
+        data: {
+          ownerProfileId: ownerB.profile.id,
+          fullName: 'Owner B Unread Lead',
+          phoneNumber: '0505555555',
+          wantedRoles: ['host'],
+          source: 'security-test',
+        },
+      })
+
+      const adminRestaurantsRequest = await request<
+        AdminRestaurantResponse[]
+      >('/admin/restaurants', {
+        headers: jsonHeaders(adminToken),
+      })
+      assert.equal(adminRestaurantsRequest.status, 200)
+      assert.ok(
+        adminRestaurantsRequest.body.every(
+          (restaurant) =>
+            typeof restaurant.id === 'string' &&
+            typeof restaurant.restaurantName === 'string' &&
+            typeof restaurant.hasNewCandidate === 'boolean' &&
+            typeof restaurant.newCandidateCount === 'number',
+        ),
+      )
+      const ownerAAdminRestaurant = adminRestaurantsRequest.body.find(
+        (restaurant) => restaurant.id === ownerA.profile.id,
+      )
+      assert.equal(ownerAAdminRestaurant?.hasNewCandidate, true)
+      assert.equal(ownerAAdminRestaurant?.newCandidateCount, 1)
+      const ownerBAdminRestaurant = adminRestaurantsRequest.body.find(
+        (restaurant) => restaurant.id === ownerB.profile.id,
+      )
+      assert.equal(ownerBAdminRestaurant?.hasNewCandidate, true)
+      assert.equal(ownerBAdminRestaurant?.newCandidateCount, 1)
+
+      const nonAdminMarkSeen = await request(
+        `/admin/restaurants/${ownerA.profile.id}/mark-seen`,
+        {
+          method: 'POST',
+          headers: jsonHeaders(nonAdminToken),
+        },
+      )
+      assert.equal(nonAdminMarkSeen.status, 403)
+
+      const adminMarkSeen = await request<{ ok: boolean }>(
+        `/admin/restaurants/${ownerA.profile.id}/mark-seen`,
+        {
+          method: 'POST',
+          headers: jsonHeaders(adminToken),
+        },
+      )
+      assert.equal(adminMarkSeen.status, 200)
+      assert.equal(adminMarkSeen.body.ok, true)
+
+      const ownerALeadAfterSeen =
+        await prisma.restaurantCandidateLead.findUniqueOrThrow({
+          where: {
+            id: ownerALead.id,
+          },
+        })
+      assert.equal(ownerALeadAfterSeen.status, 'new')
+
+      const adminRestaurantsAfterSeen = await request<
+        AdminRestaurantResponse[]
+      >('/admin/restaurants', {
+        headers: jsonHeaders(adminToken),
+      })
+      assert.equal(adminRestaurantsAfterSeen.status, 200)
+      const ownerAAfterSeen = adminRestaurantsAfterSeen.body.find(
+        (restaurant) => restaurant.id === ownerA.profile.id,
+      )
+      const ownerBAfterOwnerASeen = adminRestaurantsAfterSeen.body.find(
+        (restaurant) => restaurant.id === ownerB.profile.id,
+      )
+      assert.equal(ownerAAfterSeen?.hasNewCandidate, false)
+      assert.equal(ownerAAfterSeen?.newCandidateCount, 0)
+      assert.equal(ownerBAfterOwnerASeen?.hasNewCandidate, true)
+      assert.equal(ownerBAfterOwnerASeen?.newCandidateCount, 1)
+
+      const secondAdminRestaurantsAfterFirstAdminSeen = await request<
+        AdminRestaurantResponse[]
+      >('/admin/restaurants', {
+        headers: jsonHeaders(secondAdminToken),
+      })
+      assert.equal(secondAdminRestaurantsAfterFirstAdminSeen.status, 200)
+      const ownerAForSecondAdmin =
+        secondAdminRestaurantsAfterFirstAdminSeen.body.find(
+          (restaurant) => restaurant.id === ownerA.profile.id,
+        )
+      assert.equal(ownerAForSecondAdmin?.hasNewCandidate, true)
+      assert.equal(ownerAForSecondAdmin?.newCandidateCount, 1)
+
+      await prisma.restaurantCandidateLead.create({
+        data: {
+          ownerProfileId: ownerA.profile.id,
+          fullName: 'New Lead After Seen',
+          phoneNumber: '0501212121',
+          wantedRoles: ['waiter'],
+          source: 'security-test',
+          createdAt: new Date(Date.now() + 1_000),
+        },
+      })
+
+      const adminRestaurantsAfterNewLead = await request<
+        AdminRestaurantResponse[]
+      >('/admin/restaurants', {
+        headers: jsonHeaders(adminToken),
+      })
+      assert.equal(adminRestaurantsAfterNewLead.status, 200)
+      const ownerAAfterNewLead = adminRestaurantsAfterNewLead.body.find(
+        (restaurant) => restaurant.id === ownerA.profile.id,
+      )
+      assert.equal(ownerAAfterNewLead?.hasNewCandidate, true)
+      assert.equal(ownerAAfterNewLead?.newCandidateCount, 1)
+
+      const adminCreatedRestaurant = await request<AdminRestaurantResponse>(
+        '/admin/restaurants',
+        {
+          method: 'POST',
+          headers: jsonHeaders(adminToken),
+          body: JSON.stringify({
+            restaurantName: `Admin Created ${runId}`,
+          }),
+        },
+      )
+      assert.equal(adminCreatedRestaurant.status, 201)
+      assert.equal(
+        adminCreatedRestaurant.body.restaurantName,
+        `Admin Created ${runId}`,
+      )
+      assert.ok(adminCreatedRestaurant.body.slug)
+      assert.equal(adminCreatedRestaurant.body.hasNewCandidate, false)
+      assert.equal(adminCreatedRestaurant.body.newCandidateCount, 0)
+      createdOwnerProfileIds.push(adminCreatedRestaurant.body.id)
+
+      const adminCreatedProfile =
+        await prisma.restaurantOwnerProfile.findUniqueOrThrow({
+          where: {
+            id: adminCreatedRestaurant.body.id,
+          },
+          select: {
+            userId: true,
+          },
+        })
+      createdUserIds.push(adminCreatedProfile.userId)
+
+      const duplicateNameRestaurant = await request<AdminRestaurantResponse>(
+        '/admin/restaurants',
+        {
+          method: 'POST',
+          headers: jsonHeaders(adminToken),
+          body: JSON.stringify({
+            restaurantName: `Admin Created ${runId}`,
+          }),
+        },
+      )
+      assert.equal(duplicateNameRestaurant.status, 201)
+      assert.ok(duplicateNameRestaurant.body.slug)
+      assert.notEqual(
+        duplicateNameRestaurant.body.slug,
+        adminCreatedRestaurant.body.slug,
+      )
+      createdOwnerProfileIds.push(duplicateNameRestaurant.body.id)
+
+      const duplicateProfile =
+        await prisma.restaurantOwnerProfile.findUniqueOrThrow({
+          where: {
+            id: duplicateNameRestaurant.body.id,
+          },
+          select: {
+            userId: true,
+          },
+        })
+      createdUserIds.push(duplicateProfile.userId)
+
+      const editedAdminRestaurant = await request<AdminRestaurantResponse>(
+        `/admin/restaurants/${adminCreatedRestaurant.body.id}`,
+        {
+          method: 'PATCH',
+          headers: jsonHeaders(adminToken),
+          body: JSON.stringify({
+            restaurantName: `Admin Edited ${runId}`,
+            city: 'Tel Aviv',
+            street: 'Admin Street',
+          }),
+        },
+      )
+      assert.equal(editedAdminRestaurant.status, 200)
+      assert.equal(
+        editedAdminRestaurant.body.restaurantName,
+        `Admin Edited ${runId}`,
+      )
+      assert.equal(editedAdminRestaurant.body.city, 'Tel Aviv')
+
+      const nonAdminDetailRequest = await request(
+        `/admin/restaurants/${adminCreatedRestaurant.body.id}`,
+        {
+          headers: jsonHeaders(nonAdminToken),
+        },
+      )
+      assert.equal(nonAdminDetailRequest.status, 403)
+
+      await prisma.user.update({
+        where: {
+          email: ownerA.email,
+        },
+        data: {
+          phoneNumber: '+972501234321',
+        },
+      })
+
+      const adminRestaurantLead =
+        await prisma.restaurantCandidateLead.create({
+          data: {
+            ownerProfileId: adminCreatedRestaurant.body.id,
+            fullName: 'Admin Restaurant Lead',
+            phoneNumber: '0507777777',
+            wantedRoles: ['waiter'],
+            source: 'security-test',
+          },
+        })
+
+      const otherRestaurantLead =
+        await prisma.restaurantCandidateLead.create({
+          data: {
+            ownerProfileId: ownerB.profile.id,
+            fullName: 'Other Restaurant Lead',
+            phoneNumber: '0508888888',
+            wantedRoles: ['host'],
+            source: 'security-test',
+          },
+        })
+
+      const adminRestaurantsAfterLead = await request<
+        AdminRestaurantResponse[]
+      >('/admin/restaurants', {
+        headers: jsonHeaders(adminToken),
+      })
+      assert.equal(adminRestaurantsAfterLead.status, 200)
+      const adminCreatedRestaurantWithLead =
+        adminRestaurantsAfterLead.body.find(
+          (restaurant) => restaurant.id === adminCreatedRestaurant.body.id,
+        )
+      assert.equal(
+        adminCreatedRestaurantWithLead?.hasNewCandidate,
+        true,
+      )
+      assert.equal(adminCreatedRestaurantWithLead?.newCandidateCount, 1)
+
+      const adminRestaurantDetail =
+        await request<AdminRestaurantDetailResponse>(
+          `/admin/restaurants/${adminCreatedRestaurant.body.id}`,
+          {
+            headers: jsonHeaders(adminToken),
+          },
+        )
+      assert.equal(adminRestaurantDetail.status, 200)
+      assert.equal(
+        adminRestaurantDetail.body.restaurant.id,
+        adminCreatedRestaurant.body.id,
+      )
+      assert.ok(
+        adminRestaurantDetail.body.qrLeads.some(
+          (lead) => lead.id === adminRestaurantLead.id,
+        ),
+      )
+      assert.ok(
+        adminRestaurantDetail.body.qrLeads.every(
+          (lead) => lead.id !== otherRestaurantLead.id,
+        ),
+      )
+
+      const ownerADetail = await request<AdminRestaurantDetailResponse>(
+        `/admin/restaurants/${ownerA.profile.id}`,
+        {
+          headers: jsonHeaders(adminToken),
+        },
+      )
+      assert.equal(ownerADetail.status, 200)
+      assert.equal(ownerADetail.body.ownerAccountPhone, '+972501234321')
+      assert.equal(ownerADetail.body.restaurantContactPhone, '0500000000')
 
       const publicRestaurant = await request<Record<string, unknown>>(
         `/public/restaurants/${ownerA.profile.slug}`,
@@ -395,6 +1031,16 @@ test(
         'slug',
         'street',
       ])
+
+      const publicAdminCreatedRestaurant =
+        await request<Record<string, unknown>>(
+          `/public/restaurants/${adminCreatedRestaurant.body.slug}`,
+        )
+      assert.equal(publicAdminCreatedRestaurant.status, 200)
+      assert.equal(
+        publicAdminCreatedRestaurant.body.restaurantName,
+        `Admin Edited ${runId}`,
+      )
 
       const duplicateUnverifiedLead = await request<{ message?: string }>(
         `/public/restaurants/${ownerA.profile.slug}/leads`,
@@ -429,6 +1075,12 @@ test(
         `worker-${runId}@example.test`,
         'restaurant',
       )
+
+      const workerOwnerJobs = await request('/owner/jobs', {
+        headers: jsonHeaders(workerToken),
+      })
+      assert.equal(workerOwnerJobs.status, 403)
+
       await request('/restaurant/profile', {
         method: 'PUT',
         headers: jsonHeaders(workerToken),
@@ -653,9 +1305,18 @@ test(
       })
       await prisma.user.deleteMany({
         where: {
-          email: {
-            in: createdEmails,
-          },
+          OR: [
+            {
+              email: {
+                in: createdEmails,
+              },
+            },
+            {
+              id: {
+                in: createdUserIds,
+              },
+            },
+          ],
         },
       })
       await new Promise<void>((resolve, reject) => {

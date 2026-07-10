@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import QRCode from 'qrcode'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import {
   RESTAURANT_ROLES,
   getRestaurantRoleLabel,
@@ -55,6 +55,17 @@ function getStoredQrWidgetOpen(slug: string | null | undefined) {
   return storedValue === null ? true : storedValue === 'true'
 }
 
+function isOwnerProfileComplete(profile: OwnerProfile | null) {
+  return Boolean(
+    profile?.restaurantName.trim() &&
+      profile.contactPerson.trim() &&
+      profile.phoneNumber.trim() &&
+      profile.city.trim() &&
+      profile.street.trim() &&
+      profile.description.trim(),
+  )
+}
+
 function getJobInputFromJob(job: OwnerJob): OwnerJobInput {
   return {
     role: job.role,
@@ -79,6 +90,7 @@ function getPreview(value: string, fallback: string) {
 }
 
 function OwnerJobsPage() {
+  const navigate = useNavigate()
   const { direction, language } = useRestaurantLanguage()
   const [profile, setProfile] = useState<OwnerProfile | null>(null)
   const [jobs, setJobs] = useState<OwnerJob[]>([])
@@ -94,6 +106,8 @@ function OwnerJobsPage() {
   const [qrCodeUrl, setQrCodeUrl] = useState('')
   const [isQrExpanded, setIsQrExpanded] = useState(false)
   const [highlightedJobId, setHighlightedJobId] = useState<string | null>(null)
+  const [expandedDraftId, setExpandedDraftId] = useState<string | null>(null)
+  const [showFirstPublishModal, setShowFirstPublishModal] = useState(false)
   const [openJobsSection, setOpenJobsSection] =
     useState<OwnerJobsSection | null>(null)
   const pendingJobIds = useRef(new Set<string>())
@@ -220,9 +234,23 @@ function OwnerJobsPage() {
         : 'Ready to share or print',
     openQr: language === 'he' ? 'פתח' : 'Open',
     hideQr: language === 'he' ? 'סגור' : 'Close',
+    closeQr: language === 'he' ? 'סגור אזור ברקוד' : 'Close QR section',
     copyLink: language === 'he' ? 'העתק קישור' : 'Copy link',
     downloadQr: language === 'he' ? 'הורד QR' : 'Download QR',
     copied: language === 'he' ? 'הקישור הועתק.' : 'Link copied.',
+    tapToManage:
+      language === 'he' ? 'לחצו לניהול' : 'Tap to manage',
+    collapseDraft:
+      language === 'he' ? 'סגור טיוטה' : 'Collapse draft',
+    firstPublishTitle:
+      language === 'he' ? 'המשרה פורסמה ✅' : 'Job posted ✅',
+    firstPublishBody:
+      language === 'he'
+        ? 'מועמדים יוכלו להגיש מועמדות. כשמישהו יגיש, זה יופיע באזור המועמדים.'
+        : "Candidates can now apply. When someone applies, they'll appear in the Applications section.",
+    gotIt: language === 'he' ? 'הבנתי' : 'Got it',
+    viewApplications:
+      language === 'he' ? 'למועמדים' : 'View applications',
   }
 
   const postedJobs = useMemo(
@@ -239,10 +267,20 @@ function OwnerJobsPage() {
 
     async function loadOwnerData() {
       try {
-        const [ownerProfile, ownerJobs] = await Promise.all([
-          getOwnerProfile(),
-          getOwnerJobs(),
-        ])
+        const ownerProfile = await getOwnerProfile()
+
+        if (isActive) {
+          setProfile(ownerProfile)
+
+          if (!isOwnerProfileComplete(ownerProfile)) {
+            setJobs([])
+            setIsQrExpanded(false)
+            setOpenJobsSection(null)
+            return
+          }
+        }
+
+        const ownerJobs = await getOwnerJobs()
 
         if (isActive) {
           const postedCount = ownerJobs.filter(
@@ -252,7 +290,6 @@ function OwnerJobsPage() {
             (job) => job.kind === 'draft',
           ).length
 
-          setProfile(ownerProfile)
           setJobs(ownerJobs)
           setIsQrExpanded(getStoredQrWidgetOpen(ownerProfile?.slug))
           setOpenJobsSection(
@@ -280,6 +317,14 @@ function OwnerJobsPage() {
       isActive = false
     }
   }, [])
+
+  useEffect(() => {
+    if (isLoading || error || isOwnerProfileComplete(profile)) {
+      return
+    }
+
+    navigate('/owner/profile', { replace: true })
+  }, [error, isLoading, navigate, profile])
 
   useEffect(() => {
     let isActive = true
@@ -395,12 +440,17 @@ function OwnerJobsPage() {
     setIsSubmitting(true)
 
     try {
+      const jobInput = {
+        ...form,
+        contactWhatsapp: form.contactPhone,
+      }
+
       if (editingJobId) {
-        const updatedJob = await updateOwnerJob(editingJobId, form)
+        const updatedJob = await updateOwnerJob(editingJobId, jobInput)
         replaceJob(updatedJob)
         setSuccess(text.updated)
       } else {
-        const createdJob = await createOwnerJob(form)
+        const createdJob = await createOwnerJob(jobInput)
         setJobs((currentJobs) => [createdJob, ...currentJobs])
         setSuccess(text.created)
       }
@@ -434,6 +484,11 @@ function OwnerJobsPage() {
       setSuccess(text.posted)
       setHighlightedJobId(postedJob.id)
       setOpenJobsSection('posted')
+      setExpandedDraftId(null)
+      if (!localStorage.getItem('peepss_owner_first_publish_seen')) {
+        localStorage.setItem('peepss_owner_first_publish_seen', 'true')
+        setShowFirstPublishModal(true)
+      }
       resetForm()
     } catch (error) {
       setError(
@@ -574,36 +629,85 @@ function OwnerJobsPage() {
     }
   }
 
+  function handleCloseQr() {
+    setIsQrExpanded(false)
+
+    if (qrStorageKey) {
+      localStorage.setItem(qrStorageKey, 'false')
+    }
+  }
+
   function renderJobCard(job: OwnerJob, variant: 'draft' | 'posted') {
     const isBusy = busyJobId === job.id
     const location =
       [job.city, job.street].filter(Boolean).join(' · ') ||
       text.locationNotSet
     const isPosted = variant === 'posted'
+    const isDraftExpanded = isPosted || expandedDraftId === job.id
+    const isDraftCollapsed = !isPosted && !isDraftExpanded
 
     return (
       <article
         className={`owner-job-card owner-job-card-${variant}${
           highlightedJobId === job.id ? ' is-highlighted' : ''
+        }${isDraftCollapsed ? ' is-mobile-collapsed' : ''}${
+          isDraftExpanded && !isPosted ? ' is-draft-expanded' : ''
         }`}
         key={job.id}
+        tabIndex={isDraftCollapsed ? 0 : undefined}
+        onClick={() => {
+          if (isDraftCollapsed) {
+            setExpandedDraftId(job.id)
+          }
+        }}
+        onKeyDown={(event) => {
+          if (
+            isDraftCollapsed &&
+            (event.key === 'Enter' || event.key === ' ')
+          ) {
+            event.preventDefault()
+            setExpandedDraftId(job.id)
+          }
+        }}
       >
         <div className="owner-job-card-header">
           <div>
             <p>{job.restaurantName}</p>
             <h3>{getRestaurantRoleLabel(job.role, language)}</h3>
+            {!isPosted && isDraftCollapsed && (
+              <span className="owner-draft-manage-hint">
+                {text.tapToManage}
+              </span>
+            )}
           </div>
-          <span
-            className={`owner-job-status ${
-              isPosted ? (job.isActive ? 'active' : 'inactive') : 'draft'
-            }`}
-          >
-            {isPosted
-              ? job.isActive
-                ? text.active
-                : text.inactive
-              : text.draft}
-          </span>
+          <div className="owner-job-card-side">
+            <span
+              className={`owner-job-status ${
+                isPosted ? (job.isActive ? 'active' : 'inactive') : 'draft'
+              }`}
+            >
+              {isPosted
+                ? job.isActive
+                  ? text.active
+                  : text.inactive
+                : text.draft}
+            </span>
+            {!isPosted && (
+              <button
+                className="owner-draft-toggle-button"
+                type="button"
+                aria-label={
+                  isDraftExpanded ? text.collapseDraft : text.tapToManage
+                }
+                onClick={(event) => {
+                  event.stopPropagation()
+                  setExpandedDraftId(isDraftExpanded ? null : job.id)
+                }}
+              >
+                {isDraftExpanded ? '×' : '+'}
+              </button>
+            )}
+          </div>
         </div>
 
         <p className="owner-job-status-note">
@@ -627,7 +731,10 @@ function OwnerJobsPage() {
           <button
             type="button"
             disabled={isBusy}
-            onClick={() => startEditing(job)}
+            onClick={(event) => {
+              event.stopPropagation()
+              startEditing(job)
+            }}
           >
             {text.edit}
           </button>
@@ -636,7 +743,10 @@ function OwnerJobsPage() {
               className="owner-active-button"
               type="button"
               disabled={isBusy}
-              onClick={() => void handleActiveChange(job)}
+              onClick={(event) => {
+                event.stopPropagation()
+                void handleActiveChange(job)
+              }}
             >
               {isBusy
                 ? text.saving
@@ -649,7 +759,10 @@ function OwnerJobsPage() {
               className="owner-active-button"
               type="button"
               disabled={isBusy}
-              onClick={() => void handlePublishDraft(job)}
+              onClick={(event) => {
+                event.stopPropagation()
+                void handlePublishDraft(job)
+              }}
             >
               {isBusy ? text.saving : text.publish}
             </button>
@@ -658,7 +771,10 @@ function OwnerJobsPage() {
             className="owner-delete-button"
             type="button"
             disabled={isBusy}
-            onClick={() => void handleDelete(job)}
+            onClick={(event) => {
+              event.stopPropagation()
+              void handleDelete(job)
+            }}
           >
             {isPosted ? text.delete : text.deleteDraft}
           </button>
@@ -697,20 +813,15 @@ function OwnerJobsPage() {
     )
   }
 
-  if (
-    !profile?.restaurantName.trim() ||
-    !profile.city.trim() ||
-    !profile.street.trim()
-  ) {
+  if (!profile || !isOwnerProfileComplete(profile)) {
     return (
       <section className="owner-jobs-page owner-guided-page" dir={direction}>
-        <div className="owner-step-card owner-profile-required">
-          <h1>{text.completeProfile}</h1>
-          <Link to="/owner/profile">{text.goToProfile}</Link>
-        </div>
+        <p className="status-message">{text.completeProfile}</p>
       </section>
     )
   }
+
+  const ownerProfile = profile
 
   return (
     <section className="owner-jobs-page owner-guided-page" dir={direction}>
@@ -718,7 +829,7 @@ function OwnerJobsPage() {
         <div>
           <h1>{text.title}</h1>
           <p>
-            {text.postingFor} {profile.restaurantName}. {text.newDrafts}
+            {text.postingFor} {ownerProfile.restaurantName}. {text.newDrafts}
           </p>
         </div>
       </div>
@@ -732,12 +843,20 @@ function OwnerJobsPage() {
       >
         {isQrExpanded ? (
           <div className="owner-qr-expanded-content">
+            <button
+              className="owner-qr-close-button"
+              type="button"
+              aria-label={text.closeQr}
+              onClick={handleCloseQr}
+            >
+              ×
+            </button>
             <div className="owner-qr-main">
               <div className="owner-qr-widget-copy">
                 <span aria-hidden="true">▦</span>
                 <div className="owner-qr-text">
                   <h2>{text.qrTitle}</h2>
-                  <p>{profile.slug ? text.qrDescription : text.qrMissing}</p>
+                  <p>{ownerProfile.slug ? text.qrDescription : text.qrMissing}</p>
                 </div>
               </div>
 
@@ -748,15 +867,6 @@ function OwnerJobsPage() {
               )}
 
               <div className="owner-qr-actions">
-                {publicHiringLink && (
-                  <button
-                    className="owner-qr-open-button"
-                    type="button"
-                    onClick={handleToggleQr}
-                  >
-                    {text.hideQr}
-                  </button>
-                )}
                 <button
                   type="button"
                   disabled={!publicHiringLink}
@@ -789,7 +899,7 @@ function OwnerJobsPage() {
               <div className="owner-qr-text">
                 <h2>{text.qrTitle}</h2>
                 <p>
-                  {profile.slug ? text.qrCollapsedSubtitle : text.qrMissing}
+                  {ownerProfile.slug ? text.qrCollapsedSubtitle : text.qrMissing}
                 </p>
               </div>
             </div>
@@ -996,16 +1106,6 @@ function OwnerJobsPage() {
                   }
                 />
               </label>
-              <label>
-                {text.contactWhatsapp}
-                <input
-                  type="tel"
-                  value={form.contactWhatsapp}
-                  onChange={(event) =>
-                    updateField('contactWhatsapp', event.target.value)
-                  }
-                />
-              </label>
             </>
           )}
 
@@ -1076,6 +1176,40 @@ function OwnerJobsPage() {
             <p className="owner-empty-small">{text.emptyPosted}</p>
           )}
         </section>
+      )}
+
+      {showFirstPublishModal && (
+        <div className="owner-publish-modal-backdrop" role="presentation">
+          <section
+            className="owner-publish-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="owner-first-publish-title"
+          >
+            <h2 id="owner-first-publish-title">
+              {text.firstPublishTitle}
+            </h2>
+            <p>{text.firstPublishBody}</p>
+            <div className="owner-publish-modal-actions">
+              <button
+                type="button"
+                className="restaurant-skip-button"
+                onClick={() => setShowFirstPublishModal(false)}
+              >
+                {text.gotIt}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowFirstPublishModal(false)
+                  navigate('/owner/applications')
+                }}
+              >
+                {text.viewApplications}
+              </button>
+            </div>
+          </section>
+        </div>
       )}
     </section>
   )

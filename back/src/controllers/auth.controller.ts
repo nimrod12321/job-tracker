@@ -5,6 +5,10 @@ import { prisma } from '../lib/prisma.js'
 import { signAuthToken } from '../lib/jwt.js'
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js'
 import { requestOtpCode, verifyOtpCode } from '../services/otp.service.js'
+import {
+  getPrimaryRestaurantMembershipRole,
+  linkPendingRestaurantMemberships,
+} from '../services/restaurantAccess.service.js'
 import { normalizeIsraeliPhoneNumber } from '../utils/phone.js'
 import { getValidationErrorMessage } from '../utils/validation.js'
 import {
@@ -37,6 +41,13 @@ function isAdminUser(user: {
 }
 
 function mapAuthUser(user: AuthUserRecord) {
+  return mapAuthUserWithRestaurantRole(user, null)
+}
+
+function mapAuthUserWithRestaurantRole(
+  user: AuthUserRecord,
+  restaurantMemberRole: 'owner' | 'hiringManager' | null,
+) {
   return {
     id: user.id,
     ...(user.email ? { email: user.email } : {}),
@@ -44,6 +55,7 @@ function mapAuthUser(user: AuthUserRecord) {
     phoneVerifiedAt: user.phoneVerifiedAt?.toISOString() ?? null,
     fullName: user.fullName,
     track: user.track,
+    restaurantMemberRole,
     isAdmin: isAdminUser(user),
     ...(user.createdAt
       ? {
@@ -135,10 +147,12 @@ export async function login(req: Request, res: Response) {
     }
 
     const token = signAuthToken(user.id)
+    const restaurantMemberRole =
+      await getPrimaryRestaurantMembershipRole(user.id)
 
     return res.json({
       token,
-      user: mapAuthUser(user),
+      user: mapAuthUserWithRestaurantRole(user, restaurantMemberRole),
     })
   } catch (error) {
     console.error(error)
@@ -180,7 +194,10 @@ export async function getMe(req: Request, res: Response) {
       })
     }
 
-    return res.json(mapAuthUser(user))
+    const restaurantMemberRole =
+      await getPrimaryRestaurantMembershipRole(user.id)
+
+    return res.json(mapAuthUserWithRestaurantRole(user, restaurantMemberRole))
   } catch (error) {
     console.error(error)
 
@@ -303,10 +320,19 @@ export async function verifyCode(req: Request, res: Response) {
       }
 
       const token = signAuthToken(existingUser.id)
+      await linkPendingRestaurantMemberships(
+        existingUser.id,
+        existingUser.phoneNumber,
+      )
+      const restaurantMemberRole =
+        await getPrimaryRestaurantMembershipRole(existingUser.id)
 
       return res.json({
         token,
-        user: mapAuthUser(existingUser),
+        user: mapAuthUserWithRestaurantRole(
+          existingUser,
+          restaurantMemberRole,
+        ),
       })
     }
 
@@ -339,11 +365,14 @@ export async function verifyCode(req: Request, res: Response) {
           },
         })
 
+    await linkPendingRestaurantMemberships(user.id, user.phoneNumber)
+    const restaurantMemberRole =
+      await getPrimaryRestaurantMembershipRole(user.id)
     const token = signAuthToken(user.id)
 
     return res.json({
       token,
-      user: mapAuthUser(user),
+      user: mapAuthUserWithRestaurantRole(user, restaurantMemberRole),
     })
   } catch (error) {
     console.error(error)

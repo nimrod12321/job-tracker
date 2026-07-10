@@ -136,10 +136,10 @@ TEST_DATABASE_URL="postgresql://jobtracker:jobtracker_password@127.0.0.1:5433/pe
 
 The OTP tests do not read codes from API responses. In `NODE_ENV=test`, the backend OTP provider captures the generated code in memory for tests only.
 
-In development, OTP codes are printed in backend logs:
+In local development with `OTP_PROVIDER=console`, OTP codes are printed in backend logs:
 
 ```txt
 OTP code for +972501234567: 1234
 ```
 
-In production, OTP delivery returns a safe error until a real SMS/WhatsApp provider is added.
+In production, OTP should use Twilio SMS with `OTP_PROVIDER=twilio` and `OTP_CHANNEL=sms`.

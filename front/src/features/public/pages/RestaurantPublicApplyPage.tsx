@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { requestAuthCode, verifyAuthCode } from '../../auth/services/authApi'
 import RestaurantLanguageToggle from '../../restaurant/components/RestaurantLanguageToggle'
@@ -51,6 +51,8 @@ function RestaurantPublicApplyPage({
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const isVerifyingCodeRef = useRef(false)
+  const lastAutoVerifyCodeRef = useRef<string | null>(null)
   const text = {
     loading: language === 'he' ? 'טוען מסעדה...' : 'Loading restaurant...',
     notFound:
@@ -124,6 +126,10 @@ function RestaurantPublicApplyPage({
         : 'Please enter your name and phone number.',
     codeError:
       language === 'he' ? 'הזינו קוד בן 4 ספרות' : 'Enter the 4-digit code',
+    invalidCodeError:
+      language === 'he'
+        ? 'הקוד לא נכון או שפג תוקף. נסה שוב.'
+        : 'The code is incorrect or expired. Try again.',
     detailsError:
       language === 'he'
         ? 'צריך למלא גיל תקין ולבחור לפחות תפקיד אחד.'
@@ -177,8 +183,85 @@ function RestaurantPublicApplyPage({
   }
 
   function handleCodeChange(value: string) {
-    setCode(value.replace(/\D/g, '').slice(0, 4))
+    const nextCode = value.replace(/\D/g, '').slice(0, 4)
+
+    if (nextCode.length < 4) {
+      lastAutoVerifyCodeRef.current = null
+    }
+
+    setCode(nextCode)
+    setMessage(null)
+
+    if (error) {
+      setError(null)
+    }
   }
+
+  const verifyQrCode = useCallback(
+    async (codeToVerify: string, source: 'auto' | 'manual') => {
+      setError(null)
+      setMessage(null)
+
+      if (!/^\d{4}$/.test(codeToVerify)) {
+        setError(text.codeError)
+        return
+      }
+
+      if (isVerifyingCodeRef.current) {
+        return
+      }
+
+      if (source === 'auto') {
+        if (lastAutoVerifyCodeRef.current === codeToVerify) {
+          return
+        }
+
+        lastAutoVerifyCodeRef.current = codeToVerify
+      }
+
+      isVerifyingCodeRef.current = true
+      setIsSubmitting(true)
+
+      try {
+        const response = await verifyAuthCode({
+          phoneNumber,
+          code: codeToVerify,
+          purpose: 'qrApply',
+          fullName: fullName.trim(),
+        })
+
+        await onAuthVerified(response.token)
+        setVerifiedToken(response.token)
+        setStep('details')
+      } catch {
+        setError(text.invalidCodeError)
+      } finally {
+        isVerifyingCodeRef.current = false
+        setIsSubmitting(false)
+      }
+    },
+    [
+      fullName,
+      onAuthVerified,
+      phoneNumber,
+      text.codeError,
+      text.invalidCodeError,
+    ],
+  )
+
+  useEffect(() => {
+    if (step !== 'verify' || code.length !== 4 || isSubmitting) {
+      return
+    }
+
+    const verifyTimeout = window.setTimeout(() => {
+      void verifyQrCode(code, 'auto')
+    }, 250)
+
+    return () => {
+      window.clearTimeout(verifyTimeout)
+    }
+  }, [code, isSubmitting, step, verifyQrCode])
 
   async function handleSendCode(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -197,6 +280,7 @@ function RestaurantPublicApplyPage({
         phoneNumber,
         purpose: 'qrApply',
       })
+      lastAutoVerifyCodeRef.current = null
       setCode('')
       setStep('verify')
     } catch (error) {
@@ -210,34 +294,7 @@ function RestaurantPublicApplyPage({
 
   async function handleVerifyCode(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setError(null)
-    setMessage(null)
-
-    if (!/^\d{4}$/.test(code)) {
-      setError(text.codeError)
-      return
-    }
-
-    setIsSubmitting(true)
-
-    try {
-      const response = await verifyAuthCode({
-        phoneNumber,
-        code,
-        purpose: 'qrApply',
-        fullName: fullName.trim(),
-      })
-
-      await onAuthVerified(response.token)
-      setVerifiedToken(response.token)
-      setStep('details')
-    } catch (error) {
-      setError(
-        error instanceof Error ? error.message : 'Failed to verify code',
-      )
-    } finally {
-      setIsSubmitting(false)
-    }
+    await verifyQrCode(code, 'manual')
   }
 
   async function handleResendCode() {
@@ -250,6 +307,8 @@ function RestaurantPublicApplyPage({
         phoneNumber,
         purpose: 'qrApply',
       })
+      lastAutoVerifyCodeRef.current = null
+      setCode('')
       setMessage(text.resendSuccess)
     } catch (error) {
       setError(
@@ -440,6 +499,7 @@ function RestaurantPublicApplyPage({
                     maxLength={4}
                     required
                     dir="ltr"
+                    disabled={isSubmitting}
                   />
                 </label>
                 {import.meta.env.DEV && (
@@ -458,7 +518,7 @@ function RestaurantPublicApplyPage({
                   <button
                     type="button"
                     className="text-button"
-                    disabled={isResending}
+                    disabled={isSubmitting || isResending}
                     onClick={handleResendCode}
                   >
                     {isResending ? text.resending : text.resend}
@@ -466,9 +526,11 @@ function RestaurantPublicApplyPage({
                   <button
                     type="button"
                     className="text-button"
+                    disabled={isSubmitting}
                     onClick={() => {
                       setStep('identify')
                       setCode('')
+                      lastAutoVerifyCodeRef.current = null
                       setError(null)
                       setMessage(null)
                     }}

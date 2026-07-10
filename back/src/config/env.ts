@@ -46,11 +46,38 @@ function getOptionalEnvironmentVariable(name: string) {
   return value || ''
 }
 
+function getDatabaseTarget(databaseUrl: string) {
+  try {
+    const host = new URL(databaseUrl).hostname.toLowerCase()
+
+    if (
+      host === 'localhost' ||
+      host === '127.0.0.1' ||
+      host === '0.0.0.0' ||
+      host === '::1'
+    ) {
+      return 'local'
+    }
+
+    if (host.includes('neon.tech')) {
+      return 'prod'
+    }
+  } catch {
+    return 'unknown'
+  }
+
+  return 'unknown'
+}
+
 const nodeEnv = process.env.NODE_ENV?.trim() || 'development'
+const databaseUrl = getRequiredEnvironmentVariable('DATABASE_URL')
+const databaseTarget = getDatabaseTarget(databaseUrl)
 const configuredFrontendUrl = process.env.FRONTEND_URL?.trim()
 const otpProvider = process.env.OTP_PROVIDER?.trim() || 'console'
 const otpChannel = process.env.OTP_CHANNEL?.trim() || 'whatsapp'
 const otpMode = process.env.OTP_MODE?.trim() || 'sandbox'
+const otpRuntimeProvider = nodeEnv === 'test' ? 'fake' : otpProvider
+const otpRuntimeChannel = otpRuntimeProvider === 'fake' ? 'none' : otpChannel
 const twilioAccountSid = getOptionalEnvironmentVariable(
   'TWILIO_ACCOUNT_SID',
 )
@@ -72,6 +99,14 @@ const twilioMessagingServiceSid = getOptionalEnvironmentVariable(
 
 if (nodeEnv === 'production' && !configuredFrontendUrl) {
   throw new Error('FRONTEND_URL is not set')
+}
+
+if (nodeEnv === 'production' && databaseTarget === 'local') {
+  throw new Error('Production must not use a local DATABASE_URL')
+}
+
+if (nodeEnv === 'production' && otpProvider === 'console') {
+  throw new Error('Production must not use OTP_PROVIDER=console')
 }
 
 if (otpProvider === 'twilio' && nodeEnv !== 'test') {
@@ -121,7 +156,8 @@ if (otpProvider === 'twilio' && nodeEnv !== 'test') {
 }
 
 export const env = {
-  databaseUrl: getRequiredEnvironmentVariable('DATABASE_URL'),
+  databaseUrl,
+  databaseTarget,
   jwtSecret: getRequiredEnvironmentVariable('JWT_SECRET'),
   port: getPort(),
   frontendUrl:
@@ -158,6 +194,8 @@ export const env = {
   otpProvider,
   otpChannel,
   otpMode,
+  otpRuntimeProvider,
+  otpRuntimeChannel,
   twilioAccountSid,
   twilioApiKeySid,
   twilioApiKeySecret,
