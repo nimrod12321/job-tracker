@@ -737,6 +737,45 @@ textarea:focus-visible {
   text-align: center;
 }
 
+.error-boundary {
+  display: grid;
+  min-height: 100dvh;
+  padding: 1.5rem;
+  background: var(--background);
+  place-items: center;
+}
+
+.error-boundary-card {
+  display: grid;
+  gap: 0.85rem;
+  width: min(100%, 420px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: clamp(1.5rem, 5vw, 2rem);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+  text-align: center;
+}
+
+.error-boundary-card h1 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.5rem;
+}
+
+.error-boundary-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.error-boundary-card button {
+  justify-self: center;
+  min-height: 46px;
+  padding: 0.65rem 1.75rem;
+  border-radius: 999px;
+}
+
 .checking-session-screen {
   display: grid;
   min-height: 100dvh;
@@ -4065,31 +4104,28 @@ textarea:focus-visible {
 }
 
 .owner-job-action-cards {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.85rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .owner-job-action-card {
-  position: relative;
-  display: grid;
-  align-content: space-between;
-  justify-items: start;
-  min-height: 108px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 0;
   border: 1px solid var(--restaurant-border, var(--border));
-  border-radius: 24px;
-  padding: 1rem;
+  border-radius: 999px;
+  padding: 0.5rem 0.85rem;
   background: rgb(255 250 243 / 92%);
-  box-shadow: 0 14px 32px rgb(93 49 13 / 8%);
+  box-shadow: 0 4px 12px rgb(93 49 13 / 6%);
   color: var(--restaurant-ink, var(--text));
-  text-align: start;
 }
 
 .owner-job-action-card:hover {
   border-color: rgb(239 75 35 / 34%);
   background: #fffdf8;
-  box-shadow: 0 18px 38px rgb(93 49 13 / 11%);
-  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgb(93 49 13 / 9%);
 }
 
 .owner-job-action-card.is-active {
@@ -4098,29 +4134,31 @@ textarea:focus-visible {
 }
 
 .owner-job-action-card-title {
-  max-width: 100%;
-  font-size: clamp(1.05rem, 3vw, 1.35rem);
-  font-weight: 950;
-  line-height: 1.05;
+  font-size: 0.88rem;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .owner-job-action-card-count {
-  margin-top: 0.9rem;
+  flex: 0 0 auto;
+  min-width: 1.35rem;
   border-radius: 999px;
-  padding: 0.28rem 0.62rem;
-  background: #1f1d1e;
-  color: #fffaf3;
-  font-size: 0.82rem;
-  font-weight: 950;
+  padding: 0.12rem 0.4rem;
+  background: rgb(255 255 255 / 22%);
+  color: inherit;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.3;
+  text-align: center;
 }
 
 .owner-job-action-card-indicator {
-  position: absolute;
-  inset-block-end: 1rem;
-  inset-inline-end: 1rem;
-  color: var(--restaurant-primary, var(--accent));
-  font-size: 0.78rem;
-  font-weight: 950;
+  flex: 0 0 auto;
+  color: currentcolor;
+  font-size: 0.62rem;
+  font-weight: 800;
+  opacity: 0.7;
 }
 
 .owner-draft-intro-note {
@@ -6843,29 +6881,7 @@ textarea:focus-visible {
   }
 
   .restaurant-shell .owner-job-action-cards {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.55rem;
-  }
-
-  .restaurant-shell .owner-job-action-card {
-    min-height: 88px;
-    border-radius: 20px;
-    padding: 0.75rem;
-  }
-
-  .restaurant-shell .owner-job-action-card-title {
-    font-size: clamp(0.9rem, 4.5vw, 1.08rem);
-  }
-
-  .restaurant-shell .owner-job-action-card-count {
-    margin-top: 0.55rem;
-    padding: 0.22rem 0.5rem;
-    font-size: 0.75rem;
-  }
-
-  .restaurant-shell .owner-job-action-card-indicator {
-    inset-block-end: 0.72rem;
-    inset-inline-end: 0.72rem;
+    gap: 0.4rem;
   }
 
   .restaurant-shell .owner-draft-intro-note {

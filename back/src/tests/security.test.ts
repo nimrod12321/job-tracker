@@ -94,6 +94,8 @@ type OwnerJobResponse = {
   id: string
   kind: 'draft' | 'posted'
   isActive: boolean
+  role?: string
+  description?: string
 }
 
 type RestaurantExploreResponse = {
@@ -413,6 +415,170 @@ test(
             job.id === publishedOwnerAJob.body.id &&
             job.kind === 'posted',
         ),
+      )
+
+      // Publishing the same draft again (double click, retry, resubmit)
+      // must not create a second posted job — it should return the
+      // existing one instead.
+      const republishedOwnerAJob = await request<OwnerJobResponse>(
+        `/owner/jobs/${ownerAJob.body.id}/publish`,
+        {
+          method: 'POST',
+          headers: jsonHeaders(ownerA.token),
+        },
+      )
+      assert.equal(republishedOwnerAJob.status, 200)
+      assert.equal(republishedOwnerAJob.body.id, publishedOwnerAJob.body.id)
+
+      const ownerAJobsAfterRepublish = await request<OwnerJobResponse[]>(
+        '/owner/jobs',
+        {
+          headers: jsonHeaders(ownerA.token),
+        },
+      )
+      assert.equal(ownerAJobsAfterRepublish.status, 200)
+      assert.equal(
+        ownerAJobsAfterRepublish.body.filter(
+          (job) => job.kind === 'posted',
+        ).length,
+        1,
+      )
+      assert.ok(
+        ownerAJobsAfterRepublish.body.some(
+          (job) => job.id === ownerAJob.body.id && job.kind === 'draft',
+        ),
+      )
+
+      // Truly concurrent publish requests (not sequential) on the same
+      // draft must not create more than one posted job, and none of them
+      // should 500 — the unique constraint on publishedFromDraftId is the
+      // real guard, not the earlier findUnique check alone.
+      const concurrentDraft = await request<OwnerJobResponse>('/owner/jobs', {
+        method: 'POST',
+        headers: jsonHeaders(ownerA.token),
+        body: JSON.stringify({
+          role: 'host',
+          description: 'Concurrent publish draft',
+          requirements: '',
+          shiftInfo: '',
+          contactPhone: '',
+          contactWhatsapp: '',
+        }),
+      })
+      assert.equal(concurrentDraft.status, 201)
+
+      const concurrentPublishResults = await Promise.all(
+        Array.from({ length: 5 }, () =>
+          request<OwnerJobResponse>(
+            `/owner/jobs/${concurrentDraft.body.id}/publish`,
+            {
+              method: 'POST',
+              headers: jsonHeaders(ownerA.token),
+            },
+          ),
+        ),
+      )
+      assert.ok(
+        concurrentPublishResults.every(
+          (result) => result.status === 200 || result.status === 201,
+        ),
+        'no concurrent publish request should error',
+      )
+      assert.equal(
+        new Set(concurrentPublishResults.map((result) => result.body.id))
+          .size,
+        1,
+        'all concurrent publish responses must reference the same posted job',
+      )
+
+      const ownerAJobsAfterConcurrentPublish = await request<
+        OwnerJobResponse[]
+      >('/owner/jobs', {
+        headers: jsonHeaders(ownerA.token),
+      })
+      assert.equal(
+        ownerAJobsAfterConcurrentPublish.body.filter(
+          (job) =>
+            job.role === 'host' &&
+            job.kind === 'posted' &&
+            job.description === 'Concurrent publish draft',
+        ).length,
+        1,
+        'exactly one posted job should exist for the concurrently-published draft',
+      )
+
+      // Two different drafts with the same role: publishing/deleting one
+      // must not affect the other.
+      const draftHostTwo = await request<OwnerJobResponse>('/owner/jobs', {
+        method: 'POST',
+        headers: jsonHeaders(ownerA.token),
+        body: JSON.stringify({
+          role: 'host',
+          description: 'Second host draft',
+          requirements: '',
+          shiftInfo: '',
+          contactPhone: '',
+          contactWhatsapp: '',
+        }),
+      })
+      assert.equal(draftHostTwo.status, 201)
+
+      const publishedHostTwo = await request<OwnerJobResponse>(
+        `/owner/jobs/${draftHostTwo.body.id}/publish`,
+        {
+          method: 'POST',
+          headers: jsonHeaders(ownerA.token),
+        },
+      )
+      assert.equal(publishedHostTwo.status, 201)
+      assert.notEqual(
+        publishedHostTwo.body.id,
+        concurrentPublishResults[0]?.body.id,
+        'two different drafts with the same role must produce two different posted jobs',
+      )
+
+      // Deleting one posted job must only remove that exact job — not the
+      // source draft, not another posted job with the same role.
+      const deleteConcurrentPosted = await request(
+        `/owner/jobs/${concurrentPublishResults[0]?.body.id}`,
+        {
+          method: 'DELETE',
+          headers: jsonHeaders(ownerA.token),
+        },
+      )
+      assert.equal(deleteConcurrentPosted.status, 204)
+
+      const ownerAJobsAfterDelete = await request<OwnerJobResponse[]>(
+        '/owner/jobs',
+        {
+          headers: jsonHeaders(ownerA.token),
+        },
+      )
+      assert.equal(ownerAJobsAfterDelete.status, 200)
+      assert.ok(
+        !ownerAJobsAfterDelete.body.some(
+          (job) => job.id === concurrentPublishResults[0]?.body.id,
+        ),
+        'the deleted posted job must be gone',
+      )
+      assert.ok(
+        ownerAJobsAfterDelete.body.some(
+          (job) => job.id === concurrentDraft.body.id && job.kind === 'draft',
+        ),
+        'the source draft of the deleted posted job must survive',
+      )
+      assert.ok(
+        ownerAJobsAfterDelete.body.some(
+          (job) =>
+            job.id === draftHostTwo.body.id && job.kind === 'draft',
+        ),
+        'an unrelated draft with the same role must survive',
+      )
+      assert.ok(
+        ownerAJobsAfterDelete.body.some(
+          (job) => job.id === publishedHostTwo.body.id && job.kind === 'posted',
+        ),
+        'an unrelated posted job with the same role must survive',
       )
 
       for (const [method, path, body] of [

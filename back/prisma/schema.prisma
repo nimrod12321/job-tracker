@@ -236,6 +236,10 @@ model RestaurantJob {
   kind            RestaurantJobKind @default(draft)
   isActive        Boolean        @default(true)
 
+  // Set on a posted job to the id of the draft it was published from.
+  // Unique so a draft can produce at most one posted job (publish is idempotent).
+  publishedFromDraftId String? @unique
+
   ownerProfileId String?
   ownerProfile   RestaurantOwnerProfile? @relation(fields: [ownerProfileId], references: [id], onDelete: SetNull)
 

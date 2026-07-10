@@ -6,7 +6,10 @@ import {
   requestCode,
   verifyCode,
 } from '../controllers/auth.controller.js'
-import { createInMemoryRateLimit } from '../middleware/rateLimit.middleware.js'
+import {
+  createInMemoryRateLimit,
+  getClientIp,
+} from '../middleware/rateLimit.middleware.js'
 import { requireAuth } from '../middleware/auth.middleware.js'
 import { normalizeIsraeliPhoneNumber } from '../utils/phone.js'
 
@@ -15,11 +18,7 @@ export const authRouter = Router()
 const OTP_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000
 
 function getClientIdentifier(req: Request) {
-  const forwardedFor = req.headers['x-forwarded-for']
-  const ip =
-    typeof forwardedFor === 'string' && forwardedFor.trim()
-      ? forwardedFor.split(',')[0]?.trim()
-      : req.ip || req.socket.remoteAddress || 'unknown'
+  const ip = getClientIp(req)
   const body = req.body as { phoneNumber?: unknown }
   const rawPhoneNumber =
     typeof body.phoneNumber === 'string' ? body.phoneNumber : ''
@@ -29,6 +28,15 @@ function getClientIdentifier(req: Request) {
   } catch {
     return `${ip}:${rawPhoneNumber.trim()}`
   }
+}
+
+function getEmailClientIdentifier(req: Request) {
+  const ip = getClientIp(req)
+  const body = req.body as { email?: unknown }
+  const rawEmail =
+    typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
+
+  return `${ip}:${rawEmail}`
 }
 
 const requestCodeRateLimit = createInMemoryRateLimit({
@@ -45,8 +53,25 @@ const verifyCodeRateLimit = createInMemoryRateLimit({
   windowMs: OTP_RATE_LIMIT_WINDOW_MS,
 })
 
-authRouter.post('/register', register)
-authRouter.post('/login', login)
+// Legacy email/password auth. The current UI only exposes phone-OTP, but
+// these endpoints are still live in the backend, so they still need
+// brute-force protection.
+const loginRateLimit = createInMemoryRateLimit({
+  keyGenerator: (req) => `login:${getEmailClientIdentifier(req)}`,
+  maxRequests: 10,
+  message: 'too many login attempts. please try again later.',
+  windowMs: OTP_RATE_LIMIT_WINDOW_MS,
+})
+
+const registerRateLimit = createInMemoryRateLimit({
+  keyGenerator: (req) => `register:${getEmailClientIdentifier(req)}`,
+  maxRequests: 10,
+  message: 'too many registration attempts. please try again later.',
+  windowMs: OTP_RATE_LIMIT_WINDOW_MS,
+})
+
+authRouter.post('/register', registerRateLimit, register)
+authRouter.post('/login', loginRateLimit, login)
 authRouter.post('/request-code', requestCodeRateLimit, requestCode)
 authRouter.post('/verify-code', verifyCodeRateLimit, verifyCode)
 authRouter.get('/me', requireAuth, getMe)

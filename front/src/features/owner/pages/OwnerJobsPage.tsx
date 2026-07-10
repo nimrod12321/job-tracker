@@ -504,7 +504,24 @@ function OwnerJobsPage() {
     try {
       const postedJob = await publishOwnerJob(job.id)
 
-      setJobs((currentJobs) => [postedJob, ...currentJobs])
+      setJobs((currentJobs) => {
+        // Publishing an already-published draft correctly returns the
+        // existing posted job (same id), not a new one. Replace it in
+        // place instead of appending, or the same job ends up rendered
+        // twice — and deleting one of the two identical-id cards then
+        // removes both, since a filter by id matches every duplicate.
+        const alreadyInState = currentJobs.some(
+          (currentJob) => currentJob.id === postedJob.id,
+        )
+
+        if (alreadyInState) {
+          return currentJobs.map((currentJob) =>
+            currentJob.id === postedJob.id ? postedJob : currentJob,
+          )
+        }
+
+        return [postedJob, ...currentJobs]
+      })
       setSuccess(text.posted)
       setHighlightedJobId(postedJob.id)
       setOpenJobsSection('posted')

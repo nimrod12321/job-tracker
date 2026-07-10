@@ -12,14 +12,20 @@ type RateLimitOptions = {
   windowMs: number
 }
 
-function getClientKey(req: Parameters<RequestHandler>[0]) {
-  const forwardedFor = req.headers['x-forwarded-for']
-
-  if (typeof forwardedFor === 'string' && forwardedFor.trim()) {
-    return forwardedFor.split(',')[0]?.trim() || req.ip || 'unknown'
-  }
-
+// Only safe to call after `app.set('trust proxy', ...)` is configured to
+// match the real number of reverse proxies in front of this server. With
+// that set, Express computes `req.ip` by trusting only that many hops from
+// the socket's own address, so a client cannot spoof it by sending a fake
+// X-Forwarded-For header — the proxy-appended (trusted) segment always wins.
+// Without trust proxy configured, req.ip falls back to the raw socket
+// address, which is still safe (just not proxy-aware), never the spoofable
+// header.
+export function getClientIp(req: Parameters<RequestHandler>[0]) {
   return req.ip || req.socket.remoteAddress || 'unknown'
+}
+
+function getClientKey(req: Parameters<RequestHandler>[0]) {
+  return getClientIp(req)
 }
 
 export function createInMemoryRateLimit({

@@ -82,6 +82,15 @@ function getUserId(req: Request) {
   return (req as AuthenticatedRequest).userId
 }
 
+function isUniqueConstraintViolation(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { code?: unknown }).code === 'P2002'
+  )
+}
+
 function mapOwnerProfile(profile: RestaurantOwnerProfile) {
   return {
     id: profile.id,
@@ -505,25 +514,62 @@ export async function publishOwnerJob(req: Request, res: Response) {
       })
     }
 
-    const postedJob = await prisma.restaurantJob.create({
-      data: {
-        restaurantName: profile.restaurantName,
-        role: draftJob.role,
-        location: profile.city,
-        area: profile.street,
-        description: draftJob.description,
-        requirements: draftJob.requirements,
-        shiftInfo: draftJob.shiftInfo,
-        contactPhone: draftJob.contactPhone || profile.phoneNumber,
-        contactWhatsapp:
-          draftJob.contactWhatsapp || profile.whatsappNumber,
-        ownerProfileId: profile.id,
-        kind: 'posted',
-        isActive: true,
+    // Idempotency guard: this draft may already have been published (double
+    // click, retry after a slow network, resubmit). Publishing keeps the
+    // draft around (product rule), so `kind === 'draft'` alone can't tell us
+    // that — check for an existing posted job linked to this draft instead.
+    const existingPostedJob = await prisma.restaurantJob.findUnique({
+      where: {
+        publishedFromDraftId: draftJob.id,
       },
     })
 
-    return res.status(201).json(mapOwnerJob(postedJob))
+    if (existingPostedJob) {
+      return res.status(200).json(mapOwnerJob(existingPostedJob))
+    }
+
+    try {
+      const postedJob = await prisma.restaurantJob.create({
+        data: {
+          restaurantName: profile.restaurantName,
+          role: draftJob.role,
+          location: profile.city,
+          area: profile.street,
+          description: draftJob.description,
+          requirements: draftJob.requirements,
+          shiftInfo: draftJob.shiftInfo,
+          contactPhone: draftJob.contactPhone || profile.phoneNumber,
+          contactWhatsapp:
+            draftJob.contactWhatsapp || profile.whatsappNumber,
+          ownerProfileId: profile.id,
+          kind: 'posted',
+          isActive: true,
+          publishedFromDraftId: draftJob.id,
+        },
+      })
+
+      return res.status(201).json(mapOwnerJob(postedJob))
+    } catch (createError) {
+      // Two concurrent publish requests raced past the check above — the
+      // unique constraint on publishedFromDraftId caught it. Return the
+      // job the other request created instead of erroring. Checked by
+      // error shape (not `instanceof Prisma.PrismaClientKnownRequestError`)
+      // because that check can fail to match across module boundaries with
+      // the generated client — the `code` field is reliable either way.
+      if (isUniqueConstraintViolation(createError)) {
+        const racedPostedJob = await prisma.restaurantJob.findUnique({
+          where: {
+            publishedFromDraftId: draftJob.id,
+          },
+        })
+
+        if (racedPostedJob) {
+          return res.status(200).json(mapOwnerJob(racedPostedJob))
+        }
+      }
+
+      throw createError
+    }
   } catch (error) {
     console.error(error)
 

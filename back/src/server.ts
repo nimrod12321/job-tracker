@@ -16,6 +16,17 @@ import publicRestaurantRouter from './routes/publicRestaurant.routes.js'
 import restaurantRouter from './routes/restaurant.routes.js'
 
 export const app = express()
+
+// Render puts exactly one reverse proxy (its own edge load balancer) in
+// front of this app, which appends the real client IP as the last hop of
+// X-Forwarded-For before forwarding the request. Trusting 1 hop tells
+// Express to read that trusted, proxy-appended segment for req.ip, rather
+// than blindly trusting whatever the client sent — which is what made the
+// rate limiter spoofable before this was set. If this is ever deployed
+// behind more than one proxy layer (e.g. a CDN in front of Render), this
+// number must go up to match, or IP-based checks become bypassable again.
+app.set('trust proxy', 1)
+
 const allowedOrigins = new Set([env.frontendUrl])
 
 if (env.nodeEnv !== 'production') {
