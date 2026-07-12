@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
+import LegalFooter from '../../../components/legal/LegalFooter'
 import {
   clearAuthToken,
   notifyAuthSessionExpired,
@@ -37,7 +38,10 @@ function AdminShell({ children }: { children: ReactNode }) {
           <NavLink to="/admin/leads">Leads</NavLink>
         </nav>
       </aside>
-      <main className="admin-main">{children}</main>
+      <main className="admin-main">
+        {children}
+        <LegalFooter className="admin-legal-footer" />
+      </main>
     </section>
   )
 }

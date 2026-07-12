@@ -7,6 +7,8 @@ export type PublicRestaurant = {
   street: string
   description: string
   slug: string
+  qrEnabledRoles: RestaurantRole[]
+  isHiringForQr: boolean
 }
 
 export type PublicRestaurantLeadInput = {
@@ -23,6 +25,11 @@ export type VerifiedPublicRestaurantLeadInput = {
   experienceText: string
   availability: string
   age: number
+}
+
+export type PublicRestaurantQrEventInput = {
+  type: 'qrPageView' | 'qrFormStarted'
+  sessionId?: string
 }
 
 async function handleApiError(
@@ -77,6 +84,28 @@ export async function getPublicRestaurant(
 
   if (!response.ok) {
     await handleApiError(response, 'Failed to load restaurant')
+  }
+
+  return response.json()
+}
+
+export async function recordPublicRestaurantQrEvent(
+  slug: string,
+  input: PublicRestaurantQrEventInput,
+): Promise<{ ok: true }> {
+  const response = await fetch(
+    `${API_BASE_URL}/public/restaurants/${encodeURIComponent(slug)}/qr-events`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(input),
+    },
+  )
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to record QR event')
   }
 
   return response.json()

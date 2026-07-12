@@ -17,6 +17,7 @@ import {
   updateOwnerJob,
   updateOwnerLeadStatus,
   updateOwnerProfile,
+  updateOwnerQrRoles,
 } from '../controllers/owner.controller.js'
 import { prisma } from '../lib/prisma.js'
 import {
@@ -65,6 +66,7 @@ const requireRestaurantOwner: RequestHandler = async (req, res, next) => {
 ownerRouter.use(requireAuth, requireRestaurantOwner)
 ownerRouter.get('/profile', getOwnerProfile)
 ownerRouter.put('/profile', updateOwnerProfile)
+ownerRouter.patch('/qr-roles', updateOwnerQrRoles)
 ownerRouter.get('/team', getOwnerTeam)
 ownerRouter.post('/team/members', addOwnerTeamMember)
 ownerRouter.delete('/team/members/:memberId', removeOwnerTeamMember)

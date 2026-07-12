@@ -42,6 +42,14 @@ export const ownerJobActiveSchema = z
   })
   .strict()
 
+export const ownerQrEnabledRolesSchema = z
+  .object({
+    qrEnabledRoles: z
+      .array(z.enum(restaurantRoles, { error: 'role is invalid' }))
+      .max(restaurantRoles.length, 'too many QR roles'),
+  })
+  .strict()
+
 export const ownerJobIdSchema = z.string().uuid('job id must be valid')
 
 export const ownerApplicationStatusSchema = z

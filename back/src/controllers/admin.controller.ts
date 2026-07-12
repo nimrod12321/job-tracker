@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express'
+import type { RestaurantRole } from '../generated/prisma/client.js'
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js'
 import { prisma } from '../lib/prisma.js'
 import { getValidationErrorMessage } from '../utils/validation.js'
@@ -66,6 +67,7 @@ function mapAdminRestaurantSummary(restaurant: {
   street: string
   description: string
   slug: string | null
+  qrEnabledRoles: RestaurantRole[]
   createdAt: Date
   updatedAt: Date
   user: {
@@ -78,6 +80,13 @@ function mapAdminRestaurantSummary(restaurant: {
     leads: number
   }
   leads?: Array<{
+    createdAt: Date
+    source?: string
+    ownerViewedAt?: Date | null
+  }>
+  qrEvents?: Array<{
+    type: string
+    sessionId: string | null
     createdAt: Date
   }>
   adminReadStates?: Array<{
@@ -110,6 +119,22 @@ function mapAdminRestaurantSummary(restaurant: {
       job.applications?.map((application) => application.createdAt) ?? [],
     ) ?? []),
   ]
+  const qrPageViewEvents =
+    restaurant.qrEvents?.filter((event) => event.type === 'qrPageView') ?? []
+  const qrFormStartedEvents =
+    restaurant.qrEvents?.filter((event) => event.type === 'qrFormStarted') ?? []
+  const qrLeads = restaurant.leads?.filter((lead) => lead.source === 'qr') ?? []
+  const ownerViewedLeads = qrLeads.filter((lead) => lead.ownerViewedAt)
+  const qrEventDates = restaurant.qrEvents?.map((event) => event.createdAt) ?? []
+  const completedDates = qrLeads.map((lead) => lead.createdAt)
+  const ownerViewDates = ownerViewedLeads
+    .map((lead) => lead.ownerViewedAt)
+    .filter((date): date is Date => Boolean(date))
+  const uniqueQrVisitors = new Set(
+    qrPageViewEvents
+      .map((event) => event.sessionId)
+      .filter((sessionId): sessionId is string => Boolean(sessionId)),
+  ).size
   const newCandidateCount = lastViewedCandidatesAt
     ? candidateActivityDates.filter(
         (createdAt) => createdAt > lastViewedCandidatesAt,
@@ -137,10 +162,36 @@ function mapAdminRestaurantSummary(restaurant: {
     street: restaurant.street,
     description: restaurant.description,
     slug: restaurant.slug,
+    qrEnabledRoles: restaurant.qrEnabledRoles,
     ownerUser,
     activeJobsCount,
     qrLeadsCount: restaurant._count.leads,
     applicationsCount,
+    funnelMetrics: {
+      qrScans: qrPageViewEvents.length,
+      uniqueQrVisitors,
+      startedForms: qrFormStartedEvents.length,
+      completedForms: qrLeads.length,
+      ownerViewedCompletedForms: ownerViewedLeads.length,
+      newCandidates: newCandidateCount,
+      lastScanAt:
+        qrEventDates.length > 0
+          ? new Date(Math.max(...qrEventDates.map((date) => date.getTime())))
+              .toISOString()
+          : null,
+      lastCompletedAt:
+        completedDates.length > 0
+          ? new Date(
+              Math.max(...completedDates.map((date) => date.getTime())),
+            ).toISOString()
+          : null,
+      lastOwnerViewAt:
+        ownerViewDates.length > 0
+          ? new Date(
+              Math.max(...ownerViewDates.map((date) => date.getTime())),
+            ).toISOString()
+          : null,
+    },
     hasNewCandidate: newCandidateCount > 0,
     newCandidateCount,
     createdAt: restaurant.createdAt.toISOString(),
@@ -155,7 +206,7 @@ function getAdminUserId(req: Request) {
 function mapAdminRestaurantJob(job: {
   id: string
   restaurantName: string
-  role: 'waiter' | 'bartender' | 'host' | 'floorManager' | 'cook'
+  role: RestaurantRole
   location: string
   area: string
   description: string
@@ -202,7 +253,7 @@ function mapAdminRestaurantApplication(application: {
   }
   restaurantJob: {
     id: string
-    role: 'waiter' | 'bartender' | 'host' | 'floorManager' | 'cook'
+    role: RestaurantRole
     restaurantName: string
   }
 }) {
@@ -231,14 +282,15 @@ function mapAdminRestaurantApplication(application: {
 
 function mapAdminLead(lead: {
   id: string
-  fullName: string
-  phoneNumber: string
-  wantedRoles: Array<'waiter' | 'bartender' | 'host' | 'floorManager' | 'cook'>
+    fullName: string
+    phoneNumber: string
+  wantedRoles: RestaurantRole[]
   experienceText: string
   availability: string
   age: number | null
   source: string
   status: 'new' | 'contacted' | 'relevant' | 'rejected'
+  ownerViewedAt: Date | null
   createdAt: Date
   updatedAt: Date
   ownerProfile: {
@@ -259,6 +311,7 @@ function mapAdminLead(lead: {
     age: lead.age,
     source: lead.source,
     status: lead.status,
+    ownerViewedAt: lead.ownerViewedAt?.toISOString() ?? null,
     createdAt: lead.createdAt.toISOString(),
     updatedAt: lead.updatedAt.toISOString(),
     restaurant: {
@@ -309,6 +362,15 @@ export async function getAdminRestaurants(req: Request, res: Response) {
         },
         leads: {
           select: {
+            createdAt: true,
+            source: true,
+            ownerViewedAt: true,
+          },
+        },
+        qrEvents: {
+          select: {
+            type: true,
+            sessionId: true,
             createdAt: true,
           },
         },
@@ -405,6 +467,15 @@ export async function createAdminRestaurant(req: Request, res: Response) {
           leads: {
             select: {
               createdAt: true,
+              source: true,
+              ownerViewedAt: true,
+            },
+          },
+          qrEvents: {
+            select: {
+              type: true,
+              sessionId: true,
+              createdAt: true,
             },
           },
           adminReadStates: {
@@ -491,6 +562,13 @@ export async function getAdminRestaurantDetail(req: Request, res: Response) {
           },
           orderBy: {
             createdAt: 'desc',
+          },
+        },
+        qrEvents: {
+          select: {
+            type: true,
+            sessionId: true,
+            createdAt: true,
           },
         },
         _count: {
@@ -704,6 +782,15 @@ export async function updateAdminRestaurant(req: Request, res: Response) {
           },
           leads: {
             select: {
+              createdAt: true,
+              source: true,
+              ownerViewedAt: true,
+            },
+          },
+          qrEvents: {
+            select: {
+              type: true,
+              sessionId: true,
               createdAt: true,
             },
           },

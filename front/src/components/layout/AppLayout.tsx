@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import LegalFooter from '../legal/LegalFooter'
 import type { UserTrack } from '../../features/auth/services/authApi'
 import RestaurantLanguageToggle from '../../features/restaurant/components/RestaurantLanguageToggle'
 import { useRestaurantLanguage } from '../../features/restaurant/utils/restaurantLanguage'
@@ -8,6 +9,7 @@ type AppLayoutProps = {
   userEmail?: string
   userTrack?: UserTrack
   restaurantMemberRole?: 'owner' | 'hiringManager' | null
+  layoutMode?: 'standard' | 'immersive'
   onLogout: () => void
 }
 
@@ -15,6 +17,7 @@ function AppLayout({
   userEmail,
   userTrack = 'highTech',
   restaurantMemberRole = null,
+  layoutMode = 'standard',
   onLogout,
 }: AppLayoutProps) {
   const location = useLocation()
@@ -31,6 +34,7 @@ function AppLayout({
     isRestaurantSide ? 'restaurant-shell' : '',
     isRestaurantUser ? 'restaurant-worker-shell' : '',
     isRestaurantOwner ? 'restaurant-owner-shell' : '',
+    layoutMode === 'immersive' ? 'app-layout-immersive' : 'app-layout-standard',
   ]
     .filter(Boolean)
     .join(' ')
@@ -108,7 +112,10 @@ function AppLayout({
           </span>
         </h1>
 
-        <nav aria-label="Main navigation">
+        <nav
+          aria-label="Main navigation"
+          className={isRestaurantOwner ? 'owner-main-nav' : undefined}
+        >
           {isRestaurantOwner ? (
             <>
               <NavLink
@@ -257,6 +264,9 @@ function AppLayout({
       <main className="app-content">
         <Outlet />
       </main>
+      {layoutMode === 'standard' && (
+        <LegalFooter className="app-legal-footer" />
+      )}
     </div>
   )
 }

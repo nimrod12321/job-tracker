@@ -10,10 +10,12 @@ import {
   restaurantApplicationSchema,
   restaurantExploreSchema,
   restaurantProfileSchema,
+  workerAvailabilityOptions,
+  workerExperienceLevels,
 } from '../validations/restaurant.validation.js'
 
 const PROFILE_REQUIRED_MESSAGE =
-  'Complete your restaurant profile to start exploring jobs.'
+  'Complete your worker profile to start seeing restaurant jobs.'
 
 function getUserId(req: Request) {
   return (req as AuthenticatedRequest).userId
@@ -45,6 +47,39 @@ function mapRestaurantJob(job: RestaurantJob) {
     requirements: job.requirements,
     shiftInfo: job.shiftInfo,
   }
+}
+
+function isRestaurantWorkerProfileComplete(
+  profile: RestaurantWorkerProfile | null,
+): profile is RestaurantWorkerProfile {
+  if (!profile) {
+    return false
+  }
+
+  const [experienceLevel = ''] = profile.experienceText
+    .trim()
+    .split(/\n{2,}/)
+  const selectedAvailability = profile.availability
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+
+  return Boolean(
+    profile.fullName.trim() &&
+      profile.phoneNumber.trim() &&
+      profile.age >= 16 &&
+      profile.age <= 80 &&
+      profile.wantedRoles.length > 0 &&
+      workerExperienceLevels.includes(
+        experienceLevel.trim() as (typeof workerExperienceLevels)[number],
+      ) &&
+      selectedAvailability.length > 0 &&
+      selectedAvailability.every((item) =>
+        workerAvailabilityOptions.includes(
+          item as (typeof workerAvailabilityOptions)[number],
+        ),
+      ),
+  )
 }
 
 function isLocationMatch(job: RestaurantJob, profileLocation: string) {
@@ -85,7 +120,7 @@ export async function getRestaurantProfile(req: Request, res: Response) {
     console.error(error)
 
     return res.status(500).json({
-      message: 'failed to fetch restaurant profile',
+      message: 'failed to fetch worker profile',
     })
   }
 }
@@ -127,7 +162,7 @@ export async function updateRestaurantProfile(
     console.error(error)
 
     return res.status(500).json({
-      message: 'failed to save restaurant profile',
+      message: 'failed to save worker profile',
     })
   }
 }
@@ -159,7 +194,7 @@ export async function getRestaurantExploreJobs(
       },
     })
 
-    if (!profile) {
+    if (!isRestaurantWorkerProfileComplete(profile)) {
       return res.status(400).json({
         message: PROFILE_REQUIRED_MESSAGE,
       })

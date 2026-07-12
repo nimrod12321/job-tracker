@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getRestaurantMatches } from '../services/restaurantApi'
+import { getRestaurantProfile } from '../services/restaurantApi'
 import {
   getRestaurantRoleLabel,
   type RestaurantMatch,
@@ -8,6 +10,7 @@ import { useRestaurantLanguage } from '../utils/restaurantLanguage'
 
 function RestaurantMatchesPage() {
   const { direction, language } = useRestaurantLanguage()
+  const navigate = useNavigate()
   const [matches, setMatches] = useState<RestaurantMatch[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -34,6 +37,22 @@ function RestaurantMatchesPage() {
 
     async function loadMatches() {
       try {
+        const profile = await getRestaurantProfile()
+
+        if (
+          !profile ||
+          !profile.fullName.trim() ||
+          !profile.phoneNumber.trim() ||
+          profile.age < 16 ||
+          profile.age > 80 ||
+          profile.wantedRoles.length === 0 ||
+          !profile.experienceText.trim() ||
+          !profile.availability.trim()
+        ) {
+          navigate('/restaurant/profile', { replace: true })
+          return
+        }
+
         const restaurantMatches = await getRestaurantMatches()
 
         if (isActive) {
@@ -59,7 +78,7 @@ function RestaurantMatchesPage() {
     return () => {
       isActive = false
     }
-  }, [])
+  }, [navigate])
 
   if (isLoading) {
     return (

@@ -79,6 +79,20 @@ export const verifiedPublicRestaurantLeadSchema = z
 
 export const leadIdSchema = z.string().uuid('lead id must be valid')
 
+export const publicRestaurantQrEventSchema = z
+  .object({
+    type: z.enum(['qrPageView', 'qrFormStarted'], {
+      error: 'QR event type is invalid',
+    }),
+    sessionId: z
+      .string({ error: 'session id must be a string' })
+      .trim()
+      .max(120, 'session id is too long')
+      .regex(/^[A-Za-z0-9_-]+$/, 'session id is invalid')
+      .optional(),
+  })
+  .strict()
+
 export const candidateLeadStatusBodySchema = z
   .object({
     status: candidateLeadStatusSchema,

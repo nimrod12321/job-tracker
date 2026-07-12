@@ -12,7 +12,7 @@ const avatarColors = [
   '#d97706',
   '#16a34a',
   '#0f766e',
-  '#7c3aed',
+  '#866460',
   '#be123c',
 ]
 const roleIcons: Record<RestaurantExploreJob['role'], string> = {
@@ -21,6 +21,8 @@ const roleIcons: Record<RestaurantExploreJob['role'], string> = {
   floorManager: '📋',
   host: '👋',
   waiter: '🍽️',
+  barista: '☕',
+  socialManager: '📱',
 }
 const DEMO_REAL_PLACE_MARKER = 'source=demo_real_place.'
 const DEMO_REAL_PLACE_NOTE = 'Demo listing — not verified by restaurant.'

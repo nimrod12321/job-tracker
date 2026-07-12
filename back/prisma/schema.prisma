@@ -38,6 +38,8 @@ enum RestaurantRole {
   host
   floorManager
   cook
+  barista
+  socialManager
 }
 
 enum RestaurantJobKind {
@@ -253,6 +255,7 @@ model RestaurantJob {
   @@index([kind])
   @@index([isActive])
   @@index([ownerProfileId])
+  @@unique([ownerProfileId, role])
 }
 
 model RestaurantOwnerProfile {
@@ -269,9 +272,11 @@ model RestaurantOwnerProfile {
   street         String @default("")
   description    String @default("")
   slug           String? @unique
+  qrEnabledRoles RestaurantRole[] @default([waiter, bartender, host, cook, floorManager])
 
   jobs  RestaurantJob[]
   leads RestaurantCandidateLead[]
+  qrEvents RestaurantQrEvent[]
   members RestaurantMember[]
   adminReadStates AdminRestaurantReadState[]
 
@@ -341,6 +346,7 @@ model RestaurantCandidateLead {
   age            Int?
   source         String           @default("qr")
   status         CandidateLeadStatus @default(new)
+  ownerViewedAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -348,6 +354,24 @@ model RestaurantCandidateLead {
   @@index([ownerProfileId])
   @@index([phoneNumber])
   @@index([status])
+  @@index([ownerViewedAt])
+  @@index([createdAt])
+}
+
+model RestaurantQrEvent {
+  id String @id @default(uuid())
+
+  ownerProfileId String
+  ownerProfile   RestaurantOwnerProfile @relation(fields: [ownerProfileId], references: [id], onDelete: Cascade)
+
+  type      String
+  sessionId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([ownerProfileId])
+  @@index([type])
+  @@index([sessionId])
   @@index([createdAt])
 }
 

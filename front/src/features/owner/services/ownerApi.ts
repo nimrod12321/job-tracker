@@ -14,6 +14,7 @@ import type {
   OwnerTeamMember,
   RestaurantCandidateLead,
 } from '../types/owner'
+import type { RestaurantRole } from '../../restaurant/types/restaurant'
 
 function getHeaders(): Headers {
   const headers = new Headers({
@@ -81,6 +82,24 @@ export async function saveOwnerProfile(
   return response.json()
 }
 
+export async function updateOwnerQrRoles(
+  qrEnabledRoles: RestaurantRole[],
+): Promise<OwnerProfile> {
+  const response = await fetch(`${API_BASE_URL}/owner/qr-roles`, {
+    method: 'PATCH',
+    headers: getHeaders(),
+    body: JSON.stringify({
+      qrEnabledRoles,
+    }),
+  })
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to update QR roles')
+  }
+
+  return response.json()
+}
+
 export async function getOwnerJobs(): Promise<OwnerJob[]> {
   const response = await fetch(`${API_BASE_URL}/owner/jobs`, {
     headers: getHeaders(),
@@ -121,19 +140,6 @@ export async function updateOwnerJob(
 
   if (!response.ok) {
     await handleApiError(response, 'Failed to update restaurant job')
-  }
-
-  return response.json()
-}
-
-export async function publishOwnerJob(id: string): Promise<OwnerJob> {
-  const response = await fetch(`${API_BASE_URL}/owner/jobs/${id}/publish`, {
-    method: 'POST',
-    headers: getHeaders(),
-  })
-
-  if (!response.ok) {
-    await handleApiError(response, 'Failed to publish restaurant job')
   }
 
   return response.json()

@@ -7,6 +7,7 @@ import {
   useNavigate,
 } from 'react-router-dom'
 import AppLayout from './components/layout/AppLayout'
+import StandardLayout from './components/layout/StandardLayout'
 import ProtectedRoute from './components/routing/ProtectedRoute'
 import { getCurrentUser, type AuthUser } from './features/auth/services/authApi'
 import {
@@ -25,6 +26,7 @@ import LikedJobsPage from './features/discovery/pages/LikedJobsPage'
 import JobDetailPage from './features/jobs/pages/JobDetailPage'
 import ImportJobPage from './features/jobs/pages/ImportJobPage'
 import JobsPage from './features/jobs/pages/jobsPage'
+import LegalPage from './features/legal/pages/LegalPage'
 import OwnerApplicationsPage from './features/owner/pages/OwnerApplicationsPage'
 import OwnerJobsPage from './features/owner/pages/OwnerJobsPage'
 import OwnerProfilePage from './features/owner/pages/OwnerProfilePage'
@@ -36,6 +38,8 @@ import RestaurantPublicApplyPage from './features/public/pages/RestaurantPublicA
 import RestaurantExplorePage from './features/restaurant/pages/RestaurantExplorePage'
 import RestaurantMatchesPage from './features/restaurant/pages/RestaurantMatchesPage'
 import RestaurantProfilePage from './features/restaurant/pages/RestaurantProfilePage'
+import { getRestaurantProfile } from './features/restaurant/services/restaurantApi'
+import type { RestaurantWorkerProfile } from './features/restaurant/types/restaurant'
 
 function getHomePath(user: AuthUser | null) {
   if (user?.isAdmin) {
@@ -68,10 +72,42 @@ function isOwnerProfileComplete(profile: OwnerProfile | null) {
   )
 }
 
+function isWorkerProfileComplete(profile: RestaurantWorkerProfile | null) {
+  if (!profile) {
+    return false
+  }
+
+  return Boolean(
+    profile.fullName.trim() &&
+      profile.phoneNumber.trim() &&
+      profile.age >= 16 &&
+      profile.age <= 80 &&
+      profile.wantedRoles.length > 0 &&
+      profile.experienceText.trim() &&
+      profile.availability.trim(),
+  )
+}
+
 async function getPostAuthPath(user: AuthUser | null) {
+  if (user?.isAdmin) {
+    return getHomePath(user)
+  }
+
+  if (user?.track === 'restaurant' && !user.restaurantMemberRole) {
+    try {
+      const profile = await getRestaurantProfile()
+
+      return isWorkerProfileComplete(profile)
+        ? '/restaurant/explore'
+        : '/restaurant/profile'
+    } catch {
+      return '/restaurant/profile'
+    }
+  }
+
   if (
-    (!user?.restaurantMemberRole && user?.track !== 'restaurantOwner') ||
-    user.isAdmin
+    !user?.restaurantMemberRole &&
+    user?.track !== 'restaurantOwner'
   ) {
     return getHomePath(user)
   }
@@ -227,37 +263,64 @@ function App() {
       <ScrollToTop />
       <Routes>
       <Route
-        path="/login"
         element={
-          authRedirect ?? (
-            <AuthPage
-              key="login"
-              mode="login"
-              onAuthSuccess={handleAuthSuccess}
-            />
-          )
-        }
-      />
-      <Route
-        path="/register"
-        element={
-          authRedirect ?? (
-            <AuthPage
-              key="register"
-              mode="register"
-              onAuthSuccess={handleAuthSuccess}
-            />
-          )
-        }
-      />
-      <Route
-        path="/r/:restaurantSlug"
-        element={
-          <RestaurantPublicApplyPage
-            onAuthVerified={handlePublicAuthVerified}
+          <StandardLayout
+            className="auth-standard-layout"
+            footerClassName="auth-legal-footer"
           />
         }
-      />
+      >
+        <Route
+          path="/login"
+          element={
+            authRedirect ?? (
+              <AuthPage
+                key="login"
+                mode="login"
+                onAuthSuccess={handleAuthSuccess}
+              />
+            )
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            authRedirect ?? (
+              <AuthPage
+                key="register"
+                mode="register"
+                onAuthSuccess={handleAuthSuccess}
+              />
+            )
+          }
+        />
+      </Route>
+      <Route
+        element={
+          <StandardLayout
+            className="public-apply-standard-layout"
+            footerClassName="public-apply-legal-footer"
+          />
+        }
+      >
+        <Route
+          path="/r/:restaurantSlug"
+          element={
+            <RestaurantPublicApplyPage
+              onAuthVerified={handlePublicAuthVerified}
+            />
+          }
+        />
+      </Route>
+      <Route element={<StandardLayout className="legal-standard-layout" />}>
+        <Route path="/terms" element={<LegalPage kind="terms" />} />
+        <Route path="/privacy" element={<LegalPage kind="privacy" />} />
+        <Route
+          path="/accessibility"
+          element={<LegalPage kind="accessibility" />}
+        />
+        <Route path="/contact" element={<LegalPage kind="contact" />} />
+      </Route>
 
       <Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
         <Route path="/admin/leads" element={<AdminLeadsPage />} />
@@ -276,25 +339,27 @@ function App() {
             currentUser?.isAdmin ? (
               <Navigate to="/admin/restaurants" replace />
             ) : (
-              <section className="restaurant-only-page">
-                <div className="restaurant-only-card">
-                  <span
-                    className="peepss-logo auth-logo"
-                    aria-label="Peepss"
-                    dir="ltr"
-                  >
-                    <span className="peepss-logo-circle" />
-                    <span className="peepss-logo-thin">p</span>
-                    <span className="peepss-logo-bold">ee</span>
-                    <span className="peepss-logo-thin">pss</span>
-                  </span>
-                  <h1>Peepss is currently open for restaurants only.</h1>
-                  <p>כרגע Peepss פתוחה למסעדות בלבד.</p>
-                  <button type="button" onClick={handleLogout}>
-                    Logout
-                  </button>
-                </div>
-              </section>
+              <StandardLayout className="restaurant-only-standard-layout">
+                <section className="restaurant-only-page">
+                  <div className="restaurant-only-card">
+                    <span
+                      className="peepss-logo auth-logo"
+                      aria-label="Peepss"
+                      dir="ltr"
+                    >
+                      <span className="peepss-logo-circle" />
+                      <span className="peepss-logo-thin">p</span>
+                      <span className="peepss-logo-bold">ee</span>
+                      <span className="peepss-logo-thin">pss</span>
+                    </span>
+                    <h1>Peepss is currently open for restaurants only.</h1>
+                    <p>כרגע Peepss פתוחה למסעדות בלבד.</p>
+                    <button type="button" onClick={handleLogout}>
+                      Logout
+                    </button>
+                  </div>
+                </section>
+              </StandardLayout>
             )
           }
         />
@@ -325,6 +390,7 @@ function App() {
               <AppLayout
                 userEmail={getUserDisplayName(currentUser)}
                 userTrack={userTrack}
+                layoutMode="immersive"
                 onLogout={handleLogout}
               />
             ) : (
@@ -336,6 +402,21 @@ function App() {
             path="/restaurant/explore"
             element={<RestaurantExplorePage />}
           />
+        </Route>
+
+        <Route
+          element={
+            isRestaurantWorkerOnly ? (
+              <AppLayout
+                userEmail={getUserDisplayName(currentUser)}
+                userTrack={userTrack}
+                onLogout={handleLogout}
+              />
+            ) : (
+              <Navigate to={homePath} replace />
+            )
+          }
+        >
           <Route
             path="/restaurant/profile"
             element={<RestaurantProfilePage />}

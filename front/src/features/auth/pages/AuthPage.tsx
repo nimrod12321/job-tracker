@@ -218,11 +218,11 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
           </button>
         </div>
 
-        <h1 className="auth-headline" dir="ltr">
-          {text.headline}
-        </h1>
-
         <div className="auth-center">
+          <h1 className="auth-headline" dir="ltr">
+            {text.headline}
+          </h1>
+
           <div className="auth-card">
             <nav className="auth-mode-tabs" aria-label={text.authModeLabel}>
               <Link className={mode === 'login' ? 'active' : ''} to="/login">

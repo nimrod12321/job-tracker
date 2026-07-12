@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import {
   createPublicRestaurantLead,
+  createPublicRestaurantQrEvent,
   createVerifiedPublicRestaurantLead,
   getPublicRestaurant,
 } from '../controllers/publicRestaurant.controller.js'
@@ -13,8 +14,18 @@ const publicRestaurantLeadRateLimit = createInMemoryRateLimit({
   message: 'too many applications submitted. Please try again later.',
   windowMs: 15 * 60 * 1000,
 })
+const publicRestaurantQrEventRateLimit = createInMemoryRateLimit({
+  maxRequests: 120,
+  message: 'too many QR events. Please try again later.',
+  windowMs: 15 * 60 * 1000,
+})
 
 publicRestaurantRouter.get('/restaurants/:slug', getPublicRestaurant)
+publicRestaurantRouter.post(
+  '/restaurants/:slug/qr-events',
+  publicRestaurantQrEventRateLimit,
+  createPublicRestaurantQrEvent,
+)
 publicRestaurantRouter.post(
   '/restaurants/:slug/leads',
   publicRestaurantLeadRateLimit,

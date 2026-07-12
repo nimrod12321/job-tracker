@@ -1,8 +1,10 @@
 import type { Request, Response } from 'express'
+import type { RestaurantRole } from '../generated/prisma/client.js'
 import { prisma } from '../lib/prisma.js'
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js'
 import { getValidationErrorMessage } from '../utils/validation.js'
 import {
+  publicRestaurantQrEventSchema,
   restaurantSlugSchema,
   verifiedPublicRestaurantLeadSchema,
 } from '../validations/publicRestaurant.validation.js'
@@ -16,6 +18,7 @@ function mapPublicRestaurant(
     street: string
     description: string
     slug: string | null
+    qrEnabledRoles: RestaurantRole[]
   },
 ) {
   return {
@@ -24,6 +27,8 @@ function mapPublicRestaurant(
     street: profile.street,
     description: profile.description,
     slug: profile.slug,
+    qrEnabledRoles: profile.qrEnabledRoles,
+    isHiringForQr: profile.qrEnabledRoles.length > 0,
   }
 }
 
@@ -47,6 +52,7 @@ export async function getPublicRestaurant(req: Request, res: Response) {
         street: true,
         description: true,
         slug: true,
+        qrEnabledRoles: true,
       },
     })
 
@@ -73,6 +79,83 @@ export async function createPublicRestaurantLead(
   return res.status(410).json({
     message: 'Phone verification is required before applying.',
   })
+}
+
+export async function createPublicRestaurantQrEvent(
+  req: Request,
+  res: Response,
+) {
+  try {
+    const slugResult = restaurantSlugSchema.safeParse(req.params.slug)
+    const bodyResult = publicRestaurantQrEventSchema.safeParse(req.body)
+
+    if (!slugResult.success) {
+      return res.status(400).json({
+        message: getValidationErrorMessage(slugResult.error),
+      })
+    }
+
+    if (!bodyResult.success) {
+      return res.status(400).json({
+        message: getValidationErrorMessage(bodyResult.error),
+      })
+    }
+
+    const profile = await prisma.restaurantOwnerProfile.findUnique({
+      where: {
+        slug: slugResult.data,
+      },
+      select: {
+        id: true,
+      },
+    })
+
+    if (!profile) {
+      return res.status(404).json({
+        message: 'restaurant not found',
+      })
+    }
+
+    if (
+      bodyResult.data.type === 'qrFormStarted' &&
+      bodyResult.data.sessionId
+    ) {
+      const existingStartEvent = await prisma.restaurantQrEvent.findFirst({
+        where: {
+          ownerProfileId: profile.id,
+          type: 'qrFormStarted',
+          sessionId: bodyResult.data.sessionId,
+        },
+        select: {
+          id: true,
+        },
+      })
+
+      if (existingStartEvent) {
+        return res.json({
+          ok: true,
+        })
+      }
+    }
+
+    await prisma.restaurantQrEvent.create({
+      data: {
+        ownerProfileId: profile.id,
+        type: bodyResult.data.type,
+        sessionId: bodyResult.data.sessionId ?? null,
+      },
+    })
+
+    return res.status(201).json({
+      ok: true,
+    })
+  } catch (error) {
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to record QR event',
+    })
+  }
 }
 
 export async function createVerifiedPublicRestaurantLead(
@@ -109,6 +192,7 @@ export async function createVerifiedPublicRestaurantLead(
         },
         select: {
           id: true,
+          qrEnabledRoles: true,
         },
       }),
       prisma.user.findUnique({
@@ -132,6 +216,17 @@ export async function createVerifiedPublicRestaurantLead(
     if (!user?.phoneNumber || user.track !== 'restaurant') {
       return res.status(403).json({
         message: 'verified restaurant worker account required',
+      })
+    }
+
+    const enabledRoles = new Set(profile.qrEnabledRoles)
+    const hasDisabledRole = bodyResult.data.wantedRoles.some(
+      (role) => !enabledRoles.has(role),
+    )
+
+    if (profile.qrEnabledRoles.length === 0 || hasDisabledRole) {
+      return res.status(400).json({
+        message: 'This role is no longer open for QR applications.',
       })
     }
 

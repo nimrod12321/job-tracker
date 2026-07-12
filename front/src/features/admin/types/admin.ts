@@ -13,6 +13,18 @@ export type AdminOwnerUser = {
   fullName: string
 } | null
 
+export type AdminRestaurantFunnelMetrics = {
+  qrScans: number
+  uniqueQrVisitors: number
+  startedForms: number
+  completedForms: number
+  ownerViewedCompletedForms: number
+  newCandidates: number
+  lastScanAt: string | null
+  lastCompletedAt: string | null
+  lastOwnerViewAt: string | null
+}
+
 export type AdminRestaurant = {
   id: string
   restaurantName: string
@@ -23,10 +35,12 @@ export type AdminRestaurant = {
   street: string
   description: string
   slug: string | null
+  qrEnabledRoles: RestaurantRole[]
   ownerUser: AdminOwnerUser
   activeJobsCount: number
   qrLeadsCount: number
   applicationsCount: number
+  funnelMetrics: AdminRestaurantFunnelMetrics
   hasNewCandidate: boolean
   newCandidateCount: number
   createdAt: string
@@ -61,6 +75,7 @@ export type AdminRestaurantJob = {
 }
 
 export type AdminRestaurantQrLead = RestaurantCandidateLead & {
+  ownerViewedAt: string | null
   restaurant: {
     id: string
     restaurantName: string
@@ -99,6 +114,7 @@ export type AdminRestaurantDetail = {
 
 export type AdminRestaurantCandidateLead = RestaurantCandidateLead & {
   status: CandidateLeadStatus
+  ownerViewedAt: string | null
   restaurant: {
     id: string
     restaurantName: string

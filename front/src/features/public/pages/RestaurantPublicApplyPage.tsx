@@ -1,5 +1,12 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from 'react'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { requestAuthCode, verifyAuthCode } from '../../auth/services/authApi'
 import RestaurantLanguageToggle from '../../restaurant/components/RestaurantLanguageToggle'
 import {
@@ -10,6 +17,7 @@ import {
 import { useRestaurantLanguage } from '../../restaurant/utils/restaurantLanguage'
 import {
   getPublicRestaurant,
+  recordPublicRestaurantQrEvent,
   submitVerifiedPublicRestaurantLead,
   type PublicRestaurant,
 } from '../services/publicRestaurantApi'
@@ -29,10 +37,35 @@ const availabilityOptions = {
   en: ['Morning', 'Afternoon', 'Evening', 'Night', 'Weekends', 'Flexible'],
 }
 
+function createQrSessionId() {
+  if (window.crypto?.randomUUID) {
+    return window.crypto.randomUUID()
+  }
+
+  return `qr-${Date.now().toString(36)}-${Math.random()
+    .toString(36)
+    .slice(2)}`
+}
+
+function getQrSessionId(restaurantSlug: string) {
+  const key = `peepssQrSession:${restaurantSlug}`
+  const existingSessionId = window.sessionStorage.getItem(key)
+
+  if (existingSessionId) {
+    return existingSessionId
+  }
+
+  const nextSessionId = createQrSessionId()
+  window.sessionStorage.setItem(key, nextSessionId)
+
+  return nextSessionId
+}
+
 function RestaurantPublicApplyPage({
   onAuthVerified,
 }: RestaurantPublicApplyPageProps) {
   const { restaurantSlug = '' } = useParams()
+  const [searchParams] = useSearchParams()
   const { direction, language } = useRestaurantLanguage()
   const [restaurant, setRestaurant] = useState<PublicRestaurant | null>(null)
   const [step, setStep] = useState<PublicApplyStep>('identify')
@@ -53,10 +86,26 @@ function RestaurantPublicApplyPage({
   const [isSubmitted, setIsSubmitted] = useState(false)
   const isVerifyingCodeRef = useRef(false)
   const lastAutoVerifyCodeRef = useRef<string | null>(null)
+  const qrSessionIdRef = useRef<string | null>(null)
+  const didTrackPageViewRef = useRef(false)
+  const didTrackFormStartedRef = useRef(false)
+  const isPreview = searchParams.get('rPreview') === '1'
   const text = {
     loading: language === 'he' ? 'טוען מסעדה...' : 'Loading restaurant...',
     notFound:
       language === 'he' ? 'לא מצאנו את המסעדה.' : 'Restaurant not found.',
+    notHiringTitle:
+      language === 'he'
+        ? 'כרגע לא מגייסים כאן'
+        : 'This place isn’t hiring right now',
+    notHiringBody:
+      language === 'he'
+        ? 'אבל דברים טובים מגיעים בקרוב דרך Peepss.'
+        : 'But great things are coming soon with Peepss.',
+    notHiringHint:
+      language === 'he'
+        ? 'אפשר לבדוק שוב בקרוב.'
+        : 'Check back soon.',
     identifyTitle:
       language === 'he' ? 'רוצים לעבוד אצלנו?' : 'Want to work with us?',
     identifyIntro:
@@ -67,6 +116,10 @@ function RestaurantPublicApplyPage({
     phone: language === 'he' ? 'טלפון' : 'Phone',
     sendCode: language === 'he' ? 'שלחו לי קוד' : 'Send me a code',
     sendingCode: language === 'he' ? 'שולח קוד...' : 'Sending code...',
+    smsConsent:
+      language === 'he'
+        ? 'בלחיצה על הכפתור יישלח אליך קוד אימות חד־פעמי ב-SMS.'
+        : 'By pressing the button, a one-time SMS verification code will be sent to you.',
     verifyTitle:
       language === 'he'
         ? 'הזינו את הקוד בן 4 הספרות'
@@ -106,6 +159,13 @@ function RestaurantPublicApplyPage({
     agePlaceholder: language === 'he' ? 'לדוגמה: 24' : 'For example: 24',
     submit: language === 'he' ? 'שליחת מועמדות' : 'Submit application',
     submitting: language === 'he' ? 'שולח...' : 'Submitting...',
+    submitConsentPrefix:
+      language === 'he'
+        ? 'בלחיצה על שליחה אני מסכים/ה ש-Peepss תעביר את הפרטים שלי למסעדה לצורך בחינת המועמדות, בהתאם ל'
+        : 'By submitting, I agree that Peepss may share my details with the restaurant for reviewing my application, according to the ',
+    privacyPolicy:
+      language === 'he' ? 'מדיניות הפרטיות' : 'Privacy Policy',
+    submitConsentSuffix: language === 'he' ? '.' : '.',
     success:
       language === 'he'
         ? 'הפרטים נשלחו למסעדה'
@@ -128,11 +188,22 @@ function RestaurantPublicApplyPage({
       language === 'he'
         ? 'הקוד לא נכון או שפג תוקף. נסה שוב.'
         : 'The code is incorrect or expired. Try again.',
+    roleClosedError:
+      language === 'he'
+        ? 'התפקיד הזה כבר לא פתוח להגשה דרך ה־QR.'
+        : 'This role is no longer open for QR applications.',
     detailsError:
       language === 'he'
         ? 'צריך למלא גיל תקין ולבחור לפחות תפקיד אחד.'
         : 'Please enter a valid age and choose at least one role.',
   }
+  const availableQrRoles = useMemo(
+    () =>
+      RESTAURANT_ROLES.filter((role) =>
+        restaurant?.qrEnabledRoles.includes(role.value),
+      ),
+    [restaurant],
+  )
 
   useEffect(() => {
     let isActive = true
@@ -163,6 +234,44 @@ function RestaurantPublicApplyPage({
       isActive = false
     }
   }, [restaurantSlug])
+
+  const recordQrEvent = useCallback(
+    (type: 'qrPageView' | 'qrFormStarted') => {
+      if (!restaurantSlug || isPreview) {
+        return
+      }
+
+      if (!qrSessionIdRef.current) {
+        qrSessionIdRef.current = getQrSessionId(restaurantSlug)
+      }
+
+      void recordPublicRestaurantQrEvent(restaurantSlug, {
+        type,
+        sessionId: qrSessionIdRef.current,
+      }).catch(() => {
+        // Analytics should never block the public QR application flow.
+      })
+    },
+    [isPreview, restaurantSlug],
+  )
+
+  useEffect(() => {
+    if (!restaurant || didTrackPageViewRef.current) {
+      return
+    }
+
+    didTrackPageViewRef.current = true
+    recordQrEvent('qrPageView')
+  }, [recordQrEvent, restaurant])
+
+  function trackFormStartedOnce() {
+    if (didTrackFormStartedRef.current || !restaurant?.isHiringForQr) {
+      return
+    }
+
+    didTrackFormStartedRef.current = true
+    recordQrEvent('qrFormStarted')
+  }
 
   function toggleRole(role: RestaurantRole) {
     setWantedRoles((currentRoles) =>
@@ -263,6 +372,7 @@ function RestaurantPublicApplyPage({
 
   async function handleSendCode(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    trackFormStartedOnce()
     setError(null)
     setMessage(null)
 
@@ -357,10 +467,15 @@ function RestaurantPublicApplyPage({
       )
       setIsSubmitted(true)
     } catch (error) {
-      setError(
+      const message =
         error instanceof Error
           ? error.message
-          : 'Failed to submit application',
+          : 'Failed to submit application'
+
+      setError(
+        message === 'This role is no longer open for QR applications.'
+          ? text.roleClosedError
+          : message,
       )
     } finally {
       setIsSubmitting(false)
@@ -416,26 +531,41 @@ function RestaurantPublicApplyPage({
             </p>
             {restaurant.description && <p>{restaurant.description}</p>}
 
-            <div className="guided-form-progress">
-              <span>
-                {step === 'identify' ? '1' : step === 'verify' ? '2' : '3'}/3
-              </span>
-              <div>
-                {['identify', 'verify', 'details'].map((currentStep) => (
-                  <span
-                    className={
-                      ['identify', 'verify', 'details'].indexOf(currentStep) <=
-                      ['identify', 'verify', 'details'].indexOf(step)
-                        ? 'active'
-                        : ''
-                    }
-                    key={currentStep}
-                  />
-                ))}
+            {!restaurant.isHiringForQr ? (
+              <div className="public-apply-not-hiring">
+                <h2>{text.notHiringTitle}</h2>
+                <p>{text.notHiringBody}</p>
+                <span>{text.notHiringHint}</span>
               </div>
-            </div>
+            ) : (
+              <>
+                <div className="guided-form-progress">
+                  <span>
+                    {step === 'identify'
+                      ? '1'
+                      : step === 'verify'
+                        ? '2'
+                        : '3'}
+                    /3
+                  </span>
+                  <div>
+                    {['identify', 'verify', 'details'].map((currentStep) => (
+                      <span
+                        className={
+                          ['identify', 'verify', 'details'].indexOf(
+                            currentStep,
+                          ) <=
+                          ['identify', 'verify', 'details'].indexOf(step)
+                            ? 'active'
+                            : ''
+                        }
+                        key={currentStep}
+                      />
+                    ))}
+                  </div>
+                </div>
 
-            {step === 'identify' && (
+                {step === 'identify' && (
               <form className="public-apply-form" onSubmit={handleSendCode}>
                 <h2>{text.identifyTitle}</h2>
                 <p className="public-apply-kicker">{text.identifyIntro}</p>
@@ -444,7 +574,11 @@ function RestaurantPublicApplyPage({
                   <input
                     value={fullName}
                     placeholder={text.fullNamePlaceholder}
-                    onChange={(event) => setFullName(event.target.value)}
+                    onFocus={trackFormStartedOnce}
+                    onChange={(event) => {
+                      trackFormStartedOnce()
+                      setFullName(event.target.value)
+                    }}
                     required
                     minLength={2}
                     autoComplete="name"
@@ -456,7 +590,11 @@ function RestaurantPublicApplyPage({
                     type="tel"
                     value={phoneNumber}
                     placeholder={text.phonePlaceholder}
-                    onChange={(event) => setPhoneNumber(event.target.value)}
+                    onFocus={trackFormStartedOnce}
+                    onChange={(event) => {
+                      trackFormStartedOnce()
+                      setPhoneNumber(event.target.value)
+                    }}
                     required
                     autoComplete="tel"
                     inputMode="tel"
@@ -470,13 +608,14 @@ function RestaurantPublicApplyPage({
                     {error}
                   </p>
                 )}
+                <p className="form-consent-note">{text.smsConsent}</p>
                 <button type="submit" disabled={isSubmitting}>
                   {isSubmitting ? text.sendingCode : text.sendCode}
                 </button>
               </form>
-            )}
+                )}
 
-            {step === 'verify' && (
+                {step === 'verify' && (
               <form className="public-apply-form auth-code-form" onSubmit={handleVerifyCode}>
                 <div className="auth-code-heading">
                   <h2>{text.verifyTitle}</h2>
@@ -534,9 +673,9 @@ function RestaurantPublicApplyPage({
                   </button>
                 </div>
               </form>
-            )}
+                )}
 
-            {step === 'details' && (
+                {step === 'details' && (
               <form className="public-apply-form" onSubmit={handleSubmitDetails}>
                 <h2>{text.detailsTitle}</h2>
                 <label>
@@ -555,7 +694,7 @@ function RestaurantPublicApplyPage({
                 <fieldset className="restaurant-role-options">
                   <legend>{text.roles}</legend>
                   <div>
-                    {RESTAURANT_ROLES.map((role) => (
+                    {availableQrRoles.map((role) => (
                       <label key={role.value}>
                         <input
                           type="checkbox"
@@ -616,10 +755,19 @@ function RestaurantPublicApplyPage({
                     {error}
                   </p>
                 )}
+                <p className="form-consent-note">
+                  {text.submitConsentPrefix}
+                  <Link to="/privacy" target="_blank" rel="noreferrer">
+                    {text.privacyPolicy}
+                  </Link>
+                  {text.submitConsentSuffix}
+                </p>
                 <button type="submit" disabled={isSubmitting}>
                   {isSubmitting ? text.submitting : text.submit}
                 </button>
               </form>
+                )}
+              </>
             )}
           </div>
         )}

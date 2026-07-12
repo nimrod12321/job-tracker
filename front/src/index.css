@@ -2,24 +2,47 @@
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
-  color: #18181b;
-  background: #f7f7f4;
+  color: #201d1d;
+  background: #f4e9dc;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 
-  --background: #f7f7f4;
-  --surface: #ffffff;
-  --surface-soft: #f1f3ef;
-  --text: #18181b;
-  --muted: #6b7280;
-  --border: #e4e4df;
-  --primary: #1f2937;
-  --primary-dark: #111827;
-  --primary-soft: #f0edff;
-  --accent: #7c3aed;
-  --accent-soft: #f3efff;
+  --peepss-bg: #f4e9dc;
+  --peepss-bg-soft: #f7eee3;
+  --peepss-surface: #fbf8f1;
+  --peepss-surface-strong: #fefbf4;
+  --peepss-border: #e2cbb9;
+  --peepss-border-strong: #d7b2a5;
+  --peepss-text: #201d1d;
+  --peepss-text-muted: #765a56;
+  --peepss-primary: #dc5634;
+  --peepss-primary-hover: #cf4b2c;
+  --peepss-primary-soft: #f1d6cb;
+  --peepss-dark-pill: #201d1d;
+  --peepss-logo-accent: #866460;
+  --peepss-shadow: 0 18px 45px rgb(134 100 96 / 18%);
+
+  --background: var(--peepss-bg);
+  --surface: var(--peepss-surface);
+  --surface-soft: var(--peepss-bg-soft);
+  --text: var(--peepss-text);
+  --muted: var(--peepss-text-muted);
+  --border: var(--peepss-border);
+  --primary: var(--peepss-text);
+  --primary-dark: #151111;
+  --primary-soft: var(--peepss-primary-soft);
+  --accent: var(--peepss-primary);
+  --accent-soft: var(--peepss-primary-soft);
   --success: #15803d;
-  --danger: #dc2626;
+  --danger: #b85a4a;
+  --restaurant-bg: var(--peepss-bg);
+  --restaurant-surface: var(--peepss-surface);
+  --restaurant-ink: var(--peepss-text);
+  --restaurant-muted: var(--peepss-text-muted);
+  --restaurant-border: var(--peepss-border);
+  --restaurant-primary: var(--peepss-primary);
+  --restaurant-primary-dark: var(--peepss-primary-hover);
+  --restaurant-soft: var(--peepss-primary-soft);
   --radius-lg: 22px;
   --radius-md: 14px;
   --shadow: 0 14px 38px rgb(15 23 42 / 7%);
@@ -91,9 +114,13 @@ body {
   min-height: 100vh;
   margin: 0;
   background:
-    radial-gradient(circle at 8% 0%, rgb(124 58 237 / 6%), transparent 30rem),
+    radial-gradient(circle at 8% 0%, rgb(220 86 52 / 5%), transparent 30rem),
     var(--background);
   color: var(--text);
+}
+
+#root {
+  min-height: 100vh;
 }
 
 button,
@@ -131,16 +158,28 @@ a {
   text-decoration: none;
 }
 
+a:visited {
+  color: inherit;
+}
+
+a:hover {
+  color: var(--peepss-primary);
+}
+
+a:active {
+  color: var(--peepss-primary-hover);
+}
+
 a:focus-visible,
 button:focus-visible {
-  outline: 3px solid rgb(124 58 237 / 25%);
+  outline: 3px solid rgb(220 86 52 / 25%);
   outline-offset: 3px;
 }
 
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid rgb(124 58 237 / 18%);
+  outline: 3px solid rgb(220 86 52 / 18%);
   outline-offset: 1px;
 }
 
@@ -184,9 +223,8 @@ textarea:focus-visible {
   overflow: hidden;
   padding: max(0.85rem, env(safe-area-inset-top)) 1rem 1rem;
   background:
-    radial-gradient(circle at 18% 12%, rgb(239 75 35 / 13%), transparent 18rem),
-    radial-gradient(circle at 92% 28%, rgb(134 91 89 / 14%), transparent 20rem),
-    linear-gradient(180deg, #fff8ed 0%, #f8ead8 100%);
+    radial-gradient(circle at 88% 22%, rgb(134 100 96 / 10%), transparent 18rem),
+    linear-gradient(180deg, var(--peepss-bg) 0%, #f5ecdb 100%);
 }
 
 .auth-shell {
@@ -210,33 +248,41 @@ textarea:focus-visible {
 .auth-language-toggle {
   flex: 0 0 auto;
   min-height: 36px;
-  border: 1px solid #ead1b6;
+  border: 1px solid var(--peepss-border);
   border-radius: 999px;
   padding: 0.45rem 0.75rem;
-  background: rgb(255 250 244 / 88%);
+  background: var(--peepss-surface);
   box-shadow: none;
-  color: #3a2a25;
+  color: var(--peepss-text);
   font-size: 0.82rem;
   font-weight: 900;
 }
 
 .auth-language-toggle:hover {
-  background: #fff1e8;
+  background: var(--peepss-bg-soft);
   box-shadow: none;
   transform: none;
 }
 
 .auth-center {
   display: grid;
-  place-items: center;
+  grid-template-rows:
+    minmax(0.75rem, 1fr)
+    auto
+    minmax(1.25rem, 1fr)
+    auto
+    minmax(0.75rem, 2fr);
+  align-content: stretch;
+  justify-items: center;
   flex: 1 1 auto;
   min-height: 0;
   width: 100%;
 }
 
 .auth-headline {
+  grid-row: 2;
   margin: 0;
-  color: #1f1d1e;
+  color: var(--peepss-text);
   font-size: clamp(1.85rem, 7vw, 2.8rem);
   line-height: 0.95;
   letter-spacing: -0.065em;
@@ -266,7 +312,7 @@ textarea:focus-visible {
 
 .auth-hero h1 {
   margin: 0;
-  color: #1f1d1e;
+  color: var(--peepss-text);
   font-size: clamp(2.15rem, 9vw, 3.6rem);
   line-height: 0.95;
   letter-spacing: -0.075em;
@@ -274,19 +320,20 @@ textarea:focus-visible {
 
 .auth-hero p {
   margin: 0.55rem 0 0;
-  color: #6b4a42;
+  color: var(--peepss-muted);
   font-size: clamp(1rem, 3.6vw, 1.15rem);
   font-weight: 750;
 }
 
 .auth-card {
   position: relative;
+  grid-row: 4;
   width: 100%;
-  border: 1px solid rgb(232 203 178 / 78%);
+  border: 1px solid var(--peepss-border);
   border-radius: 30px;
   padding: clamp(1rem, 4vw, 1.45rem);
-  background: rgb(255 252 246 / 94%);
-  box-shadow: 0 22px 55px rgb(93 49 13 / 13%);
+  background: var(--peepss-surface);
+  box-shadow: var(--peepss-shadow);
 }
 
 .auth-mode-tabs {
@@ -294,23 +341,23 @@ textarea:focus-visible {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.35rem;
   margin-bottom: 1.2rem;
-  border: 1px solid #ecd5bd;
+  border: 1px solid var(--peepss-border);
   border-radius: 999px;
   padding: 0.3rem;
-  background: #f7eadb;
+  background: #f2e2d3;
 }
 
 .auth-mode-tabs a {
   border-radius: 999px;
   padding: 0.78rem 0.85rem;
-  color: #7a5142;
+  color: var(--peepss-muted);
   font-size: 0.92rem;
   font-weight: 900;
   text-align: center;
 }
 
 .auth-mode-tabs a.active {
-  background: #1f1d1e;
+  background: var(--peepss-dark-pill);
   box-shadow: 0 10px 22px rgb(31 29 30 / 12%);
   color: #fffaf4;
 }
@@ -321,7 +368,7 @@ textarea:focus-visible {
 
 .auth-card-heading h2 {
   margin: 0 0 0.35rem;
-  color: #1f1d1e;
+  color: var(--peepss-text);
   font-size: clamp(1.5rem, 5vw, 2rem);
   line-height: 1.1;
   letter-spacing: -0.055em;
@@ -329,7 +376,7 @@ textarea:focus-visible {
 
 .auth-card-heading p {
   margin: 0;
-  color: #7a5142;
+  color: var(--peepss-muted);
   line-height: 1.45;
 }
 
@@ -341,7 +388,7 @@ textarea:focus-visible {
 .auth-form label {
   display: grid;
   gap: 0.5rem;
-  color: #3a2a25;
+  color: var(--peepss-text);
   font-size: 0.9rem;
   font-weight: 850;
 }
@@ -349,11 +396,11 @@ textarea:focus-visible {
 .auth-form input {
   width: 100%;
   min-height: 52px;
-  border: 1px solid #e4c8ad;
+  border: 1px solid var(--peepss-border);
   border-radius: 18px;
   padding: 0.85rem 1rem;
-  background: #fffaf4;
-  color: #1f1d1e;
+  background: var(--peepss-surface-strong);
+  color: var(--peepss-text);
   font: inherit;
   outline: none;
   transition:
@@ -372,7 +419,7 @@ textarea:focus-visible {
 
 .auth-track-choice legend {
   margin-bottom: 0.6rem;
-  color: #3a2a25;
+  color: var(--peepss-text);
   font-size: 0.9rem;
   font-weight: 900;
 }
@@ -382,10 +429,10 @@ textarea:focus-visible {
   grid-template-columns: none;
   align-items: flex-start;
   gap: 0.75rem;
-  border: 1px solid #ead1b6;
+  border: 1px solid var(--peepss-border);
   border-radius: 20px;
   padding: 0.82rem 0.88rem;
-  background: #fffaf4;
+  background: var(--peepss-surface-strong);
   cursor: pointer;
   transition:
     background 160ms ease,
@@ -395,15 +442,15 @@ textarea:focus-visible {
 }
 
 .auth-track-choice label:has(input:checked) {
-  border-color: #ef4b23;
-  background: #fff1e8;
-  box-shadow: inset 0 0 0 1px rgb(239 75 35 / 20%);
+  border-color: var(--restaurant-primary);
+  background: var(--peepss-primary-soft);
+  box-shadow: inset 0 0 0 1px rgb(220 86 52 / 18%);
 }
 
 .auth-track-choice input {
   width: auto;
   margin: 0.2rem 0 0;
-  accent-color: #ef4b23;
+  accent-color: var(--restaurant-primary);
 }
 
 .auth-track-choice span {
@@ -412,7 +459,7 @@ textarea:focus-visible {
 }
 
 .auth-track-choice small {
-  color: #7a5142;
+  color: var(--peepss-muted);
   font-weight: 600;
   line-height: 1.4;
 }
@@ -422,9 +469,9 @@ textarea:focus-visible {
 }
 
 .auth-form input:focus {
-  border-color: #ef4b23;
-  background: #ffffff;
-  box-shadow: 0 0 0 4px rgb(239 75 35 / 14%);
+  border-color: var(--restaurant-primary);
+  background: var(--peepss-surface-strong);
+  box-shadow: 0 0 0 4px rgb(220 86 52 / 13%);
 }
 
 .auth-form button[type="submit"] {
@@ -432,9 +479,9 @@ textarea:focus-visible {
   min-height: 54px;
   margin-top: 0.35rem;
   border-radius: 999px;
-  background: #ef4b23;
-  box-shadow: 0 16px 28px rgb(239 75 35 / 24%);
-  color: #fffaf4;
+  background: var(--restaurant-primary);
+  box-shadow: 0 14px 24px rgb(134 100 96 / 18%);
+  color: #ffffff;
   font-weight: 950;
 }
 
@@ -505,20 +552,19 @@ textarea:focus-visible {
   place-items: center;
   padding: max(1.5rem, env(safe-area-inset-top)) 1rem 1.5rem;
   background:
-    radial-gradient(circle at 18% 12%, rgb(239 75 35 / 13%), transparent 18rem),
-    radial-gradient(circle at 92% 28%, rgb(134 91 89 / 14%), transparent 20rem),
-    linear-gradient(180deg, #fff8ed 0%, #f8ead8 100%);
+    radial-gradient(circle at 88% 22%, rgb(134 100 96 / 10%), transparent 18rem),
+    linear-gradient(180deg, var(--peepss-bg) 0%, #f5ecdb 100%);
 }
 
 .restaurant-only-card {
   display: grid;
   justify-items: center;
   width: min(100%, 470px);
-  border: 1px solid rgb(232 203 178 / 78%);
+  border: 1px solid var(--peepss-border);
   border-radius: 30px;
   padding: clamp(1.2rem, 5vw, 1.8rem);
-  background: rgb(255 252 246 / 94%);
-  box-shadow: 0 22px 55px rgb(93 49 13 / 13%);
+  background: var(--peepss-surface);
+  box-shadow: var(--peepss-shadow);
   text-align: center;
 }
 
@@ -570,8 +616,167 @@ textarea:focus-visible {
   text-align: center;
 }
 
+.site-legal-footer {
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  width: min(100%, 760px);
+  margin: 1.25rem auto 0;
+  padding: 0.75rem 1rem;
+  color: var(--peepss-text-muted);
+  font-size: 0.78rem;
+  font-weight: 750;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.site-legal-footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.site-legal-footer a {
+  color: var(--peepss-text-muted);
+  text-decoration: none;
+}
+
+.site-legal-footer a:hover {
+  color: var(--peepss-primary);
+}
+
+.site-legal-footer p {
+  margin: 0;
+}
+
+.standard-layout,
+.immersive-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.standard-layout-main,
+.immersive-layout-main {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.standard-layout-footer {
+  margin-top: auto;
+}
+
+.auth-legal-footer {
+  flex: 0 0 auto;
+  margin-top: 0;
+  padding-block: 0;
+  font-size: 0.68rem;
+}
+
+.auth-legal-footer nav {
+  gap: 0.25rem;
+}
+
+.app-legal-footer {
+  margin-top: auto;
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.admin-legal-footer {
+  margin-top: auto;
+  padding-top: 2rem;
+}
+
+.legal-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  padding: max(1.25rem, env(safe-area-inset-top)) 1rem 1.5rem;
+  background:
+    radial-gradient(circle at 88% 22%, rgb(134 100 96 / 10%), transparent 18rem),
+    linear-gradient(180deg, var(--peepss-bg) 0%, #f5ecdb 100%);
+}
+
+.legal-card {
+  display: grid;
+  gap: 1rem;
+  width: min(100%, 760px);
+  margin-inline: auto;
+  border: 1px solid var(--peepss-border);
+  border-radius: 28px;
+  padding: clamp(1.25rem, 4vw, 2rem);
+  background: var(--peepss-surface);
+  box-shadow: var(--peepss-shadow);
+  color: var(--peepss-text);
+}
+
+.legal-logo.peepss-logo {
+  justify-self: center;
+  width: auto;
+  height: auto;
+  min-height: 3.5rem;
+  overflow: visible;
+  font-size: clamp(2.4rem, 10vw, 3.2rem);
+  letter-spacing: -0.14em;
+}
+
+.legal-logo .peepss-logo-circle {
+  left: 1.85rem;
+  width: 4.25rem;
+  height: 4.25rem;
+}
+
+.legal-card h1,
+.legal-card h2,
+.legal-card p {
+  margin: 0;
+}
+
+.legal-card h1 {
+  font-size: clamp(2rem, 8vw, 3.2rem);
+  line-height: 1;
+  letter-spacing: -0.055em;
+  text-align: center;
+}
+
+.legal-intro {
+  color: var(--peepss-text-muted);
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.55;
+  text-align: center;
+}
+
+.legal-sections {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.legal-sections section {
+  display: grid;
+  gap: 0.35rem;
+  border: 1px solid var(--peepss-border);
+  border-radius: 18px;
+  padding: 0.95rem;
+  background: #fffdf8;
+}
+
+.legal-sections h2 {
+  font-size: 1rem;
+}
+
+.legal-sections p {
+  color: var(--peepss-text-muted);
+  line-height: 1.6;
+}
+
 .app-layout {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .app-header {
@@ -624,7 +829,7 @@ textarea:focus-visible {
   width: 4.5rem;
   height: 4.5rem;
   border-radius: 50%;
-  background: #865b59;
+  background: var(--peepss-logo-accent);
   transform: translateY(-50%);
 }
 
@@ -698,6 +903,7 @@ textarea:focus-visible {
 }
 
 .app-content {
+  flex: 1 0 auto;
   width: min(1200px, calc(100% - 2.5rem));
   margin: 0 auto;
   padding: clamp(2rem, 5vw, 4.5rem) 0;
@@ -781,9 +987,8 @@ textarea:focus-visible {
   min-height: 100dvh;
   padding: 1.5rem;
   background:
-    radial-gradient(circle at 20% 18%, rgb(239 75 35 / 13%), transparent 18rem),
-    radial-gradient(circle at 82% 74%, rgb(134 91 89 / 14%), transparent 20rem),
-    #fff7ed;
+    radial-gradient(circle at 82% 28%, rgb(134 100 96 / 10%), transparent 20rem),
+    var(--peepss-bg);
   place-items: center;
 }
 
@@ -941,7 +1146,7 @@ textarea:focus-visible {
 .profile-form input:focus,
 .profile-form textarea:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgb(124 58 237 / 12%);
+  box-shadow: 0 0 0 3px rgb(220 86 52 / 12%);
 }
 
 .profile-form textarea {
@@ -1042,7 +1247,7 @@ textarea:focus-visible {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background:
-    linear-gradient(135deg, rgb(124 58 237 / 4%), transparent 45%),
+    linear-gradient(135deg, rgb(220 86 52 / 4%), transparent 45%),
     var(--surface);
   box-shadow: var(--shadow);
   animation: reveal-form 220ms ease-out;
@@ -1094,7 +1299,7 @@ textarea:focus-visible {
 .job-form select:focus,
 .job-form textarea:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgb(124 58 237 / 12%);
+  box-shadow: 0 0 0 3px rgb(220 86 52 / 12%);
 }
 
 .job-form select {
@@ -1271,7 +1476,7 @@ textarea:focus-visible {
 
 .external-jobs-form input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgb(124 58 237 / 12%);
+  box-shadow: 0 0 0 3px rgb(220 86 52 / 12%);
 }
 
 .job-browser-address {
@@ -1289,7 +1494,7 @@ textarea:focus-visible {
 
 .job-browser-address:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgb(124 58 237 / 12%);
+  box-shadow: 0 0 0 3px rgb(220 86 52 / 12%);
 }
 
 .job-browser-address input {
@@ -1395,7 +1600,7 @@ textarea:focus-visible {
   border-radius: 999px;
   padding: 0.35rem 0.6rem;
   background: var(--accent-soft);
-  color: #6d28d9;
+  color: var(--peepss-primary-hover);
   font-size: 0.75rem;
   white-space: nowrap;
 }
@@ -1421,7 +1626,7 @@ textarea:focus-visible {
 }
 
 .external-job-reason {
-  color: #5b21b6;
+  color: var(--peepss-primary-hover);
   font-size: 0.85rem;
   font-weight: 700;
 }
@@ -1444,7 +1649,7 @@ textarea:focus-visible {
 }
 
 .external-job-actions a {
-  color: #5b21b6;
+  color: var(--peepss-primary-hover);
   font-size: 0.8rem;
   font-weight: 700;
 }
@@ -1477,7 +1682,7 @@ textarea:focus-visible {
 
 .job-filter select:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgb(124 58 237 / 12%);
+  box-shadow: 0 0 0 3px rgb(220 86 52 / 12%);
 }
 
 .job-filter span {
@@ -1612,7 +1817,7 @@ textarea:focus-visible {
 
 .job-card .job-status-select:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgb(124 58 237 / 14%);
+  box-shadow: 0 0 0 2px rgb(220 86 52 / 14%);
 }
 
 .job-card-meta {
@@ -1669,7 +1874,7 @@ textarea:focus-visible {
 }
 
 .job-card-match strong {
-  color: #5b21b6;
+  color: var(--peepss-primary-hover);
   font-size: 0.85rem;
 }
 
@@ -2123,7 +2328,7 @@ textarea:focus-visible {
 }
 
 .discover-company {
-  color: var(--accent);
+  color: var(--peepss-text);
   font-size: 0.8rem;
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -2184,7 +2389,7 @@ textarea:focus-visible {
 }
 
 .discover-fit strong {
-  color: #5b21b6;
+  color: var(--peepss-primary-hover);
   font-size: 1.45rem;
   white-space: nowrap;
 }
@@ -2316,7 +2521,7 @@ textarea:focus-visible {
 }
 
 .discover-like-button:hover {
-  background: #6d28d9;
+  background: var(--peepss-primary-hover);
 }
 
 .discover-open-link {
@@ -2425,7 +2630,7 @@ textarea:focus-visible {
 }
 
 .liked-job-card-header p {
-  color: var(--accent);
+  color: var(--peepss-text);
   font-size: 0.75rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -2472,7 +2677,7 @@ textarea:focus-visible {
 }
 
 .liked-job-fit strong {
-  color: #5b21b6;
+  color: var(--peepss-primary-hover);
   font-size: 0.95rem;
 }
 
@@ -2766,7 +2971,7 @@ textarea:focus-visible {
 }
 
 .dashboard-recent-match strong {
-  color: #5b21b6;
+  color: var(--peepss-primary-hover);
   font-size: 0.95rem;
 }
 
@@ -2844,7 +3049,7 @@ textarea:focus-visible {
 .job-import-paste-form input:focus,
 .job-import-paste-form textarea:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgb(124 58 237 / 12%);
+  box-shadow: 0 0 0 3px rgb(220 86 52 / 12%);
 }
 
 .job-import-paste-form textarea {
@@ -2926,7 +3131,7 @@ textarea:focus-visible {
 .secondary-action-link:hover {
   border-color: var(--accent);
   background: var(--accent-soft);
-  color: #5b21b6;
+  color: var(--peepss-primary-hover);
 }
 
 .restaurant-profile-page,
@@ -2936,19 +3141,10 @@ textarea:focus-visible {
 }
 
 .restaurant-shell {
-  --restaurant-bg: #fff7ed;
-  --restaurant-surface: #fffaf3;
-  --restaurant-ink: #15110d;
-  --restaurant-muted: #78695d;
-  --restaurant-border: #f1dcc8;
-  --restaurant-primary: #ef4b23;
-  --restaurant-primary-dark: #c93414;
-  --restaurant-soft: #ffe9d8;
-
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgb(255 213 176 / 45%), transparent 32rem),
-    var(--restaurant-bg);
+    radial-gradient(circle at top left, rgb(220 86 52 / 6%), transparent 32rem),
+    linear-gradient(180deg, var(--peepss-bg) 0%, #f5ecdb 34rem);
   color: var(--restaurant-ink);
 }
 
@@ -2968,12 +3164,48 @@ textarea:focus-visible {
   color: var(--restaurant-ink);
 }
 
-.restaurant-shell button:not(.restaurant-language-toggle button):not(.restaurant-options-trigger) {
+.restaurant-owner-shell .owner-main-nav {
+  gap: 0.35rem;
+  border: 1px solid var(--restaurant-border);
+  border-radius: 999px;
+  padding: 0.3rem;
+  background: rgb(255 250 243 / 78%);
+  box-shadow: none;
+}
+
+.restaurant-owner-shell .owner-main-nav .nav-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.48rem 0.85rem;
+  background: transparent;
+  box-shadow: none;
+  color: var(--restaurant-muted);
+  font-size: 0.86rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+.restaurant-owner-shell .owner-main-nav .nav-button:hover {
+  background: #fffdf8;
+  color: var(--restaurant-ink);
+}
+
+.restaurant-owner-shell .owner-main-nav .nav-button.active {
+  background: var(--restaurant-primary);
+  color: #fffaf3;
+  box-shadow: none;
+}
+
+.restaurant-shell button:not(.restaurant-language-toggle button):not(.restaurant-options-trigger):not(.peepss-close-button) {
   background: var(--restaurant-primary);
   color: #fff;
 }
 
-.restaurant-shell button:not(.restaurant-language-toggle button):not(.restaurant-options-trigger):hover {
+.restaurant-shell button:not(.restaurant-language-toggle button):not(.restaurant-options-trigger):not(.peepss-close-button):hover {
   background: var(--restaurant-primary-dark);
 }
 
@@ -3041,7 +3273,7 @@ textarea:focus-visible {
 }
 
 .restaurant-options-trigger:focus-visible {
-  outline: 3px solid rgb(239 75 35 / 28%);
+  outline: 3px solid rgb(220 86 52 / 24%);
   outline-offset: 3px;
 }
 
@@ -3189,6 +3421,17 @@ textarea:focus-visible {
   box-shadow: var(--shadow);
 }
 
+.worker-profile-section {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: 22px;
+  padding: clamp(0.95rem, 3vw, 1.25rem);
+  background: rgb(255 253 248 / 72%);
+}
+
 .restaurant-shell .restaurant-profile-form,
 .restaurant-shell .owner-profile-form,
 .restaurant-shell .owner-job-form,
@@ -3201,7 +3444,8 @@ textarea:focus-visible {
   box-shadow: 0 18px 45px rgb(93 49 13 / 10%);
 }
 
-.restaurant-profile-form > label {
+.restaurant-profile-form > label,
+.worker-profile-section > label {
   display: grid;
   gap: 0.45rem;
   color: #344054;
@@ -3221,10 +3465,24 @@ textarea:focus-visible {
   resize: vertical;
 }
 
+.restaurant-profile-form input[readonly] {
+  background: #f8efe4;
+  color: var(--restaurant-muted, var(--muted));
+  cursor: default;
+}
+
+.form-helper-text {
+  color: var(--restaurant-muted, var(--muted));
+  font-size: 0.78rem;
+  font-weight: 750;
+  line-height: 1.4;
+}
+
 .restaurant-field-wide,
 .restaurant-role-options,
 .restaurant-profile-note,
-.restaurant-profile-form > .message {
+.restaurant-profile-form > .message,
+.worker-profile-actions {
   grid-column: 1 / -1;
 }
 
@@ -3264,13 +3522,13 @@ textarea:focus-visible {
 .restaurant-role-options label:has(input:checked) {
   border-color: var(--restaurant-primary, var(--accent));
   background: var(--restaurant-soft, var(--accent-soft));
-  color: var(--restaurant-ink, #5b21b6);
+  color: var(--restaurant-ink, var(--peepss-primary-hover));
 }
 
 .restaurant-role-options input {
   width: auto;
   margin: 0;
-  accent-color: var(--accent);
+  accent-color: var(--peepss-primary);
 }
 
 .restaurant-profile-note {
@@ -3408,7 +3666,7 @@ textarea:focus-visible {
 
 .restaurant-job-name {
   margin: 0;
-  color: var(--accent);
+  color: var(--peepss-text);
   font-size: 0.8rem;
   font-weight: 800;
   letter-spacing: 0.05em;
@@ -3498,7 +3756,7 @@ textarea:focus-visible {
 }
 
 .restaurant-job-highlight span {
-  color: #6d28d9;
+  color: var(--peepss-primary-hover);
   font-size: 0.75rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -3583,7 +3841,7 @@ textarea:focus-visible {
 }
 
 .restaurant-apply-button:hover {
-  background: var(--restaurant-primary-dark, #6d28d9);
+  background: var(--restaurant-primary-dark, var(--peepss-primary-hover));
 }
 
 .restaurant-job-actions button:disabled {
@@ -3761,7 +4019,7 @@ textarea:focus-visible {
 
 .owner-profile-form .field-error,
 .owner-job-form .field-error {
-  border-color: #dc2626;
+  border-color: var(--danger);
   background: #fff7f7;
 }
 
@@ -3788,8 +4046,33 @@ textarea:focus-visible {
 .owner-field-wide,
 .owner-profile-form > .message,
 .owner-profile-section-card,
-.owner-form-heading {
+.owner-form-heading,
+.form-compliance-note {
   grid-column: 1 / -1;
+}
+
+.form-compliance-note,
+.form-consent-note {
+  margin: 0;
+  color: var(--peepss-text-muted);
+  font-size: 0.8rem;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.form-compliance-note {
+  border: 1px solid var(--peepss-border);
+  border-radius: 14px;
+  padding: 0.7rem 0.8rem;
+  background: rgb(255 253 248 / 72%);
+}
+
+.form-consent-note a {
+  color: var(--peepss-primary);
+  font-weight: 900;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
 }
 
 .owner-profile-section-card {
@@ -3840,6 +4123,7 @@ textarea:focus-visible {
   gap: 0.35rem;
 }
 
+.owner-job-toggle-button,
 .owner-draft-toggle-button {
   display: none;
   min-height: 32px;
@@ -3853,6 +4137,7 @@ textarea:focus-visible {
   font-weight: 900;
 }
 
+.owner-job-manage-hint,
 .owner-draft-manage-hint {
   display: none;
   color: var(--restaurant-muted, var(--muted));
@@ -3886,27 +4171,27 @@ textarea:focus-visible {
 
 .owner-form-close-button {
   position: absolute;
-  inset-block-start: 10px;
-  inset-inline-end: 10px;
+  inset-block-start: 8px;
+  inset-inline-end: 8px;
   z-index: 1;
   display: inline-grid;
   place-items: center;
-  width: 2.1rem;
-  height: 2.1rem;
+  width: 1.65rem;
+  height: 1.65rem;
   min-height: 0;
   border: 1px solid var(--restaurant-border, var(--border));
   border-radius: 999px;
   padding: 0;
   background: #fffdf8;
-  box-shadow: 0 10px 24px rgb(93 49 13 / 10%);
+  box-shadow: 0 6px 14px rgb(93 49 13 / 8%);
   color: var(--restaurant-ink, var(--text));
-  font-size: 1.2rem;
+  font-size: 0.95rem;
   line-height: 1;
 }
 
 .owner-job-form .guided-form-progress,
 .owner-job-form .owner-form-heading {
-  padding-inline-end: 2.5rem;
+  padding-inline-end: 2rem;
 }
 
 .owner-form-close-button:hover {
@@ -3960,12 +4245,12 @@ textarea:focus-visible {
 }
 
 .owner-job-card.is-highlighted {
-  border-color: rgb(239 75 35 / 52%);
-  box-shadow: 0 18px 42px rgb(239 75 35 / 18%);
+  border-color: rgb(220 86 52 / 45%);
+  box-shadow: 0 18px 38px rgb(207 75 44 / 13%);
 }
 
 .owner-job-card-header p {
-  color: var(--accent);
+  color: var(--peepss-text-muted);
   font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -4091,7 +4376,7 @@ textarea:focus-visible {
 }
 
 .owner-jobs-local-nav button.is-active {
-  border-color: rgb(239 75 35 / 42%);
+  border-color: rgb(220 86 52 / 36%);
   background: var(--restaurant-soft, #fff3e7);
   color: var(--restaurant-ink, var(--text));
 }
@@ -4103,62 +4388,143 @@ textarea:focus-visible {
   font-size: 0.72rem;
 }
 
-.owner-job-action-cards {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+.owner-job-primary-action {
+  display: grid;
 }
 
-.owner-job-action-card {
-  display: inline-flex;
+.owner-job-create-card {
+  display: flex;
   align-items: center;
-  gap: 0.45rem;
-  min-height: 0;
+  justify-content: space-between;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 46px;
   border: 1px solid var(--restaurant-border, var(--border));
   border-radius: 999px;
-  padding: 0.5rem 0.85rem;
+  padding: 0.55rem 0.7rem 0.55rem 0.9rem;
   background: rgb(255 250 243 / 92%);
-  box-shadow: 0 4px 12px rgb(93 49 13 / 6%);
+  box-shadow: 0 7px 18px rgb(93 49 13 / 6%);
   color: var(--restaurant-ink, var(--text));
+  gap: 0.7rem;
+  text-align: start;
 }
 
-.owner-job-action-card:hover {
-  border-color: rgb(239 75 35 / 34%);
+.owner-job-create-card:hover {
+  border-color: rgb(220 86 52 / 30%);
   background: #fffdf8;
-  box-shadow: 0 6px 16px rgb(93 49 13 / 9%);
+  box-shadow: 0 9px 22px rgb(93 49 13 / 8%);
+  transform: none;
 }
 
-.owner-job-action-card.is-active {
-  border-color: rgb(239 75 35 / 48%);
+.owner-job-create-card.is-active {
+  border-color: rgb(220 86 52 / 32%);
   background: var(--restaurant-soft, #fff3e7);
 }
 
-.owner-job-action-card-title {
-  font-size: 0.88rem;
-  font-weight: 800;
+.owner-job-create-card-title {
+  font-size: 0.9rem;
+  font-weight: 900;
   line-height: 1;
-  white-space: nowrap;
 }
 
-.owner-job-action-card-count {
-  flex: 0 0 auto;
-  min-width: 1.35rem;
+.owner-job-create-card-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 1.45rem;
+  height: 1.45rem;
   border-radius: 999px;
-  padding: 0.12rem 0.4rem;
-  background: rgb(255 255 255 / 22%);
-  color: inherit;
-  font-size: 0.72rem;
-  font-weight: 800;
-  line-height: 1.3;
+  background: var(--restaurant-primary, #dc5634);
+  color: #fffaf3;
+  font-size: 0.9rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.owner-job-section-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: min(100%, 560px);
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: 999px;
+  padding: 0.32rem;
+  background: rgb(255 250 243 / 92%);
+  box-shadow: 0 10px 24px rgb(93 49 13 / 7%);
+}
+
+.owner-job-section-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-width: 0;
+  min-height: 40px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.48rem 0.65rem;
+  background: transparent;
+  box-shadow: none;
+  color: var(--restaurant-muted, var(--muted));
+  font-size: 0.86rem;
+  font-weight: 900;
   text-align: center;
 }
 
-.owner-job-action-card-indicator {
+.owner-job-section-tab:hover {
+  background: #fffdf8;
+  box-shadow: none;
+  color: var(--restaurant-ink, var(--text));
+  transform: none;
+}
+
+.owner-job-section-tab.is-active {
+  background: var(--restaurant-soft, #fff3e7);
+  color: var(--restaurant-ink, var(--text));
+}
+
+.owner-job-section-tab-count {
   flex: 0 0 auto;
-  color: currentcolor;
+  min-width: 1.35rem;
+  border-radius: 999px;
+  padding: 0.1rem 0.4rem;
+  background: rgb(31 29 30 / 8%);
+  color: inherit;
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.owner-job-section-tab-indicator {
+  flex: 0 0 auto;
   font-size: 0.62rem;
-  font-weight: 800;
   opacity: 0.7;
+}
+
+.restaurant-shell .owner-job-section-tab {
+  background: transparent;
+  box-shadow: none;
+  color: var(--restaurant-muted, var(--muted));
+}
+
+.restaurant-shell .owner-job-section-tab:hover {
+  background: #fffdf8;
+  color: var(--restaurant-ink, var(--text));
+}
+
+.restaurant-shell .owner-job-section-tab.is-active {
+  background: var(--restaurant-soft, #fff3e7);
+  color: var(--restaurant-ink, var(--text));
+}
+
+.restaurant-shell .owner-job-create-card {
+  background: rgb(255 250 243 / 92%);
+  color: var(--restaurant-ink, var(--text));
+}
+
+.restaurant-shell .owner-job-create-card:hover {
+  background: #fffdf8;
+}
+
+.restaurant-shell .owner-job-create-card.is-active {
+  background: var(--restaurant-soft, #fff3e7);
 }
 
 .owner-draft-intro-note {
@@ -4167,7 +4533,7 @@ textarea:focus-visible {
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-  border: 1px solid rgb(239 75 35 / 20%);
+  border: 1px solid rgb(220 86 52 / 18%);
   border-radius: 18px;
   padding: 0.85rem 0.9rem;
   background: rgb(255 243 231 / 72%);
@@ -4244,7 +4610,7 @@ textarea:focus-visible {
 }
 
 .owner-qr-widget-collapsed:focus-visible {
-  outline: 3px solid rgb(239 75 35 / 32%);
+  outline: 3px solid rgb(220 86 52 / 24%);
   outline-offset: 3px;
 }
 
@@ -4270,27 +4636,28 @@ textarea:focus-visible {
 }
 
 .owner-qr-close-button {
-  position: absolute;
-  inset-block-start: -0.35rem;
-  inset-inline-end: -0.35rem;
-  z-index: 1;
-  display: inline-grid;
-  place-items: center;
-  width: 2.1rem;
-  height: 2.1rem;
-  min-height: 0;
-  border: 1px solid var(--restaurant-border, var(--border));
-  border-radius: 999px;
-  padding: 0;
-  background: #fffdf8;
-  box-shadow: 0 10px 24px rgb(93 49 13 / 10%);
-  color: var(--restaurant-ink, var(--text));
-  font-size: 1.25rem;
-  line-height: 1;
+  position: static;
+  flex: 0 0 auto;
+  grid-column: 3;
+  justify-self: end;
+  align-self: start;
+  margin: 0;
+  color: var(--peepss-text, #201d1d);
+}
+
+.owner-qr-widget-expanded .owner-qr-widget-copy .owner-qr-close-button.peepss-close-button {
+  grid-column: 3;
+  justify-self: end;
+  align-self: start;
+  margin: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--peepss-text, #201d1d);
 }
 
 .owner-qr-close-button:hover {
-  background: var(--restaurant-soft, #fff3e7);
+  background: rgb(32 29 29 / 6%);
+  box-shadow: none;
   transform: none;
 }
 
@@ -4329,7 +4696,7 @@ textarea:focus-visible {
   height: 2rem;
   border-radius: 999px;
   background: var(--restaurant-soft, #fff3e7);
-  color: var(--restaurant-primary, #ef4b23);
+  color: var(--restaurant-primary, #dc5634);
   font-size: 1rem;
   font-weight: 900;
 }
@@ -4341,7 +4708,10 @@ textarea:focus-visible {
 }
 
 .owner-qr-widget-expanded .owner-qr-widget-copy {
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.55rem;
 }
 
 .owner-qr-widget-expanded .owner-qr-widget-copy h2 {
@@ -4423,6 +4793,100 @@ textarea:focus-visible {
   margin-top: 0.9rem;
 }
 
+.owner-qr-role-settings {
+  display: grid;
+  gap: 0.7rem;
+  border: 1px solid var(--restaurant-border, #ead7c7);
+  border-radius: 20px;
+  padding: 0.85rem;
+  background: rgb(255 253 248 / 72%);
+}
+
+.owner-qr-role-settings-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.owner-qr-role-settings-heading h3 {
+  margin: 0;
+  color: var(--restaurant-ink, #1f1d1e);
+  font-size: 0.95rem;
+  font-weight: 900;
+}
+
+.owner-qr-role-settings-heading span {
+  color: #7a5142;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.owner-qr-role-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.owner-qr-role-chips button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.48rem;
+  min-height: 38px;
+  border: 1px solid rgb(31 29 30 / 9%);
+  border-radius: 999px;
+  padding: 0.42rem 0.88rem;
+  background: #fffdf8;
+  color: #5f463c;
+  font-size: 0.82rem;
+  font-weight: 900;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 70%);
+}
+
+.owner-qr-role-chips button.is-enabled {
+  border-color: rgb(21 128 61 / 26%);
+  background: linear-gradient(180deg, #f6fff8 0%, #ecfdf3 100%);
+  color: #17472a;
+}
+
+.owner-qr-role-chips button.is-disabled {
+  border-color: rgb(239 68 68 / 22%);
+  background: linear-gradient(180deg, #fffafa 0%, #fff1f1 100%);
+  color: #7a2424;
+}
+
+.owner-qr-role-status-dot {
+  flex: 0 0 auto;
+  width: 0.48rem;
+  height: 0.48rem;
+  border-radius: 999px;
+  background: currentcolor;
+}
+
+.owner-qr-role-chips button.is-enabled .owner-qr-role-status-dot {
+  color: #15803d;
+}
+
+.owner-qr-role-chips button.is-disabled .owner-qr-role-status-dot {
+  color: #b85a4a;
+}
+
+.owner-qr-role-chips button:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.owner-qr-warning {
+  border: 1px solid #fed7aa;
+  border-radius: 16px;
+  padding: 0.75rem 0.85rem;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 0.86rem;
+  font-weight: 850;
+}
+
 .owner-candidate-section-header {
   display: flex;
   align-items: center;
@@ -4440,7 +4904,7 @@ textarea:focus-visible {
 }
 
 .owner-candidate-section-header:hover {
-  border-color: rgb(239 75 35 / 35%);
+  border-color: rgb(220 86 52 / 30%);
   background: #fff3e7;
   box-shadow: 0 14px 32px rgb(93 49 13 / 10%);
   transform: none;
@@ -4576,6 +5040,8 @@ textarea:focus-visible {
 }
 
 .admin-main {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   padding: clamp(1rem, 3vw, 2rem);
 }
@@ -4859,7 +5325,7 @@ textarea:focus-visible {
 
 .admin-restaurant-compact-card:hover,
 .admin-create-restaurant-card:hover {
-  border-color: #ef4b23;
+  border-color: var(--restaurant-primary);
   box-shadow: 0 18px 38px rgb(93 49 13 / 12%);
   transform: translateY(-2px);
 }
@@ -4871,6 +5337,24 @@ textarea:focus-visible {
   line-height: 1.05;
   letter-spacing: -0.04em;
   text-overflow: ellipsis;
+}
+
+.admin-restaurant-funnel-mini {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+}
+
+.admin-restaurant-funnel-mini span {
+  border: 1px solid rgb(226 203 185 / 78%);
+  border-radius: 999px;
+  padding: 0.24rem 0.44rem;
+  background: #fffdf8;
+  color: #765a56;
+  font-size: 0.68rem;
+  font-weight: 850;
+  line-height: 1;
 }
 
 .admin-new-candidate-dot {
@@ -4895,7 +5379,7 @@ textarea:focus-visible {
 
 .admin-create-restaurant-card span {
   margin-bottom: 0.25rem;
-  color: #ef4b23;
+  color: var(--restaurant-primary);
   font-size: 1.45rem;
   line-height: 1;
 }
@@ -4976,6 +5460,58 @@ textarea:focus-visible {
   gap: 1rem;
 }
 
+.admin-funnel-panel {
+  gap: 0.85rem;
+}
+
+.admin-funnel-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.admin-funnel-card {
+  display: grid;
+  gap: 0.22rem;
+  border: 1px solid rgb(226 203 185 / 78%);
+  border-radius: 18px;
+  padding: 0.9rem;
+  background: #fffdf8;
+}
+
+.admin-funnel-card span,
+.admin-funnel-timestamps dt {
+  color: #7a5142;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.admin-funnel-card strong {
+  color: #1f1d1e;
+  font-size: clamp(1.55rem, 4vw, 2.1rem);
+  line-height: 1;
+}
+
+.admin-funnel-card p {
+  margin: 0;
+  font-size: 0.78rem;
+}
+
+.admin-funnel-timestamps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.admin-funnel-timestamps dd {
+  margin: 0.2rem 0 0;
+  color: var(--text);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
 .admin-qr-panel {
   align-items: center;
   text-align: center;
@@ -5018,16 +5554,16 @@ textarea:focus-visible {
 
 .admin-danger-button {
   flex: 0 0 auto;
-  border: 1px solid #fecaca;
+  border: 1px solid #e8b5a9;
   border-radius: 999px;
   padding: 0.75rem 1rem;
-  background: #dc2626;
+  background: var(--danger);
   color: white;
   font-weight: 900;
 }
 
 .admin-danger-button:hover {
-  background: #b91c1c;
+  background: #9f493c;
   transform: none;
 }
 
@@ -5103,6 +5639,13 @@ textarea:focus-visible {
   gap: 1rem;
 }
 
+.owner-candidate-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-inline-start: auto;
+}
+
 .owner-application-header p,
 .owner-application-header h2 {
   margin: 0;
@@ -5110,7 +5653,7 @@ textarea:focus-visible {
 
 .owner-application-header > div > p,
 .restaurant-match-name {
-  color: var(--accent);
+  color: var(--peepss-text);
   font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -5203,7 +5746,7 @@ textarea:focus-visible {
 }
 
 .owner-status-pill-select select:focus-visible {
-  outline: 3px solid rgb(239 75 35 / 22%);
+  outline: 3px solid rgb(220 86 52 / 20%);
   outline-offset: 2px;
 }
 
@@ -5233,13 +5776,152 @@ textarea:focus-visible {
   color: #1d4ed8;
 }
 
+.owner-candidate-card {
+  position: relative;
+}
+
+.owner-candidate-card.is-collapsed {
+  gap: 0.55rem;
+  padding: 0.95rem 1rem;
+  cursor: pointer;
+}
+
+.owner-candidate-card.is-collapsed:focus-visible {
+  outline: 3px solid rgb(220 86 52 / 20%);
+  outline-offset: 3px;
+}
+
+.owner-candidate-card.is-collapsed .owner-application-header {
+  align-items: center;
+}
+
+.owner-candidate-card.is-collapsed .owner-worker-avatar,
+.owner-candidate-card.is-collapsed .owner-worker-heading p,
+.owner-candidate-card.is-collapsed .owner-worker-details,
+.owner-candidate-card.is-collapsed .owner-application-section,
+.owner-candidate-card.is-collapsed .owner-applicant-contact {
+  display: none;
+}
+
+.owner-candidate-card.is-collapsed .owner-candidate-header-actions {
+  margin-inline-start: auto;
+  transform: translateX(-0.25rem);
+}
+
+[dir='rtl'] .owner-candidate-card.is-collapsed .owner-candidate-header-actions {
+  transform: translateX(-0.35rem);
+}
+
+.owner-candidate-card.is-expanded .owner-candidate-header-actions {
+  gap: 0.22rem;
+}
+
+.owner-candidate-card.is-collapsed .owner-status-pill-select::after {
+  display: none;
+}
+
+.owner-candidate-card.is-collapsed .owner-status-pill-select select {
+  min-height: 0;
+  max-width: 7.5rem;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  font-size: 0.78rem;
+  line-height: 1.1;
+  text-align: end;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+}
+
+[dir='rtl'] .owner-candidate-card.is-collapsed .owner-status-pill-select select {
+  padding: 0;
+}
+
+.owner-candidate-card.is-collapsed .owner-status-pill-select.applied select,
+.owner-candidate-card.is-collapsed .owner-status-pill-select.selected select,
+.owner-candidate-card.is-collapsed .owner-status-pill-select.relevant select,
+.owner-candidate-card.is-collapsed .owner-status-pill-select.rejected select,
+.owner-candidate-card.is-collapsed .owner-status-pill-select.new select,
+.owner-candidate-card.is-collapsed .owner-status-pill-select.contacted select {
+  background: transparent;
+}
+
+.owner-candidate-card.is-collapsed .owner-status-pill-select select:focus,
+.owner-candidate-card.is-collapsed .owner-status-pill-select select:focus-visible,
+.owner-candidate-card.is-collapsed .owner-status-pill-select select:active {
+  outline: none;
+  box-shadow: none;
+}
+
+.owner-candidate-card.is-collapsed .owner-application-header h2 {
+  margin: 0;
+  font-size: clamp(1.15rem, 5vw, 1.45rem);
+  line-height: 1.05;
+}
+
+.owner-candidate-preview {
+  display: grid;
+  gap: 0.28rem;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.owner-candidate-preview span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.owner-candidate-card.is-expanded .owner-candidate-preview {
+  display: none;
+}
+
+.owner-candidate-card.is-collapsed .owner-application-actions {
+  margin-top: 0.15rem;
+}
+
+.owner-candidate-card.is-collapsed .owner-application-actions button {
+  min-height: 34px;
+  border-radius: 999px;
+  padding: 0.42rem 0.72rem;
+  font-size: 0.76rem;
+}
+
+.owner-candidate-collapse-button {
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  min-height: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0;
+  background: var(--surface-soft);
+  color: var(--text);
+  font-size: 1.15rem;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: none;
+  place-items: center;
+}
+
+.owner-candidate-collapse-button:hover {
+  transform: none;
+  box-shadow: none;
+}
+
 .public-apply-page {
+  display: flex;
+  flex-direction: column;
   min-height: 100dvh;
   overflow-x: hidden;
   padding: max(1rem, env(safe-area-inset-top)) 1rem 1.5rem;
   background:
-    radial-gradient(circle at 18% 12%, rgb(239 75 35 / 13%), transparent 18rem),
-    linear-gradient(180deg, #fff8ed 0%, #f8ead8 100%);
+    radial-gradient(circle at 88% 22%, rgb(134 100 96 / 10%), transparent 18rem),
+    linear-gradient(180deg, var(--peepss-bg) 0%, #f5ecdb 100%);
 }
 
 .public-apply-shell {
@@ -5247,6 +5929,11 @@ textarea:focus-visible {
   width: min(100%, 520px);
   gap: 1rem;
   margin-inline: auto;
+}
+
+.public-apply-legal-footer {
+  margin-top: auto;
+  padding-top: 1.25rem;
 }
 
 .public-apply-header {
@@ -5274,6 +5961,37 @@ textarea:focus-visible {
   color: #7a5142;
   font-size: 0.9rem;
   font-weight: 850;
+}
+
+.public-apply-not-hiring {
+  display: grid;
+  justify-items: center;
+  gap: 0.65rem;
+  border: 1px solid var(--restaurant-border, #ead7c7);
+  border-radius: 22px;
+  padding: clamp(1.4rem, 7vw, 2.3rem);
+  background: #fffdf8;
+  text-align: center;
+}
+
+.public-apply-not-hiring h2 {
+  color: #1f1d1e;
+  font-size: clamp(1.7rem, 7vw, 2.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.055em;
+}
+
+.public-apply-not-hiring p {
+  max-width: 28ch;
+  color: #7a5142;
+  font-size: 1rem;
+  font-weight: 850;
+}
+
+.public-apply-not-hiring span {
+  color: #9a6a56;
+  font-size: 0.9rem;
+  font-weight: 800;
 }
 
 .public-apply-form {
@@ -5320,8 +6038,8 @@ textarea:focus-visible {
 
 .public-apply-form input:focus,
 .public-apply-form textarea:focus {
-  border-color: #ef4b23;
-  box-shadow: 0 0 0 4px rgb(239 75 35 / 14%);
+  border-color: var(--restaurant-primary);
+  box-shadow: 0 0 0 4px rgb(220 86 52 / 12%);
 }
 
 .public-apply-form input[type='number'] {
@@ -5378,20 +6096,20 @@ textarea:focus-visible {
 }
 
 .public-apply-form .restaurant-role-options label:hover {
-  border-color: rgb(239 75 35 / 42%);
+  border-color: rgb(220 86 52 / 42%);
   transform: translateY(-1px);
   box-shadow: 0 12px 26px rgb(93 49 13 / 9%);
 }
 
 .public-apply-form .restaurant-role-options label:has(input:checked) {
-  border-color: #ef4b23;
-  background: #ef4b23;
+  border-color: var(--restaurant-primary);
+  background: var(--restaurant-primary);
   color: #fffaf3;
-  box-shadow: 0 14px 30px rgb(239 75 35 / 22%);
+  box-shadow: 0 14px 28px rgb(207 75 44 / 18%);
 }
 
 .public-apply-form .restaurant-role-options label:has(input:focus-visible) {
-  outline: 3px solid rgb(239 75 35 / 24%);
+  outline: 3px solid rgb(220 86 52 / 22%);
   outline-offset: 3px;
 }
 
@@ -5646,6 +6364,8 @@ textarea:focus-visible {
   .admin-lead-details,
   .admin-restaurant-form,
   .admin-restaurant-detail-grid,
+  .admin-funnel-grid,
+  .admin-funnel-timestamps,
   .admin-compact-list article {
     grid-template-columns: 1fr;
   }
@@ -5817,6 +6537,10 @@ textarea:focus-visible {
     grid-template-columns: 1fr;
   }
 
+  .worker-profile-section {
+    grid-template-columns: 1fr;
+  }
+
   .owner-profile-form,
   .owner-job-form {
     grid-template-columns: 1fr;
@@ -5840,8 +6564,13 @@ textarea:focus-visible {
   }
 
   .owner-profile-form > button,
-  .owner-job-form > button {
+  .owner-job-form > button:not(.owner-form-close-button) {
     width: 100%;
+  }
+
+  .owner-job-form > .owner-form-close-button {
+    width: 1.65rem;
+    height: 1.65rem;
   }
 
   .owner-form-heading {
@@ -6252,7 +6981,7 @@ textarea:focus-visible {
   .restaurant-shell .app-header {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    gap: 0.35rem;
+    gap: 1rem;
     padding: max(0.9rem, env(safe-area-inset-top)) 0.75rem 0.45rem;
     overflow: visible;
   }
@@ -6398,8 +7127,8 @@ textarea:focus-visible {
     align-items: flex-start;
   }
 
-  .owner-qr-widget-expanded .owner-qr-widget-copy > div {
-    width: 100%;
+  .owner-qr-widget-expanded .owner-qr-widget-copy > .owner-qr-text {
+    width: auto;
     min-width: 0;
   }
 
@@ -6421,6 +7150,22 @@ textarea:focus-visible {
   .owner-qr-widget-expanded .owner-qr-actions button,
   .owner-qr-widget-expanded .owner-qr-actions a {
     width: 100%;
+  }
+
+  .owner-qr-role-settings-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .owner-qr-role-chips {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .owner-qr-role-chips button {
+    width: 100%;
+    min-width: 0;
   }
 
   .owner-qr-image {
@@ -6820,7 +7565,7 @@ textarea:focus-visible {
   }
 
   .restaurant-shell .owner-step-card > a,
-  .restaurant-shell .owner-step-card > button,
+  .restaurant-shell .owner-step-card > button:not(.owner-form-close-button),
   .restaurant-shell .owner-create-job-button {
     display: inline-flex;
     align-items: center;
@@ -6880,8 +7625,36 @@ textarea:focus-visible {
     border-radius: 999px;
   }
 
-  .restaurant-shell .owner-job-action-cards {
+  .restaurant-shell .owner-job-section-tabs {
     gap: 0.4rem;
+  }
+
+  .restaurant-shell .owner-job-create-card {
+    width: fit-content;
+    max-width: 100%;
+    min-height: 44px;
+    border-radius: 999px;
+    padding: 0.52rem 0.68rem 0.52rem 0.85rem;
+  }
+
+  .restaurant-shell .owner-job-create-card-title {
+    font-size: 0.88rem;
+  }
+
+  .restaurant-shell .owner-job-create-card-icon {
+    width: 1.4rem;
+    height: 1.4rem;
+    font-size: 0.86rem;
+  }
+
+  .restaurant-shell .owner-job-section-tabs {
+    width: 100%;
+  }
+
+  .restaurant-shell .owner-job-section-tab {
+    min-height: 38px;
+    padding-inline: 0.42rem;
+    font-size: 0.8rem;
   }
 
   .restaurant-shell .owner-draft-intro-note {
@@ -6995,7 +7768,7 @@ textarea:focus-visible {
   }
 
   .restaurant-shell .restaurant-match-name {
-    color: var(--restaurant-primary);
+    color: var(--peepss-text);
     font-size: 0.7rem;
   }
 
@@ -7172,7 +7945,14 @@ textarea:focus-visible {
 
   .auth-center {
     display: grid;
-    place-items: center;
+    grid-template-rows:
+      minmax(0.4rem, 1fr)
+      auto
+      minmax(0.9rem, 1fr)
+      auto
+      minmax(0.4rem, 2fr);
+    align-content: stretch;
+    justify-items: center;
     flex: 1 1 auto;
     min-height: 0;
   }
@@ -7334,6 +8114,96 @@ textarea:focus-visible {
 }
 
 @media (max-width: 640px) {
+  .restaurant-shell .owner-job-board-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.6rem;
+  }
+
+  .restaurant-shell .owner-job-board-card.is-collapsed {
+    display: grid;
+    min-height: 104px;
+    gap: 0;
+    border-color: var(--restaurant-border);
+    border-radius: 22px;
+    padding: 0.85rem;
+    background: #fffaf3;
+    box-shadow: 0 10px 22px rgb(93 49 13 / 8%);
+  }
+
+  .restaurant-shell .owner-job-board-card.is-collapsed .owner-job-card-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 0.55rem;
+  }
+
+  .restaurant-shell .owner-job-board-card.is-collapsed .owner-job-card-header h3 {
+    margin: 0;
+    overflow: hidden;
+    font-size: clamp(1.05rem, 5.5vw, 1.35rem);
+    line-height: 1.05;
+    letter-spacing: -0.04em;
+    text-overflow: ellipsis;
+  }
+
+  .restaurant-shell .owner-job-board-card.is-collapsed .owner-job-card-header p,
+  .restaurant-shell .owner-job-board-card.is-collapsed .owner-job-status-note,
+  .restaurant-shell .owner-job-board-card.is-collapsed .owner-job-requirements,
+  .restaurant-shell .owner-job-board-card.is-collapsed .owner-job-actions,
+  .restaurant-shell .owner-job-board-card.is-collapsed .owner-job-compact-meta,
+  .restaurant-shell .owner-job-board-card.is-collapsed .owner-job-toggle-button {
+    display: none !important;
+  }
+
+  .restaurant-shell .owner-job-board-card.is-collapsed .owner-job-card-side {
+    justify-items: end;
+  }
+
+  .restaurant-shell .owner-job-board-card.is-collapsed .owner-job-manage-hint {
+    display: block;
+    margin-top: 0.45rem;
+    white-space: nowrap;
+  }
+
+  .restaurant-shell .owner-job-board-card.is-expanded {
+    grid-column: 1 / -1;
+    cursor: default;
+  }
+
+  .restaurant-shell .owner-job-board-card.is-expanded .owner-job-card-header {
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .restaurant-shell .owner-job-board-card.is-expanded .owner-job-card-side {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.45rem;
+  }
+
+  .restaurant-shell .owner-job-board-card.is-expanded .owner-job-toggle-button {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 1.9rem;
+    height: 1.9rem;
+    min-height: 0;
+    border: 1px solid var(--restaurant-border);
+    border-radius: 999px;
+    padding: 0;
+    background: #fffdf8;
+    box-shadow: 0 10px 24px rgb(93 49 13 / 10%);
+    color: var(--restaurant-ink);
+    font-size: 1.2rem;
+    line-height: 1;
+  }
+
+  .restaurant-shell .owner-job-board-card.is-expanded .owner-job-toggle-button:hover {
+    background: var(--restaurant-soft);
+    transform: none;
+  }
+
   .restaurant-shell .owner-job-draft-list {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 0.6rem;
@@ -7386,7 +8256,7 @@ textarea:focus-visible {
   .restaurant-shell .owner-job-card-draft.is-mobile-collapsed .owner-job-status.draft {
     padding: 0.25rem 0.5rem;
     background: #fff3e7;
-    color: var(--restaurant-primary, #ef4b23);
+    color: var(--restaurant-primary, #dc5634);
     font-size: 0.68rem;
     white-space: nowrap;
   }
@@ -7503,4 +8373,67 @@ textarea:focus-visible {
     overflow-wrap: normal;
     word-break: normal;
   }
+}
+
+.peepss-close-button,
+button.peepss-close-button,
+.restaurant-shell button.peepss-close-button,
+.owner-job-form > button.peepss-close-button,
+.restaurant-shell .owner-job-board-card.is-expanded .owner-job-toggle-button.peepss-close-button,
+.restaurant-shell .owner-job-card-draft.is-draft-expanded .owner-draft-toggle-button.peepss-close-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--peepss-text, #201d1d);
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+  cursor: pointer;
+  appearance: none;
+}
+
+.peepss-close-button:hover,
+button.peepss-close-button:hover,
+.restaurant-shell button.peepss-close-button:hover,
+.owner-job-form > button.peepss-close-button:hover,
+.restaurant-shell .owner-job-board-card.is-expanded .owner-job-toggle-button.peepss-close-button:hover,
+.restaurant-shell .owner-job-card-draft.is-draft-expanded .owner-draft-toggle-button.peepss-close-button:hover {
+  background: rgb(32 29 29 / 6%);
+  box-shadow: none;
+  color: var(--peepss-text, #201d1d);
+  transform: none;
+}
+
+.peepss-close-button:focus-visible,
+button.peepss-close-button:focus-visible,
+.restaurant-shell button.peepss-close-button:focus-visible,
+.owner-job-form > button.peepss-close-button:focus-visible,
+.restaurant-shell .owner-job-board-card.is-expanded .owner-job-toggle-button.peepss-close-button:focus-visible,
+.restaurant-shell .owner-job-card-draft.is-draft-expanded .owner-draft-toggle-button.peepss-close-button:focus-visible {
+  outline: 2px solid rgb(220 86 52 / 35%);
+  outline-offset: 2px;
+}
+
+.standard-layout-main > .auth-page,
+.standard-layout-main > .public-apply-page,
+.standard-layout-main > .legal-page,
+.standard-layout-main > .restaurant-only-page {
+  flex: 1 0 auto;
+  width: 100%;
+  min-height: 0;
+}
+
+.standard-layout-main > .auth-page .auth-shell {
+  flex: 1 1 auto;
+  min-height: 0;
 }

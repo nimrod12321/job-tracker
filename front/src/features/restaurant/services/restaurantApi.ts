@@ -56,7 +56,7 @@ export async function getRestaurantProfile(): Promise<RestaurantWorkerProfile | 
   })
 
   if (!response.ok) {
-    await handleApiError(response, 'Failed to load restaurant profile')
+    await handleApiError(response, 'Failed to load worker profile')
   }
 
   return response.json()
@@ -72,7 +72,7 @@ export async function saveRestaurantProfile(
   })
 
   if (!response.ok) {
-    await handleApiError(response, 'Failed to save restaurant profile')
+    await handleApiError(response, 'Failed to save worker profile')
   }
 
   return response.json()

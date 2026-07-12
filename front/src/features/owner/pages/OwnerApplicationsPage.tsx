@@ -1,5 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
-import { getRestaurantRoleLabel } from '../../restaurant/types/restaurant'
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import {
+  getRestaurantRoleLabel,
+  type RestaurantRole,
+} from '../../restaurant/types/restaurant'
 import { useRestaurantLanguage } from '../../restaurant/utils/restaurantLanguage'
 import {
   deleteOwnerApplication,
@@ -51,6 +54,9 @@ function OwnerApplicationsPage() {
     null,
   )
   const [busyLeadId, setBusyLeadId] = useState<string | null>(null)
+  const [expandedCandidateId, setExpandedCandidateId] = useState<string | null>(
+    null,
+  )
   const [error, setError] = useState<string | null>(null)
   const pendingApplicationIds = useRef(new Set<string>())
   const pendingLeadIds = useRef(new Set<string>())
@@ -99,6 +105,11 @@ function OwnerApplicationsPage() {
       language === 'he'
         ? 'להסיר את המועמד מהרשימה?'
         : 'Remove this applicant from your list?',
+    experiencePreview: language === 'he' ? 'ניסיון' : 'Experience',
+    appliedTo: language === 'he' ? 'הגיש/ה ל' : 'Applied to',
+    qrApplication: language === 'he' ? 'מועמדות QR' : 'QR application',
+    collapseCandidate:
+      language === 'he' ? 'סגירת מועמד' : 'Collapse candidate',
   }
 
   useEffect(() => {
@@ -359,6 +370,41 @@ function OwnerApplicationsPage() {
     void handleLeadStatusChange(lead, 'contacted')
   }
 
+  function getExperiencePreview(experienceText: string | null | undefined) {
+    const firstLine = experienceText?.split('\n')[0]?.trim()
+
+    if (!firstLine) {
+      return text.notProvided
+    }
+
+    return firstLine.length > 54 ? `${firstLine.slice(0, 51)}...` : firstLine
+  }
+
+  function getRolePreview(roles: RestaurantRole[]) {
+    if (roles.length === 0) {
+      return text.qrApplication
+    }
+
+    const [firstRole, ...extraRoles] = roles
+    const firstRoleLabel = getRestaurantRoleLabel(firstRole, language)
+
+    return extraRoles.length > 0
+      ? `${firstRoleLabel} +${extraRoles.length}`
+      : firstRoleLabel
+  }
+
+  function handleCollapsedCardKeyDown(
+    event: KeyboardEvent<HTMLElement>,
+    candidateId: string,
+  ) {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return
+    }
+
+    event.preventDefault()
+    setExpandedCandidateId(candidateId)
+  }
+
   function renderSectionHeader(
     title: string,
     count: number,
@@ -434,9 +480,29 @@ function OwnerApplicationsPage() {
                   {leads.map((lead) => {
                     const whatsappNumber = lead.phoneNumber.replace(/\D/g, '')
                     const candidateName = lead.fullName || text.unnamed
+                    const candidateId = `lead:${lead.id}`
+                    const isExpanded = expandedCandidateId === candidateId
+                    const rolePreview = getRolePreview(lead.wantedRoles)
 
                     return (
-                      <article className="owner-application-card" key={lead.id}>
+                      <article
+                        className={`owner-application-card owner-candidate-card${
+                          isExpanded ? ' is-expanded' : ' is-collapsed'
+                        }`}
+                        key={lead.id}
+                        tabIndex={isExpanded ? undefined : 0}
+                        onClick={() => {
+                          if (!isExpanded) {
+                            setExpandedCandidateId(candidateId)
+                          }
+                        }}
+                        onKeyDown={
+                          isExpanded
+                            ? undefined
+                            : (event) =>
+                                handleCollapsedCardKeyDown(event, candidateId)
+                        }
+                      >
                         <div className="owner-application-header">
                           <div className="owner-worker-heading">
                             <span
@@ -450,27 +516,53 @@ function OwnerApplicationsPage() {
                               <h2>{candidateName}</h2>
                             </div>
                           </div>
-                          <label
-                            className={`owner-status-pill-select ${lead.status}`}
-                          >
-                            <select
-                              aria-label={text.status}
-                              value={lead.status}
-                              disabled={busyLeadId === lead.id}
-                              onChange={(event) =>
-                                void handleLeadStatusChange(
-                                  lead,
-                                  event.target.value as CandidateLeadStatus,
-                                )
-                              }
+                          <div className="owner-candidate-header-actions">
+                            <label
+                              className={`owner-status-pill-select ${lead.status}`}
+                              onClick={(event) => event.stopPropagation()}
                             >
-                              {leadStatuses.map((status) => (
-                                <option key={status} value={status}>
-                                  {getLeadStatusLabel(status)}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
+                              <select
+                                aria-label={text.status}
+                                value={lead.status}
+                                disabled={busyLeadId === lead.id}
+                                onChange={(event) =>
+                                  void handleLeadStatusChange(
+                                    lead,
+                                    event.target.value as CandidateLeadStatus,
+                                  )
+                                }
+                              >
+                                {leadStatuses.map((status) => (
+                                  <option key={status} value={status}>
+                                    {getLeadStatusLabel(status)}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            {isExpanded && (
+                              <button
+                                className="owner-candidate-collapse-button peepss-close-button"
+                                type="button"
+                                aria-label={text.collapseCandidate}
+                                onClick={(event) => {
+                                  event.stopPropagation()
+                                  setExpandedCandidateId(null)
+                                }}
+                              >
+                                ×
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="owner-candidate-preview">
+                          <span>
+                            {text.experiencePreview}:{' '}
+                            {getExperiencePreview(lead.experienceText)}
+                          </span>
+                          <span>
+                            {text.appliedTo}: {rolePreview}
+                          </span>
                         </div>
 
                         <dl className="owner-worker-details">
@@ -538,7 +630,10 @@ function OwnerApplicationsPage() {
                             className="owner-remove-button"
                             type="button"
                             disabled={busyLeadId === lead.id}
-                            onClick={() => void handleRemoveLead(lead)}
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              void handleRemoveLead(lead)
+                            }}
                           >
                             {text.remove}
                           </button>
@@ -570,11 +665,31 @@ function OwnerApplicationsPage() {
                       application.worker.phoneNumber.replace(/\D/g, '')
                     const workerName =
                       application.worker.fullName || text.unnamed
+                    const candidateId = `application:${application.id}`
+                    const isExpanded = expandedCandidateId === candidateId
+                    const rolePreview = getRestaurantRoleLabel(
+                      application.job.role,
+                      language,
+                    )
 
                     return (
                       <article
-                        className="owner-application-card"
+                        className={`owner-application-card owner-candidate-card${
+                          isExpanded ? ' is-expanded' : ' is-collapsed'
+                        }`}
                         key={application.id}
+                        tabIndex={isExpanded ? undefined : 0}
+                        onClick={() => {
+                          if (!isExpanded) {
+                            setExpandedCandidateId(candidateId)
+                          }
+                        }}
+                        onKeyDown={
+                          isExpanded
+                            ? undefined
+                            : (event) =>
+                                handleCollapsedCardKeyDown(event, candidateId)
+                        }
                       >
                         <div className="owner-application-header">
                           <div className="owner-worker-heading">
@@ -594,34 +709,62 @@ function OwnerApplicationsPage() {
                               <h2>{workerName}</h2>
                             </div>
                           </div>
-                          <label
-                            className={`owner-status-pill-select ${application.status}`}
-                          >
-                            <select
-                              aria-label={text.status}
-                              value={application.status}
-                              disabled={busyApplicationId === application.id}
-                              onChange={(event) => {
-                                const nextStatus = event.target.value as
-                                  | 'applied'
-                                  | 'selected'
-                                  | 'rejected'
-
-                                if (nextStatus !== 'applied') {
-                                  void handleStatusChange(
-                                    application,
-                                    nextStatus,
-                                  )
-                                }
-                              }}
+                          <div className="owner-candidate-header-actions">
+                            <label
+                              className={`owner-status-pill-select ${application.status}`}
+                              onClick={(event) => event.stopPropagation()}
                             >
-                              <option value="applied">
-                                {getStatusLabel('applied', language)}
-                              </option>
-                              <option value="selected">{text.select}</option>
-                              <option value="rejected">{text.reject}</option>
-                            </select>
-                          </label>
+                              <select
+                                aria-label={text.status}
+                                value={application.status}
+                                disabled={busyApplicationId === application.id}
+                                onChange={(event) => {
+                                  const nextStatus = event.target.value as
+                                    | 'applied'
+                                    | 'selected'
+                                    | 'rejected'
+
+                                  if (nextStatus !== 'applied') {
+                                    void handleStatusChange(
+                                      application,
+                                      nextStatus,
+                                    )
+                                  }
+                                }}
+                              >
+                                <option value="applied">
+                                  {getStatusLabel('applied', language)}
+                                </option>
+                                <option value="selected">{text.select}</option>
+                                <option value="rejected">{text.reject}</option>
+                              </select>
+                            </label>
+                            {isExpanded && (
+                              <button
+                                className="owner-candidate-collapse-button peepss-close-button"
+                                type="button"
+                                aria-label={text.collapseCandidate}
+                                onClick={(event) => {
+                                  event.stopPropagation()
+                                  setExpandedCandidateId(null)
+                                }}
+                              >
+                                ×
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="owner-candidate-preview">
+                          <span>
+                            {text.experiencePreview}:{' '}
+                            {getExperiencePreview(
+                              application.worker.experienceText,
+                            )}
+                          </span>
+                          <span>
+                            {text.appliedTo}: {rolePreview}
+                          </span>
                         </div>
 
                         <dl className="owner-worker-details">
@@ -702,9 +845,10 @@ function OwnerApplicationsPage() {
                             className="owner-remove-button"
                             type="button"
                             disabled={busyApplicationId === application.id}
-                            onClick={() =>
+                            onClick={(event) => {
+                              event.stopPropagation()
                               void handleRemoveApplication(application)
-                            }
+                            }}
                           >
                             {text.remove}
                           </button>

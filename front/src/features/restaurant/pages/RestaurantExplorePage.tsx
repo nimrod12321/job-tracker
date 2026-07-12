@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   applyToRestaurantJob,
   getRestaurantExploreJobs,
@@ -9,13 +9,14 @@ import type { RestaurantExploreJob } from '../types/restaurant'
 import { useRestaurantLanguage } from '../utils/restaurantLanguage'
 
 const PROFILE_REQUIRED_MESSAGE =
-  'Complete your restaurant profile to start exploring jobs.'
+  'Complete your worker profile to start seeing restaurant jobs.'
 const CARD_ANIMATION_MS = 260
 
 type CardAnimationDirection = 'left' | 'right'
 
 function RestaurantExplorePage() {
   const { direction, language } = useRestaurantLanguage()
+  const navigate = useNavigate()
   const [jobs, setJobs] = useState<RestaurantExploreJob[]>([])
   const [activeIndex, setActiveIndex] = useState(0)
   const [excludeJobIds, setExcludeJobIds] = useState<string[]>([])
@@ -42,10 +43,10 @@ function RestaurantExplorePage() {
     completeProfile:
       language === 'he'
         ? 'צריך להשלים פרופיל'
-        : 'Complete your restaurant profile',
+        : 'Complete your worker profile',
     completeProfileMessage:
       language === 'he'
-        ? 'השלים פרופיל קצר כדי להתחיל לראות משמרות.'
+        ? 'השלימו פרופיל קצר כדי להתחיל לראות משרות במסעדות.'
         : PROFILE_REQUIRED_MESSAGE,
     goToProfile: language === 'he' ? 'לפרופיל' : 'Go to Profile',
     tryAgain: language === 'he' ? 'נסה שוב' : 'Try again',
@@ -84,12 +85,17 @@ function RestaurantExplorePage() {
           : 'Failed to load restaurant jobs'
 
       setJobs([])
-      setNeedsProfile(message === PROFILE_REQUIRED_MESSAGE)
+      if (message === PROFILE_REQUIRED_MESSAGE) {
+        navigate('/restaurant/profile', { replace: true })
+        return
+      }
+
+      setNeedsProfile(false)
       setError(message)
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [navigate])
 
   useEffect(() => {
     let isActive = true
@@ -116,7 +122,12 @@ function RestaurantExplorePage() {
             : 'Failed to load restaurant jobs'
 
         setJobs([])
-        setNeedsProfile(message === PROFILE_REQUIRED_MESSAGE)
+        if (message === PROFILE_REQUIRED_MESSAGE) {
+          navigate('/restaurant/profile', { replace: true })
+          return
+        }
+
+        setNeedsProfile(false)
         setError(message)
       } finally {
         if (isActive) {
@@ -130,7 +141,7 @@ function RestaurantExplorePage() {
     return () => {
       isActive = false
     }
-  }, [])
+  }, [navigate])
 
   useEffect(() => {
     activeIndexRef.current = activeIndex

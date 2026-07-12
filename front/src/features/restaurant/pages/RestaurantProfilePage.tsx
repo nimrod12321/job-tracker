@@ -1,5 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { getCurrentUser } from '../../auth/services/authApi'
+import { getAuthToken } from '../../auth/utils/authStorage'
 import {
   getRestaurantProfile,
   saveRestaurantProfile,
@@ -11,14 +13,16 @@ import {
   type RestaurantWorkerProfile,
 } from '../types/restaurant'
 import { useRestaurantLanguage } from '../utils/restaurantLanguage'
+import { formatIsraeliPhoneForDisplay } from '../../../utils/phoneDisplay'
 
 type RestaurantProfileForm = {
   fullName: string
   phoneNumber: string
   location: string
   wantedRoles: RestaurantRole[]
-  experienceText: string
-  availability: string
+  experienceLevel: string
+  availability: string[]
+  extraDetails: string
   age: string
 }
 
@@ -27,87 +31,192 @@ const emptyProfile: RestaurantProfileForm = {
   phoneNumber: '',
   location: '',
   wantedRoles: [],
-  experienceText: '',
-  availability: '',
+  experienceLevel: '',
+  availability: [],
+  extraDetails: '',
   age: '',
 }
 
 const experienceOptions = [
   {
+    value: 'No experience',
     he: 'אין ניסיון',
     en: 'No experience',
   },
   {
-    he: 'עד שנה',
-    en: 'Up to 1 year',
+    value: '1 year',
+    he: 'שנה',
+    en: '1 year',
   },
   {
-    he: '1–3 שנים',
-    en: '1–3 years',
+    value: '2 years',
+    he: 'שנתיים',
+    en: '2 years',
   },
   {
+    value: '3 years',
+    he: 'שלוש שנים',
+    en: '3 years',
+  },
+  {
+    value: 'More than 3 years',
     he: 'מעל 3 שנים',
-    en: '3+ years',
+    en: 'More than 3 years',
   },
 ]
 
 const availabilityOptions = [
   {
+    value: 'Morning',
     he: 'בוקר',
     en: 'Morning',
   },
   {
+    value: 'Afternoon',
+    he: 'צהריים',
+    en: 'Afternoon',
+  },
+  {
+    value: 'Evening',
     he: 'ערב',
     en: 'Evening',
   },
   {
+    value: 'Night',
+    he: 'לילה',
+    en: 'Night',
+  },
+  {
+    value: 'Weekends',
     he: 'סופי שבוע',
     en: 'Weekends',
   },
   {
+    value: 'Flexible',
     he: 'גמיש',
     en: 'Flexible',
   },
 ]
 
+const experienceValues = experienceOptions.map((option) => option.value)
+
+function parseExperienceText(experienceText: string) {
+  const trimmedExperience = experienceText.trim()
+
+  if (!trimmedExperience) {
+    return {
+      experienceLevel: '',
+      extraDetails: '',
+    }
+  }
+
+  const [firstPart = '', ...restParts] = trimmedExperience.split(/\n{2,}/)
+  const normalizedLegacyExperience: Record<string, string> = {
+    'Up to 1 year': '1 year',
+    '1–3 years': '2 years',
+    '3+ years': 'More than 3 years',
+    'Two years': '2 years',
+    'Three years': '3 years',
+  }
+  const experienceLevel =
+    normalizedLegacyExperience[firstPart.trim()] ?? firstPart.trim()
+
+  if (experienceValues.includes(experienceLevel)) {
+    return {
+      experienceLevel,
+      extraDetails: restParts.join('\n\n').trim(),
+    }
+  }
+
+  return {
+    experienceLevel: '',
+    extraDetails: trimmedExperience,
+  }
+}
+
+function serializeExperienceText(form: RestaurantProfileForm) {
+  return [form.experienceLevel, form.extraDetails.trim()]
+    .filter(Boolean)
+    .join('\n\n')
+}
+
+function parseAvailability(availability: string) {
+  const allowedValues = new Set(
+    availabilityOptions.map((option) => option.value),
+  )
+
+  return availability
+    .split(',')
+    .map((value) => value.trim())
+    .filter((value) => allowedValues.has(value))
+}
+
 function profileToForm(
   profile: RestaurantWorkerProfile,
 ): RestaurantProfileForm {
+  const parsedExperience = parseExperienceText(profile.experienceText)
+
   return {
     fullName: profile.fullName,
     phoneNumber: profile.phoneNumber,
     location: profile.location,
     wantedRoles: profile.wantedRoles,
-    experienceText: profile.experienceText,
-    availability: profile.availability,
+    experienceLevel: parsedExperience.experienceLevel,
+    availability: parseAvailability(profile.availability),
+    extraDetails: parsedExperience.extraDetails,
     age: profile.age === 0 ? '' : String(profile.age),
   }
+}
+
+function isWorkerProfileComplete(form: RestaurantProfileForm) {
+  const age = Number(form.age)
+
+  return Boolean(
+    form.fullName.trim() &&
+      form.phoneNumber.trim() &&
+      Number.isInteger(age) &&
+      age >= 16 &&
+      age <= 80 &&
+      form.wantedRoles.length > 0 &&
+      form.experienceLevel &&
+      form.availability.length > 0,
+  )
 }
 
 function RestaurantProfilePage() {
   const navigate = useNavigate()
   const { direction, language } = useRestaurantLanguage()
   const [form, setForm] = useState<RestaurantProfileForm>(emptyProfile)
-  const [step, setStep] = useState(1)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
   const text = {
-    title: language === 'he' ? 'בונים את הפרופיל שלך' : 'Build your profile',
+    title:
+      language === 'he'
+        ? 'השלמת פרופיל עובד'
+        : 'Complete your worker profile',
     subtitle:
       language === 'he'
-        ? 'שלוש שאלות קצרות, ואז נציג לך משמרות מתאימות.'
-        : 'Three quick steps, then we will show you relevant shifts.',
+        ? 'כמה פרטים קצרים כדי שנוכל להציג לך משרות מתאימות.'
+        : 'A few quick details so we can show you matching jobs.',
     loading: language === 'he' ? 'טוען פרופיל...' : 'Loading profile...',
-    back: language === 'he' ? 'חזרה' : 'Back',
-    next: language === 'he' ? 'הבא' : 'Next',
-    start: language === 'he' ? 'יאללה, מתחילים' : "Let's start",
     saving: language === 'he' ? 'שומר...' : 'Saving...',
     saved: language === 'he' ? 'הפרופיל נשמר.' : 'Profile saved.',
-    step: language === 'he' ? 'שלב' : 'Step',
     optional: language === 'he' ? 'לא חובה' : 'Optional',
+    save: language === 'he' ? 'שמירת פרופיל' : 'Save profile',
+    personalDetails: language === 'he' ? 'פרטים אישיים' : 'Personal details',
+    jobPreferences: language === 'he' ? 'העדפות עבודה' : 'Job preferences',
+    extraDetails: language === 'he' ? 'פרטים נוספים' : 'Extra details',
+    phoneHelp:
+      language === 'he'
+        ? 'זה מספר הטלפון שמסעדות ישתמשו בו כדי ליצור איתך קשר.'
+        : 'This is the phone number restaurants will use to contact you.',
+    requiredError:
+      language === 'he'
+        ? 'צריך למלא שם, טלפון, גיל 16–80, תפקיד אחד לפחות, ניסיון וזמינות.'
+        : 'Fill name, phone, age 16–80, at least one role, experience and availability.',
   }
 
   useEffect(() => {
@@ -115,17 +224,34 @@ function RestaurantProfilePage() {
 
     async function loadProfile() {
       try {
-        const profile = await getRestaurantProfile()
+        const token = getAuthToken()
+        const [profile, user] = await Promise.all([
+          getRestaurantProfile(),
+          token ? getCurrentUser(token).catch(() => null) : Promise.resolve(null),
+        ])
 
-        if (isActive && profile) {
-          setForm(profileToForm(profile))
+        if (isActive) {
+          if (profile) {
+            setForm((currentForm) => ({
+              ...currentForm,
+              ...profileToForm(profile),
+              fullName: profile.fullName || user?.fullName || '',
+              phoneNumber: profile.phoneNumber || user?.phoneNumber || '',
+            }))
+          } else {
+            setForm((currentForm) => ({
+              ...currentForm,
+              fullName: user?.fullName ?? '',
+              phoneNumber: user?.phoneNumber ?? '',
+            }))
+          }
         }
       } catch (error) {
         if (isActive) {
           setError(
             error instanceof Error
               ? error.message
-              : 'Failed to load restaurant profile',
+              : 'Failed to load worker profile',
           )
         }
       } finally {
@@ -143,7 +269,10 @@ function RestaurantProfilePage() {
   }, [])
 
   function updateTextField(
-    field: Exclude<keyof RestaurantProfileForm, 'wantedRoles'>,
+    field: Exclude<
+      keyof RestaurantProfileForm,
+      'wantedRoles' | 'availability'
+    >,
     value: string,
   ) {
     setForm((currentForm) => ({
@@ -163,23 +292,15 @@ function RestaurantProfilePage() {
     }))
   }
 
-  function toggleTextChoice(
-    field: 'availability' | 'experienceText',
-    value: string,
-  ) {
+  function toggleAvailability(value: string) {
     setForm((currentForm) => {
-      const currentValues = currentForm[field]
-        .split(',')
-        .map((item) => item.trim())
-        .filter(Boolean)
-
-      const nextValues = currentValues.includes(value)
-        ? currentValues.filter((item) => item !== value)
-        : [...currentValues, value]
+      const nextAvailability = currentForm.availability.includes(value)
+        ? currentForm.availability.filter((item) => item !== value)
+        : [...currentForm.availability, value]
 
       return {
         ...currentForm,
-        [field]: nextValues.join(', '),
+        availability: nextAvailability,
       }
     })
   }
@@ -187,18 +308,24 @@ function RestaurantProfilePage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    if (step < 3) {
-      setStep((currentStep) => currentStep + 1)
+    setError(null)
+    setSuccess(null)
+
+    if (!isWorkerProfileComplete(form)) {
+      setError(text.requiredError)
       return
     }
 
-    setError(null)
-    setSuccess(null)
     setIsSaving(true)
 
     try {
       const profile = await saveRestaurantProfile({
-        ...form,
+        fullName: form.fullName.trim(),
+        phoneNumber: form.phoneNumber.trim(),
+        location: form.location.trim(),
+        wantedRoles: form.wantedRoles,
+        experienceText: serializeExperienceText(form),
+        availability: form.availability.join(', '),
         age: Number(form.age) || 0,
       })
 
@@ -209,7 +336,7 @@ function RestaurantProfilePage() {
       setError(
         error instanceof Error
           ? error.message
-          : 'Failed to save restaurant profile',
+          : 'Failed to save worker profile',
       )
     } finally {
       setIsSaving(false)
@@ -243,200 +370,148 @@ function RestaurantProfilePage() {
         className="restaurant-profile-form guided-form"
         onSubmit={handleSubmit}
       >
-        <div className="guided-form-progress">
-          <span>
-            {text.step} {step}/3
-          </span>
-          <div>
-            {[1, 2, 3].map((currentStep) => (
-              <span
-                className={currentStep <= step ? 'active' : ''}
-                key={currentStep}
-              />
-            ))}
+        <section className="worker-profile-section">
+          <div className="guided-form-heading">
+            <h2>{text.personalDetails}</h2>
           </div>
-        </div>
 
-        {step === 1 && (
-          <>
-            <div className="guided-form-heading">
-              <h2>
-                {language === 'he'
-                  ? 'איך קוראים לך?'
-                  : 'What should we call you?'}
-              </h2>
-            </div>
+          <label>
+            {language === 'he' ? 'שם מלא' : 'Full name'}
+            <input
+              value={form.fullName}
+              onChange={(event) =>
+                updateTextField('fullName', event.target.value)
+              }
+            />
+          </label>
 
-            <label>
-              {language === 'he' ? 'שם מלא' : 'Full name'}
-              <input
-                value={form.fullName}
-                onChange={(event) =>
-                  updateTextField('fullName', event.target.value)
-                }
-              />
-            </label>
+          <label>
+            {language === 'he' ? 'מספר טלפון' : 'Phone number'}
+            <input
+              readOnly
+              type="tel"
+              value={formatIsraeliPhoneForDisplay(form.phoneNumber)}
+            />
+            <span className="form-helper-text">{text.phoneHelp}</span>
+          </label>
 
-            <label>
-              {language === 'he' ? 'טלפון' : 'Phone number'}
-              <input
-                type="tel"
-                value={form.phoneNumber}
-                onChange={(event) =>
-                  updateTextField('phoneNumber', event.target.value)
-                }
-              />
-            </label>
+          <label>
+            {language === 'he' ? 'גיל' : 'Age'}
+            <input
+              type="number"
+              min="16"
+              max="80"
+              value={form.age}
+              onChange={(event) =>
+                updateTextField('age', event.target.value)
+              }
+            />
+          </label>
+        </section>
 
-            <label>
-              {language === 'he' ? `גיל (${text.optional})` : `Age (${text.optional})`}
-              <input
-                type="number"
-                min="0"
-                max="120"
-                value={form.age}
-                onChange={(event) =>
-                  updateTextField('age', event.target.value)
-                }
-              />
-            </label>
-          </>
-        )}
+        <section className="worker-profile-section">
+          <div className="guided-form-heading">
+            <h2>{text.jobPreferences}</h2>
+          </div>
 
-        {step === 2 && (
-          <>
-            <div className="guided-form-heading">
-              <h2>{language === 'he' ? 'איפה ומה?' : 'Where and what?'}</h2>
-            </div>
+          <label className="restaurant-field-wide">
+            {language === 'he'
+              ? `אזור מועדף (${text.optional})`
+              : `Preferred area (${text.optional})`}
+            <input
+              value={form.location}
+              onChange={(event) =>
+                updateTextField('location', event.target.value)
+              }
+              placeholder={language === 'he' ? 'תל אביב' : 'Tel Aviv'}
+            />
+          </label>
 
-            <label className="restaurant-field-wide">
+          <fieldset className="restaurant-role-options">
+            <legend>
               {language === 'he'
-                ? 'איפה תרצה לעבוד?'
-                : 'Where do you want to work?'}
-              <input
-                value={form.location}
-                onChange={(event) =>
-                  updateTextField('location', event.target.value)
-                }
-                placeholder={language === 'he' ? 'תל אביב' : 'Tel Aviv'}
-              />
-            </label>
-
-            <fieldset className="restaurant-role-options">
-              <legend>
-                {language === 'he' ? 'מה אתה עושה?' : 'What roles are you looking for?'}
-              </legend>
-              <div>
-                {RESTAURANT_ROLES.map((role) => (
-                  <label key={role.value}>
-                    <input
-                      type="checkbox"
-                      checked={form.wantedRoles.includes(role.value)}
-                      onChange={() => toggleRole(role.value)}
-                    />
-                    <span>{getRestaurantRoleLabel(role.value, language)}</span>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-          </>
-        )}
-
-        {step === 3 && (
-          <>
-            <div className="guided-form-heading">
-              <h2>
-                {language === 'he'
-                  ? 'כמה ניסיון יש לך?'
-                  : 'How much experience do you have?'}
-              </h2>
+                ? 'איזה תפקידים מעניינים אותך?'
+                : 'What roles are you looking for?'}
+            </legend>
+            <div>
+              {RESTAURANT_ROLES.map((role) => (
+                <label key={role.value}>
+                  <input
+                    type="checkbox"
+                    checked={form.wantedRoles.includes(role.value)}
+                    onChange={() => toggleRole(role.value)}
+                  />
+                  <span>{getRestaurantRoleLabel(role.value, language)}</span>
+                </label>
+              ))}
             </div>
+          </fieldset>
 
-            <fieldset className="restaurant-role-options">
-              <legend>
-                {language === 'he' ? 'ניסיון' : 'Experience'}
-              </legend>
-              <div>
-                {experienceOptions.map((option) => {
-                  const label = option[language]
+          <fieldset className="restaurant-role-options">
+            <legend>{language === 'he' ? 'ניסיון' : 'Experience'}</legend>
+            <div>
+              {experienceOptions.map((option) => (
+                <label key={option.value}>
+                  <input
+                    type="radio"
+                    name="experienceLevel"
+                    checked={form.experienceLevel === option.value}
+                    onChange={() =>
+                      updateTextField('experienceLevel', option.value)
+                    }
+                  />
+                  <span>{option[language]}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
 
-                  return (
-                    <label key={label}>
-                      <input
-                        type="checkbox"
-                        checked={form.experienceText.includes(label)}
-                        onChange={() =>
-                          toggleTextChoice('experienceText', label)
-                        }
-                      />
-                      <span>{label}</span>
-                    </label>
-                  )
-                })}
-              </div>
-            </fieldset>
+          <fieldset className="restaurant-role-options">
+            <legend>{language === 'he' ? 'זמינות' : 'Availability'}</legend>
+            <div>
+              {availabilityOptions.map((option) => (
+                <label key={option.value}>
+                  <input
+                    type="checkbox"
+                    checked={form.availability.includes(option.value)}
+                    onChange={() => toggleAvailability(option.value)}
+                  />
+                  <span>{option[language]}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        </section>
 
-            <label className="restaurant-field-wide">
-              {language === 'he' ? 'ניסיון נוסף' : 'Extra experience notes'}
-              <textarea
-                rows={4}
-                value={form.experienceText}
-                onChange={(event) =>
-                  updateTextField('experienceText', event.target.value)
-                }
-                placeholder={
-                  language === 'he'
-                    ? 'אפשר להוסיף בקצרה איפה עבדת ומה עשית'
-                    : 'Add a short summary of where you worked and what you did'
-                }
-              />
-            </label>
+        <section className="worker-profile-section">
+          <div className="guided-form-heading">
+            <h2>{text.extraDetails}</h2>
+          </div>
 
-            <fieldset className="restaurant-role-options">
-              <legend>{language === 'he' ? 'זמינות' : 'Availability'}</legend>
-              <div>
-                {availabilityOptions.map((option) => {
-                  const label = option[language]
+          <label className="restaurant-field-wide">
+            {language === 'he'
+              ? `עוד משהו שחשוב שמסעדות ידעו? (${text.optional})`
+              : `Anything else restaurants should know? (${text.optional})`}
+            <textarea
+              rows={4}
+              value={form.extraDetails}
+              onChange={(event) =>
+                updateTextField('extraDetails', event.target.value)
+              }
+              placeholder={
+                language === 'he'
+                  ? 'אפשר לספר בקצרה על ניסיון, העדפות או זמינות מיוחדת'
+                  : 'Add a short note about experience, preferences or special availability'
+              }
+            />
+          </label>
 
-                  return (
-                    <label key={label}>
-                      <input
-                        type="checkbox"
-                        checked={form.availability.includes(label)}
-                        onChange={() =>
-                          toggleTextChoice('availability', label)
-                        }
-                      />
-                      <span>{label}</span>
-                    </label>
-                  )
-                })}
-              </div>
-            </fieldset>
-
-            <label className="restaurant-field-wide">
-              {language === 'he' ? 'זמינות חופשית' : 'Availability notes'}
-              <textarea
-                rows={3}
-                value={form.availability}
-                onChange={(event) =>
-                  updateTextField('availability', event.target.value)
-                }
-                placeholder={
-                  language === 'he'
-                    ? 'לדוגמה: ערב וסופי שבוע'
-                    : 'For example: evenings and weekends'
-                }
-              />
-            </label>
-
-            <p className="restaurant-profile-note">
-              {language === 'he'
-                ? 'חלק מהתפקידים דורשים גיל מתאים או ניסיון.'
-                : 'Some roles may require legal age or experience.'}
-            </p>
-          </>
-        )}
+          <p className="restaurant-profile-note">
+            {language === 'he'
+              ? 'חלק מהתפקידים דורשים גיל מתאים או ניסיון.'
+              : 'Some roles may require legal age or experience.'}
+          </p>
+        </section>
 
         {error && (
           <p className="message message-error" role="alert">
@@ -450,18 +525,9 @@ function RestaurantProfilePage() {
           </p>
         )}
 
-        <div className="guided-form-actions">
-          {step > 1 && (
-            <button
-              className="restaurant-skip-button"
-              type="button"
-              onClick={() => setStep((currentStep) => currentStep - 1)}
-            >
-              {text.back}
-            </button>
-          )}
+        <div className="guided-form-actions worker-profile-actions">
           <button type="submit" disabled={isSaving}>
-            {isSaving ? text.saving : step === 3 ? text.start : text.next}
+            {isSaving ? text.saving : text.save}
           </button>
         </div>
       </form>

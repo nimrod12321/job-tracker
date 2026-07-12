@@ -34,8 +34,8 @@ function OwnerProfilePage() {
       language === 'he' ? 'פרופיל המסעדה שלך' : 'Your restaurant profile',
     subtitle:
       language === 'he'
-        ? 'נשתמש בזה כדי לפרסם משרות ברורות ומהירות.'
-        : 'We use this to publish clear, fast job posts.',
+        ? 'נשתמש בזה כדי לנהל משרות ברורות ומהירות.'
+        : 'We use this to manage clear, fast job posts.',
     loading:
       language === 'he'
         ? 'טוען פרופיל מסעדה...'

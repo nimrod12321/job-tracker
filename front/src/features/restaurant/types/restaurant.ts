@@ -24,6 +24,16 @@ export const RESTAURANT_ROLES = [
     label: 'Cook',
     labelHe: 'טבח/ית',
   },
+  {
+    value: 'barista',
+    label: 'Barista',
+    labelHe: 'בריסטה',
+  },
+  {
+    value: 'socialManager',
+    label: 'Social manager',
+    labelHe: 'מנהל/ת סושיאל',
+  },
 ] as const
 
 export type RestaurantRole =

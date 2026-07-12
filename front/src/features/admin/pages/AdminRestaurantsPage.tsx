@@ -127,7 +127,7 @@ function AdminRestaurantsPage() {
             onSubmit={handleCreateRestaurant}
           >
             <button
-              className="admin-form-close-button"
+              className="admin-form-close-button peepss-close-button"
               type="button"
               aria-label="Close create restaurant form"
               onClick={() => {
@@ -252,6 +252,18 @@ function AdminRestaurantsPage() {
                   />
                 )}
                 <h2>{restaurant.restaurantName}</h2>
+                <div
+                  className="admin-restaurant-funnel-mini"
+                  aria-label={`QR funnel: ${restaurant.funnelMetrics.qrScans} scans, ${restaurant.funnelMetrics.startedForms} started, ${restaurant.funnelMetrics.completedForms} completed`}
+                >
+                  <span>{restaurant.funnelMetrics.qrScans} scans</span>
+                  <span>{restaurant.funnelMetrics.startedForms} started</span>
+                  <span>{restaurant.funnelMetrics.completedForms} done</span>
+                  <span>
+                    {restaurant.funnelMetrics.ownerViewedCompletedForms}/
+                    {restaurant.funnelMetrics.completedForms} viewed
+                  </span>
+                </div>
               </Link>
             ))}
           </div>

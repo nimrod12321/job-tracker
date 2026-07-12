@@ -6,6 +6,16 @@ export const restaurantRoles = [
   'host',
   'floorManager',
   'cook',
+  'barista',
+  'socialManager',
+] as const
+
+export const defaultQrEnabledRoles = [
+  'waiter',
+  'bartender',
+  'host',
+  'cook',
+  'floorManager',
 ] as const
 
 const optionalText = (field: string, maxLength: number) =>
@@ -16,28 +26,82 @@ const optionalText = (field: string, maxLength: number) =>
     .optional()
     .default('')
 
+const requiredText = (field: string, maxLength: number) =>
+  z
+    .string({ error: `${field} must be a string` })
+    .trim()
+    .min(1, `${field} is required`)
+    .max(maxLength, `${field} is too long`)
+
+export const workerExperienceLevels = [
+  'No experience',
+  '1 year',
+  '2 years',
+  '3 years',
+  'More than 3 years',
+] as const
+
+export const workerAvailabilityOptions = [
+  'Morning',
+  'Afternoon',
+  'Evening',
+  'Night',
+  'Weekends',
+  'Flexible',
+] as const
+
 const ageSchema = z.preprocess(
   (value) =>
     value === '' || value === null || value === undefined ? 0 : value,
   z.coerce
     .number({ error: 'age must be a number' })
     .int('age must be a whole number')
-    .min(0, 'age must be at least 0')
-    .max(120, 'age must be at most 120'),
+    .min(16, 'age must be at least 16')
+    .max(80, 'age must be at most 80'),
 )
 
 export const restaurantProfileSchema = z
   .object({
-    fullName: optionalText('full name', 150),
-    phoneNumber: optionalText('phone number', 50),
+    fullName: requiredText('full name', 150),
+    phoneNumber: requiredText('phone number', 50),
     location: optionalText('location', 200),
     wantedRoles: z
       .array(z.enum(restaurantRoles))
+      .min(1, 'choose at least one wanted role')
       .max(restaurantRoles.length, 'too many wanted roles')
-      .optional()
       .default([]),
-    experienceText: optionalText('experience text', 3_000),
-    availability: optionalText('availability', 500),
+    experienceText: requiredText('experience text', 3_000).refine(
+      (value) => {
+        const [experienceLevel = ''] = value.trim().split(/\n{2,}/)
+
+        return workerExperienceLevels.includes(
+          experienceLevel.trim() as (typeof workerExperienceLevels)[number],
+        )
+      },
+      {
+        message: 'experience must be one of the allowed options',
+      },
+    ),
+    availability: requiredText('availability', 500).refine(
+      (value) => {
+        const selectedAvailability = value
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean)
+
+        return (
+          selectedAvailability.length > 0 &&
+          selectedAvailability.every((item) =>
+            workerAvailabilityOptions.includes(
+              item as (typeof workerAvailabilityOptions)[number],
+            ),
+          )
+        )
+      },
+      {
+        message: 'availability must use the allowed options',
+      },
+    ),
     age: ageSchema,
   })
   .strict()

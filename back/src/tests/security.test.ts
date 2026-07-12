@@ -88,6 +88,7 @@ type OwnerTeamResponse = {
 type OwnerProfileResponse = {
   id: string
   slug: string | null
+  qrEnabledRoles: string[]
 }
 
 type OwnerJobResponse = {
@@ -111,9 +112,21 @@ type AdminRestaurantResponse = {
   id: string
   restaurantName: string
   slug: string | null
+  qrEnabledRoles: string[]
   city: string
   street: string
   qrLeadsCount: number
+  funnelMetrics: {
+    qrScans: number
+    uniqueQrVisitors: number
+    startedForms: number
+    completedForms: number
+    ownerViewedCompletedForms: number
+    newCandidates: number
+    lastScanAt: string | null
+    lastCompletedAt: string | null
+    lastOwnerViewAt: string | null
+  }
   hasNewCandidate: boolean
   newCandidateCount: number
   ownerUser: {
@@ -298,15 +311,123 @@ test(
       )
       assert.equal(ownerAInitialJobs.status, 200)
       assert.equal(
-        ownerAInitialJobs.body.filter((job) => job.kind === 'draft')
-          .length,
-        5,
+        ownerAInitialJobs.body.length,
+        7,
       )
+      assert.deepEqual(
+        ownerAInitialJobs.body
+          .map((job) => job.role)
+          .sort(),
+        [
+          'barista',
+          'bartender',
+          'cook',
+          'floorManager',
+          'host',
+          'socialManager',
+          'waiter',
+        ],
+      )
+      assert.ok(
+        ownerAInitialJobs.body.every(
+          (job) => job.kind === 'posted' && !job.isActive,
+        ),
+        'starter jobs should be inactive job-board jobs',
+      )
+      assert.deepEqual(ownerA.profile.qrEnabledRoles.sort(), [
+        'bartender',
+        'cook',
+        'floorManager',
+        'host',
+        'waiter',
+      ])
+
+      const ownerAInitialPublicRestaurant = await request<{
+        qrEnabledRoles: string[]
+        isHiringForQr: boolean
+      }>(`/public/restaurants/${ownerA.profile.slug}`)
+      assert.equal(ownerAInitialPublicRestaurant.status, 200)
+      assert.equal(ownerAInitialPublicRestaurant.body.isHiringForQr, true)
+      assert.deepEqual(
+        ownerAInitialPublicRestaurant.body.qrEnabledRoles.sort(),
+        ['bartender', 'cook', 'floorManager', 'host', 'waiter'],
+      )
+
+      const qrPageViewEvent = await request<{ ok: boolean }>(
+        `/public/restaurants/${ownerA.profile.slug}/qr-events`,
+        {
+          method: 'POST',
+          headers: jsonHeaders(),
+          body: JSON.stringify({
+            type: 'qrPageView',
+            sessionId: `scan-${runId}`,
+          }),
+        },
+      )
+      assert.equal(qrPageViewEvent.status, 201)
+      assert.equal(qrPageViewEvent.body.ok, true)
+
+      const qrFormStartedEvent = await request<{ ok: boolean }>(
+        `/public/restaurants/${ownerA.profile.slug}/qr-events`,
+        {
+          method: 'POST',
+          headers: jsonHeaders(),
+          body: JSON.stringify({
+            type: 'qrFormStarted',
+            sessionId: `scan-${runId}`,
+          }),
+        },
+      )
+      assert.equal(qrFormStartedEvent.status, 201)
+      assert.equal(qrFormStartedEvent.body.ok, true)
+
+      const duplicateQrFormStartedEvent = await request<{ ok: boolean }>(
+        `/public/restaurants/${ownerA.profile.slug}/qr-events`,
+        {
+          method: 'POST',
+          headers: jsonHeaders(),
+          body: JSON.stringify({
+            type: 'qrFormStarted',
+            sessionId: `scan-${runId}`,
+          }),
+        },
+      )
+      assert.equal(duplicateQrFormStartedEvent.status, 200)
       assert.equal(
-        ownerAInitialJobs.body.filter((job) => job.kind === 'posted')
-          .length,
-        0,
+        await prisma.restaurantQrEvent.count({
+          where: {
+            ownerProfileId: ownerA.profile.id,
+            type: 'qrFormStarted',
+            sessionId: `scan-${runId}`,
+          },
+        }),
+        1,
       )
+
+      const invalidQrEvent = await request<{ message?: string }>(
+        `/public/restaurants/${ownerA.profile.slug}/qr-events`,
+        {
+          method: 'POST',
+          headers: jsonHeaders(),
+          body: JSON.stringify({
+            type: 'leadCompleted',
+          }),
+        },
+      )
+      assert.equal(invalidQrEvent.status, 400)
+
+      const unknownRestaurantQrEvent = await request<{ message?: string }>(
+        '/public/restaurants/not-a-real-restaurant/qr-events',
+        {
+          method: 'POST',
+          headers: jsonHeaders(),
+          body: JSON.stringify({
+            type: 'qrPageView',
+            sessionId: `missing-${runId}`,
+          }),
+        },
+      )
+      assert.equal(unknownRestaurantQrEvent.status, 404)
 
       const unverifiedLeadCreate = await request<{ message?: string }>(
         `/public/restaurants/${ownerA.profile.slug}/leads`,
@@ -371,182 +492,90 @@ test(
       )
       assert.equal(stolenLeadDelete.status, 404)
 
-      const ownerAJob = await request<OwnerJobResponse>('/owner/jobs', {
-        method: 'POST',
-        headers: jsonHeaders(ownerA.token),
-        body: JSON.stringify({
-          role: 'waiter',
-          description: 'Owner A draft',
-          requirements: 'Kind people',
-          shiftInfo: 'Evenings',
-          contactPhone: '',
-          contactWhatsapp: '',
-        }),
-      })
-      assert.equal(ownerAJob.status, 201)
-      assert.equal(ownerAJob.body.kind, 'draft')
+      const ownerAWaiterJob = ownerAInitialJobs.body.find(
+        (job) => job.role === 'waiter',
+      )
+      const ownerAHostJob = ownerAInitialJobs.body.find(
+        (job) => job.role === 'host',
+      )
+      const ownerABaristaJob = ownerAInitialJobs.body.find(
+        (job) => job.role === 'barista',
+      )
 
-      const publishedOwnerAJob = await request<OwnerJobResponse>(
-        `/owner/jobs/${ownerAJob.body.id}/publish`,
+      assert.ok(ownerAWaiterJob)
+      assert.ok(ownerAHostJob)
+      assert.ok(ownerABaristaJob)
+
+      const duplicateWaiterJob = await request<{ message?: string }>(
+        '/owner/jobs',
         {
           method: 'POST',
           headers: jsonHeaders(ownerA.token),
+          body: JSON.stringify({
+            role: 'waiter',
+            description: 'Duplicate waiter job',
+            requirements: 'Kind people',
+            shiftInfo: 'Evenings',
+            contactPhone: '',
+            contactWhatsapp: '',
+          }),
         },
       )
-      assert.equal(publishedOwnerAJob.status, 201)
-      assert.equal(publishedOwnerAJob.body.kind, 'posted')
-      assert.equal(publishedOwnerAJob.body.isActive, true)
-
-      const ownerAJobsAfterPublish = await request<OwnerJobResponse[]>(
-        '/owner/jobs',
-        {
-          headers: jsonHeaders(ownerA.token),
-        },
-      )
-      assert.equal(ownerAJobsAfterPublish.status, 200)
-      assert.ok(
-        ownerAJobsAfterPublish.body.some(
-          (job) => job.id === ownerAJob.body.id && job.kind === 'draft',
-        ),
-      )
-      assert.ok(
-        ownerAJobsAfterPublish.body.some(
-          (job) =>
-            job.id === publishedOwnerAJob.body.id &&
-            job.kind === 'posted',
-        ),
-      )
-
-      // Publishing the same draft again (double click, retry, resubmit)
-      // must not create a second posted job — it should return the
-      // existing one instead.
-      const republishedOwnerAJob = await request<OwnerJobResponse>(
-        `/owner/jobs/${ownerAJob.body.id}/publish`,
-        {
-          method: 'POST',
-          headers: jsonHeaders(ownerA.token),
-        },
-      )
-      assert.equal(republishedOwnerAJob.status, 200)
-      assert.equal(republishedOwnerAJob.body.id, publishedOwnerAJob.body.id)
-
-      const ownerAJobsAfterRepublish = await request<OwnerJobResponse[]>(
-        '/owner/jobs',
-        {
-          headers: jsonHeaders(ownerA.token),
-        },
-      )
-      assert.equal(ownerAJobsAfterRepublish.status, 200)
+      assert.equal(duplicateWaiterJob.status, 409)
       assert.equal(
-        ownerAJobsAfterRepublish.body.filter(
-          (job) => job.kind === 'posted',
-        ).length,
-        1,
-      )
-      assert.ok(
-        ownerAJobsAfterRepublish.body.some(
-          (job) => job.id === ownerAJob.body.id && job.kind === 'draft',
-        ),
+        duplicateWaiterJob.body.message,
+        'A job for this role already exists. Edit the existing job instead.',
       )
 
-      // Truly concurrent publish requests (not sequential) on the same
-      // draft must not create more than one posted job, and none of them
-      // should 500 — the unique constraint on publishedFromDraftId is the
-      // real guard, not the earlier findUnique check alone.
-      const concurrentDraft = await request<OwnerJobResponse>('/owner/jobs', {
+      const activatedOwnerAJob = await request<OwnerJobResponse>(
+        `/owner/jobs/${ownerAWaiterJob.id}/active`,
+        {
+          method: 'PATCH',
+          headers: jsonHeaders(ownerA.token),
+          body: JSON.stringify({
+            isActive: true,
+          }),
+        },
+      )
+      assert.equal(activatedOwnerAJob.status, 200)
+      assert.equal(activatedOwnerAJob.body.kind, 'posted')
+      assert.equal(activatedOwnerAJob.body.isActive, true)
+
+      const deactivatedOwnerAJob = await request<OwnerJobResponse>(
+        `/owner/jobs/${ownerAWaiterJob.id}/active`,
+        {
+          method: 'PATCH',
+          headers: jsonHeaders(ownerA.token),
+          body: JSON.stringify({
+            isActive: false,
+          }),
+        },
+      )
+      assert.equal(deactivatedOwnerAJob.status, 200)
+      assert.equal(deactivatedOwnerAJob.body.isActive, false)
+
+      const duplicateHostJob = await request('/owner/jobs', {
         method: 'POST',
         headers: jsonHeaders(ownerA.token),
         body: JSON.stringify({
           role: 'host',
-          description: 'Concurrent publish draft',
+          description: 'Duplicate host job',
           requirements: '',
           shiftInfo: '',
           contactPhone: '',
           contactWhatsapp: '',
         }),
       })
-      assert.equal(concurrentDraft.status, 201)
+      assert.equal(duplicateHostJob.status, 409)
 
-      const concurrentPublishResults = await Promise.all(
-        Array.from({ length: 5 }, () =>
-          request<OwnerJobResponse>(
-            `/owner/jobs/${concurrentDraft.body.id}/publish`,
-            {
-              method: 'POST',
-              headers: jsonHeaders(ownerA.token),
-            },
-          ),
-        ),
-      )
-      assert.ok(
-        concurrentPublishResults.every(
-          (result) => result.status === 200 || result.status === 201,
-        ),
-        'no concurrent publish request should error',
-      )
-      assert.equal(
-        new Set(concurrentPublishResults.map((result) => result.body.id))
-          .size,
-        1,
-        'all concurrent publish responses must reference the same posted job',
-      )
-
-      const ownerAJobsAfterConcurrentPublish = await request<
-        OwnerJobResponse[]
-      >('/owner/jobs', {
-        headers: jsonHeaders(ownerA.token),
-      })
-      assert.equal(
-        ownerAJobsAfterConcurrentPublish.body.filter(
-          (job) =>
-            job.role === 'host' &&
-            job.kind === 'posted' &&
-            job.description === 'Concurrent publish draft',
-        ).length,
-        1,
-        'exactly one posted job should exist for the concurrently-published draft',
-      )
-
-      // Two different drafts with the same role: publishing/deleting one
-      // must not affect the other.
-      const draftHostTwo = await request<OwnerJobResponse>('/owner/jobs', {
-        method: 'POST',
-        headers: jsonHeaders(ownerA.token),
-        body: JSON.stringify({
-          role: 'host',
-          description: 'Second host draft',
-          requirements: '',
-          shiftInfo: '',
-          contactPhone: '',
-          contactWhatsapp: '',
-        }),
-      })
-      assert.equal(draftHostTwo.status, 201)
-
-      const publishedHostTwo = await request<OwnerJobResponse>(
-        `/owner/jobs/${draftHostTwo.body.id}/publish`,
-        {
-          method: 'POST',
-          headers: jsonHeaders(ownerA.token),
-        },
-      )
-      assert.equal(publishedHostTwo.status, 201)
-      assert.notEqual(
-        publishedHostTwo.body.id,
-        concurrentPublishResults[0]?.body.id,
-        'two different drafts with the same role must produce two different posted jobs',
-      )
-
-      // Deleting one posted job must only remove that exact job — not the
-      // source draft, not another posted job with the same role.
-      const deleteConcurrentPosted = await request(
-        `/owner/jobs/${concurrentPublishResults[0]?.body.id}`,
+      const deleteHostJob = await request(
+        `/owner/jobs/${ownerAHostJob.id}`,
         {
           method: 'DELETE',
           headers: jsonHeaders(ownerA.token),
         },
       )
-      assert.equal(deleteConcurrentPosted.status, 204)
+      assert.equal(deleteHostJob.status, 204)
 
       const ownerAJobsAfterDelete = await request<OwnerJobResponse[]>(
         '/owner/jobs',
@@ -557,34 +586,106 @@ test(
       assert.equal(ownerAJobsAfterDelete.status, 200)
       assert.ok(
         !ownerAJobsAfterDelete.body.some(
-          (job) => job.id === concurrentPublishResults[0]?.body.id,
+          (job) => job.id === ownerAHostJob.id,
         ),
-        'the deleted posted job must be gone',
+        'deleted job should be gone',
       )
       assert.ok(
         ownerAJobsAfterDelete.body.some(
-          (job) => job.id === concurrentDraft.body.id && job.kind === 'draft',
+          (job) => job.id === ownerAWaiterJob.id,
         ),
-        'the source draft of the deleted posted job must survive',
+        'deleting one job should not delete another role job',
       )
-      assert.ok(
-        ownerAJobsAfterDelete.body.some(
-          (job) =>
-            job.id === draftHostTwo.body.id && job.kind === 'draft',
-        ),
-        'an unrelated draft with the same role must survive',
+
+      const recreatedHostJob = await request<OwnerJobResponse>('/owner/jobs', {
+        method: 'POST',
+        headers: jsonHeaders(ownerA.token),
+        body: JSON.stringify({
+          role: 'host',
+          description: 'Recreated host board job',
+          requirements: '',
+          shiftInfo: '',
+          contactPhone: '',
+          contactWhatsapp: '',
+        }),
+      })
+      assert.equal(recreatedHostJob.status, 201)
+      assert.equal(recreatedHostJob.body.kind, 'posted')
+      assert.equal(recreatedHostJob.body.isActive, false)
+
+      const activateHostJob = await request<OwnerJobResponse>(
+        `/owner/jobs/${recreatedHostJob.body.id}/active`,
+        {
+          method: 'PATCH',
+          headers: jsonHeaders(ownerA.token),
+          body: JSON.stringify({
+            isActive: true,
+          }),
+        },
       )
+      assert.equal(activateHostJob.status, 200)
+      assert.equal(activateHostJob.body.isActive, true)
+
+      const compatiblePublishRoute = await request<OwnerJobResponse>(
+        `/owner/jobs/${recreatedHostJob.body.id}/publish`,
+        {
+          method: 'POST',
+          headers: jsonHeaders(ownerA.token),
+        },
+      )
+      assert.equal(compatiblePublishRoute.status, 200)
+      assert.equal(compatiblePublishRoute.body.id, recreatedHostJob.body.id)
+      assert.equal(compatiblePublishRoute.body.isActive, true)
+
+      const ownerAJobsAfterRoleChecks = await request<OwnerJobResponse[]>(
+        '/owner/jobs',
+        {
+          headers: jsonHeaders(ownerA.token),
+        },
+      )
+      assert.equal(ownerAJobsAfterRoleChecks.status, 200)
+      assert.equal(
+        new Set(ownerAJobsAfterRoleChecks.body.map((job) => job.role)).size,
+        ownerAJobsAfterRoleChecks.body.length,
+        'one restaurant cannot have duplicate role jobs',
+      )
+
+      const activateBarista = await request<OwnerJobResponse>(
+        `/owner/jobs/${ownerABaristaJob.id}/active`,
+        {
+          method: 'PATCH',
+          headers: jsonHeaders(ownerA.token),
+          body: JSON.stringify({
+            isActive: true,
+          }),
+        },
+      )
+      assert.equal(activateBarista.status, 200)
+
+      const publicAfterBaristaActivation = await request<{
+        qrEnabledRoles: string[]
+      }>(`/public/restaurants/${ownerA.profile.slug}`)
+      assert.equal(publicAfterBaristaActivation.status, 200)
       assert.ok(
-        ownerAJobsAfterDelete.body.some(
-          (job) => job.id === publishedHostTwo.body.id && job.kind === 'posted',
-        ),
-        'an unrelated posted job with the same role must survive',
+        !publicAfterBaristaActivation.body.qrEnabledRoles.includes('barista'),
+        'active job-board jobs must not automatically appear in QR roles',
+      )
+
+      assert.equal(
+        await prisma.restaurantJob.count({
+          where: {
+            ownerProfileId: ownerA.profile.id,
+            role: 'barista',
+          },
+        }),
+        1,
+        'activating a starter job must not create a duplicate job',
       )
 
       for (const [method, path, body] of [
         [
           'PUT',
-          `/owner/jobs/${ownerAJob.body.id}`,
+          `/owner/jobs/${ownerAWaiterJob.id}`,
           {
             role: 'cook',
             description: 'Stolen update',
@@ -594,9 +695,9 @@ test(
             contactWhatsapp: '',
           },
         ],
-        ['PATCH', `/owner/jobs/${ownerAJob.body.id}/active`, { isActive: true }],
-        ['POST', `/owner/jobs/${ownerAJob.body.id}/publish`, undefined],
-        ['DELETE', `/owner/jobs/${ownerAJob.body.id}`, undefined],
+        ['PATCH', `/owner/jobs/${ownerAWaiterJob.id}/active`, { isActive: true }],
+        ['POST', `/owner/jobs/${ownerAWaiterJob.id}/publish`, undefined],
+        ['DELETE', `/owner/jobs/${ownerAWaiterJob.id}`, undefined],
       ] as const) {
         const options: RequestInit = {
           method,
@@ -735,35 +836,53 @@ test(
       )
       assert.equal(hiringManagerJobs.status, 200)
       assert.ok(
-        hiringManagerJobs.body.some((job) => job.id === ownerAJob.body.id),
+        hiringManagerJobs.body.some((job) => job.id === ownerAWaiterJob.id),
       )
 
-      const hiringManagerCreatedJob = await request<OwnerJobResponse>(
-        '/owner/jobs',
+      const hiringManagerQrRolesUpdate = await request<OwnerProfileResponse>(
+        '/owner/qr-roles',
         {
-          method: 'POST',
+          method: 'PATCH',
           headers: jsonHeaders(hiringManagerToken),
           body: JSON.stringify({
-            role: 'host',
-            description: 'Manager created draft',
-            requirements: '',
-            shiftInfo: 'Morning',
-            contactPhone: '',
-            contactWhatsapp: '',
+            qrEnabledRoles: ['barista'],
           }),
         },
       )
-      assert.equal(hiringManagerCreatedJob.status, 201)
-      assert.equal(hiringManagerCreatedJob.body.kind, 'draft')
+      assert.equal(hiringManagerQrRolesUpdate.status, 200)
+      assert.deepEqual(hiringManagerQrRolesUpdate.body.qrEnabledRoles, [
+        'barista',
+      ])
+
+      const publicAfterManagerQrUpdate = await request<{
+        qrEnabledRoles: string[]
+        isHiringForQr: boolean
+      }>(`/public/restaurants/${ownerA.profile.slug}`)
+      assert.equal(publicAfterManagerQrUpdate.status, 200)
+      assert.deepEqual(publicAfterManagerQrUpdate.body.qrEnabledRoles, [
+        'barista',
+      ])
+      assert.equal(publicAfterManagerQrUpdate.body.isHiringForQr, true)
+
+      const ownerBPublicAfterManagerQrUpdate = await request<{
+        qrEnabledRoles: string[]
+      }>(`/public/restaurants/${ownerB.profile.slug}`)
+      assert.equal(ownerBPublicAfterManagerQrUpdate.status, 200)
+      assert.ok(
+        !ownerBPublicAfterManagerQrUpdate.body.qrEnabledRoles.includes(
+          'barista',
+        ),
+        'Restaurant A member must not update Restaurant B QR roles',
+      )
 
       const hiringManagerUpdatedJob = await request<OwnerJobResponse>(
-        `/owner/jobs/${hiringManagerCreatedJob.body.id}`,
+        `/owner/jobs/${recreatedHostJob.body.id}`,
         {
           method: 'PUT',
           headers: jsonHeaders(hiringManagerToken),
           body: JSON.stringify({
-            role: 'bartender',
-            description: 'Manager updated draft',
+            role: 'host',
+            description: 'Manager updated board job',
             requirements: '',
             shiftInfo: 'Evening',
             contactPhone: '',
@@ -772,16 +891,34 @@ test(
         },
       )
       assert.equal(hiringManagerUpdatedJob.status, 200)
+      assert.equal(hiringManagerUpdatedJob.body.description, 'Manager updated board job')
 
-      const hiringManagerPublishedJob = await request<OwnerJobResponse>(
-        `/owner/jobs/${hiringManagerCreatedJob.body.id}/publish`,
+      const hiringManagerDeactivatedJob = await request<OwnerJobResponse>(
+        `/owner/jobs/${recreatedHostJob.body.id}/active`,
         {
-          method: 'POST',
+          method: 'PATCH',
           headers: jsonHeaders(hiringManagerToken),
+          body: JSON.stringify({
+            isActive: false,
+          }),
         },
       )
-      assert.equal(hiringManagerPublishedJob.status, 201)
-      assert.equal(hiringManagerPublishedJob.body.kind, 'posted')
+      assert.equal(hiringManagerDeactivatedJob.status, 200)
+      assert.equal(hiringManagerDeactivatedJob.body.isActive, false)
+
+      const hiringManagerDuplicateJob = await request('/owner/jobs', {
+        method: 'POST',
+        headers: jsonHeaders(hiringManagerToken),
+        body: JSON.stringify({
+          role: 'host',
+          description: 'Duplicate manager job',
+          requirements: '',
+          shiftInfo: '',
+          contactPhone: '',
+          contactWhatsapp: '',
+        }),
+      })
+      assert.equal(hiringManagerDuplicateJob.status, 409)
 
       const hiringManagerProfileUpdate = await request(
         '/owner/profile',
@@ -819,25 +956,20 @@ test(
       )
       assert.equal(hiringManagerTeamInvite.status, 403)
 
-      const ownerBPrivateJob = await request<OwnerJobResponse>(
+      const ownerBJobs = await request<OwnerJobResponse[]>(
         '/owner/jobs',
         {
-          method: 'POST',
           headers: jsonHeaders(ownerB.token),
-          body: JSON.stringify({
-            role: 'waiter',
-            description: 'Owner B private draft',
-            requirements: '',
-            shiftInfo: '',
-            contactPhone: '',
-            contactWhatsapp: '',
-          }),
         },
       )
-      assert.equal(ownerBPrivateJob.status, 201)
+      assert.equal(ownerBJobs.status, 200)
+      const ownerBPrivateJob = ownerBJobs.body.find(
+        (job) => job.role === 'waiter',
+      )
+      assert.ok(ownerBPrivateJob)
 
       const hiringManagerStolenOwnerBJob = await request(
-        `/owner/jobs/${ownerBPrivateJob.body.id}`,
+        `/owner/jobs/${ownerBPrivateJob.id}`,
         {
           method: 'PUT',
           headers: jsonHeaders(hiringManagerToken),
@@ -897,7 +1029,7 @@ test(
         await prisma.restaurantApplication.create({
           data: {
             userId: hiringManagerAuth.body.user.id,
-            restaurantJobId: ownerAJob.body.id,
+            restaurantJobId: ownerAWaiterJob.id,
             status: 'applied',
           },
         })
@@ -911,7 +1043,7 @@ test(
       assert.equal(hiringManagerDeleteAppliedApplication.status, 204)
 
       const hiringManagerDeleteJob = await request(
-        `/owner/jobs/${hiringManagerCreatedJob.body.id}`,
+        `/owner/jobs/${recreatedHostJob.body.id}`,
         {
           method: 'DELETE',
           headers: jsonHeaders(hiringManagerToken),
@@ -1309,6 +1441,8 @@ test(
       assert.deepEqual(Object.keys(publicRestaurant.body).sort(), [
         'city',
         'description',
+        'isHiringForQr',
+        'qrEnabledRoles',
         'restaurantName',
         'slug',
         'street',
@@ -1363,6 +1497,15 @@ test(
       })
       assert.equal(workerOwnerJobs.status, 403)
 
+      const workerQrRolesUpdate = await request('/owner/qr-roles', {
+        method: 'PATCH',
+        headers: jsonHeaders(workerToken),
+        body: JSON.stringify({
+          qrEnabledRoles: ['waiter'],
+        }),
+      })
+      assert.equal(workerQrRolesUpdate.status, 403)
+
       const workerDeleteGuardLead =
         await prisma.restaurantCandidateLead.create({
           data: {
@@ -1405,6 +1548,103 @@ test(
           fullName: 'Worker',
         },
       })
+
+      const disabledAllQrRoles = await request<OwnerProfileResponse>(
+        '/owner/qr-roles',
+        {
+          method: 'PATCH',
+          headers: jsonHeaders(ownerA.token),
+          body: JSON.stringify({
+            qrEnabledRoles: [],
+          }),
+        },
+      )
+      assert.equal(disabledAllQrRoles.status, 200)
+      assert.deepEqual(disabledAllQrRoles.body.qrEnabledRoles, [])
+
+      const publicWhenAllQrRolesDisabled = await request<{
+        qrEnabledRoles: string[]
+        isHiringForQr: boolean
+      }>(`/public/restaurants/${ownerA.profile.slug}`)
+      assert.equal(publicWhenAllQrRolesDisabled.status, 200)
+      assert.deepEqual(publicWhenAllQrRolesDisabled.body.qrEnabledRoles, [])
+      assert.equal(publicWhenAllQrRolesDisabled.body.isHiringForQr, false)
+
+      const disabledQrRoleSubmit = await request<{ message?: string }>(
+        `/public/restaurants/${ownerA.profile.slug}/verified-leads`,
+        {
+          method: 'POST',
+          headers: jsonHeaders(workerToken),
+          body: JSON.stringify({
+            wantedRoles: ['waiter'],
+            experienceText: 'Should be rejected',
+            availability: 'Evenings',
+            age: 25,
+          }),
+        },
+      )
+      assert.equal(disabledQrRoleSubmit.status, 400)
+      assert.equal(
+        disabledQrRoleSubmit.body.message,
+        'This role is no longer open for QR applications.',
+      )
+
+      await request<OwnerProfileResponse>('/owner/qr-roles', {
+        method: 'PATCH',
+        headers: jsonHeaders(ownerA.token),
+        body: JSON.stringify({
+          qrEnabledRoles: ['barista'],
+        }),
+      })
+
+      const disabledSpecificQrRoleSubmit = await request<{
+        message?: string
+      }>(`/public/restaurants/${ownerA.profile.slug}/verified-leads`, {
+        method: 'POST',
+        headers: jsonHeaders(workerToken),
+        body: JSON.stringify({
+          wantedRoles: ['waiter'],
+          experienceText: 'Should be rejected',
+          availability: 'Evenings',
+          age: 25,
+        }),
+      })
+      assert.equal(disabledSpecificQrRoleSubmit.status, 400)
+      assert.equal(
+        disabledSpecificQrRoleSubmit.body.message,
+        'This role is no longer open for QR applications.',
+      )
+      assert.equal(
+        await prisma.restaurantCandidateLead.count({
+          where: {
+            ownerProfileId: ownerA.profile.id,
+            phoneNumber: '+972509999999',
+          },
+        }),
+        0,
+      )
+
+      const restoredQrRoles = await request<OwnerProfileResponse>(
+        '/owner/qr-roles',
+        {
+          method: 'PATCH',
+          headers: jsonHeaders(ownerA.token),
+          body: JSON.stringify({
+            qrEnabledRoles: ['waiter', 'host', 'barista'],
+          }),
+        },
+      )
+      assert.equal(restoredQrRoles.status, 200)
+      assert.deepEqual(restoredQrRoles.body.qrEnabledRoles, [
+        'waiter',
+        'host',
+        'barista',
+      ])
+      const publicAfterRestoredQrRoles = await request<{
+        qrEnabledRoles: string[]
+      }>(`/public/restaurants/${ownerA.profile.slug}`)
+      assert.equal(publicAfterRestoredQrRoles.status, 200)
+      assert.ok(publicAfterRestoredQrRoles.body.qrEnabledRoles.includes('barista'))
 
       const unauthorizedVerifiedLead = await request(
         `/public/restaurants/${ownerA.profile.slug}/verified-leads`,
@@ -1461,6 +1701,39 @@ test(
       })
       assert.equal(verifiedLead.fullName, 'Worker')
       assert.deepEqual(verifiedLead.wantedRoles.sort(), ['host', 'waiter'])
+      assert.equal(verifiedLead.ownerViewedAt, null)
+
+      const ownerLeadsView = await request('/owner/leads', {
+        headers: jsonHeaders(ownerA.token),
+      })
+      assert.equal(ownerLeadsView.status, 200)
+      const verifiedLeadAfterOwnerView =
+        await prisma.restaurantCandidateLead.findUniqueOrThrow({
+          where: {
+            id: verifiedLead.id,
+          },
+        })
+      assert.equal(verifiedLeadAfterOwnerView.status, 'new')
+      assert.ok(verifiedLeadAfterOwnerView.ownerViewedAt)
+
+      const adminQrFunnelAfterVerifiedLead = await request<
+        AdminRestaurantResponse[]
+      >('/admin/restaurants', {
+        headers: jsonHeaders(adminToken),
+      })
+      assert.equal(adminQrFunnelAfterVerifiedLead.status, 200)
+      const ownerAQrFunnel = adminQrFunnelAfterVerifiedLead.body.find(
+        (restaurant) => restaurant.id === ownerA.profile.id,
+      )?.funnelMetrics
+      assert.ok(ownerAQrFunnel)
+      assert.equal(ownerAQrFunnel.qrScans, 1)
+      assert.equal(ownerAQrFunnel.uniqueQrVisitors, 1)
+      assert.equal(ownerAQrFunnel.startedForms, 1)
+      assert.equal(ownerAQrFunnel.completedForms, 1)
+      assert.equal(ownerAQrFunnel.ownerViewedCompletedForms, 1)
+      assert.ok(ownerAQrFunnel.lastScanAt)
+      assert.ok(ownerAQrFunnel.lastCompletedAt)
+      assert.ok(ownerAQrFunnel.lastOwnerViewAt)
 
       assert.equal(
         await prisma.restaurantCandidateLead.count({
@@ -1508,38 +1781,39 @@ test(
         1,
       )
 
-      const activePostedJob = await prisma.restaurantJob.create({
+      await prisma.restaurantWorkerProfile.update({
+        where: {
+          userId: workerUser.id,
+        },
         data: {
-          restaurantName: `${runId} Active Posted`,
-          role: 'waiter',
-          location: 'Tel Aviv',
-          area: 'Test',
-          ownerProfileId: ownerA.profile.id,
+          fullName: 'Worker',
+          phoneNumber: '+972509999999',
+          wantedRoles: ['waiter', 'host'],
+          experienceText: '2 years\n\nVerified QR experience',
+          availability: 'Evening, Weekends',
+          age: 25,
+        },
+      })
+
+      const activePostedJob = await prisma.restaurantJob.update({
+        where: {
+          id: ownerAWaiterJob.id,
+        },
+        data: {
+          restaurantName: `${runId} Active Job`,
           kind: 'posted',
           isActive: true,
         },
       })
-      await prisma.restaurantJob.createMany({
-        data: [
-          {
-            restaurantName: `${runId} Draft`,
-            role: 'waiter',
-            location: 'Tel Aviv',
-            area: 'Test',
-            ownerProfileId: ownerA.profile.id,
-            kind: 'draft',
-            isActive: false,
-          },
-          {
-            restaurantName: `${runId} Inactive Posted`,
-            role: 'waiter',
-            location: 'Tel Aviv',
-            area: 'Test',
-            ownerProfileId: ownerA.profile.id,
-            kind: 'posted',
-            isActive: false,
-          },
-        ],
+      await prisma.restaurantJob.create({
+        data: {
+          restaurantName: `${runId} Inactive Job`,
+          role: 'waiter',
+          location: 'Tel Aviv',
+          area: 'Test',
+          kind: 'posted',
+          isActive: false,
+        },
       })
 
       const explore = await request<RestaurantExploreResponse>(
@@ -1567,8 +1841,7 @@ test(
       assert.ok(
         explore.body.jobs.every(
           (job) =>
-            !job.restaurantName.includes(`${runId} Draft`) &&
-            !job.restaurantName.includes(`${runId} Inactive Posted`),
+            !job.restaurantName.includes(`${runId} Inactive Job`),
         ),
       )
     } finally {

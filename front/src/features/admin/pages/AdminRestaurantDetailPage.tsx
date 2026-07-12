@@ -2,6 +2,7 @@ import QRCode from 'qrcode'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { getRestaurantRoleLabel } from '../../restaurant/types/restaurant'
+import { downloadQrPoster } from '../../../utils/qrPoster'
 import AdminShell from '../components/AdminShell'
 import {
   deleteAdminRestaurant,
@@ -31,6 +32,14 @@ function getPublicQrLink(slug: string | null) {
   }
 
   return `${window.location.origin}/r/${slug}`
+}
+
+function formatAdminMetricDate(value: string | null) {
+  if (!value) {
+    return 'Not yet'
+  }
+
+  return new Date(value).toLocaleString()
 }
 
 function AdminRestaurantDetailPage() {
@@ -148,16 +157,20 @@ function AdminRestaurantDetailPage() {
     setMessage('QR link copied.')
   }
 
-  function handleDownloadQr() {
-    if (!qrCodeUrl || !restaurant?.slug) {
+  async function handleDownloadQrPoster() {
+    if (!publicQrLink || !restaurant?.slug) {
       return
     }
 
-    const link = document.createElement('a')
-
-    link.href = qrCodeUrl
-    link.download = `peepss-${restaurant.slug}-qr.png`
-    link.click()
+    try {
+      await downloadQrPoster({
+        publicUrl: publicQrLink,
+        slug: restaurant.slug,
+      })
+      setError(null)
+    } catch {
+      setError('Failed to download QR poster.')
+    }
   }
 
   async function handleSaveRestaurant(event: FormEvent<HTMLFormElement>) {
@@ -264,6 +277,7 @@ function AdminRestaurantDetailPage() {
     detail.ownerUser?.phoneNumber ||
     detail.ownerUser?.email ||
     'No owner linked yet'
+  const funnelMetrics = restaurant.funnelMetrics
 
   return (
     <AdminShell>
@@ -286,6 +300,52 @@ function AdminRestaurantDetailPage() {
           </p>
         )}
 
+        <section className="admin-restaurant-panel admin-funnel-panel">
+          <div>
+            <h2>QR funnel analytics</h2>
+            <p>Lightweight pilot metrics from the public QR application flow.</p>
+          </div>
+          <div className="admin-funnel-grid">
+            <article className="admin-funnel-card">
+              <span>QR scans</span>
+              <strong>{funnelMetrics.qrScans}</strong>
+              <p>{funnelMetrics.uniqueQrVisitors} unique sessions</p>
+            </article>
+            <article className="admin-funnel-card">
+              <span>Started form</span>
+              <strong>{funnelMetrics.startedForms}</strong>
+              <p>Name or phone step was started</p>
+            </article>
+            <article className="admin-funnel-card">
+              <span>Completed form</span>
+              <strong>{funnelMetrics.completedForms}</strong>
+              <p>{funnelMetrics.newCandidates} new for admin</p>
+            </article>
+            <article className="admin-funnel-card">
+              <span>Owner viewed</span>
+              <strong>
+                {funnelMetrics.ownerViewedCompletedForms}/
+                {funnelMetrics.completedForms}
+              </strong>
+              <p>Applications opened by owner/team</p>
+            </article>
+          </div>
+          <dl className="admin-funnel-timestamps">
+            <div>
+              <dt>Last scan</dt>
+              <dd>{formatAdminMetricDate(funnelMetrics.lastScanAt)}</dd>
+            </div>
+            <div>
+              <dt>Last completed form</dt>
+              <dd>{formatAdminMetricDate(funnelMetrics.lastCompletedAt)}</dd>
+            </div>
+            <div>
+              <dt>Last owner view</dt>
+              <dd>{formatAdminMetricDate(funnelMetrics.lastOwnerViewAt)}</dd>
+            </div>
+          </dl>
+        </section>
+
         <section className="admin-restaurant-detail-grid">
           <article className="admin-restaurant-panel">
             <h2>Restaurant summary</h2>
@@ -301,6 +361,16 @@ function AdminRestaurantDetailPage() {
               <div>
                 <dt>QR link</dt>
                 <dd>{publicQrLink || 'Slug required'}</dd>
+              </div>
+              <div>
+                <dt>QR roles</dt>
+                <dd>
+                  {restaurant.qrEnabledRoles.length > 0
+                    ? restaurant.qrEnabledRoles
+                        .map((role) => getRestaurantRoleLabel(role))
+                        .join(', ')
+                    : 'Not hiring right now'}
+                </dd>
               </div>
               <div>
                 <dt>Owner</dt>
@@ -347,10 +417,10 @@ function AdminRestaurantDetailPage() {
               </button>
               <button
                 type="button"
-                disabled={!qrCodeUrl}
-                onClick={handleDownloadQr}
+                disabled={!publicQrLink}
+                onClick={() => void handleDownloadQrPoster()}
               >
-                Download QR PNG
+                Download QR poster
               </button>
             </div>
           </article>
@@ -364,8 +434,7 @@ function AdminRestaurantDetailPage() {
           <div className="admin-form-wide">
             <h2>Edit restaurant</h2>
             <p className="admin-warning">
-              Changing the slug changes the QR link. שינוי הסלאג משנה את קישור
-              ה־QR.
+              Changing the slug changes the QR link.
             </p>
           </div>
           <label>
@@ -449,7 +518,7 @@ function AdminRestaurantDetailPage() {
         <section className="admin-restaurant-panel">
           <h2>Jobs</h2>
           {detail.jobs.length === 0 ? (
-            <p>No posted jobs yet.</p>
+            <p>No jobs yet.</p>
           ) : (
             <div className="admin-compact-list">
               {detail.jobs.map((job) => (

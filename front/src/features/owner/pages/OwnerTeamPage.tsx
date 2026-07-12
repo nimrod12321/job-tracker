@@ -6,6 +6,7 @@ import {
 } from '../services/ownerApi'
 import type { OwnerTeam, OwnerTeamMember } from '../types/owner'
 import { useRestaurantLanguage } from '../../restaurant/utils/restaurantLanguage'
+import { formatIsraeliPhoneForDisplay } from '../../../utils/phoneDisplay'
 
 const roleLabels = {
   he: {
@@ -264,19 +265,6 @@ function upsertMember(
   }
 
   return [...members, member]
-}
-
-function formatIsraeliPhoneForDisplay(phone: string) {
-  const trimmedPhone = phone.trim()
-  const match = trimmedPhone.match(/^\+972(5\d{8})$/)
-
-  if (!match) {
-    return trimmedPhone
-  }
-
-  const localPhone = `0${match[1]}`
-
-  return `${localPhone.slice(0, 3)}-${localPhone.slice(3)}`
 }
 
 export default OwnerTeamPage

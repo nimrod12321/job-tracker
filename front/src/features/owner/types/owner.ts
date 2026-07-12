@@ -10,6 +10,7 @@ export type OwnerProfile = {
   street: string
   description: string
   slug: string | null
+  qrEnabledRoles: RestaurantRole[]
   createdAt: string
   updatedAt: string
 }
@@ -40,7 +41,7 @@ export type OwnerTeam = {
 
 export type OwnerProfileInput = Omit<
   OwnerProfile,
-  'id' | 'slug' | 'createdAt' | 'updatedAt'
+  'id' | 'slug' | 'qrEnabledRoles' | 'createdAt' | 'updatedAt'
 >
 
 export type OwnerJobInput = {
@@ -104,6 +105,7 @@ export type RestaurantCandidateLead = {
   age: number | null
   source: string
   status: CandidateLeadStatus
+  ownerViewedAt: string | null
   createdAt: string
   updatedAt: string
 }

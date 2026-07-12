@@ -2,6 +2,7 @@ import type { Request, Response } from 'express'
 import type {
   RestaurantJob,
   RestaurantOwnerProfile,
+  RestaurantRole,
 } from '../generated/prisma/client.js'
 import { prisma } from '../lib/prisma.js'
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js'
@@ -22,6 +23,7 @@ import {
   ownerJobIdSchema,
   ownerJobSchema,
   ownerProfileSchema,
+  ownerQrEnabledRolesSchema,
   ownerTeamMemberIdSchema,
   ownerTeamMemberSchema,
 } from '../validations/owner.validation.js'
@@ -29,7 +31,10 @@ import {
 const PROFILE_REQUIRED_MESSAGE =
   'Complete your restaurant profile before posting jobs.'
 
-const DEFAULT_OWNER_JOB_DRAFTS: Array<
+const DUPLICATE_OWNER_JOB_ROLE_MESSAGE =
+  'A job for this role already exists. Edit the existing job instead.'
+
+const DEFAULT_OWNER_JOB_BOARD_JOBS: Array<
   Pick<RestaurantJob, 'role' | 'shiftInfo' | 'requirements' | 'description'>
 > = [
   {
@@ -76,6 +81,24 @@ const DEFAULT_OWNER_JOB_DRAFTS: Array<
     description:
       'Manage the shift, support the floor team, solve service issues, and help keep the restaurant running smoothly.',
   },
+  {
+    role: 'barista',
+    shiftInfo:
+      'Morning and afternoon shifts, 3–4 shifts per week, including weekend availability.',
+    requirements:
+      'Coffee experience is a plus, clean work, friendly service, and reliability.',
+    description:
+      'Prepare coffee and drinks, support counter service, keep the station clean, and help guests quickly and warmly.',
+  },
+  {
+    role: 'socialManager',
+    shiftInfo:
+      'Flexible shifts, a few content sessions per week around busy service hours.',
+    requirements:
+      'Good eye for content, responsibility, basic social media skills, and comfort working around a restaurant team.',
+    description:
+      'Create simple social content for the restaurant, capture food/service moments, and help the place show its vibe online.',
+  },
 ]
 
 function getUserId(req: Request) {
@@ -102,6 +125,7 @@ function mapOwnerProfile(profile: RestaurantOwnerProfile) {
     street: profile.street,
     description: profile.description,
     slug: profile.slug,
+    qrEnabledRoles: profile.qrEnabledRoles,
     createdAt: profile.createdAt.toISOString(),
     updatedAt: profile.updatedAt.toISOString(),
   }
@@ -184,12 +208,13 @@ function mapCandidateLead(
     id: string
     fullName: string
     phoneNumber: string
-    wantedRoles: Array<'waiter' | 'bartender' | 'host' | 'floorManager' | 'cook'>
+    wantedRoles: RestaurantRole[]
     experienceText: string
     availability: string
     age: number | null
     source: string
     status: 'new' | 'contacted' | 'relevant' | 'rejected'
+    ownerViewedAt: Date | null
     createdAt: Date
     updatedAt: Date
   },
@@ -204,6 +229,7 @@ function mapCandidateLead(
     age: lead.age,
     source: lead.source,
     status: lead.status,
+    ownerViewedAt: lead.ownerViewedAt?.toISOString() ?? null,
     createdAt: lead.createdAt.toISOString(),
     updatedAt: lead.updatedAt.toISOString(),
   }
@@ -256,28 +282,36 @@ async function findOwnedJob(
 async function createDefaultRestaurantJobsIfNeeded(
   profile: RestaurantOwnerProfile,
 ) {
-  const existingJobsCount = await prisma.restaurantJob.count({
+  const existingJobs = await prisma.restaurantJob.findMany({
     where: {
       ownerProfileId: profile.id,
     },
+    select: {
+      role: true,
+    },
   })
+  const existingRoles = new Set(existingJobs.map((job) => job.role))
+  const missingJobs = DEFAULT_OWNER_JOB_BOARD_JOBS.filter(
+    (job) => !existingRoles.has(job.role),
+  )
 
-  if (existingJobsCount > 0) {
+  if (missingJobs.length === 0) {
     return
   }
 
   await prisma.restaurantJob.createMany({
-    data: DEFAULT_OWNER_JOB_DRAFTS.map((draft) => ({
-      ...draft,
+    data: missingJobs.map((job) => ({
+      ...job,
       restaurantName: profile.restaurantName,
       location: profile.city,
       area: profile.street,
       contactPhone: profile.phoneNumber,
       contactWhatsapp: profile.whatsappNumber,
       ownerProfileId: profile.id,
-      kind: 'draft',
+      kind: 'posted',
       isActive: false,
     })),
+    skipDuplicates: true,
   })
 }
 
@@ -388,6 +422,51 @@ export async function updateOwnerProfile(req: Request, res: Response) {
   }
 }
 
+export async function updateOwnerQrRoles(req: Request, res: Response) {
+  try {
+    const userId = getUserId(req)
+
+    if (!userId) {
+      return res.status(401).json({
+        message: 'unauthorized',
+      })
+    }
+
+    const access = await getRestaurantAccessForUser(userId)
+
+    if (!access) {
+      return res.status(403).json({
+        message: 'restaurant access required',
+      })
+    }
+
+    const result = ownerQrEnabledRolesSchema.safeParse(req.body)
+
+    if (!result.success) {
+      return res.status(400).json({
+        message: getValidationErrorMessage(result.error),
+      })
+    }
+
+    const profile = await prisma.restaurantOwnerProfile.update({
+      where: {
+        id: access.restaurant.id,
+      },
+      data: {
+        qrEnabledRoles: result.data.qrEnabledRoles,
+      },
+    })
+
+    return res.json(mapOwnerProfile(profile))
+  } catch (error) {
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to update QR roles',
+    })
+  }
+}
+
 export async function getOwnerJobs(req: Request, res: Response) {
   try {
     const userId = getUserId(req)
@@ -449,6 +528,22 @@ export async function createOwnerJob(req: Request, res: Response) {
       })
     }
 
+    const existingRoleJob = await prisma.restaurantJob.findFirst({
+      where: {
+        ownerProfileId: profile.id,
+        role: result.data.role,
+      },
+      select: {
+        id: true,
+      },
+    })
+
+    if (existingRoleJob) {
+      return res.status(409).json({
+        message: DUPLICATE_OWNER_JOB_ROLE_MESSAGE,
+      })
+    }
+
     const job = await prisma.restaurantJob.create({
       data: {
         ...result.data,
@@ -459,13 +554,19 @@ export async function createOwnerJob(req: Request, res: Response) {
         contactWhatsapp:
           result.data.contactWhatsapp || profile.whatsappNumber,
         ownerProfileId: profile.id,
-        kind: 'draft',
+        kind: 'posted',
         isActive: false,
       },
     })
 
     return res.status(201).json(mapOwnerJob(job))
   } catch (error) {
+    if (isUniqueConstraintViolation(error)) {
+      return res.status(409).json({
+        message: DUPLICATE_OWNER_JOB_ROLE_MESSAGE,
+      })
+    }
+
     console.error(error)
 
     return res.status(500).json({
@@ -500,76 +601,26 @@ export async function publishOwnerJob(req: Request, res: Response) {
       })
     }
 
-    const draftJob = await findOwnedJob(idResult.data, profile.id)
+    const jobToActivate = await findOwnedJob(idResult.data, profile.id)
 
-    if (!draftJob) {
+    if (!jobToActivate) {
       return res.status(404).json({
         message: 'restaurant job not found',
       })
     }
 
-    if (draftJob.kind !== 'draft') {
-      return res.status(400).json({
-        message: 'only draft jobs can be published',
-      })
-    }
-
-    // Idempotency guard: this draft may already have been published (double
-    // click, retry after a slow network, resubmit). Publishing keeps the
-    // draft around (product rule), so `kind === 'draft'` alone can't tell us
-    // that — check for an existing posted job linked to this draft instead.
-    const existingPostedJob = await prisma.restaurantJob.findUnique({
+    const activatedJob = await prisma.restaurantJob.update({
       where: {
-        publishedFromDraftId: draftJob.id,
+        id: jobToActivate.id,
+      },
+      data: {
+        kind: 'posted',
+        isActive: true,
+        publishedFromDraftId: null,
       },
     })
 
-    if (existingPostedJob) {
-      return res.status(200).json(mapOwnerJob(existingPostedJob))
-    }
-
-    try {
-      const postedJob = await prisma.restaurantJob.create({
-        data: {
-          restaurantName: profile.restaurantName,
-          role: draftJob.role,
-          location: profile.city,
-          area: profile.street,
-          description: draftJob.description,
-          requirements: draftJob.requirements,
-          shiftInfo: draftJob.shiftInfo,
-          contactPhone: draftJob.contactPhone || profile.phoneNumber,
-          contactWhatsapp:
-            draftJob.contactWhatsapp || profile.whatsappNumber,
-          ownerProfileId: profile.id,
-          kind: 'posted',
-          isActive: true,
-          publishedFromDraftId: draftJob.id,
-        },
-      })
-
-      return res.status(201).json(mapOwnerJob(postedJob))
-    } catch (createError) {
-      // Two concurrent publish requests raced past the check above — the
-      // unique constraint on publishedFromDraftId caught it. Return the
-      // job the other request created instead of erroring. Checked by
-      // error shape (not `instanceof Prisma.PrismaClientKnownRequestError`)
-      // because that check can fail to match across module boundaries with
-      // the generated client — the `code` field is reliable either way.
-      if (isUniqueConstraintViolation(createError)) {
-        const racedPostedJob = await prisma.restaurantJob.findUnique({
-          where: {
-            publishedFromDraftId: draftJob.id,
-          },
-        })
-
-        if (racedPostedJob) {
-          return res.status(200).json(mapOwnerJob(racedPostedJob))
-        }
-      }
-
-      throw createError
-    }
+    return res.json(mapOwnerJob(activatedJob))
   } catch (error) {
     console.error(error)
 
@@ -622,6 +673,27 @@ export async function updateOwnerJob(req: Request, res: Response) {
       })
     }
 
+    if (bodyResult.data.role !== existingJob.role) {
+      const duplicateRoleJob = await prisma.restaurantJob.findFirst({
+        where: {
+          ownerProfileId: profile.id,
+          role: bodyResult.data.role,
+          id: {
+            not: existingJob.id,
+          },
+        },
+        select: {
+          id: true,
+        },
+      })
+
+      if (duplicateRoleJob) {
+        return res.status(409).json({
+          message: DUPLICATE_OWNER_JOB_ROLE_MESSAGE,
+        })
+      }
+    }
+
     const job = await prisma.restaurantJob.update({
       where: {
         id: existingJob.id,
@@ -643,6 +715,12 @@ export async function updateOwnerJob(req: Request, res: Response) {
 
     return res.json(mapOwnerJob(job))
   } catch (error) {
+    if (isUniqueConstraintViolation(error)) {
+      return res.status(409).json({
+        message: DUPLICATE_OWNER_JOB_ROLE_MESSAGE,
+      })
+    }
+
     console.error(error)
 
     return res.status(500).json({
@@ -697,18 +775,14 @@ export async function setOwnerJobActive(req: Request, res: Response) {
       })
     }
 
-    if (bodyResult.data.isActive && existingJob.kind !== 'posted') {
-      return res.status(400).json({
-        message: 'publish the draft before activating it',
-      })
-    }
-
     const job = await prisma.restaurantJob.update({
       where: {
         id: existingJob.id,
       },
       data: {
+        kind: 'posted',
         isActive: bodyResult.data.isActive,
+        publishedFromDraftId: null,
       },
     })
 
@@ -986,6 +1060,16 @@ export async function getOwnerLeads(req: Request, res: Response) {
     if (!profile) {
       return res.json([])
     }
+
+    await prisma.restaurantCandidateLead.updateMany({
+      where: {
+        ownerProfileId: profile.id,
+        ownerViewedAt: null,
+      },
+      data: {
+        ownerViewedAt: new Date(),
+      },
+    })
 
     const leads = await prisma.restaurantCandidateLead.findMany({
       where: {
