@@ -390,20 +390,30 @@ export async function updateOwnerProfile(req: Request, res: Response) {
         )
       : undefined
 
-    const profile = await prisma.restaurantOwnerProfile.upsert({
-      where: {
-        userId,
-      },
-      update: {
-        ...result.data,
-        ...(slug ? { slug } : {}),
-      },
-      create: {
-        ...result.data,
-        userId,
-        ...(slug ? { slug } : {}),
-      },
-    })
+    const profile = access?.restaurant
+      ? await prisma.restaurantOwnerProfile.update({
+          where: {
+            id: access.restaurant.id,
+          },
+          data: {
+            ...result.data,
+            ...(slug ? { slug } : {}),
+          },
+        })
+      : await prisma.restaurantOwnerProfile.upsert({
+          where: {
+            userId,
+          },
+          update: {
+            ...result.data,
+            ...(slug ? { slug } : {}),
+          },
+          create: {
+            ...result.data,
+            userId,
+            ...(slug ? { slug } : {}),
+          },
+        })
 
     if (hasCompleteOwnerProfile(profile)) {
       await prisma.restaurantJob.updateMany({

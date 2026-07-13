@@ -64,11 +64,8 @@ function getHomePath(user: AuthUser | null) {
 function isOwnerProfileComplete(profile: OwnerProfile | null) {
   return Boolean(
     profile?.restaurantName.trim() &&
-      profile.contactPerson.trim() &&
-      profile.phoneNumber.trim() &&
-      profile.city.trim() &&
-      profile.street.trim() &&
-      profile.description.trim(),
+      profile.slug?.trim() &&
+      (profile.city.trim() || profile.street.trim()),
   )
 }
 

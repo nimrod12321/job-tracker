@@ -113,6 +113,8 @@ type AdminRestaurantResponse = {
   restaurantName: string
   slug: string | null
   qrEnabledRoles: string[]
+  ownerLoginPhone: string | null
+  phoneNumber: string
   city: string
   street: string
   qrLeadsCount: number
@@ -1254,6 +1256,7 @@ test(
       assert.ok(adminCreatedRestaurant.body.slug)
       assert.equal(adminCreatedRestaurant.body.hasNewCandidate, false)
       assert.equal(adminCreatedRestaurant.body.newCandidateCount, 0)
+      assert.equal(adminCreatedRestaurant.body.ownerLoginPhone, null)
       createdOwnerProfileIds.push(adminCreatedRestaurant.body.id)
 
       const adminCreatedProfile =
@@ -1373,6 +1376,134 @@ test(
         `Admin Edited ${runId}`,
       )
       assert.equal(editedAdminRestaurant.body.city, 'Tel Aviv')
+      assert.equal(editedAdminRestaurant.body.ownerLoginPhone, null)
+
+      const restaurantContactPhone = '0504445555'
+      const restaurantContactPhoneUpdate =
+        await request<AdminRestaurantResponse>(
+          `/admin/restaurants/${adminCreatedRestaurant.body.id}`,
+          {
+            method: 'PATCH',
+            headers: jsonHeaders(adminToken),
+            body: JSON.stringify({
+              phoneNumber: restaurantContactPhone,
+            }),
+          },
+        )
+      assert.equal(restaurantContactPhoneUpdate.status, 200)
+      assert.equal(
+        restaurantContactPhoneUpdate.body.phoneNumber,
+        restaurantContactPhone,
+      )
+      assert.equal(restaurantContactPhoneUpdate.body.ownerLoginPhone, null)
+
+      const requestedContactPhoneCode = await requestPhoneCode(
+        restaurantContactPhone,
+        'register',
+      )
+      assert.equal(requestedContactPhoneCode.status, 200)
+      const capturedContactPhoneCode = getCapturedOtpCodeForTest(
+        '+972504445555',
+        'register',
+      )
+      assert.match(capturedContactPhoneCode ?? '', /^\d{4}$/)
+      const contactPhoneAuth = await verifyPhoneCode({
+        phoneNumber: restaurantContactPhone,
+        code: capturedContactPhoneCode,
+        purpose: 'register',
+        fullName: 'Restaurant Contact Only',
+        track: 'restaurantOwner',
+      })
+      assert.equal(contactPhoneAuth.status, 200)
+      assert.ok(contactPhoneAuth.body.user?.id)
+      createdUserIds.push(contactPhoneAuth.body.user.id)
+      const contactPhoneProfile = await request<OwnerProfileResponse | null>(
+        '/owner/profile',
+        {
+          headers: jsonHeaders(contactPhoneAuth.body.token),
+        },
+      )
+      assert.equal(contactPhoneProfile.status, 200)
+      assert.equal(contactPhoneProfile.body, null)
+      assert.equal(
+        await prisma.restaurantMember.count({
+          where: {
+            restaurantId: adminCreatedRestaurant.body.id,
+            phoneNumber: '+972504445555',
+            status: 'active',
+          },
+        }),
+        0,
+      )
+
+      const ownerLoginPhone = '0503334444'
+      const ownerLoginPhoneUpdate = await request<AdminRestaurantResponse>(
+        `/admin/restaurants/${adminCreatedRestaurant.body.id}`,
+        {
+          method: 'PATCH',
+          headers: jsonHeaders(adminToken),
+          body: JSON.stringify({
+            ownerLoginPhone,
+          }),
+        },
+      )
+      assert.equal(ownerLoginPhoneUpdate.status, 200)
+      assert.equal(
+        ownerLoginPhoneUpdate.body.ownerLoginPhone,
+        '+972503334444',
+      )
+      assert.equal(
+        await prisma.restaurantMember.count({
+          where: {
+            restaurantId: adminCreatedRestaurant.body.id,
+            phoneNumber: '+972503334444',
+            role: 'owner',
+            status: 'pending',
+            userId: null,
+          },
+        }),
+        1,
+      )
+
+      const requestedOwnerLoginPhoneCode = await requestPhoneCode(
+        ownerLoginPhone,
+        'register',
+      )
+      assert.equal(requestedOwnerLoginPhoneCode.status, 200)
+      const capturedOwnerLoginPhoneCode = getCapturedOtpCodeForTest(
+        '+972503334444',
+        'register',
+      )
+      assert.match(capturedOwnerLoginPhoneCode ?? '', /^\d{4}$/)
+      const linkedOwnerAuth = await verifyPhoneCode({
+        phoneNumber: ownerLoginPhone,
+        code: capturedOwnerLoginPhoneCode,
+        purpose: 'register',
+        fullName: 'Linked Admin Owner',
+        track: 'restaurantOwner',
+      })
+      assert.equal(linkedOwnerAuth.status, 200)
+      assert.equal(linkedOwnerAuth.body.user?.restaurantMemberRole, 'owner')
+      assert.ok(linkedOwnerAuth.body.user?.id)
+      createdUserIds.push(linkedOwnerAuth.body.user.id)
+
+      const linkedOwnerProfile = await request<OwnerProfileResponse>(
+        '/owner/profile',
+        {
+          headers: jsonHeaders(linkedOwnerAuth.body.token),
+        },
+      )
+      assert.equal(linkedOwnerProfile.status, 200)
+      assert.equal(linkedOwnerProfile.body.id, adminCreatedRestaurant.body.id)
+      assert.ok(linkedOwnerProfile.body.slug)
+
+      const linkedOwnerJobs = await request<OwnerJobResponse[]>(
+        '/owner/jobs',
+        {
+          headers: jsonHeaders(linkedOwnerAuth.body.token),
+        },
+      )
+      assert.equal(linkedOwnerJobs.status, 200)
 
       const nonAdminDetailRequest = await request(
         `/admin/restaurants/${adminCreatedRestaurant.body.id}`,

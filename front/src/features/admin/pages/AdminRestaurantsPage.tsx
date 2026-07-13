@@ -11,6 +11,7 @@ const emptyRestaurantForm: AdminRestaurantInput = {
   restaurantName: '',
   slug: '',
   contactPerson: '',
+  ownerLoginPhone: '',
   phoneNumber: '',
   whatsappNumber: '',
   city: '',
@@ -186,6 +187,19 @@ function AdminRestaurantsPage() {
               />
             </label>
             <label>
+              Owner login phone
+              <input
+                value={form.ownerLoginPhone}
+                onChange={(event) =>
+                  updateForm('ownerLoginPhone', event.target.value)
+                }
+                placeholder="0501234567"
+              />
+              <small>
+                The owner uses this phone to log in and access this restaurant.
+              </small>
+            </label>
+            <label>
               Restaurant contact phone
               <input
                 value={form.phoneNumber}
@@ -193,6 +207,9 @@ function AdminRestaurantsPage() {
                   updateForm('phoneNumber', event.target.value)
                 }
               />
+              <small>
+                Public/contact number only. This does not grant owner access.
+              </small>
             </label>
             <label className="admin-form-wide">
               Description

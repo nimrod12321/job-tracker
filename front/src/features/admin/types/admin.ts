@@ -36,6 +36,7 @@ export type AdminRestaurant = {
   description: string
   slug: string | null
   qrEnabledRoles: RestaurantRole[]
+  ownerLoginPhone: string | null
   ownerUser: AdminOwnerUser
   activeJobsCount: number
   qrLeadsCount: number
@@ -51,6 +52,7 @@ export type AdminRestaurantInput = {
   restaurantName: string
   slug: string
   contactPerson: string
+  ownerLoginPhone: string
   phoneNumber: string
   whatsappNumber: string
   city: string

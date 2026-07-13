@@ -19,6 +19,7 @@ const emptyRestaurantForm: AdminRestaurantInput = {
   restaurantName: '',
   slug: '',
   contactPerson: '',
+  ownerLoginPhone: '',
   phoneNumber: '',
   whatsappNumber: '',
   city: '',
@@ -72,6 +73,7 @@ function AdminRestaurantDetailPage() {
             restaurantName: nextDetail.restaurant.restaurantName,
             slug: nextDetail.restaurant.slug ?? '',
             contactPerson: nextDetail.restaurant.contactPerson,
+            ownerLoginPhone: nextDetail.restaurant.ownerLoginPhone ?? '',
             phoneNumber: nextDetail.restaurant.phoneNumber,
             whatsappNumber: nextDetail.restaurant.whatsappNumber,
             city: nextDetail.restaurant.city,
@@ -197,6 +199,9 @@ function AdminRestaurantDetailPage() {
           ? {
               ...currentDetail,
               restaurant: updatedRestaurant,
+              ownerUser: updatedRestaurant.ownerUser,
+              ownerAccountPhone: updatedRestaurant.ownerLoginPhone,
+              restaurantContactPhone: updatedRestaurant.phoneNumber,
             }
           : currentDetail,
       )
@@ -377,7 +382,7 @@ function AdminRestaurantDetailPage() {
                 <dd>{owner}</dd>
               </div>
               <div>
-                <dt>Owner account phone</dt>
+                <dt>Owner login phone</dt>
                 <dd>{detail.ownerAccountPhone || 'No owner phone'}</dd>
               </div>
               <div>
@@ -478,11 +483,27 @@ function AdminRestaurantDetailPage() {
             />
           </label>
           <label>
+            Owner login phone
+            <input
+              value={form.ownerLoginPhone}
+              onChange={(event) =>
+                updateForm('ownerLoginPhone', event.target.value)
+              }
+              placeholder="0501234567"
+            />
+            <small>
+              The owner uses this phone to log in and access this restaurant.
+            </small>
+          </label>
+          <label>
             Restaurant contact phone
             <input
               value={form.phoneNumber}
               onChange={(event) => updateForm('phoneNumber', event.target.value)}
             />
+            <small>
+              Public/contact number only. This does not grant owner access.
+            </small>
           </label>
           <label className="admin-form-wide">
             Description

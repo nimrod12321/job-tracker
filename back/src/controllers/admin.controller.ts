@@ -12,6 +12,29 @@ import {
   candidateLeadStatusBodySchema,
   leadIdSchema,
 } from '../validations/publicRestaurant.validation.js'
+import { normalizeIsraeliPhoneNumber } from '../utils/phone.js'
+
+const adminOwnerMembersInclude = {
+  where: {
+    role: 'owner' as const,
+  },
+  select: {
+    phoneNumber: true,
+    role: true,
+    status: true,
+    user: {
+      select: {
+        id: true,
+        email: true,
+        phoneNumber: true,
+        fullName: true,
+      },
+    },
+  },
+  orderBy: {
+    createdAt: 'asc' as const,
+  },
+}
 
 function slugify(value: string) {
   const slug = value
@@ -76,6 +99,17 @@ function mapAdminRestaurantSummary(restaurant: {
     phoneNumber: string | null
     fullName: string
   }
+  members?: Array<{
+    phoneNumber: string
+    role: 'owner' | 'hiringManager'
+    status: 'active' | 'pending' | 'removed'
+    user: {
+      id: string
+      email: string | null
+      phoneNumber: string | null
+      fullName: string
+    } | null
+  }>
   _count: {
     leads: number
   }
@@ -140,17 +174,20 @@ function mapAdminRestaurantSummary(restaurant: {
         (createdAt) => createdAt > lastViewedCandidatesAt,
       ).length
     : candidateActivityDates.length
+  const ownerMember = restaurant.members?.find(
+    (member) => member.role === 'owner' && member.status !== 'removed',
+  )
   const ownerUser =
-    restaurant.user.email ||
-    restaurant.user.phoneNumber ||
-    restaurant.user.fullName
+    ownerMember?.user ??
+    (restaurant.user.email ||
+    restaurant.user.phoneNumber
       ? {
           id: restaurant.user.id,
           email: restaurant.user.email,
           phoneNumber: restaurant.user.phoneNumber,
           fullName: restaurant.user.fullName,
         }
-      : null
+      : null)
 
   return {
     id: restaurant.id,
@@ -163,6 +200,7 @@ function mapAdminRestaurantSummary(restaurant: {
     description: restaurant.description,
     slug: restaurant.slug,
     qrEnabledRoles: restaurant.qrEnabledRoles,
+    ownerLoginPhone: ownerMember?.phoneNumber ?? restaurant.user.phoneNumber,
     ownerUser,
     activeJobsCount,
     qrLeadsCount: restaurant._count.leads,
@@ -197,6 +235,92 @@ function mapAdminRestaurantSummary(restaurant: {
     createdAt: restaurant.createdAt.toISOString(),
     updatedAt: restaurant.updatedAt.toISOString(),
   }
+}
+
+function normalizeOptionalOwnerLoginPhone(value: string | undefined) {
+  if (value === undefined) {
+    return undefined
+  }
+
+  if (!value.trim()) {
+    return null
+  }
+
+  return normalizeIsraeliPhoneNumber(value)
+}
+
+function getSafeOwnerLoginPhone(value: string | undefined) {
+  try {
+    return {
+      ok: true as const,
+      ownerLoginPhone: normalizeOptionalOwnerLoginPhone(value),
+    }
+  } catch {
+    return {
+      ok: false as const,
+      message: 'owner login phone is invalid',
+    }
+  }
+}
+
+async function syncRestaurantOwnerLoginPhone(
+  tx: Pick<typeof prisma, 'restaurantMember' | 'user'>,
+  input: {
+    restaurantId: string
+    ownerLoginPhone: string | null
+    displayName: string
+  },
+) {
+  await tx.restaurantMember.deleteMany({
+    where: {
+      restaurantId: input.restaurantId,
+      role: 'owner',
+      ...(input.ownerLoginPhone
+        ? {
+            phoneNumber: {
+              not: input.ownerLoginPhone,
+            },
+          }
+        : {}),
+    },
+  })
+
+  if (!input.ownerLoginPhone) {
+    return
+  }
+
+  const user = await tx.user.findUnique({
+    where: {
+      phoneNumber: input.ownerLoginPhone,
+    },
+    select: {
+      id: true,
+      fullName: true,
+    },
+  })
+
+  await tx.restaurantMember.upsert({
+    where: {
+      restaurantId_phoneNumber: {
+        restaurantId: input.restaurantId,
+        phoneNumber: input.ownerLoginPhone,
+      },
+    },
+    update: {
+      role: 'owner',
+      status: user ? 'active' : 'pending',
+      userId: user?.id ?? null,
+      displayName: input.displayName || user?.fullName || '',
+    },
+    create: {
+      restaurantId: input.restaurantId,
+      phoneNumber: input.ownerLoginPhone,
+      role: 'owner',
+      status: user ? 'active' : 'pending',
+      userId: user?.id ?? null,
+      displayName: input.displayName || user?.fullName || '',
+    },
+  })
 }
 
 function getAdminUserId(req: Request) {
@@ -344,6 +468,7 @@ export async function getAdminRestaurants(req: Request, res: Response) {
             fullName: true,
           },
         },
+        members: adminOwnerMembersInclude,
         jobs: {
           select: {
             isActive: true,
@@ -424,8 +549,21 @@ export async function createAdminRestaurant(req: Request, res: Response) {
     const slug = await generateUniqueRestaurantSlug(
       result.data.slug || result.data.restaurantName,
     )
+    const ownerLoginPhoneResult = getSafeOwnerLoginPhone(
+      result.data.ownerLoginPhone,
+    )
+
+    if (!ownerLoginPhoneResult.ok) {
+      return res.status(400).json({
+        message: ownerLoginPhoneResult.message,
+      })
+    }
 
     const restaurant = await prisma.$transaction(async (tx) => {
+      const {
+        ownerLoginPhone: _ownerLoginPhone,
+        ...restaurantData
+      } = result.data
       const placeholderUser = await tx.user.create({
         data: {
           track: 'restaurantOwner',
@@ -433,9 +571,9 @@ export async function createAdminRestaurant(req: Request, res: Response) {
         },
       })
 
-      return tx.restaurantOwnerProfile.create({
+      const createdRestaurant = await tx.restaurantOwnerProfile.create({
         data: {
-          ...result.data,
+          ...restaurantData,
           slug,
           userId: placeholderUser.id,
         },
@@ -448,6 +586,75 @@ export async function createAdminRestaurant(req: Request, res: Response) {
               fullName: true,
             },
           },
+          members: adminOwnerMembersInclude,
+          jobs: {
+            select: {
+              isActive: true,
+              kind: true,
+              applications: {
+                select: {
+                  createdAt: true,
+                },
+              },
+              _count: {
+                select: {
+                  applications: true,
+                },
+              },
+            },
+          },
+          leads: {
+            select: {
+              createdAt: true,
+              source: true,
+              ownerViewedAt: true,
+            },
+          },
+          qrEvents: {
+            select: {
+              type: true,
+              sessionId: true,
+              createdAt: true,
+            },
+          },
+          adminReadStates: {
+            where: {
+              adminUserId,
+            },
+            select: {
+              lastViewedCandidatesAt: true,
+            },
+          },
+          _count: {
+            select: {
+              leads: true,
+            },
+          },
+        },
+      })
+
+      if (ownerLoginPhoneResult.ownerLoginPhone) {
+        await syncRestaurantOwnerLoginPhone(tx, {
+          restaurantId: createdRestaurant.id,
+          ownerLoginPhone: ownerLoginPhoneResult.ownerLoginPhone,
+          displayName: createdRestaurant.contactPerson,
+        })
+      }
+
+      return tx.restaurantOwnerProfile.findUniqueOrThrow({
+        where: {
+          id: createdRestaurant.id,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              phoneNumber: true,
+              fullName: true,
+            },
+          },
+          members: adminOwnerMembersInclude,
           jobs: {
             select: {
               isActive: true,
@@ -536,6 +743,7 @@ export async function getAdminRestaurantDetail(req: Request, res: Response) {
             fullName: true,
           },
         },
+        members: adminOwnerMembersInclude,
         jobs: {
           where: {
             kind: 'posted',
@@ -593,6 +801,8 @@ export async function getAdminRestaurantDetail(req: Request, res: Response) {
       })
     }
 
+    const restaurantSummary = mapAdminRestaurantSummary(restaurant)
+
     const applications = await prisma.restaurantApplication.findMany({
       where: {
         restaurantJob: {
@@ -627,19 +837,9 @@ export async function getAdminRestaurantDetail(req: Request, res: Response) {
     })
 
     return res.json({
-      restaurant: mapAdminRestaurantSummary(restaurant),
-      ownerUser:
-        restaurant.user.email ||
-        restaurant.user.phoneNumber ||
-        restaurant.user.fullName
-          ? {
-              id: restaurant.user.id,
-              email: restaurant.user.email,
-              phoneNumber: restaurant.user.phoneNumber,
-              fullName: restaurant.user.fullName,
-            }
-          : null,
-      ownerAccountPhone: restaurant.user.phoneNumber,
+      restaurant: restaurantSummary,
+      ownerUser: restaurantSummary.ownerUser,
+      ownerAccountPhone: restaurantSummary.ownerLoginPhone,
       restaurantContactPhone: restaurant.phoneNumber,
       jobs: restaurant.jobs.map(mapAdminRestaurantJob),
       qrLeads: restaurant.leads.map(mapAdminLead),
@@ -692,6 +892,16 @@ export async function updateAdminRestaurant(req: Request, res: Response) {
     }
 
     const requestedSlug = bodyResult.data.slug
+    const ownerLoginPhoneResult = getSafeOwnerLoginPhone(
+      bodyResult.data.ownerLoginPhone,
+    )
+
+    if (!ownerLoginPhoneResult.ok) {
+      return res.status(400).json({
+        message: ownerLoginPhoneResult.message,
+      })
+    }
+
     const slug =
       typeof requestedSlug === 'string' && requestedSlug.trim()
         ? await generateUniqueRestaurantSlug(requestedSlug, restaurant.id)
@@ -747,6 +957,14 @@ export async function updateAdminRestaurant(req: Request, res: Response) {
         },
       })
 
+      if (ownerLoginPhoneResult.ownerLoginPhone !== undefined) {
+        await syncRestaurantOwnerLoginPhone(tx, {
+          restaurantId: updated.id,
+          ownerLoginPhone: ownerLoginPhoneResult.ownerLoginPhone,
+          displayName: updated.contactPerson,
+        })
+      }
+
       return updated
     })
 
@@ -764,6 +982,7 @@ export async function updateAdminRestaurant(req: Request, res: Response) {
               fullName: true,
             },
           },
+          members: adminOwnerMembersInclude,
           jobs: {
             select: {
               isActive: true,
