@@ -23,6 +23,7 @@ const roleIcons: Record<RestaurantExploreJob['role'], string> = {
   waiter: '🍽️',
   barista: '☕',
   socialManager: '📱',
+  counterWorker: '🧾',
 }
 const DEMO_REAL_PLACE_MARKER = 'source=demo_real_place.'
 const DEMO_REAL_PLACE_NOTE = 'Demo listing — not verified by restaurant.'

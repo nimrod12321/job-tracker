@@ -312,7 +312,7 @@ test(
       assert.equal(ownerAInitialJobs.status, 200)
       assert.equal(
         ownerAInitialJobs.body.length,
-        7,
+        8,
       )
       assert.deepEqual(
         ownerAInitialJobs.body
@@ -322,6 +322,7 @@ test(
           'barista',
           'bartender',
           'cook',
+          'counterWorker',
           'floorManager',
           'host',
           'socialManager',
@@ -501,10 +502,37 @@ test(
       const ownerABaristaJob = ownerAInitialJobs.body.find(
         (job) => job.role === 'barista',
       )
+      const ownerACounterWorkerJob = ownerAInitialJobs.body.find(
+        (job) => job.role === 'counterWorker',
+      )
 
       assert.ok(ownerAWaiterJob)
       assert.ok(ownerAHostJob)
       assert.ok(ownerABaristaJob)
+      assert.ok(ownerACounterWorkerJob)
+
+      await prisma.restaurantJob.delete({
+        where: {
+          id: ownerACounterWorkerJob.id,
+        },
+      })
+      const recreatedCounterWorkerJob = await request<OwnerJobResponse>(
+        '/owner/jobs',
+        {
+          method: 'POST',
+          headers: jsonHeaders(ownerA.token),
+          body: JSON.stringify({
+            role: 'counterWorker',
+            description: 'Counter service job',
+            requirements: 'Friendly and reliable',
+            shiftInfo: 'Flexible counter shifts',
+            contactPhone: '',
+            contactWhatsapp: '',
+          }),
+        },
+      )
+      assert.equal(recreatedCounterWorkerJob.status, 201)
+      assert.equal(recreatedCounterWorkerJob.body.role, 'counterWorker')
 
       const duplicateWaiterJob = await request<{ message?: string }>(
         '/owner/jobs',
@@ -1593,7 +1621,7 @@ test(
         method: 'PATCH',
         headers: jsonHeaders(ownerA.token),
         body: JSON.stringify({
-          qrEnabledRoles: ['barista'],
+          qrEnabledRoles: ['counterWorker'],
         }),
       })
 
@@ -1624,13 +1652,83 @@ test(
         0,
       )
 
+      const publicAfterCounterWorkerOnlyQrRoles = await request<{
+        qrEnabledRoles: string[]
+      }>(`/public/restaurants/${ownerA.profile.slug}`)
+      assert.equal(publicAfterCounterWorkerOnlyQrRoles.status, 200)
+      assert.deepEqual(
+        publicAfterCounterWorkerOnlyQrRoles.body.qrEnabledRoles,
+        ['counterWorker'],
+      )
+
+      const counterWorkerToken = await registerAndLogin(
+        `counter-worker-${runId}@example.test`,
+        'restaurant',
+      )
+      await request('/restaurant/profile', {
+        method: 'PUT',
+        headers: jsonHeaders(counterWorkerToken),
+        body: JSON.stringify({
+          fullName: 'Counter Worker',
+          phoneNumber: '0508888888',
+          location: 'Tel Aviv',
+          wantedRoles: ['counterWorker'],
+          experienceText: 'No experience',
+          availability: 'Flexible',
+          age: 22,
+        }),
+      })
+      const counterWorkerUser = await prisma.user.update({
+        where: {
+          email: `counter-worker-${runId}@example.test`,
+        },
+        data: {
+          phoneNumber: '+972508888888',
+          phoneVerifiedAt: new Date(),
+          fullName: 'Counter Worker',
+        },
+      })
+
+      const counterWorkerVerifiedLead = await request<{ ok: boolean }>(
+        `/public/restaurants/${ownerA.profile.slug}/verified-leads`,
+        {
+          method: 'POST',
+          headers: jsonHeaders(counterWorkerToken),
+          body: JSON.stringify({
+            wantedRoles: ['counterWorker'],
+            experienceText: 'Counter experience',
+            availability: 'Flexible',
+            age: 22,
+          }),
+        },
+      )
+      assert.equal(counterWorkerVerifiedLead.status, 201)
+      const counterWorkerLead =
+        await prisma.restaurantCandidateLead.findFirstOrThrow({
+          where: {
+            ownerProfileId: ownerA.profile.id,
+            phoneNumber: '+972508888888',
+          },
+        })
+      assert.deepEqual(counterWorkerLead.wantedRoles, ['counterWorker'])
+      await prisma.restaurantCandidateLead.delete({
+        where: {
+          id: counterWorkerLead.id,
+        },
+      })
+      await prisma.restaurantWorkerProfile.delete({
+        where: {
+          userId: counterWorkerUser.id,
+        },
+      })
+
       const restoredQrRoles = await request<OwnerProfileResponse>(
         '/owner/qr-roles',
         {
           method: 'PATCH',
           headers: jsonHeaders(ownerA.token),
           body: JSON.stringify({
-            qrEnabledRoles: ['waiter', 'host', 'barista'],
+            qrEnabledRoles: ['waiter', 'host', 'barista', 'counterWorker'],
           }),
         },
       )
@@ -1639,6 +1737,7 @@ test(
         'waiter',
         'host',
         'barista',
+        'counterWorker',
       ])
       const publicAfterRestoredQrRoles = await request<{
         qrEnabledRoles: string[]

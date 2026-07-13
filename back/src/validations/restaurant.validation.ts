@@ -8,6 +8,7 @@ export const restaurantRoles = [
   'cook',
   'barista',
   'socialManager',
+  'counterWorker',
 ] as const
 
 export const defaultQrEnabledRoles = [

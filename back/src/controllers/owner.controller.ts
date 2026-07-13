@@ -99,6 +99,15 @@ const DEFAULT_OWNER_JOB_BOARD_JOBS: Array<
     description:
       'Create simple social content for the restaurant, capture food/service moments, and help the place show its vibe online.',
   },
+  {
+    role: 'counterWorker',
+    shiftInfo:
+      'Morning, afternoon, or evening shifts, 3–4 shifts per week, depending on service needs.',
+    requirements:
+      'Friendly service, clean work, responsibility, and ability to work quickly at the counter.',
+    description:
+      'Work at the counter, take orders, support guests, keep the station organized, and help service move smoothly.',
+  },
 ]
 
 function getUserId(req: Request) {
