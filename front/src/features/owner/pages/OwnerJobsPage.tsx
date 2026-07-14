@@ -115,8 +115,11 @@ function OwnerJobsPage() {
   const isJobBoardPilotPaused = true
 
   const text = {
-    title: language === 'he' ? 'QR' : 'QR',
-    subtitle: '',
+    title: language === 'he' ? 'התחילו לגייס' : 'Start hiring',
+    subtitle:
+      language === 'he'
+        ? 'בחרו אילו תפקידים פתוחים, הורידו את המודעה והתחילו לקבל מועמדים.'
+        : 'Choose which roles are open, download the poster, and start receiving candidates.',
     loading:
       language === 'he'
         ? 'טוען משרות מסעדה...'
@@ -205,44 +208,57 @@ function OwnerJobsPage() {
       language === 'he'
         ? 'אין עדיין משרות בלוח.'
         : 'No jobs on the board yet.',
-    qrTitle: language === 'he' ? 'QR' : 'QR',
-    qrDescription: '',
+    qrTitle: language === 'he' ? 'התחילו לגייס' : 'Start hiring',
+    qrDescription:
+      language === 'he'
+        ? 'בחרו אילו תפקידים פתוחים, הורידו את המודעה והתחילו לקבל מועמדים.'
+        : 'Choose which roles are open, download the poster, and start receiving candidates.',
     qrMissing:
       language === 'he'
-        ? 'השלימו ושמרו פרופיל מסעדה כדי ליצור קישור גיוס.'
-        : 'Complete your restaurant profile to generate your hiring QR.',
+        ? 'השלימו ושמרו פרופיל מסעדה כדי ליצור את הקישור של המסעדה.'
+        : 'Complete your restaurant profile to create your restaurant link.',
     qrCollapsedSubtitle:
       language === 'he'
-        ? 'עריכת תפקידי QR והורדת מודעה'
-        : 'Edit QR roles and download poster',
+        ? 'בחרו אילו תפקידים פתוחים, הורידו את המודעה והתחילו לקבל מועמדים.'
+        : 'Choose which roles are open, download the poster, and start receiving candidates.',
     closeQr: language === 'he' ? 'סגור אזור ברקוד' : 'Close QR section',
-    copyLink: language === 'he' ? 'העתק קישור' : 'Copy link',
+    restaurantLinkTitle:
+      language === 'he' ? 'הקישור של המסעדה' : 'Your restaurant link',
+    restaurantLinkHelper:
+      language === 'he'
+        ? 'זה הקישור שאליו מגיעים מועמדים שסורקים את ה־QR.'
+        : 'This is where candidates arrive after scanning your QR code.',
+    copyLink: language === 'he' ? 'העתקת קישור' : 'Copy link',
     downloadQr:
       language === 'he' ? 'הורדת מודעת QR' : 'Download QR poster',
     downloadQrHelper:
       language === 'he'
-        ? 'מודעה מוכנה להדפסה ולשיתוף עם הקוד של המסעדה.'
-        : 'A ready-to-print/share poster with this restaurant’s QR code.',
+        ? 'המודעה מוכנה להדפסה ולתלייה במסעדה.'
+        : 'The poster is ready to print and display at your restaurant.',
     downloadQrFailed:
       language === 'he'
         ? 'לא הצלחנו להוריד את מודעת ה־QR.'
         : 'Failed to download QR poster.',
     qrRolesTitle:
       language === 'he'
-        ? 'עריכת תפקידי QR'
-        : 'Edit QR roles',
+        ? 'אילו עובדים אתם מחפשים?'
+        : 'Who are you looking for?',
     qrRolesDescription:
       language === 'he'
-        ? 'בחרו אילו תפקידים יופיעו בטופס שהמועמדים רואים אחרי סריקת ה־QR.'
+        ? 'בחרו את התפקידים שיופיעו למועמדים אחרי סריקת ה־QR.'
         : 'Choose which roles candidates can apply for after scanning the QR.',
+    qrRolesHelper:
+      language === 'he'
+        ? 'לחצו על תפקיד כדי להפעיל או לכבות אותו.'
+        : 'Tap a role to turn it on or off.',
     qrRolesUpdated:
       language === 'he'
-        ? 'תפקידי ה־QR עודכנו.'
-        : 'QR roles updated.',
+        ? 'התפקידים עודכנו.'
+        : 'Roles updated.',
     qrRolesUpdateFailed:
       language === 'he'
-        ? 'לא הצלחנו לעדכן את תפקידי ה־QR.'
-        : 'Failed to update QR roles.',
+        ? 'לא הצלחנו לעדכן את התפקידים.'
+        : 'Failed to update roles.',
     qrRolesAllDisabled:
       language === 'he'
         ? 'כל התפקידים כבויים. מי שיסרוק את ה־QR יראה שהמסעדה לא מגייסת כרגע.'
@@ -831,9 +847,13 @@ function OwnerJobsPage() {
               </div>
 
               {publicHiringLink && (
-                <p className="owner-qr-link owner-qr-public-link" dir="ltr">
-                  {publicHiringLink}
-                </p>
+                <div className="owner-qr-link-section">
+                  <h3>{text.restaurantLinkTitle}</h3>
+                  <p>{text.restaurantLinkHelper}</p>
+                  <p className="owner-qr-link owner-qr-public-link" dir="ltr">
+                    {publicHiringLink}
+                  </p>
+                </div>
               )}
 
               <div className="owner-qr-actions">
@@ -861,6 +881,9 @@ function OwnerJobsPage() {
                   <div>
                     <h3>{text.qrRolesTitle}</h3>
                     <p>{text.qrRolesDescription}</p>
+                    <p className="owner-qr-role-helper">
+                      {text.qrRolesHelper}
+                    </p>
                   </div>
                 </div>
                 <div className="owner-qr-role-chips">

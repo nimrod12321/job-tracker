@@ -4945,6 +4945,29 @@ textarea:focus-visible {
   width: 100%;
 }
 
+.owner-qr-link-section {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.95rem;
+}
+
+.owner-qr-link-section h3 {
+  margin: 0;
+  color: var(--restaurant-ink, #1f1d1e);
+  font-size: 0.95rem;
+  font-weight: 900;
+}
+
+.owner-qr-link-section p {
+  margin: 0;
+}
+
+.owner-qr-link-section > p:not(.owner-qr-link) {
+  color: var(--restaurant-muted, #765a56);
+  font-size: 0.86rem;
+  font-weight: 750;
+}
+
 .owner-qr-card h2,
 .public-apply-card h1,
 .public-apply-card h2 {
@@ -5023,6 +5046,11 @@ textarea:focus-visible {
   color: var(--restaurant-muted, #765a56);
   font-size: 0.84rem;
   font-weight: 750;
+}
+
+.owner-qr-role-settings-heading .owner-qr-role-helper {
+  color: #7a5142;
+  font-size: 0.8rem;
 }
 
 .owner-qr-role-settings-heading span {
