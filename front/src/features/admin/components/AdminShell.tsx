@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
-import PeepssLogo from '../../../components/brand/PeepssLogo'
 import LegalFooter from '../../../components/legal/LegalFooter'
 import {
   clearAuthToken,
@@ -18,7 +17,12 @@ function AdminShell({ children }: { children: ReactNode }) {
       <aside className="admin-sidebar">
         <div className="admin-brand">
           <div>
-            <PeepssLogo className="admin-logo" />
+            <span className="peepss-logo admin-logo" dir="ltr">
+              <span className="peepss-logo-circle" />
+              <span className="peepss-logo-thin">p</span>
+              <span className="peepss-logo-bold">ee</span>
+              <span className="peepss-logo-thin">pss</span>
+            </span>
             <p>Admin</p>
           </div>
           <button

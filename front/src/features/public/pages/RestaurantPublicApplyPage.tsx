@@ -7,7 +7,6 @@ import {
   type FormEvent,
 } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
-import PeepssLogo from '../../../components/brand/PeepssLogo'
 import { requestAuthCode, verifyAuthCode } from '../../auth/services/authApi'
 import RestaurantLanguageToggle from '../../restaurant/components/RestaurantLanguageToggle'
 import {
@@ -510,7 +509,12 @@ function RestaurantPublicApplyPage({
     <section className="public-apply-page" dir={direction}>
       <div className="public-apply-shell">
         <header className="public-apply-header">
-          <PeepssLogo className="public-apply-logo" />
+          <span className="peepss-logo public-apply-logo" dir="ltr">
+            <span className="peepss-logo-circle" />
+            <span className="peepss-logo-thin">p</span>
+            <span className="peepss-logo-bold">ee</span>
+            <span className="peepss-logo-thin">pss</span>
+          </span>
           <RestaurantLanguageToggle />
         </header>
 

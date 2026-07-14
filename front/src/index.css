@@ -19,6 +19,7 @@
   --peepss-primary-hover: #cf4b2c;
   --peepss-primary-soft: #f1d6cb;
   --peepss-dark-pill: #201d1d;
+  --peepss-logo-accent: #866460;
   --peepss-shadow: 0 18px 45px rgb(134 100 96 / 18%);
 
   --background: var(--peepss-bg);
@@ -289,12 +290,24 @@ textarea:focus-visible {
 }
 
 .auth-logo.peepss-logo {
-  display: block;
+  display: inline-flex;
   flex: 0 0 auto;
-  width: auto;
-  max-width: 56vw;
-  height: 54px;
+  min-width: 0;
+  width: 96px;
+  max-width: 38vw;
+  height: 36px;
+  min-height: 36px;
   object-fit: contain;
+  overflow: visible;
+  font-size: 2rem;
+  letter-spacing: -0.14em;
+  line-height: 1;
+}
+
+.auth-logo .peepss-logo-circle {
+  left: 1.45rem;
+  width: 3.25rem;
+  height: 3.25rem;
 }
 
 .auth-hero h1 {
@@ -802,8 +815,17 @@ textarea:focus-visible {
 .legal-logo.peepss-logo {
   justify-self: center;
   width: auto;
-  max-width: min(330px, 82vw);
   height: auto;
+  min-height: 3.5rem;
+  overflow: visible;
+  font-size: clamp(2.4rem, 10vw, 3.2rem);
+  letter-spacing: -0.14em;
+}
+
+.legal-logo .peepss-logo-circle {
+  left: 1.85rem;
+  width: 4.25rem;
+  height: 4.25rem;
 }
 
 .legal-card h1,
@@ -881,11 +903,43 @@ textarea:focus-visible {
 }
 
 .peepss-logo {
-  display: block;
-  width: auto;
-  max-width: 260px;
-  height: auto;
-  object-fit: contain;
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  min-width: 8.25rem;
+  height: 2.5rem;
+  color: #1f1d1e;
+  font-family:
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+  font-size: clamp(2.1rem, 5vw, 3rem);
+  font-weight: 200;
+  letter-spacing: -0.13em;
+  line-height: 0.85;
+}
+
+.peepss-logo-circle {
+  position: absolute;
+  z-index: -1;
+  top: 50%;
+  left: 2.1rem;
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 50%;
+  background: var(--peepss-logo-accent);
+  transform: translateY(-50%);
+}
+
+.peepss-logo-bold {
+  color: #ffffff;
+  font-weight: 900;
+  letter-spacing: -0.08em;
+}
+
+.peepss-logo-thin {
+  font-weight: 200;
 }
 
 .app-header nav {
@@ -1045,11 +1099,21 @@ textarea:focus-visible {
 }
 
 .checking-session-logo.peepss-logo {
-  width: min(320px, 80vw);
-  max-width: 320px;
-  height: auto;
+  min-width: 0;
+  width: 8.5rem;
+  height: 5rem;
+  overflow: visible;
+  font-size: clamp(3rem, 13vw, 4rem);
+  letter-spacing: -0.14em;
+  line-height: 1;
   animation: peepss-session-hop 900ms ease-in-out infinite alternate;
   will-change: transform;
+}
+
+.checking-session-logo .peepss-logo-circle {
+  left: 2rem;
+  width: 5.25rem;
+  height: 5.25rem;
 }
 
 .checking-session-text {
@@ -5071,8 +5135,18 @@ textarea:focus-visible {
 
 .admin-logo.peepss-logo {
   width: auto;
-  max-width: 245px;
   height: auto;
+  max-width: 100%;
+  min-height: 3.8rem;
+  overflow: visible;
+  font-size: clamp(2.5rem, 5vw, 3.25rem);
+  letter-spacing: -0.14em;
+}
+
+.admin-logo .peepss-logo-circle {
+  left: 1.95rem;
+  width: 4.55rem;
+  height: 4.55rem;
 }
 
 .admin-brand p {
@@ -6070,8 +6144,17 @@ textarea:focus-visible {
 
 .public-apply-logo.peepss-logo {
   width: auto;
-  max-width: min(330px, 76vw);
   height: auto;
+  min-height: 4.5rem;
+  overflow: visible;
+  font-size: clamp(3rem, 14vw, 4.1rem);
+  letter-spacing: -0.14em;
+}
+
+.public-apply-logo .peepss-logo-circle {
+  left: 2.2rem;
+  width: 5.3rem;
+  height: 5.3rem;
 }
 
 .public-apply-kicker,
@@ -6449,7 +6532,14 @@ textarea:focus-visible {
   }
 
   .admin-logo.peepss-logo {
-    max-width: 210px;
+    min-height: 3.2rem;
+    font-size: 2.35rem;
+  }
+
+  .admin-logo .peepss-logo-circle {
+    left: 1.75rem;
+    width: 4rem;
+    height: 4rem;
   }
 
   .admin-nav {
@@ -6872,9 +6962,18 @@ textarea:focus-visible {
   }
 
   .restaurant-shell .peepss-logo {
-    width: auto;
-    max-width: 48vw;
-    height: 52px;
+    min-width: 0;
+    width: 92px;
+    max-width: 30vw;
+    height: 2rem;
+    font-size: 2.05rem;
+    letter-spacing: -0.14em;
+  }
+
+  .restaurant-shell .peepss-logo-circle {
+    left: 1.45rem;
+    width: 3.3rem;
+    height: 3.3rem;
   }
 
   .restaurant-shell .header-user-actions {
@@ -7096,11 +7195,22 @@ textarea:focus-visible {
   }
 
   .restaurant-shell .peepss-logo {
-    display: block;
+    display: inline-flex;
     align-self: center;
-    width: auto;
-    max-width: 52vw;
-    height: 68px;
+    min-width: 0;
+    width: 108px;
+    max-width: 34vw;
+    height: 3.8rem;
+    overflow: visible;
+    font-size: 2.15rem;
+    letter-spacing: -0.14em;
+    line-height: 1;
+  }
+
+  .restaurant-shell .peepss-logo-circle {
+    left: 1.55rem;
+    width: 3.55rem;
+    height: 3.55rem;
   }
 
   .restaurant-shell .app-header nav {
@@ -8123,15 +8233,19 @@ textarea:focus-visible {
   }
 
   .restaurant-shell .peepss-logo {
-    width: auto !important;
+    width: clamp(84px, 26vw, 116px) !important;
     max-width: 100% !important;
-    height: 54px !important;
+    min-width: 0 !important;
+    overflow: visible;
   }
 
   .auth-logo.peepss-logo {
-    width: auto !important;
-    max-width: 56vw !important;
-    height: 54px !important;
+    width: 96px !important;
+    max-width: 38vw !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    font-size: 2rem !important;
+    overflow: visible;
   }
 
   .restaurant-shell .app-header {

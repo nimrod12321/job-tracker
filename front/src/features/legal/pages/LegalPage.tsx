@@ -1,5 +1,3 @@
-import PeepssLogo from '../../../components/brand/PeepssLogo'
-
 type LegalPageKind = 'terms' | 'privacy' | 'accessibility' | 'contact'
 
 type LegalPageProps = {
@@ -89,7 +87,12 @@ function LegalPage({ kind }: LegalPageProps) {
   return (
     <section className="legal-page" dir="rtl">
       <div className="legal-card">
-        <PeepssLogo className="legal-logo" />
+        <span className="peepss-logo legal-logo" aria-label="Peepss" dir="ltr">
+          <span className="peepss-logo-circle" />
+          <span className="peepss-logo-thin">p</span>
+          <span className="peepss-logo-bold">ee</span>
+          <span className="peepss-logo-thin">pss</span>
+        </span>
         <h1>{content.title}</h1>
         <p className="legal-intro">{content.intro}</p>
 

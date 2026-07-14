@@ -1,6 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import PeepssLogo from '../../../components/brand/PeepssLogo'
 import {
   requestAuthCode,
   verifyAuthCode,
@@ -203,7 +202,12 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
     <section className="auth-page" dir={direction}>
       <div className="auth-shell">
         <div className="auth-topbar">
-          <PeepssLogo className="auth-logo" />
+          <span className="peepss-logo auth-logo" aria-label="Peepss" dir="ltr">
+            <span className="peepss-logo-circle" />
+            <span className="peepss-logo-thin">p</span>
+            <span className="peepss-logo-bold">ee</span>
+            <span className="peepss-logo-thin">pss</span>
+          </span>
           <button
             className="auth-language-toggle"
             type="button"
