@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import PeepssLogo from '../brand/PeepssLogo'
 import LegalFooter from '../legal/LegalFooter'
 import type { UserTrack } from '../../features/auth/services/authApi'
 import RestaurantLanguageToggle from '../../features/restaurant/components/RestaurantLanguageToggle'
@@ -39,7 +40,7 @@ function AppLayout({
     .filter(Boolean)
     .join(' ')
   const restaurantNavLabels = {
-    ownerJobs: language === 'he' ? 'המשרות שלי' : 'My jobs',
+    ownerJobs: language === 'he' ? 'גיוס QR' : 'QR hiring',
     ownerApplications: language === 'he' ? 'מועמדים' : 'Applications',
     ownerTeam: language === 'he' ? 'צוות' : 'Team',
     ownerProfile: language === 'he' ? 'פרופיל' : 'Profile',
@@ -103,13 +104,8 @@ function AppLayout({
       dir={isRestaurantSide ? direction : undefined}
     >
       <header className="app-header">
-        <h1 aria-label="Peepss">
-          <span className="peepss-logo" aria-hidden="true" dir="ltr">
-            <span className="peepss-logo-circle" />
-            <span className="peepss-logo-thin">p</span>
-            <span className="peepss-logo-bold">ee</span>
-            <span className="peepss-logo-thin">pss</span>
-          </span>
+        <h1>
+          <PeepssLogo />
         </h1>
 
         <nav

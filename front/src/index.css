@@ -19,7 +19,6 @@
   --peepss-primary-hover: #cf4b2c;
   --peepss-primary-soft: #f1d6cb;
   --peepss-dark-pill: #201d1d;
-  --peepss-logo-accent: #866460;
   --peepss-shadow: 0 18px 45px rgb(134 100 96 / 18%);
 
   --background: var(--peepss-bg);
@@ -290,24 +289,12 @@ textarea:focus-visible {
 }
 
 .auth-logo.peepss-logo {
-  display: inline-flex;
+  display: block;
   flex: 0 0 auto;
-  min-width: 0;
-  width: 96px;
-  max-width: 38vw;
-  height: 36px;
-  min-height: 36px;
+  width: auto;
+  max-width: 56vw;
+  height: 54px;
   object-fit: contain;
-  overflow: visible;
-  font-size: 2rem;
-  letter-spacing: -0.14em;
-  line-height: 1;
-}
-
-.auth-logo .peepss-logo-circle {
-  left: 1.45rem;
-  width: 3.25rem;
-  height: 3.25rem;
 }
 
 .auth-hero h1 {
@@ -334,6 +321,105 @@ textarea:focus-visible {
   padding: clamp(1rem, 4vw, 1.45rem);
   background: var(--peepss-surface);
   box-shadow: var(--peepss-shadow);
+}
+
+.claim-page {
+  min-height: 100%;
+  display: grid;
+  align-content: start;
+  gap: 1.2rem;
+  width: min(100%, 720px);
+  margin-inline: auto;
+  padding: max(1rem, env(safe-area-inset-top)) 1rem 2rem;
+  background:
+    radial-gradient(circle at 86% 18%, rgb(138 90 95 / 9%), transparent 17rem),
+    linear-gradient(180deg, var(--peepss-bg) 0%, #f8efe4 100%);
+}
+
+.claim-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.claim-card {
+  display: grid;
+  gap: 1rem;
+  border: 1px solid var(--peepss-border);
+  border-radius: 30px;
+  padding: clamp(1.1rem, 4vw, 1.8rem);
+  background: var(--peepss-surface);
+  box-shadow: var(--peepss-shadow);
+}
+
+.claim-card h1,
+.claim-card h2,
+.claim-card p {
+  margin: 0;
+}
+
+.claim-card h1 {
+  color: var(--peepss-text);
+  font-size: clamp(2rem, 7vw, 3.25rem);
+  line-height: 0.98;
+  letter-spacing: -0.055em;
+}
+
+.claim-card h2 {
+  color: var(--peepss-text);
+  font-size: clamp(1.3rem, 4.5vw, 1.8rem);
+  line-height: 1.05;
+}
+
+.claim-card p,
+.claim-card li {
+  color: var(--peepss-text-muted);
+  font-size: 1rem;
+  line-height: 1.55;
+  font-weight: 700;
+}
+
+.claim-prepared-list {
+  display: grid;
+  gap: 0.65rem;
+  border: 1px solid var(--peepss-border);
+  border-radius: 22px;
+  padding: 1rem;
+  background: #fffdf8;
+}
+
+.claim-prepared-list strong {
+  color: var(--peepss-text);
+  font-size: 1rem;
+}
+
+.claim-prepared-list ul {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding-inline-start: 1.2rem;
+}
+
+[dir='rtl'] .claim-prepared-list ul {
+  padding-inline-start: 0;
+  padding-inline-end: 1.2rem;
+}
+
+.claim-positioning {
+  border-inline-start: 4px solid var(--peepss-primary);
+  padding-inline-start: 0.85rem;
+}
+
+[dir='rtl'] .claim-positioning {
+  border-inline-start: 0;
+  border-inline-end: 4px solid var(--peepss-primary);
+  padding-inline-start: 0;
+  padding-inline-end: 0.85rem;
+}
+
+.claim-form {
+  gap: 0.9rem;
 }
 
 .auth-mode-tabs {
@@ -716,17 +802,8 @@ textarea:focus-visible {
 .legal-logo.peepss-logo {
   justify-self: center;
   width: auto;
+  max-width: min(330px, 82vw);
   height: auto;
-  min-height: 3.5rem;
-  overflow: visible;
-  font-size: clamp(2.4rem, 10vw, 3.2rem);
-  letter-spacing: -0.14em;
-}
-
-.legal-logo .peepss-logo-circle {
-  left: 1.85rem;
-  width: 4.25rem;
-  height: 4.25rem;
 }
 
 .legal-card h1,
@@ -804,43 +881,11 @@ textarea:focus-visible {
 }
 
 .peepss-logo {
-  position: relative;
-  isolation: isolate;
-  display: inline-flex;
-  align-items: center;
-  min-width: 8.25rem;
-  height: 2.5rem;
-  color: #1f1d1e;
-  font-family:
-    "Helvetica Neue",
-    Arial,
-    sans-serif;
-  font-size: clamp(2.1rem, 5vw, 3rem);
-  font-weight: 200;
-  letter-spacing: -0.13em;
-  line-height: 0.85;
-}
-
-.peepss-logo-circle {
-  position: absolute;
-  z-index: -1;
-  top: 50%;
-  left: 2.1rem;
-  width: 4.5rem;
-  height: 4.5rem;
-  border-radius: 50%;
-  background: var(--peepss-logo-accent);
-  transform: translateY(-50%);
-}
-
-.peepss-logo-bold {
-  color: #ffffff;
-  font-weight: 900;
-  letter-spacing: -0.08em;
-}
-
-.peepss-logo-thin {
-  font-weight: 200;
+  display: block;
+  width: auto;
+  max-width: 260px;
+  height: auto;
+  object-fit: contain;
 }
 
 .app-header nav {
@@ -1000,21 +1045,11 @@ textarea:focus-visible {
 }
 
 .checking-session-logo.peepss-logo {
-  min-width: 0;
-  width: 8.5rem;
-  height: 5rem;
-  overflow: visible;
-  font-size: clamp(3rem, 13vw, 4rem);
-  letter-spacing: -0.14em;
-  line-height: 1;
+  width: min(320px, 80vw);
+  max-width: 320px;
+  height: auto;
   animation: peepss-session-hop 900ms ease-in-out infinite alternate;
   will-change: transform;
-}
-
-.checking-session-logo .peepss-logo-circle {
-  left: 2rem;
-  width: 5.25rem;
-  height: 5.25rem;
 }
 
 .checking-session-text {
@@ -4600,13 +4635,15 @@ textarea:focus-visible {
   max-width: 100%;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.7rem;
-  border-radius: 999px;
+  border-color: rgb(220 86 52 / 22%);
+  border-radius: 28px;
   padding: 0.55rem 0.65rem 0.55rem 0.8rem;
-  box-shadow: 0 10px 24px rgb(93 49 13 / 8%);
+  box-shadow: 0 18px 45px rgb(93 49 13 / 12%);
 }
 
 .owner-qr-widget-collapsed {
   cursor: pointer;
+  border-radius: 999px;
 }
 
 .owner-qr-widget-collapsed:focus-visible {
@@ -4619,6 +4656,8 @@ textarea:focus-visible {
   grid-template-columns: 1fr;
   border-radius: 26px;
   padding: clamp(1.1rem, 4vw, 1.6rem);
+  background:
+    linear-gradient(180deg, rgb(255 250 243 / 98%), rgb(255 246 235 / 94%));
 }
 
 .owner-qr-widget-expanded * {
@@ -4793,6 +4832,12 @@ textarea:focus-visible {
   margin-top: 0.9rem;
 }
 
+.owner-qr-poster-helper {
+  color: var(--restaurant-muted, #765a56);
+  font-size: 0.86rem;
+  font-weight: 750;
+}
+
 .owner-qr-role-settings {
   display: grid;
   gap: 0.7rem;
@@ -4809,11 +4854,23 @@ textarea:focus-visible {
   gap: 0.75rem;
 }
 
+.owner-qr-role-settings-heading > div {
+  display: grid;
+  gap: 0.25rem;
+}
+
 .owner-qr-role-settings-heading h3 {
   margin: 0;
   color: var(--restaurant-ink, #1f1d1e);
   font-size: 0.95rem;
   font-weight: 900;
+}
+
+.owner-qr-role-settings-heading p {
+  margin: 0;
+  color: var(--restaurant-muted, #765a56);
+  font-size: 0.84rem;
+  font-weight: 750;
 }
 
 .owner-qr-role-settings-heading span {
@@ -4885,6 +4942,50 @@ textarea:focus-visible {
   color: #9a3412;
   font-size: 0.86rem;
   font-weight: 850;
+}
+
+.owner-job-board-muted {
+  border: 1px solid rgb(226 203 185 / 70%);
+  border-radius: 24px;
+  padding: clamp(1rem, 3vw, 1.25rem);
+  background: rgb(255 250 243 / 56%);
+  opacity: 0.68;
+}
+
+.owner-job-board-muted .owner-list-heading {
+  align-items: start;
+}
+
+.owner-job-board-muted .owner-list-heading h2 {
+  margin: 0;
+}
+
+.owner-job-board-muted .owner-list-heading p,
+.owner-job-board-coming-soon-copy {
+  margin: 0.25rem 0 0;
+  color: var(--restaurant-muted, #765a56);
+  font-size: 0.9rem;
+  font-weight: 750;
+}
+
+.owner-job-board-muted .owner-list-heading > span {
+  border: 1px solid rgb(118 90 86 / 18%);
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  background: rgb(255 253 248 / 86%);
+  color: var(--restaurant-muted, #765a56);
+  font-size: 0.78rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.owner-job-board-muted .owner-job-board-list,
+.owner-job-board-muted .owner-empty-small {
+  margin-top: 0.85rem;
+}
+
+.owner-job-board-muted .owner-job-board-card {
+  box-shadow: none;
 }
 
 .owner-candidate-section-header {
@@ -4970,18 +5071,8 @@ textarea:focus-visible {
 
 .admin-logo.peepss-logo {
   width: auto;
-  max-width: 100%;
+  max-width: 245px;
   height: auto;
-  min-height: 3.8rem;
-  overflow: visible;
-  font-size: clamp(2.5rem, 5vw, 3.25rem);
-  letter-spacing: -0.14em;
-}
-
-.admin-logo .peepss-logo-circle {
-  left: 1.95rem;
-  width: 4.55rem;
-  height: 4.55rem;
 }
 
 .admin-brand p {
@@ -5330,6 +5421,12 @@ textarea:focus-visible {
   transform: translateY(-2px);
 }
 
+.admin-restaurant-card-title-row {
+  display: grid;
+  gap: 0.45rem;
+  padding-inline-end: 0.9rem;
+}
+
 .admin-restaurant-compact-card h2 {
   margin: 0;
   overflow: hidden;
@@ -5337,6 +5434,36 @@ textarea:focus-visible {
   line-height: 1.05;
   letter-spacing: -0.04em;
   text-overflow: ellipsis;
+}
+
+.admin-activation-badge {
+  width: fit-content;
+  border: 1px solid var(--peepss-border, #e2cbb9);
+  border-radius: 999px;
+  padding: 0.24rem 0.48rem;
+  background: #fffdf8;
+  color: var(--peepss-text-muted, #765a56);
+  font-size: 0.68rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.admin-activation-badge.claimed {
+  border-color: rgb(21 128 61 / 24%);
+  background: #eef8ee;
+  color: #15803d;
+}
+
+.admin-activation-badge.available {
+  border-color: rgb(220 86 52 / 24%);
+  background: #fff3ed;
+  color: var(--peepss-primary, #dc5634);
+}
+
+.admin-activation-badge.missing {
+  border-color: rgb(118 90 86 / 18%);
+  background: #f7efe6;
+  color: var(--peepss-text-muted, #765a56);
 }
 
 .admin-restaurant-funnel-mini {
@@ -5943,17 +6070,8 @@ textarea:focus-visible {
 
 .public-apply-logo.peepss-logo {
   width: auto;
+  max-width: min(330px, 76vw);
   height: auto;
-  min-height: 4.5rem;
-  overflow: visible;
-  font-size: clamp(3rem, 14vw, 4.1rem);
-  letter-spacing: -0.14em;
-}
-
-.public-apply-logo .peepss-logo-circle {
-  left: 2.2rem;
-  width: 5.3rem;
-  height: 5.3rem;
 }
 
 .public-apply-kicker,
@@ -6331,14 +6449,7 @@ textarea:focus-visible {
   }
 
   .admin-logo.peepss-logo {
-    min-height: 3.2rem;
-    font-size: 2.35rem;
-  }
-
-  .admin-logo .peepss-logo-circle {
-    left: 1.75rem;
-    width: 4rem;
-    height: 4rem;
+    max-width: 210px;
   }
 
   .admin-nav {
@@ -6761,18 +6872,9 @@ textarea:focus-visible {
   }
 
   .restaurant-shell .peepss-logo {
-    min-width: 0;
-    width: 92px;
-    max-width: 30vw;
-    height: 2rem;
-    font-size: 2.05rem;
-    letter-spacing: -0.14em;
-  }
-
-  .restaurant-shell .peepss-logo-circle {
-    left: 1.45rem;
-    width: 3.3rem;
-    height: 3.3rem;
+    width: auto;
+    max-width: 48vw;
+    height: 52px;
   }
 
   .restaurant-shell .header-user-actions {
@@ -6994,22 +7096,11 @@ textarea:focus-visible {
   }
 
   .restaurant-shell .peepss-logo {
-    display: inline-flex;
+    display: block;
     align-self: center;
-    min-width: 0;
-    width: 108px;
-    max-width: 34vw;
-    height: 3.8rem;
-    overflow: visible;
-    font-size: 2.15rem;
-    letter-spacing: -0.14em;
-    line-height: 1;
-  }
-
-  .restaurant-shell .peepss-logo-circle {
-    left: 1.55rem;
-    width: 3.55rem;
-    height: 3.55rem;
+    width: auto;
+    max-width: 52vw;
+    height: 68px;
   }
 
   .restaurant-shell .app-header nav {
@@ -8032,19 +8123,15 @@ textarea:focus-visible {
   }
 
   .restaurant-shell .peepss-logo {
-    width: clamp(84px, 26vw, 116px) !important;
+    width: auto !important;
     max-width: 100% !important;
-    min-width: 0 !important;
-    overflow: visible;
+    height: 54px !important;
   }
 
   .auth-logo.peepss-logo {
-    width: 96px !important;
-    max-width: 38vw !important;
-    height: 36px !important;
-    min-height: 36px !important;
-    font-size: 2rem !important;
-    overflow: visible;
+    width: auto !important;
+    max-width: 56vw !important;
+    height: 54px !important;
   }
 
   .restaurant-shell .app-header {

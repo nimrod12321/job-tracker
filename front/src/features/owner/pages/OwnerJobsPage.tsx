@@ -49,22 +49,19 @@ function getStoredQrWidgetOpen(slug: string | null | undefined) {
   const storageKey = getQrWidgetStorageKey(slug)
 
   if (!storageKey) {
-    return false
+    return true
   }
 
   const storedValue = localStorage.getItem(storageKey)
 
-  return storedValue === null ? false : storedValue === 'true'
+  return storedValue === null ? true : storedValue === 'true'
 }
 
 function isOwnerProfileComplete(profile: OwnerProfile | null) {
   return Boolean(
     profile?.restaurantName.trim() &&
-      profile.contactPerson.trim() &&
-      profile.phoneNumber.trim() &&
-      profile.city.trim() &&
-      profile.street.trim() &&
-      profile.description.trim(),
+      profile.slug?.trim() &&
+      (profile.city.trim() || profile.street.trim()),
   )
 }
 
@@ -115,13 +112,14 @@ function OwnerJobsPage() {
     ? `${window.location.origin}/r/${profile.slug}`
     : ''
   const qrStorageKey = getQrWidgetStorageKey(profile?.slug)
+  const isJobBoardPilotPaused = true
 
   const text = {
-    title: language === 'he' ? 'המשרות שלי' : 'My jobs',
+    title: language === 'he' ? 'גיוס QR' : 'QR hiring',
     subtitle:
       language === 'he'
-        ? 'נהלו את לוח המשרות של המסעדה.'
-        : 'Manage your restaurant job board.',
+        ? 'נהלו את התפקידים שיופיעו בטופס שהמועמדים רואים אחרי סריקת ה־QR.'
+        : 'Manage the roles candidates see after scanning the QR.',
     loading:
       language === 'he'
         ? 'טוען משרות מסעדה...'
@@ -170,6 +168,15 @@ function OwnerJobsPage() {
     next: language === 'he' ? 'הבא' : 'Next',
     back: language === 'he' ? 'חזרה' : 'Back',
     jobBoard: language === 'he' ? 'לוח משרות' : 'Job board',
+    comingSoon: language === 'he' ? 'בקרוב' : 'Coming soon',
+    jobBoardSoon:
+      language === 'he'
+        ? 'דברים טובים יגיעו בהמשך.'
+        : 'Good things are coming soon.',
+    jobBoardPilotHint:
+      language === 'he'
+        ? 'בשלב הפיילוט אנחנו מתמקדים בגיוס דרך QR. לוח המשרות יהיה רלוונטי בהמשך.'
+        : 'For the pilot, we’re focusing on QR hiring. The job board will become useful later.',
     active: language === 'he' ? 'פעילה' : 'Active',
     inactive: language === 'he' ? 'לא פעילה' : 'Inactive',
     activeHint:
@@ -201,31 +208,39 @@ function OwnerJobsPage() {
       language === 'he'
         ? 'אין עדיין משרות בלוח.'
         : 'No jobs on the board yet.',
-    qrTitle: language === 'he' ? 'ברקוד גיוס' : 'QR hiring link',
+    qrTitle: language === 'he' ? 'גיוס דרך QR' : 'QR hiring',
     qrDescription:
       language === 'he'
-        ? 'תלו את הברקוד במסעדה כדי שעובדים יוכלו להשאיר פרטים.'
-        : 'Print or share this QR so workers can apply to your restaurant.',
+        ? 'נהלו את התפקידים שיופיעו בטופס שהמועמדים רואים אחרי סריקת ה־QR.'
+        : 'Manage the roles candidates see after scanning the QR.',
     qrMissing:
       language === 'he'
         ? 'השלימו ושמרו פרופיל מסעדה כדי ליצור קישור גיוס.'
         : 'Complete your restaurant profile to generate your hiring QR.',
     qrCollapsedSubtitle:
       language === 'he'
-        ? 'קישור מוכן לשיתוף והדפסה'
-        : 'Ready to share or print',
+        ? 'עריכת תפקידי QR והורדת מודעה'
+        : 'Edit QR roles and download poster',
     closeQr: language === 'he' ? 'סגור אזור ברקוד' : 'Close QR section',
     copyLink: language === 'he' ? 'העתק קישור' : 'Copy link',
     downloadQr:
       language === 'he' ? 'הורדת מודעת QR' : 'Download QR poster',
+    downloadQrHelper:
+      language === 'he'
+        ? 'מודעה מוכנה להדפסה ולשיתוף עם הקוד של המסעדה.'
+        : 'A ready-to-print/share poster with this restaurant’s QR code.',
     downloadQrFailed:
       language === 'he'
         ? 'לא הצלחנו להוריד את מודעת ה־QR.'
         : 'Failed to download QR poster.',
     qrRolesTitle:
       language === 'he'
-        ? 'תפקידים שיופיעו בטופס QR'
-        : 'Roles shown in the QR form',
+        ? 'עריכת תפקידי QR'
+        : 'Edit QR roles',
+    qrRolesDescription:
+      language === 'he'
+        ? 'בחרו אילו תפקידים יופיעו בטופס שהמועמדים רואים אחרי סריקת ה־QR.'
+        : 'Choose which roles candidates can apply for after scanning the QR.',
     qrRolesUpdated:
       language === 'he'
         ? 'תפקידי ה־QR עודכנו.'
@@ -704,7 +719,7 @@ function OwnerJobsPage() {
           {getPreview(job.requirements || job.description, text.noDetails)}
         </p>
 
-        {isExpanded && (
+        {isExpanded && !isJobBoardPilotPaused && (
           <div className="owner-job-actions">
             <button
               type="button"
@@ -793,9 +808,7 @@ function OwnerJobsPage() {
       <div className="page-header">
         <div>
           <h1>{text.title}</h1>
-          <p>
-            {text.postingFor} {ownerProfile.restaurantName}. {text.boardHint}
-          </p>
+          <p>{text.subtitle}</p>
         </div>
       </div>
 
@@ -864,10 +877,16 @@ function OwnerJobsPage() {
                   {text.downloadQr}
                 </button>
               </div>
+              <p className="owner-qr-poster-helper">
+                {text.downloadQrHelper}
+              </p>
 
               <div className="owner-qr-role-settings">
                 <div className="owner-qr-role-settings-heading">
-                  <h3>{text.qrRolesTitle}</h3>
+                  <div>
+                    <h3>{text.qrRolesTitle}</h3>
+                    <p>{text.qrRolesDescription}</p>
+                  </div>
                 </div>
                 <div className="owner-qr-role-chips">
                   {RESTAURANT_ROLES.map((role) => {
@@ -932,161 +951,159 @@ function OwnerJobsPage() {
         )}
       </section>
 
-      <div className="owner-job-primary-action">
-        <button
-          className={`owner-job-create-card${isCreating ? ' is-active' : ''}`}
-          type="button"
-          aria-expanded={isCreating}
-          onClick={startCreating}
-        >
-          <span className="owner-job-create-card-title">{text.createJob}</span>
-          <span className="owner-job-create-card-icon" aria-hidden="true">
-            +
-          </span>
-        </button>
-      </div>
-
-      {isCreating && (
-        <form
-          className="owner-job-form owner-step-card"
-          onSubmit={handleSubmit}
-        >
-          <button
-            className="owner-form-close-button peepss-close-button"
-            type="button"
-            aria-label={editingJobId ? text.closeEditJob : text.closeCreateJob}
-            onClick={resetForm}
-          >
-            ×
-          </button>
-          <div className="guided-form-progress">
-            <span>{jobStep}/4</span>
-            <div>
-              {[1, 2, 3, 4].map((currentStep) => (
-                <span
-                  className={currentStep <= jobStep ? 'active' : ''}
-                  key={currentStep}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div className="owner-form-heading">
-            <div>
-              <h2>{editingJobId ? text.editJob : text.createJob}</h2>
-              <p>{jobStep === 4 ? text.contactHint : text.boardHint}</p>
-            </div>
-          </div>
-          <p className="form-compliance-note">{text.jobComplianceNotice}</p>
-
-          {jobStep === 1 && (
-            <>
-              <fieldset className="restaurant-role-options owner-role-options">
-                <legend>{text.roleStep}</legend>
-                <div>
-                  {RESTAURANT_ROLES.map((role) => (
-                    <label key={role.value}>
-                      <input
-                        type="radio"
-                        name="owner-job-role"
-                        checked={form.role === role.value}
-                        onChange={() => updateField('role', role.value)}
-                      />
-                      <span>
-                        {getRestaurantRoleLabel(role.value, language)}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-            </>
-          )}
-
-          {jobStep === 2 && (
-            <>
-              <fieldset className="restaurant-role-options owner-shift-options">
-                <legend>{text.shiftStep}</legend>
-                <div>
-                  {shiftOptions.map((option) => {
-                    const label = option[language]
-
-                    return (
-                      <label key={label}>
-                        <input
-                          type="checkbox"
-                          checked={form.shiftInfo.includes(label)}
-                          onChange={() => toggleShift(label)}
-                        />
-                        <span>{label}</span>
-                      </label>
-                    )
-                  })}
-                </div>
-              </fieldset>
-            </>
-          )}
-
-          {jobStep === 3 && (
-            <>
-              <label className="owner-field-wide">
-                {text.requirements}
-                <textarea
-                  rows={3}
-                  value={form.requirements}
-                  onChange={(event) =>
-                    updateField('requirements', event.target.value)
-                  }
-                />
-              </label>
-              <label className="owner-field-wide">
-                {text.description}
-                <textarea
-                  rows={4}
-                  value={form.description}
-                  onChange={(event) =>
-                    updateField('description', event.target.value)
-                  }
-                />
-              </label>
-            </>
-          )}
-
-          {jobStep === 4 && (
-            <>
-              <label>
-                {text.contactPhone}
-                <input
-                  type="tel"
-                  value={form.contactPhone}
-                  onChange={(event) =>
-                    updateField('contactPhone', event.target.value)
-                  }
-                />
-              </label>
-            </>
-          )}
-
-          <div className="guided-form-actions">
-            {jobStep > 1 && (
-              <button
-                className="restaurant-skip-button"
-                type="button"
-                onClick={() => setJobStep((currentStep) => currentStep - 1)}
-              >
-                {text.back}
-              </button>
-            )}
-            <button type="submit" disabled={isSubmitting}>
-              {isSubmitting
-                ? text.saving
-                : jobStep === 4
-                  ? editingJobId
-                    ? text.saveChanges
-                    : text.createJob
-                  : text.next}
+      {!isJobBoardPilotPaused && (
+        <>
+          <div className="owner-job-primary-action">
+            <button
+              className={`owner-job-create-card${isCreating ? ' is-active' : ''}`}
+              type="button"
+              aria-expanded={isCreating}
+              onClick={startCreating}
+            >
+              <span className="owner-job-create-card-title">{text.createJob}</span>
+              <span className="owner-job-create-card-icon" aria-hidden="true">
+                +
+              </span>
             </button>
           </div>
-        </form>
+
+          {isCreating && (
+            <form
+              className="owner-job-form owner-step-card"
+              onSubmit={handleSubmit}
+            >
+              <button
+                className="owner-form-close-button peepss-close-button"
+                type="button"
+                aria-label={editingJobId ? text.closeEditJob : text.closeCreateJob}
+                onClick={resetForm}
+              >
+                ×
+              </button>
+              <div className="guided-form-progress">
+                <span>{jobStep}/4</span>
+                <div>
+                  {[1, 2, 3, 4].map((currentStep) => (
+                    <span
+                      className={currentStep <= jobStep ? 'active' : ''}
+                      key={currentStep}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="owner-form-heading">
+                <div>
+                  <h2>{editingJobId ? text.editJob : text.createJob}</h2>
+                  <p>{jobStep === 4 ? text.contactHint : text.boardHint}</p>
+                </div>
+              </div>
+              <p className="form-compliance-note">{text.jobComplianceNotice}</p>
+
+              {jobStep === 1 && (
+                <fieldset className="restaurant-role-options owner-role-options">
+                  <legend>{text.roleStep}</legend>
+                  <div>
+                    {RESTAURANT_ROLES.map((role) => (
+                      <label key={role.value}>
+                        <input
+                          type="radio"
+                          name="owner-job-role"
+                          checked={form.role === role.value}
+                          onChange={() => updateField('role', role.value)}
+                        />
+                        <span>
+                          {getRestaurantRoleLabel(role.value, language)}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              )}
+
+              {jobStep === 2 && (
+                <fieldset className="restaurant-role-options owner-shift-options">
+                  <legend>{text.shiftStep}</legend>
+                  <div>
+                    {shiftOptions.map((option) => {
+                      const label = option[language]
+
+                      return (
+                        <label key={label}>
+                          <input
+                            type="checkbox"
+                            checked={form.shiftInfo.includes(label)}
+                            onChange={() => toggleShift(label)}
+                          />
+                          <span>{label}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                </fieldset>
+              )}
+
+              {jobStep === 3 && (
+                <>
+                  <label className="owner-field-wide">
+                    {text.requirements}
+                    <textarea
+                      rows={3}
+                      value={form.requirements}
+                      onChange={(event) =>
+                        updateField('requirements', event.target.value)
+                      }
+                    />
+                  </label>
+                  <label className="owner-field-wide">
+                    {text.description}
+                    <textarea
+                      rows={4}
+                      value={form.description}
+                      onChange={(event) =>
+                        updateField('description', event.target.value)
+                      }
+                    />
+                  </label>
+                </>
+              )}
+
+              {jobStep === 4 && (
+                <label>
+                  {text.contactPhone}
+                  <input
+                    type="tel"
+                    value={form.contactPhone}
+                    onChange={(event) =>
+                      updateField('contactPhone', event.target.value)
+                    }
+                  />
+                </label>
+              )}
+
+              <div className="guided-form-actions">
+                {jobStep > 1 && (
+                  <button
+                    className="restaurant-skip-button"
+                    type="button"
+                    onClick={() => setJobStep((currentStep) => currentStep - 1)}
+                  >
+                    {text.back}
+                  </button>
+                )}
+                <button type="submit" disabled={isSubmitting}>
+                  {isSubmitting
+                    ? text.saving
+                    : jobStep === 4
+                      ? editingJobId
+                        ? text.saveChanges
+                        : text.createJob
+                      : text.next}
+                </button>
+              </div>
+            </form>
+          )}
+        </>
       )}
 
       {error && (
@@ -1101,11 +1118,17 @@ function OwnerJobsPage() {
         </p>
       )}
 
-      <section className="owner-job-list-section">
+      <section className="owner-job-list-section owner-job-board-muted">
         <div className="owner-list-heading">
-          <h2>{text.jobBoard}</h2>
-          <span>{jobs.length}</span>
+          <div>
+            <h2>{text.jobBoard}</h2>
+            <p>{text.jobBoardSoon}</p>
+          </div>
+          <span>{text.comingSoon}</span>
         </div>
+        <p className="owner-job-board-coming-soon-copy">
+          {text.jobBoardPilotHint}
+        </p>
 
         {jobs.length > 0 ? (
           <div className="owner-job-list owner-job-board-list">
