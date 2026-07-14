@@ -135,6 +135,36 @@ type AdminRestaurantResponse = {
     id: string
     phoneNumber: string | null
   } | null
+  claim: {
+    status: 'available' | 'claimed' | 'missing'
+    token: string | null
+    claimedAt: string | null
+    createdAt: string | null
+  }
+}
+
+type PublicRestaurantClaimResponse = {
+  restaurantName: string
+  slug: string
+  city: string
+  street: string
+  qrEnabledRoles: string[]
+  enabledQrRoleCount: number
+  claimStatus: 'available'
+  ownerLoginPhone?: unknown
+  members?: unknown
+  userId?: unknown
+  candidates?: unknown
+}
+
+type RestaurantClaimCompletionResponse = {
+  alreadyOwned: boolean
+  profileComplete: boolean
+  restaurant: {
+    id: string
+    restaurantName: string
+    slug: string | null
+  }
 }
 
 type AdminRestaurantDetailResponse = {
@@ -1298,6 +1328,338 @@ test(
           },
       })
       createdUserIds.push(duplicateProfile.userId)
+
+      assert.equal(adminCreatedRestaurant.body.claim.status, 'available')
+      assert.match(adminCreatedRestaurant.body.claim.token ?? '', /^[A-Za-z0-9_-]{32,}$/)
+
+      const storedAdminCreatedClaim =
+        await prisma.restaurantClaim.findUniqueOrThrow({
+          where: {
+            restaurantOwnerProfileId: adminCreatedRestaurant.body.id,
+          },
+        })
+      assert.notEqual(
+        storedAdminCreatedClaim.tokenHash,
+        adminCreatedRestaurant.body.claim.token,
+      )
+      assert.equal(storedAdminCreatedClaim.claimedAt, null)
+
+      const validPublicClaim = await request<PublicRestaurantClaimResponse>(
+        `/public/restaurants/${adminCreatedRestaurant.body.slug}/claim?token=${adminCreatedRestaurant.body.claim.token}`,
+      )
+      assert.equal(validPublicClaim.status, 200)
+      assert.equal(
+        validPublicClaim.body.restaurantName,
+        adminCreatedRestaurant.body.restaurantName,
+      )
+      assert.equal(validPublicClaim.body.claimStatus, 'available')
+      assert.equal(validPublicClaim.body.ownerLoginPhone, undefined)
+      assert.equal(validPublicClaim.body.members, undefined)
+      assert.equal(validPublicClaim.body.userId, undefined)
+      assert.equal(validPublicClaim.body.candidates, undefined)
+
+      const wrongPublicClaim = await request<Record<string, unknown>>(
+        `/public/restaurants/${adminCreatedRestaurant.body.slug}/claim?token=${'x'.repeat(43)}`,
+      )
+      assert.equal(wrongPublicClaim.status, 410)
+
+      const mismatchedRestaurantClaim =
+        await request<Record<string, unknown>>(
+          `/public/restaurants/${duplicateNameRestaurant.body.slug}/claim?token=${adminCreatedRestaurant.body.claim.token}`,
+        )
+      assert.equal(mismatchedRestaurantClaim.status, 410)
+
+      const claimTarget = await request<AdminRestaurantResponse>(
+        '/admin/restaurants',
+        {
+          method: 'POST',
+          headers: jsonHeaders(adminToken),
+          body: JSON.stringify({
+            restaurantName: `Claim Target ${runId}`,
+            city: 'Tel Aviv',
+          }),
+        },
+      )
+      assert.equal(claimTarget.status, 201)
+      assert.equal(claimTarget.body.claim.status, 'available')
+      assert.ok(claimTarget.body.claim.token)
+      createdOwnerProfileIds.push(claimTarget.body.id)
+      const claimTargetProfile =
+        await prisma.restaurantOwnerProfile.findUniqueOrThrow({
+          where: {
+            id: claimTarget.body.id,
+          },
+          select: {
+            userId: true,
+            qrEnabledRoles: true,
+            jobs: {
+              select: {
+                id: true,
+              },
+            },
+          },
+        })
+      createdUserIds.push(claimTargetProfile.userId)
+
+      const unauthenticatedClaimCompletion =
+        await request<Record<string, unknown>>(
+          `/owner/claims/${claimTarget.body.slug}/complete`,
+          {
+            method: 'POST',
+            headers: jsonHeaders(),
+            body: JSON.stringify({
+              token: claimTarget.body.claim.token,
+            }),
+          },
+        )
+      assert.equal(unauthenticatedClaimCompletion.status, 401)
+
+      const claimOwnerPhone = '0531112222'
+      const claimOwnerCodeRequest = await requestPhoneCode(
+        claimOwnerPhone,
+        'register',
+      )
+      assert.equal(claimOwnerCodeRequest.status, 200)
+      const claimOwnerCode = getCapturedOtpCodeForTest(
+        '+972531112222',
+        'register',
+      )
+      assert.match(claimOwnerCode ?? '', /^\d{4}$/)
+      const claimOwnerAuth = await verifyPhoneCode({
+        phoneNumber: claimOwnerPhone,
+        code: claimOwnerCode,
+        purpose: 'register',
+        fullName: 'Claim Owner',
+        track: 'restaurantOwner',
+      })
+      assert.equal(claimOwnerAuth.status, 200)
+      assert.ok(claimOwnerAuth.body.user?.id)
+      createdUserIds.push(claimOwnerAuth.body.user?.id ?? '')
+
+      const crossRestaurantClaim = await request<Record<string, unknown>>(
+        `/owner/claims/${adminCreatedRestaurant.body.slug}/complete`,
+        {
+          method: 'POST',
+          headers: jsonHeaders(claimOwnerAuth.body.token),
+          body: JSON.stringify({
+            token: claimTarget.body.claim.token,
+          }),
+        },
+      )
+      assert.equal(crossRestaurantClaim.status, 410)
+
+      const completedClaim =
+        await request<RestaurantClaimCompletionResponse>(
+          `/owner/claims/${claimTarget.body.slug}/complete`,
+          {
+            method: 'POST',
+            headers: jsonHeaders(claimOwnerAuth.body.token),
+            body: JSON.stringify({
+              token: claimTarget.body.claim.token,
+            }),
+          },
+        )
+      assert.equal(completedClaim.status, 200)
+      assert.equal(completedClaim.body.alreadyOwned, false)
+      assert.equal(completedClaim.body.profileComplete, true)
+      assert.equal(completedClaim.body.restaurant.id, claimTarget.body.id)
+      assert.equal(
+        await prisma.restaurantOwnerProfile.count({
+          where: {
+            id: claimTarget.body.id,
+          },
+        }),
+        1,
+      )
+      assert.equal(
+        await prisma.restaurantMember.count({
+          where: {
+            restaurantId: claimTarget.body.id,
+            userId: claimOwnerAuth.body.user?.id,
+            role: 'owner',
+            status: 'active',
+          },
+        }),
+        1,
+      )
+      const consumedClaim = await prisma.restaurantClaim.findUniqueOrThrow({
+        where: {
+          restaurantOwnerProfileId: claimTarget.body.id,
+        },
+      })
+      assert.ok(consumedClaim.claimedAt)
+
+      const idempotentSameOwnerClaim =
+        await request<RestaurantClaimCompletionResponse>(
+          `/owner/claims/${claimTarget.body.slug}/complete`,
+          {
+            method: 'POST',
+            headers: jsonHeaders(claimOwnerAuth.body.token),
+            body: JSON.stringify({
+              token: claimTarget.body.claim.token,
+            }),
+          },
+        )
+      assert.equal(idempotentSameOwnerClaim.status, 200)
+      assert.equal(idempotentSameOwnerClaim.body.alreadyOwned, true)
+      assert.equal(
+        await prisma.restaurantMember.count({
+          where: {
+            restaurantId: claimTarget.body.id,
+            role: 'owner',
+            status: 'active',
+          },
+        }),
+        1,
+      )
+
+      const secondClaimUserPhone = '0542223333'
+      const secondClaimUserCodeRequest = await requestPhoneCode(
+        secondClaimUserPhone,
+        'register',
+      )
+      assert.equal(secondClaimUserCodeRequest.status, 200)
+      const secondClaimUserCode = getCapturedOtpCodeForTest(
+        '+972542223333',
+        'register',
+      )
+      const secondClaimUserAuth = await verifyPhoneCode({
+        phoneNumber: secondClaimUserPhone,
+        code: secondClaimUserCode,
+        purpose: 'register',
+        fullName: 'Other Claim User',
+        track: 'restaurantOwner',
+      })
+      assert.equal(secondClaimUserAuth.status, 200)
+      assert.ok(secondClaimUserAuth.body.user?.id)
+      createdUserIds.push(secondClaimUserAuth.body.user?.id ?? '')
+
+      const otherUserClaimAttempt = await request<Record<string, unknown>>(
+        `/owner/claims/${claimTarget.body.slug}/complete`,
+        {
+          method: 'POST',
+          headers: jsonHeaders(secondClaimUserAuth.body.token),
+          body: JSON.stringify({
+            token: claimTarget.body.claim.token,
+          }),
+        },
+      )
+      assert.equal(otherUserClaimAttempt.status, 409)
+
+      const replaceClaimedOwnerAttempt =
+        await request<Record<string, unknown>>(
+          `/admin/restaurants/${claimTarget.body.id}`,
+          {
+            method: 'PATCH',
+            headers: jsonHeaders(adminToken),
+            body: JSON.stringify({
+              ownerLoginPhone: '0508881234',
+            }),
+          },
+        )
+      assert.equal(replaceClaimedOwnerAttempt.status, 409)
+      assert.equal(
+        await prisma.restaurantMember.count({
+          where: {
+            restaurantId: claimTarget.body.id,
+            userId: claimOwnerAuth.body.user?.id,
+            role: 'owner',
+            status: 'active',
+          },
+        }),
+        1,
+      )
+
+      const claimTargetAfterClaim =
+        await prisma.restaurantOwnerProfile.findUniqueOrThrow({
+          where: {
+            id: claimTarget.body.id,
+          },
+          select: {
+            qrEnabledRoles: true,
+            jobs: {
+              select: {
+                id: true,
+              },
+            },
+          },
+        })
+      assert.deepEqual(
+        claimTargetAfterClaim.qrEnabledRoles,
+        claimTargetProfile.qrEnabledRoles,
+      )
+      assert.deepEqual(claimTargetAfterClaim.jobs, claimTargetProfile.jobs)
+
+      const regenerationTarget = await request<AdminRestaurantResponse>(
+        '/admin/restaurants',
+        {
+          method: 'POST',
+          headers: jsonHeaders(adminToken),
+          body: JSON.stringify({
+            restaurantName: `Regenerate Claim ${runId}`,
+            city: 'Tel Aviv',
+          }),
+        },
+      )
+      assert.equal(regenerationTarget.status, 201)
+      createdOwnerProfileIds.push(regenerationTarget.body.id)
+      const regenerationTargetProfile =
+        await prisma.restaurantOwnerProfile.findUniqueOrThrow({
+          where: {
+            id: regenerationTarget.body.id,
+          },
+          select: {
+            userId: true,
+          },
+        })
+      createdUserIds.push(regenerationTargetProfile.userId)
+      const oldRegenerationToken = regenerationTarget.body.claim.token
+
+      const regeneratedClaim = await request<{
+        status: 'available'
+        token: string
+      }>(
+        `/admin/restaurants/${regenerationTarget.body.id}/claim/regenerate`,
+        {
+          method: 'POST',
+          headers: jsonHeaders(adminToken),
+        },
+      )
+      assert.equal(regeneratedClaim.status, 200)
+      assert.ok(regeneratedClaim.body.token)
+      assert.notEqual(regeneratedClaim.body.token, oldRegenerationToken)
+
+      const oldRegeneratedLink = await request<Record<string, unknown>>(
+        `/public/restaurants/${regenerationTarget.body.slug}/claim?token=${oldRegenerationToken}`,
+      )
+      assert.equal(oldRegeneratedLink.status, 410)
+      const newRegeneratedLink = await request<PublicRestaurantClaimResponse>(
+        `/public/restaurants/${regenerationTarget.body.slug}/claim?token=${regeneratedClaim.body.token}`,
+      )
+      assert.equal(newRegeneratedLink.status, 200)
+
+      const regeneratedClaimCompletion =
+        await request<RestaurantClaimCompletionResponse>(
+          `/owner/claims/${regenerationTarget.body.slug}/complete`,
+          {
+            method: 'POST',
+            headers: jsonHeaders(secondClaimUserAuth.body.token),
+            body: JSON.stringify({
+              token: regeneratedClaim.body.token,
+            }),
+          },
+        )
+      assert.equal(regeneratedClaimCompletion.status, 200)
+      assert.equal(regeneratedClaimCompletion.body.alreadyOwned, false)
+
+      const regenerateAfterClaim = await request<Record<string, unknown>>(
+        `/admin/restaurants/${regenerationTarget.body.id}/claim/regenerate`,
+        {
+          method: 'POST',
+          headers: jsonHeaders(adminToken),
+        },
+      )
+      assert.equal(regenerateAfterClaim.status, 409)
 
       const deletableRestaurant = await request<AdminRestaurantResponse>(
         '/admin/restaurants',

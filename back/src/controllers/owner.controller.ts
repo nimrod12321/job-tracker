@@ -13,9 +13,66 @@ import {
 import { normalizeIsraeliPhoneNumber } from '../utils/phone.js'
 import { getValidationErrorMessage } from '../utils/validation.js'
 import {
+  completeRestaurantClaim,
+  RestaurantClaimError,
+} from '../services/restaurantClaim.service.js'
+import {
   candidateLeadStatusBodySchema,
   leadIdSchema,
+  restaurantClaimCompleteSchema,
+  restaurantSlugSchema,
 } from '../validations/publicRestaurant.validation.js'
+
+export async function completeOwnerRestaurantClaim(
+  req: Request,
+  res: Response,
+) {
+  try {
+    const userId = (req as AuthenticatedRequest).userId
+    const slugResult = restaurantSlugSchema.safeParse(req.params.slug)
+    const bodyResult = restaurantClaimCompleteSchema.safeParse(req.body)
+
+    if (!userId) {
+      return res.status(401).json({
+        message: 'unauthorized',
+      })
+    }
+
+    if (!slugResult.success) {
+      return res.status(400).json({
+        message: getValidationErrorMessage(slugResult.error),
+      })
+    }
+
+    if (!bodyResult.success) {
+      return res.status(400).json({
+        message: getValidationErrorMessage(bodyResult.error),
+      })
+    }
+
+    const result = await completeRestaurantClaim({
+      restaurantSlug: slugResult.data,
+      token: bodyResult.data.token,
+      userId,
+    })
+
+    return res.json(result)
+  } catch (error) {
+    if (error instanceof RestaurantClaimError) {
+      return res.status(error.status).json({
+        code: error.code,
+        message: error.message,
+      })
+    }
+
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to activate restaurant',
+    })
+  }
+}
+
 import {
   ownerApplicationIdSchema,
   ownerApplicationStatusSchema,

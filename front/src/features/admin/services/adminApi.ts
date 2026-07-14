@@ -6,6 +6,7 @@ import {
 } from '../../auth/utils/authStorage'
 import type {
   AdminRestaurant,
+  AdminRestaurantClaim,
   AdminRestaurantCandidateLead,
   AdminRestaurantDetail,
   AdminRestaurantInput,
@@ -138,6 +139,24 @@ export async function updateAdminRestaurant(
 
   if (!response.ok) {
     await handleApiError(response, 'Failed to update restaurant')
+  }
+
+  return response.json()
+}
+
+export async function regenerateAdminRestaurantClaim(
+  id: string,
+): Promise<AdminRestaurantClaim> {
+  const response = await fetch(
+    `${API_BASE_URL}/admin/restaurants/${encodeURIComponent(id)}/claim/regenerate`,
+    {
+      method: 'POST',
+      headers: getHeaders(),
+    },
+  )
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to regenerate activation link')
   }
 
   return response.json()

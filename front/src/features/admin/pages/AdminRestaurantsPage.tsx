@@ -268,7 +268,16 @@ function AdminRestaurantsPage() {
                     title={`${restaurant.newCandidateCount} new candidate`}
                   />
                 )}
-                <h2>{restaurant.restaurantName}</h2>
+                <div className="admin-restaurant-card-title-row">
+                  <h2>{restaurant.restaurantName}</h2>
+                  <span
+                    className={`admin-activation-badge ${restaurant.claim.status}`}
+                  >
+                    {restaurant.claim.status === 'claimed'
+                      ? 'Activated'
+                      : 'Not activated'}
+                  </span>
+                </div>
                 <div
                   className="admin-restaurant-funnel-mini"
                   aria-label={`QR funnel: ${restaurant.funnelMetrics.qrScans} scans, ${restaurant.funnelMetrics.startedForms} started, ${restaurant.funnelMetrics.completedForms} completed`}

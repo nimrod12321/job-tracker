@@ -115,11 +115,8 @@ function OwnerJobsPage() {
   const isJobBoardPilotPaused = true
 
   const text = {
-    title: language === 'he' ? 'גיוס QR' : 'QR hiring',
-    subtitle:
-      language === 'he'
-        ? 'נהלו את התפקידים שיופיעו בטופס שהמועמדים רואים אחרי סריקת ה־QR.'
-        : 'Manage the roles candidates see after scanning the QR.',
+    title: language === 'he' ? 'QR' : 'QR',
+    subtitle: '',
     loading:
       language === 'he'
         ? 'טוען משרות מסעדה...'
@@ -208,11 +205,8 @@ function OwnerJobsPage() {
       language === 'he'
         ? 'אין עדיין משרות בלוח.'
         : 'No jobs on the board yet.',
-    qrTitle: language === 'he' ? 'גיוס דרך QR' : 'QR hiring',
-    qrDescription:
-      language === 'he'
-        ? 'נהלו את התפקידים שיופיעו בטופס שהמועמדים רואים אחרי סריקת ה־QR.'
-        : 'Manage the roles candidates see after scanning the QR.',
+    qrTitle: language === 'he' ? 'QR' : 'QR',
+    qrDescription: '',
     qrMissing:
       language === 'he'
         ? 'השלימו ושמרו פרופיל מסעדה כדי ליצור קישור גיוס.'
@@ -766,12 +760,6 @@ function OwnerJobsPage() {
   if (isLoading) {
     return (
       <section className="owner-jobs-page owner-guided-page" dir={direction}>
-        <div className="page-header">
-          <div>
-            <h1>{text.title}</h1>
-            <p>{text.subtitle}</p>
-          </div>
-        </div>
         <p className="status-message">{text.loading}</p>
       </section>
     )
@@ -780,12 +768,6 @@ function OwnerJobsPage() {
   if (error && !profile) {
     return (
       <section className="owner-jobs-page owner-guided-page" dir={direction}>
-        <div className="page-header">
-          <div>
-            <h1>{text.title}</h1>
-            <p>{text.subtitle}</p>
-          </div>
-        </div>
         <p className="message message-error" role="alert">
           {error}
         </p>
@@ -805,13 +787,6 @@ function OwnerJobsPage() {
 
   return (
     <section className="owner-jobs-page owner-guided-page" dir={direction}>
-      <div className="page-header">
-        <div>
-          <h1>{text.title}</h1>
-          <p>{text.subtitle}</p>
-        </div>
-      </div>
-
       <section
         className={`owner-qr-card owner-qr-widget ${
           isQrExpanded

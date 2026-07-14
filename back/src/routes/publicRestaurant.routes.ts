@@ -4,6 +4,7 @@ import {
   createPublicRestaurantQrEvent,
   createVerifiedPublicRestaurantLead,
   getPublicRestaurant,
+  getPublicRestaurantClaim,
 } from '../controllers/publicRestaurant.controller.js'
 import { requireAuth } from '../middleware/auth.middleware.js'
 import { createInMemoryRateLimit } from '../middleware/rateLimit.middleware.js'
@@ -19,8 +20,18 @@ const publicRestaurantQrEventRateLimit = createInMemoryRateLimit({
   message: 'too many QR events. Please try again later.',
   windowMs: 15 * 60 * 1000,
 })
+const publicRestaurantClaimRateLimit = createInMemoryRateLimit({
+  maxRequests: 60,
+  message: 'too many activation link requests. Please try again later.',
+  windowMs: 15 * 60 * 1000,
+})
 
 publicRestaurantRouter.get('/restaurants/:slug', getPublicRestaurant)
+publicRestaurantRouter.get(
+  '/restaurants/:slug/claim',
+  publicRestaurantClaimRateLimit,
+  getPublicRestaurantClaim,
+)
 publicRestaurantRouter.post(
   '/restaurants/:slug/qr-events',
   publicRestaurantQrEventRateLimit,

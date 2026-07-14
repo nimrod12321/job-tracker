@@ -280,9 +280,26 @@ model RestaurantOwnerProfile {
   qrEvents RestaurantQrEvent[]
   members RestaurantMember[]
   adminReadStates AdminRestaurantReadState[]
+  claim RestaurantClaim?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model RestaurantClaim {
+  id String @id @default(uuid())
+
+  restaurantOwnerProfileId String @unique
+  restaurantOwnerProfile RestaurantOwnerProfile @relation(fields: [restaurantOwnerProfileId], references: [id], onDelete: Cascade)
+
+  tokenHash String @unique
+  claimedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([restaurantOwnerProfileId])
+  @@index([claimedAt])
 }
 
 model AdminRestaurantReadState {

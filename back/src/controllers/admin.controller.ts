@@ -13,6 +13,12 @@ import {
   leadIdSchema,
 } from '../validations/publicRestaurant.validation.js'
 import { normalizeIsraeliPhoneNumber } from '../utils/phone.js'
+import {
+  createRestaurantClaim,
+  getRestaurantClaimToken,
+  regenerateRestaurantClaim,
+  RestaurantClaimError,
+} from '../services/restaurantClaim.service.js'
 
 const adminOwnerMembersInclude = {
   where: {
@@ -110,6 +116,13 @@ function mapAdminRestaurantSummary(restaurant: {
       fullName: string
     } | null
   }>
+  claim?: {
+    id: string
+    restaurantOwnerProfileId: string
+    claimedAt: Date | null
+    createdAt: Date
+    updatedAt: Date
+  } | null
   _count: {
     leads: number
   }
@@ -177,6 +190,15 @@ function mapAdminRestaurantSummary(restaurant: {
   const ownerMember = restaurant.members?.find(
     (member) => member.role === 'owner' && member.status !== 'removed',
   )
+  const hasActiveOwner = Boolean(
+    restaurant.members?.some(
+      (member) =>
+        member.role === 'owner' &&
+        member.status === 'active' &&
+        member.user,
+    ),
+  )
+  const mappedClaim = mapAdminClaim(restaurant.claim ?? null)
   const ownerUser =
     ownerMember?.user ??
     (restaurant.user.email ||
@@ -202,6 +224,13 @@ function mapAdminRestaurantSummary(restaurant: {
     qrEnabledRoles: restaurant.qrEnabledRoles,
     ownerLoginPhone: ownerMember?.phoneNumber ?? restaurant.user.phoneNumber,
     ownerUser,
+    claim: hasActiveOwner
+      ? {
+          ...mappedClaim,
+          status: 'claimed' as const,
+          token: null,
+        }
+      : mappedClaim,
     activeJobsCount,
     qrLeadsCount: restaurant._count.leads,
     applicationsCount,
@@ -234,6 +263,38 @@ function mapAdminRestaurantSummary(restaurant: {
     newCandidateCount,
     createdAt: restaurant.createdAt.toISOString(),
     updatedAt: restaurant.updatedAt.toISOString(),
+  }
+}
+
+function mapAdminClaim(claim: {
+  id: string
+  restaurantOwnerProfileId: string
+  claimedAt: Date | null
+  createdAt: Date
+} | null) {
+  if (!claim) {
+    return {
+      status: 'missing' as const,
+      token: null,
+      claimedAt: null,
+      createdAt: null,
+    }
+  }
+
+  if (claim.claimedAt) {
+    return {
+      status: 'claimed' as const,
+      token: null,
+      claimedAt: claim.claimedAt.toISOString(),
+      createdAt: claim.createdAt.toISOString(),
+    }
+  }
+
+  return {
+    status: 'available' as const,
+    token: getRestaurantClaimToken(claim),
+    claimedAt: null,
+    createdAt: claim.createdAt.toISOString(),
   }
 }
 
@@ -469,6 +530,7 @@ export async function getAdminRestaurants(req: Request, res: Response) {
           },
         },
         members: adminOwnerMembersInclude,
+        claim: true,
         jobs: {
           select: {
             isActive: true,
@@ -587,6 +649,7 @@ export async function createAdminRestaurant(req: Request, res: Response) {
             },
           },
           members: adminOwnerMembersInclude,
+          claim: true,
           jobs: {
             select: {
               isActive: true,
@@ -641,6 +704,8 @@ export async function createAdminRestaurant(req: Request, res: Response) {
         })
       }
 
+      await createRestaurantClaim(tx, createdRestaurant.id)
+
       return tx.restaurantOwnerProfile.findUniqueOrThrow({
         where: {
           id: createdRestaurant.id,
@@ -655,6 +720,7 @@ export async function createAdminRestaurant(req: Request, res: Response) {
             },
           },
           members: adminOwnerMembersInclude,
+          claim: true,
           jobs: {
             select: {
               isActive: true,
@@ -744,6 +810,7 @@ export async function getAdminRestaurantDetail(req: Request, res: Response) {
           },
         },
         members: adminOwnerMembersInclude,
+        claim: true,
         jobs: {
           where: {
             kind: 'posted',
@@ -902,6 +969,32 @@ export async function updateAdminRestaurant(req: Request, res: Response) {
       })
     }
 
+    if (ownerLoginPhoneResult.ownerLoginPhone !== undefined) {
+      const activeOwner = await prisma.restaurantMember.findFirst({
+        where: {
+          restaurantId: restaurant.id,
+          role: 'owner',
+          status: 'active',
+          userId: {
+            not: null,
+          },
+        },
+        select: {
+          phoneNumber: true,
+        },
+      })
+
+      if (
+        activeOwner &&
+        activeOwner.phoneNumber !== ownerLoginPhoneResult.ownerLoginPhone
+      ) {
+        return res.status(409).json({
+          message:
+            'restaurant already has an active owner; first-owner access cannot be replaced here',
+        })
+      }
+    }
+
     const slug =
       typeof requestedSlug === 'string' && requestedSlug.trim()
         ? await generateUniqueRestaurantSlug(requestedSlug, restaurant.id)
@@ -983,6 +1076,7 @@ export async function updateAdminRestaurant(req: Request, res: Response) {
             },
           },
           members: adminOwnerMembersInclude,
+          claim: true,
           jobs: {
             select: {
               isActive: true,
@@ -1100,6 +1194,78 @@ export async function markAdminRestaurantSeen(req: Request, res: Response) {
 
     return res.status(500).json({
       message: 'failed to mark restaurant seen',
+    })
+  }
+}
+
+export async function regenerateAdminRestaurantClaim(
+  req: Request,
+  res: Response,
+) {
+  try {
+    const idResult = adminRestaurantIdSchema.safeParse(req.params.id)
+
+    if (!idResult.success) {
+      return res.status(400).json({
+        message: getValidationErrorMessage(idResult.error),
+      })
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const restaurant = await tx.restaurantOwnerProfile.findUnique({
+        where: {
+          id: idResult.data,
+        },
+        include: {
+          claim: true,
+          members: {
+            where: {
+              role: 'owner',
+              status: 'active',
+              userId: {
+                not: null,
+              },
+            },
+            select: {
+              id: true,
+            },
+            take: 1,
+          },
+        },
+      })
+
+      if (!restaurant) {
+        throw new RestaurantClaimError(
+          'RESTAURANT_NOT_FOUND',
+          404,
+          'restaurant not found',
+        )
+      }
+
+      if (restaurant.members.length > 0 || restaurant.claim?.claimedAt) {
+        throw new RestaurantClaimError(
+          'ALREADY_ACTIVATED',
+          409,
+          'restaurant has already been activated',
+        )
+      }
+
+      return regenerateRestaurantClaim(tx, restaurant.id)
+    })
+
+    return res.json(mapAdminClaim(result.claim))
+  } catch (error) {
+    if (error instanceof RestaurantClaimError) {
+      return res.status(error.status).json({
+        code: error.code,
+        message: error.message,
+      })
+    }
+
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to regenerate activation link',
     })
   }
 }

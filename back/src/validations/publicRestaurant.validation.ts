@@ -8,6 +8,19 @@ export const restaurantSlugSchema = z
   .max(120, 'restaurant slug is too long')
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'restaurant slug is invalid')
 
+export const restaurantClaimTokenSchema = z
+  .string({ error: 'activation token is required' })
+  .trim()
+  .min(32, 'activation token is invalid')
+  .max(200, 'activation token is invalid')
+  .regex(/^[A-Za-z0-9_-]+$/, 'activation token is invalid')
+
+export const restaurantClaimCompleteSchema = z
+  .object({
+    token: restaurantClaimTokenSchema,
+  })
+  .strict()
+
 export const candidateLeadStatusSchema = z.enum(
   ['new', 'contacted', 'relevant', 'rejected'],
   {

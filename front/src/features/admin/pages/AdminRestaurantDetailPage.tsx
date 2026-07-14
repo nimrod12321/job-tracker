@@ -8,6 +8,7 @@ import {
   deleteAdminRestaurant,
   getAdminRestaurantDetail,
   markAdminRestaurantSeen,
+  regenerateAdminRestaurantClaim,
   updateAdminRestaurant,
 } from '../services/adminApi'
 import type {
@@ -35,6 +36,14 @@ function getPublicQrLink(slug: string | null) {
   return `${window.location.origin}/r/${slug}`
 }
 
+function getActivationLink(slug: string | null, token: string | null) {
+  if (!slug || !token) {
+    return ''
+  }
+
+  return `${window.location.origin}/claim/${slug}?token=${encodeURIComponent(token)}`
+}
+
 function formatAdminMetricDate(value: string | null) {
   if (!value) {
     return 'Not yet'
@@ -57,6 +66,14 @@ function AdminRestaurantDetailPage() {
   const publicQrLink = useMemo(
     () => getPublicQrLink(restaurant?.slug ?? null),
     [restaurant?.slug],
+  )
+  const activationLink = useMemo(
+    () =>
+      getActivationLink(
+        restaurant?.slug ?? null,
+        restaurant?.claim.token ?? null,
+      ),
+    [restaurant?.claim.token, restaurant?.slug],
   )
   const isForbidden = error?.toLowerCase().includes('admin access required')
 
@@ -172,6 +189,64 @@ function AdminRestaurantDetailPage() {
       setError(null)
     } catch {
       setError('Failed to download QR poster.')
+    }
+  }
+
+  async function handleCopyActivationLink() {
+    if (!activationLink) {
+      return
+    }
+
+    try {
+      await navigator.clipboard.writeText(activationLink)
+      setError(null)
+      setMessage('Activation link copied.')
+    } catch {
+      setError('Failed to copy activation link.')
+    }
+  }
+
+  async function handleRegenerateActivationLink() {
+    if (!restaurant || restaurant.claim.status === 'claimed') {
+      return
+    }
+
+    if (
+      restaurant.claim.status === 'available' &&
+      !window.confirm(
+        'Create a new activation link? The previous link will stop working.',
+      )
+    ) {
+      return
+    }
+
+    setIsSubmitting(true)
+    setError(null)
+    setMessage(null)
+
+    try {
+      const claim = await regenerateAdminRestaurantClaim(restaurant.id)
+
+      setDetail((currentDetail) =>
+        currentDetail
+          ? {
+              ...currentDetail,
+              restaurant: {
+                ...currentDetail.restaurant,
+                claim,
+              },
+            }
+          : currentDetail,
+      )
+      setMessage('A new activation link is ready. The previous link is invalid.')
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to regenerate activation link',
+      )
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -429,6 +504,59 @@ function AdminRestaurantDetailPage() {
               </button>
             </div>
           </article>
+        </section>
+
+        <section className="admin-restaurant-panel admin-activation-panel">
+          <div className="admin-activation-heading">
+            <div>
+              <h2>Restaurant activation</h2>
+              <p>
+                This private link can be sent to the restaurant owner or
+                manager to activate access to the restaurant.
+              </p>
+            </div>
+            <span
+              className={`admin-activation-badge ${restaurant.claim.status}`}
+            >
+              {restaurant.claim.status === 'claimed'
+                ? 'Activated'
+                : restaurant.claim.status === 'available'
+                  ? 'Ready to send'
+                  : 'No active link'}
+            </span>
+          </div>
+
+          {activationLink && (
+            <p className="admin-activation-link" dir="ltr">
+              {activationLink}
+            </p>
+          )}
+
+          {restaurant.claim.status === 'claimed' ? (
+            <p>
+              This restaurant already has an active owner. First-owner link
+              regeneration is disabled.
+            </p>
+          ) : (
+            <div className="admin-actions">
+              <button
+                type="button"
+                disabled={!activationLink || isSubmitting}
+                onClick={() => void handleCopyActivationLink()}
+              >
+                Copy activation link
+              </button>
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => void handleRegenerateActivationLink()}
+              >
+                {restaurant.claim.status === 'missing'
+                  ? 'Create activation link'
+                  : 'Regenerate activation link'}
+              </button>
+            </div>
+          )}
         </section>
 
         <form

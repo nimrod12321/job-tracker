@@ -1,6 +1,7 @@
 import { Router, type RequestHandler } from 'express'
 import {
   createOwnerJob,
+  completeOwnerRestaurantClaim,
   deleteOwnerApplication,
   deleteOwnerJob,
   deleteOwnerLead,
@@ -27,6 +28,12 @@ import {
 import { getRestaurantAccessForUser } from '../services/restaurantAccess.service.js'
 
 const ownerRouter = Router()
+
+ownerRouter.post(
+  '/claims/:slug/complete',
+  requireAuth,
+  completeOwnerRestaurantClaim,
+)
 
 const requireRestaurantOwner: RequestHandler = async (req, res, next) => {
   const userId = (req as AuthenticatedRequest).userId

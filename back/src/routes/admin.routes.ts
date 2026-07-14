@@ -6,6 +6,7 @@ import {
   getAdminRestaurantLeads,
   getAdminRestaurants,
   markAdminRestaurantSeen,
+  regenerateAdminRestaurantClaim,
   updateAdminRestaurant,
   updateAdminRestaurantLeadStatus,
 } from '../controllers/admin.controller.js'
@@ -20,6 +21,10 @@ adminRouter.post('/restaurants', createAdminRestaurant)
 adminRouter.post('/restaurants/:id/mark-seen', markAdminRestaurantSeen)
 adminRouter.get('/restaurants/:id', getAdminRestaurantDetail)
 adminRouter.patch('/restaurants/:id', updateAdminRestaurant)
+adminRouter.post(
+  '/restaurants/:id/claim/regenerate',
+  regenerateAdminRestaurantClaim,
+)
 adminRouter.delete('/restaurants/:id', deleteAdminRestaurant)
 adminRouter.get('/restaurant-leads', getAdminRestaurantLeads)
 adminRouter.patch(

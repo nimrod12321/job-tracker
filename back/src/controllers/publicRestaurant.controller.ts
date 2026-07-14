@@ -5,9 +5,11 @@ import type { AuthenticatedRequest } from '../middleware/auth.middleware.js'
 import { getValidationErrorMessage } from '../utils/validation.js'
 import {
   publicRestaurantQrEventSchema,
+  restaurantClaimTokenSchema,
   restaurantSlugSchema,
   verifiedPublicRestaurantLeadSchema,
 } from '../validations/publicRestaurant.validation.js'
+import { verifyRestaurantClaimToken } from '../services/restaurantClaim.service.js'
 
 const DUPLICATE_WINDOW_MS = 24 * 60 * 60 * 1000
 
@@ -68,6 +70,102 @@ export async function getPublicRestaurant(req: Request, res: Response) {
 
     return res.status(500).json({
       message: 'failed to fetch restaurant',
+    })
+  }
+}
+
+export async function getPublicRestaurantClaim(req: Request, res: Response) {
+  try {
+    const slugResult = restaurantSlugSchema.safeParse(req.params.slug)
+    const tokenResult = restaurantClaimTokenSchema.safeParse(req.query.token)
+
+    if (!slugResult.success) {
+      return res.status(400).json({
+        message: getValidationErrorMessage(slugResult.error),
+      })
+    }
+
+    if (!tokenResult.success) {
+      return res.status(410).json({
+        code: 'CLAIM_UNAVAILABLE',
+        message: 'activation link is no longer available',
+      })
+    }
+
+    const profile = await prisma.restaurantOwnerProfile.findUnique({
+      where: {
+        slug: slugResult.data,
+      },
+      select: {
+        restaurantName: true,
+        city: true,
+        street: true,
+        slug: true,
+        qrEnabledRoles: true,
+        claim: true,
+        members: {
+          where: {
+            role: 'owner',
+            status: 'active',
+            userId: {
+              not: null,
+            },
+          },
+          select: {
+            id: true,
+          },
+          take: 1,
+        },
+      },
+    })
+
+    if (!profile?.claim) {
+      return res.status(410).json({
+        code: 'CLAIM_UNAVAILABLE',
+        message: 'activation link is no longer available',
+      })
+    }
+
+    if (
+      !verifyRestaurantClaimToken(
+        tokenResult.data,
+        profile.claim.tokenHash,
+      )
+    ) {
+      return res.status(410).json({
+        code: 'CLAIM_UNAVAILABLE',
+        message: 'activation link is no longer available',
+      })
+    }
+
+    if (profile.members.length > 0) {
+      return res.status(409).json({
+        code: 'ALREADY_ACTIVATED',
+        message: 'restaurant has already been activated',
+      })
+    }
+
+    if (profile.claim.claimedAt) {
+      return res.status(410).json({
+        code: 'CLAIM_UNAVAILABLE',
+        message: 'activation link is no longer available',
+      })
+    }
+
+    return res.json({
+      restaurantName: profile.restaurantName,
+      slug: profile.slug,
+      city: profile.city,
+      street: profile.street,
+      qrEnabledRoles: profile.qrEnabledRoles,
+      enabledQrRoleCount: profile.qrEnabledRoles.length,
+      claimStatus: 'available',
+    })
+  } catch (error) {
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to validate activation link',
     })
   }
 }

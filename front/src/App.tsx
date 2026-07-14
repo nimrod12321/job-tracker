@@ -35,6 +35,7 @@ import { getOwnerProfile } from './features/owner/services/ownerApi'
 import type { OwnerProfile } from './features/owner/types/owner'
 import ProfilePage from './features/profile/pages/ProfilePage'
 import RestaurantPublicApplyPage from './features/public/pages/RestaurantPublicApplyPage'
+import RestaurantClaimPage from './features/public/pages/RestaurantClaimPage'
 import RestaurantExplorePage from './features/restaurant/pages/RestaurantExplorePage'
 import RestaurantMatchesPage from './features/restaurant/pages/RestaurantMatchesPage'
 import RestaurantProfilePage from './features/restaurant/pages/RestaurantProfilePage'
@@ -215,6 +216,35 @@ function App() {
     }
   }
 
+  async function handleRestaurantClaimSuccess(
+    newToken: string,
+    profileComplete: boolean,
+  ) {
+    saveAuthToken(newToken)
+    setToken(newToken)
+    setIsCheckingAuth(true)
+
+    try {
+      const user = await getCurrentUser(newToken)
+
+      setCurrentUser(user)
+      navigate(
+        user.isAdmin
+          ? '/admin/restaurants'
+          : profileComplete
+            ? '/owner/jobs'
+            : '/owner/profile',
+        { replace: true },
+      )
+    } catch {
+      clearAuthToken()
+      setCurrentUser(null)
+      setToken(null)
+    } finally {
+      setIsCheckingAuth(false)
+    }
+  }
+
   function handleLogout() {
     clearAuthToken()
     setCurrentUser(null)
@@ -305,6 +335,16 @@ function App() {
           element={
             <RestaurantPublicApplyPage
               onAuthVerified={handlePublicAuthVerified}
+            />
+          }
+        />
+      </Route>
+      <Route element={<StandardLayout className="claim-standard-layout" />}>
+        <Route
+          path="/claim/:restaurantSlug"
+          element={
+            <RestaurantClaimPage
+              onClaimSuccess={handleRestaurantClaimSuccess}
             />
           }
         />

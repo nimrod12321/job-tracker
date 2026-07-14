@@ -38,6 +38,7 @@ export type AdminRestaurant = {
   qrEnabledRoles: RestaurantRole[]
   ownerLoginPhone: string | null
   ownerUser: AdminOwnerUser
+  claim: AdminRestaurantClaim
   activeJobsCount: number
   qrLeadsCount: number
   applicationsCount: number
@@ -46,6 +47,13 @@ export type AdminRestaurant = {
   newCandidateCount: number
   createdAt: string
   updatedAt: string
+}
+
+export type AdminRestaurantClaim = {
+  status: 'available' | 'claimed' | 'missing'
+  token: string | null
+  claimedAt: string | null
+  createdAt: string | null
 }
 
 export type AdminRestaurantInput = {
