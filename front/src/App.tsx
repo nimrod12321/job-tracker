@@ -41,6 +41,7 @@ import RestaurantMatchesPage from './features/restaurant/pages/RestaurantMatches
 import RestaurantProfilePage from './features/restaurant/pages/RestaurantProfilePage'
 import { getRestaurantProfile } from './features/restaurant/services/restaurantApi'
 import type { RestaurantWorkerProfile } from './features/restaurant/types/restaurant'
+import { getStoredRestaurantLanguage } from './features/restaurant/utils/restaurantLanguage'
 
 function getHomePath(user: AuthUser | null) {
   if (user?.isAdmin) {
@@ -142,6 +143,7 @@ function App() {
   const [isCheckingAuth, setIsCheckingAuth] = useState(() =>
     Boolean(getAuthToken()),
   )
+  const [showAuthLoading, setShowAuthLoading] = useState(false)
 
   useEffect(() => {
     const existingToken = getAuthToken()
@@ -182,9 +184,22 @@ function App() {
     }
   }, [navigate])
 
+  useEffect(() => {
+    if (!isCheckingAuth) return
+
+    const timeoutId = window.setTimeout(() => {
+      setShowAuthLoading(true)
+    }, 275)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [isCheckingAuth])
+
   async function handleAuthSuccess(newToken: string) {
     saveAuthToken(newToken)
     setToken(newToken)
+    setShowAuthLoading(false)
     setIsCheckingAuth(true)
 
     try {
@@ -222,6 +237,7 @@ function App() {
   ) {
     saveAuthToken(newToken)
     setToken(newToken)
+    setShowAuthLoading(false)
     setIsCheckingAuth(true)
 
     try {
@@ -252,7 +268,11 @@ function App() {
     navigate('/login', { replace: true })
   }
 
-  if (isCheckingAuth) {
+  if (isCheckingAuth && showAuthLoading) {
+    const language = getStoredRestaurantLanguage()
+    const loadingText =
+      language === 'he' ? 'מכינים את הכול…' : 'Getting things ready…'
+
     return (
       <section className="checking-session-screen" aria-live="polite">
         <div className="checking-session-card">
@@ -266,10 +286,14 @@ function App() {
             <span className="peepss-logo-bold">ee</span>
             <span className="peepss-logo-thin">pss</span>
           </span>
-          <p className="checking-session-text">Checking session...</p>
+          <p className="checking-session-text">{loadingText}</p>
         </div>
       </section>
     )
+  }
+
+  if (isCheckingAuth) {
+    return null
   }
 
   const isAuthenticated = Boolean(token && currentUser)

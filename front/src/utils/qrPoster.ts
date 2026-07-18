@@ -36,6 +36,16 @@ export async function downloadQrPoster({
   publicUrl,
   slug,
 }: DownloadQrPosterOptions) {
+  const posterDataUrl = await createQrPosterDataUrl(publicUrl)
+  const link = document.createElement('a')
+  const safeSlug = sanitizeFileNamePart(slug) || 'restaurant'
+
+  link.href = posterDataUrl
+  link.download = `peepss-${safeSlug}-qr-poster.png`
+  link.click()
+}
+
+export async function createQrPosterDataUrl(publicUrl: string) {
   const [posterTemplate, qrImage] = await Promise.all([
     loadImage(POSTER_TEMPLATE_SRC),
     QRCode.toDataURL(publicUrl, {
@@ -74,12 +84,7 @@ export async function downloadQrPoster({
 
   context.drawImage(qrImage, qrX, qrY, qrSize, qrSize)
 
-  const link = document.createElement('a')
-  const safeSlug = sanitizeFileNamePart(slug) || 'restaurant'
-
-  link.href = canvas.toDataURL('image/png')
-  link.download = `peepss-${safeSlug}-qr-poster.png`
-  link.click()
+  return canvas.toDataURL('image/png')
 }
 
 export const qrPosterPlacement = {

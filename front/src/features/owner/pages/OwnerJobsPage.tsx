@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import QRCode from 'qrcode'
 import { useNavigate } from 'react-router-dom'
+import PeepssModal from '../../../components/common/PeepssModal'
 import {
   RESTAURANT_ROLES,
   getRestaurantRoleLabel,
   type RestaurantRole,
 } from '../../restaurant/types/restaurant'
 import { useRestaurantLanguage } from '../../restaurant/utils/restaurantLanguage'
-import { downloadQrPoster } from '../../../utils/qrPoster'
+import {
+  createQrPosterDataUrl,
+  downloadQrPoster,
+} from '../../../utils/qrPoster'
 import {
   createOwnerJob,
   deleteOwnerJob,
@@ -99,15 +102,24 @@ function OwnerJobsPage() {
   const [editingJobId, setEditingJobId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isSavingQrRoles, setIsSavingQrRoles] = useState(false)
+  const [qrRolesSaveStatus, setQrRolesSaveStatus] = useState<
+    'idle' | 'saving' | 'saved' | 'error'
+  >('idle')
   const [busyJobId, setBusyJobId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
-  const [qrCodeUrl, setQrCodeUrl] = useState('')
+  const [posterPreviewUrl, setPosterPreviewUrl] = useState('')
+  const [isPosterPreviewOpen, setIsPosterPreviewOpen] = useState(false)
+  const [isPosterPreviewLoading, setIsPosterPreviewLoading] = useState(false)
   const [isQrExpanded, setIsQrExpanded] = useState(false)
   const [highlightedJobId, setHighlightedJobId] = useState<string | null>(null)
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null)
   const pendingJobIds = useRef(new Set<string>())
+  const confirmedQrRolesRef = useRef<RestaurantRole[]>([])
+  const desiredQrRolesRef = useRef<RestaurantRole[]>([])
+  const isQrRolesSaveRunningRef = useRef(false)
+  const savedStatusTimeoutRef = useRef<number | null>(null)
+  const posterPreviewPublicUrlRef = useRef('')
   const publicHiringLink = profile?.slug
     ? `${window.location.origin}/r/${profile.slug}`
     : ''
@@ -229,8 +241,14 @@ function OwnerJobsPage() {
         ? 'זה הקישור שאליו מגיעים מועמדים שסורקים את ה־QR.'
         : 'This is where candidates arrive after scanning your QR code.',
     copyLink: language === 'he' ? 'העתקת קישור' : 'Copy link',
+    previewPoster:
+      language === 'he' ? 'תצוגה מקדימה' : 'Preview poster',
+    previewPosterLoading:
+      language === 'he' ? 'מכינים תצוגה...' : 'Preparing preview...',
+    posterPreviewTitle:
+      language === 'he' ? 'תצוגה מקדימה של המודעה' : 'Poster preview',
     downloadQr:
-      language === 'he' ? 'הורדת מודעת QR' : 'Download QR poster',
+      language === 'he' ? 'הורדת המודעה' : 'Download poster',
     downloadQrHelper:
       language === 'he'
         ? 'המודעה מוכנה להדפסה ולתלייה במסעדה.'
@@ -263,6 +281,12 @@ function OwnerJobsPage() {
       language === 'he'
         ? 'כל התפקידים כבויים. מי שיסרוק את ה־QR יראה שהמסעדה לא מגייסת כרגע.'
         : 'All roles are disabled. People who scan the QR will see that this restaurant is not hiring right now.',
+    qrRolesSaving: language === 'he' ? 'שומר…' : 'Saving…',
+    qrRolesSaved: language === 'he' ? 'נשמר' : 'Saved',
+    qrRolesInlineError:
+      language === 'he'
+        ? 'לא הצלחנו לשמור את השינוי. נסו שוב.'
+        : 'We couldn’t save the change. Please try again.',
     copied: language === 'he' ? 'הקישור הועתק.' : 'Link copied.',
     tapToManage:
       language === 'he' ? 'לחצו לניהול' : 'Tap to manage',
@@ -283,6 +307,8 @@ function OwnerJobsPage() {
 
         if (isActive) {
           setProfile(ownerProfile)
+          confirmedQrRolesRef.current = ownerProfile?.qrEnabledRoles ?? []
+          desiredQrRolesRef.current = ownerProfile?.qrEnabledRoles ?? []
 
           if (!isOwnerProfileComplete(ownerProfile)) {
             setJobs([])
@@ -320,48 +346,20 @@ function OwnerJobsPage() {
   }, [])
 
   useEffect(() => {
+    return () => {
+      if (savedStatusTimeoutRef.current) {
+        window.clearTimeout(savedStatusTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
     if (isLoading || error || isOwnerProfileComplete(profile)) {
       return
     }
 
     navigate('/owner/profile', { replace: true })
   }, [error, isLoading, navigate, profile])
-
-  useEffect(() => {
-    let isActive = true
-
-    async function generateQrCode() {
-      if (!publicHiringLink) {
-        setQrCodeUrl('')
-        return
-      }
-
-      try {
-        const dataUrl = await QRCode.toDataURL(publicHiringLink, {
-          margin: 1,
-          width: 320,
-          color: {
-            dark: '#1f1d1e',
-            light: '#fffaf3',
-          },
-        })
-
-        if (isActive) {
-          setQrCodeUrl(dataUrl)
-        }
-      } catch {
-        if (isActive) {
-          setQrCodeUrl('')
-        }
-      }
-    }
-
-    void generateQrCode()
-
-    return () => {
-      isActive = false
-    }
-  }, [publicHiringLink])
 
   useEffect(() => {
     if (!highlightedJobId) {
@@ -602,40 +600,135 @@ function OwnerJobsPage() {
     }
   }
 
-  async function handleToggleQrRole(role: RestaurantRole) {
-    if (!profile || isSavingQrRoles) {
+  async function handlePreviewQrPoster() {
+    if (!publicHiringLink) {
       return
     }
 
-    const currentRoles = profile.qrEnabledRoles ?? []
+    setIsPosterPreviewOpen(true)
+
+    if (
+      posterPreviewUrl &&
+      posterPreviewPublicUrlRef.current === publicHiringLink
+    ) {
+      return
+    }
+
+    setPosterPreviewUrl('')
+    setIsPosterPreviewLoading(true)
+    setError(null)
+
+    try {
+      const dataUrl = await createQrPosterDataUrl(publicHiringLink)
+      posterPreviewPublicUrlRef.current = publicHiringLink
+      setPosterPreviewUrl(dataUrl)
+    } catch {
+      setError(text.downloadQrFailed)
+      setIsPosterPreviewOpen(false)
+    } finally {
+      setIsPosterPreviewLoading(false)
+    }
+  }
+
+  function areQrRolesEqual(
+    firstRoles: RestaurantRole[],
+    secondRoles: RestaurantRole[],
+  ) {
+    if (firstRoles.length !== secondRoles.length) {
+      return false
+    }
+
+    const secondRoleSet = new Set(secondRoles)
+
+    return firstRoles.every((role) => secondRoleSet.has(role))
+  }
+
+  async function processQrRoleSaveQueue() {
+    if (isQrRolesSaveRunningRef.current) {
+      return
+    }
+
+    isQrRolesSaveRunningRef.current = true
+
+    try {
+      while (
+        !areQrRolesEqual(
+          desiredQrRolesRef.current,
+          confirmedQrRolesRef.current,
+        )
+      ) {
+        const rolesToSave = desiredQrRolesRef.current
+
+        if (savedStatusTimeoutRef.current) {
+          window.clearTimeout(savedStatusTimeoutRef.current)
+          savedStatusTimeoutRef.current = null
+        }
+
+        setQrRolesSaveStatus('saving')
+
+        try {
+          const updatedProfile = await updateOwnerQrRoles(rolesToSave)
+
+          confirmedQrRolesRef.current = updatedProfile.qrEnabledRoles ?? []
+          setProfile((currentProfile) =>
+            currentProfile
+              ? {
+                  ...updatedProfile,
+                  qrEnabledRoles: desiredQrRolesRef.current,
+                }
+              : updatedProfile,
+          )
+          setError(null)
+        } catch {
+          desiredQrRolesRef.current = confirmedQrRolesRef.current
+          setProfile((currentProfile) =>
+            currentProfile
+              ? {
+                  ...currentProfile,
+                  qrEnabledRoles: confirmedQrRolesRef.current,
+                }
+              : currentProfile,
+          )
+          setQrRolesSaveStatus('error')
+          return
+        }
+      }
+
+      setQrRolesSaveStatus('saved')
+
+      if (savedStatusTimeoutRef.current) {
+        window.clearTimeout(savedStatusTimeoutRef.current)
+      }
+
+      savedStatusTimeoutRef.current = window.setTimeout(() => {
+        setQrRolesSaveStatus('idle')
+      }, 1400)
+    } finally {
+      isQrRolesSaveRunningRef.current = false
+    }
+  }
+
+  function handleToggleQrRole(role: RestaurantRole) {
+    if (!profile) {
+      return
+    }
+
+    const currentRoles = desiredQrRolesRef.current.length
+      ? desiredQrRolesRef.current
+      : (profile.qrEnabledRoles ?? [])
     const nextRoles = currentRoles.includes(role)
       ? currentRoles.filter((currentRole) => currentRole !== role)
       : [...currentRoles, role]
-    const previousProfile = profile
 
+    desiredQrRolesRef.current = nextRoles
     setProfile({
       ...profile,
       qrEnabledRoles: nextRoles,
     })
-    setIsSavingQrRoles(true)
+    setQrRolesSaveStatus('saving')
     setError(null)
     setSuccess(null)
-
-    try {
-      const updatedProfile = await updateOwnerQrRoles(nextRoles)
-
-      setProfile(updatedProfile)
-      setSuccess(text.qrRolesUpdated)
-    } catch (error) {
-      setProfile(previousProfile)
-      setError(
-        error instanceof Error
-          ? error.message
-          : text.qrRolesUpdateFailed,
-      )
-    } finally {
-      setIsSavingQrRoles(false)
-    }
+    void processQrRoleSaveQueue()
   }
 
   function handleToggleQr() {
@@ -860,9 +953,11 @@ function OwnerJobsPage() {
                 <button
                   type="button"
                   disabled={!publicHiringLink}
-                  onClick={() => void handleCopyQrLink()}
+                  onClick={() => void handlePreviewQrPoster()}
                 >
-                  {text.copyLink}
+                  {isPosterPreviewLoading
+                    ? text.previewPosterLoading
+                    : text.previewPoster}
                 </button>
                 <button
                   type="button"
@@ -870,6 +965,13 @@ function OwnerJobsPage() {
                   onClick={() => void handleDownloadQrPoster()}
                 >
                   {text.downloadQr}
+                </button>
+                <button
+                  type="button"
+                  disabled={!publicHiringLink}
+                  onClick={() => void handleCopyQrLink()}
+                >
+                  {text.copyLink}
                 </button>
               </div>
               <p className="owner-qr-poster-helper">
@@ -885,6 +987,17 @@ function OwnerJobsPage() {
                       {text.qrRolesHelper}
                     </p>
                   </div>
+                  {qrRolesSaveStatus !== 'idle' && (
+                    <span
+                      className={`owner-qr-save-status ${qrRolesSaveStatus}`}
+                    >
+                      {qrRolesSaveStatus === 'saving'
+                        ? text.qrRolesSaving
+                        : qrRolesSaveStatus === 'saved'
+                          ? text.qrRolesSaved
+                          : text.qrRolesInlineError}
+                    </span>
+                  )}
                 </div>
                 <div className="owner-qr-role-chips">
                   {RESTAURANT_ROLES.map((role) => {
@@ -902,8 +1015,7 @@ function OwnerJobsPage() {
                           role.value,
                           language,
                         )} ${isEnabled ? 'active' : 'off'}`}
-                        disabled={isSavingQrRoles}
-                        onClick={() => void handleToggleQrRole(role.value)}
+                        onClick={() => handleToggleQrRole(role.value)}
                       >
                         <span
                           className="owner-qr-role-status-dot"
@@ -923,16 +1035,6 @@ function OwnerJobsPage() {
                 )}
               </div>
             </div>
-
-            {qrCodeUrl && (
-              <div className="owner-qr-code-panel">
-                <img
-                  src={qrCodeUrl}
-                  alt={text.qrTitle}
-                  className="owner-qr-image"
-                />
-              </div>
-            )}
           </div>
         ) : (
           <>
@@ -948,6 +1050,27 @@ function OwnerJobsPage() {
           </>
         )}
       </section>
+
+      <PeepssModal
+        isOpen={isPosterPreviewOpen}
+        onClose={() => setIsPosterPreviewOpen(false)}
+        size="large"
+        title={text.posterPreviewTitle}
+      >
+        <div className="owner-poster-preview">
+          {isPosterPreviewLoading ? (
+            <p>{text.previewPosterLoading}</p>
+          ) : posterPreviewUrl ? (
+            <img
+              alt={text.posterPreviewTitle}
+              className="owner-poster-preview-image"
+              src={posterPreviewUrl}
+            />
+          ) : (
+            <p>{text.downloadQrFailed}</p>
+          )}
+        </div>
+      </PeepssModal>
 
       {!isJobBoardPilotPaused && (
         <>
