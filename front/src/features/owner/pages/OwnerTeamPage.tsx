@@ -211,7 +211,12 @@ function OwnerTeamPage() {
             required
           />
         </label>
-        <button type="submit" disabled={isSubmitting}>
+        <button
+          className="ui-button ui-button--primary"
+          type="submit"
+          disabled={isSubmitting}
+          aria-busy={isSubmitting}
+        >
           {isSubmitting ? text.adding : text.add}
         </button>
       </form>
@@ -240,6 +245,7 @@ function OwnerTeamPage() {
             </div>
             {member.role !== 'owner' && (
               <button
+                className="ui-button ui-button--destructive"
                 type="button"
                 disabled={busyMemberId === member.id}
                 onClick={() => void handleRemoveMember(member)}

@@ -93,6 +93,7 @@ function JobAnalysisPanel({
           <h2>Match analysis</h2>
         </div>
         <button
+          className="ui-button ui-button--primary"
           type="button"
           onClick={handleAnalyzeClick}
           disabled={isAnalyzing}
@@ -138,7 +139,7 @@ function JobAnalysisPanel({
               <div className="job-analysis-card-header">
                 <h3>Resume suggestions</h3>
                 <button
-                  className="copy-button"
+                  className="copy-button ui-button ui-button--tertiary"
                   type="button"
                   onClick={() =>
                     void copyToClipboard(
@@ -156,7 +157,7 @@ function JobAnalysisPanel({
               <div className="job-analysis-card-header">
                 <h3>Interview questions</h3>
                 <button
-                  className="copy-button"
+                  className="copy-button ui-button ui-button--tertiary"
                   type="button"
                   onClick={() =>
                     void copyToClipboard(
@@ -174,7 +175,7 @@ function JobAnalysisPanel({
               <div className="job-analysis-card-header">
                 <h3>Recruiter message</h3>
                 <button
-                  className="copy-button"
+                  className="copy-button ui-button ui-button--tertiary"
                   type="button"
                   onClick={() =>
                     void copyToClipboard(

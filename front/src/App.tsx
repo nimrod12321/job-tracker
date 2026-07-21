@@ -429,7 +429,11 @@ function App() {
                     </span>
                     <h1>Peepss is currently open for restaurants only.</h1>
                     <p>כרגע Peepss פתוחה למסעדות בלבד.</p>
-                    <button type="button" onClick={handleLogout}>
+                    <button
+                      className="ui-button ui-button--secondary"
+                      type="button"
+                      onClick={handleLogout}
+                    >
                       Logout
                     </button>
                   </div>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { ENABLE_JOB_MAP } from '../../../config/env'
 import JobsMap from '../components/JobsMap'
@@ -43,6 +43,9 @@ function RestaurantMapPage() {
   const [profile, setProfile] = useState<RestaurantWorkerProfile | null>(null)
   const [selectedRestaurant, setSelectedRestaurant] =
     useState<RestaurantMapEntry | null>(null)
+  const mapFullscreenRegionRef = useRef<HTMLDivElement | null>(null)
+  const [isNativeFullscreen, setIsNativeFullscreen] = useState(false)
+  const [isFallbackFullscreen, setIsFallbackFullscreen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -87,6 +90,72 @@ function RestaurantMapPage() {
     }
   }, [navigate])
 
+  useEffect(() => {
+    function handleFullscreenChange() {
+      setIsNativeFullscreen(
+        document.fullscreenElement === mapFullscreenRegionRef.current,
+      )
+    }
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isFallbackFullscreen) {
+      return
+    }
+
+    const previousBodyOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsFallbackFullscreen(false)
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isFallbackFullscreen])
+
+  async function handleToggleMapFullscreen() {
+    const fullscreenRegion = mapFullscreenRegionRef.current
+
+    if (!fullscreenRegion) {
+      return
+    }
+
+    if (isFallbackFullscreen) {
+      setIsFallbackFullscreen(false)
+      return
+    }
+
+    if (document.fullscreenElement === fullscreenRegion) {
+      await document.exitFullscreen()
+      return
+    }
+
+    if (typeof fullscreenRegion.requestFullscreen === 'function') {
+      try {
+        await fullscreenRegion.requestFullscreen()
+        return
+      } catch {
+        // Some mobile browsers expose the API but reject element fullscreen.
+        // The viewport-sized CSS fallback preserves the same map interaction.
+      }
+    }
+
+    setIsFallbackFullscreen(true)
+  }
+
   const workerLocation = useMemo(() => {
     if (
       typeof profile?.homeLatitude !== 'number' ||
@@ -123,7 +192,10 @@ function RestaurantMapPage() {
               ? 'הוסיפו את הרחוב שלכם כדי לראות משרות קרובות.'
               : 'Add your street to see jobs near you.'}
           </p>
-          <Link to="/restaurant/profile">
+          <Link
+            className="ui-button ui-button--tertiary"
+            to="/restaurant/profile"
+          >
             {language === 'he' ? 'הוספת מיקום' : 'Add location'}
           </Link>
         </div>
@@ -138,7 +210,32 @@ function RestaurantMapPage() {
           {language === 'he' ? 'טוען מפה…' : 'Loading map…'}
         </p>
       ) : (
-        <>
+        <div
+          ref={mapFullscreenRegionRef}
+          className={`restaurant-map-fullscreen-region${
+            isFallbackFullscreen ? ' is-fallback-fullscreen' : ''
+          }`}
+        >
+          <button
+            type="button"
+            className="restaurant-map-fullscreen-button ui-icon-button"
+            aria-label={
+              isNativeFullscreen || isFallbackFullscreen
+                ? language === 'he'
+                  ? 'יציאה ממסך מלא'
+                  : 'Exit fullscreen'
+                : language === 'he'
+                  ? 'מסך מלא'
+                  : 'Fullscreen map'
+            }
+            aria-pressed={isNativeFullscreen || isFallbackFullscreen}
+            onClick={() => void handleToggleMapFullscreen()}
+          >
+            <span aria-hidden="true">
+              {isNativeFullscreen || isFallbackFullscreen ? '↙' : '⛶'}
+            </span>
+          </button>
+
           <JobsMap
             center={workerLocation}
             language={language}
@@ -152,44 +249,47 @@ function RestaurantMapPage() {
                 : 'There are no restaurants with active jobs and verified locations yet.'}
             </div>
           )}
-        </>
-      )}
 
-      {selectedRestaurant && (
-        <aside className="restaurant-map-sheet" aria-live="polite">
-          <button
-            type="button"
-            className="peepss-close-button restaurant-map-sheet-close"
-            aria-label={language === 'he' ? 'סגירה' : 'Close'}
-            onClick={() => setSelectedRestaurant(null)}
-          >
-            ×
-          </button>
-          <h2>{selectedRestaurant.restaurantName}</h2>
-          <p>{selectedRestaurant.formattedAddress}</p>
-          <strong>{language === 'he' ? 'מגייסים:' : 'Hiring:'}</strong>
-          <ul className="restaurant-map-job-links">
-            {selectedRestaurant.jobs.map((job) => (
-              <li key={job.id}>
-                <Link
-                  to={`/restaurant/explore?jobId=${encodeURIComponent(job.id)}`}
-                >
-                  {getRestaurantRoleLabel(job.role, language)}
-                </Link>
-              </li>
-            ))}
-          </ul>
-          {selectedDistance !== null && (
-            <p className="restaurant-map-distance">
-              {language === 'he'
-                ? `במרחק של כ־${selectedDistance.toFixed(1)} ק״מ`
-                : `About ${selectedDistance.toFixed(1)} km away`}
-            </p>
+          {selectedRestaurant && (
+            <aside className="restaurant-map-sheet" aria-live="polite">
+              <button
+                type="button"
+                className="peepss-close-button ui-icon-button restaurant-map-sheet-close"
+                aria-label={language === 'he' ? 'סגירה' : 'Close'}
+                onClick={() => setSelectedRestaurant(null)}
+              >
+                ×
+              </button>
+              <h2>{selectedRestaurant.restaurantName}</h2>
+              <p>{selectedRestaurant.formattedAddress}</p>
+              <strong>{language === 'he' ? 'מגייסים:' : 'Hiring:'}</strong>
+              <ul className="restaurant-map-job-links">
+                {selectedRestaurant.jobs.map((job) => (
+                  <li key={job.id}>
+                    <Link
+                      to={`/restaurant/explore?jobId=${encodeURIComponent(job.id)}`}
+                    >
+                      {getRestaurantRoleLabel(job.role, language)}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              {selectedDistance !== null && (
+                <p className="restaurant-map-distance">
+                  {language === 'he'
+                    ? `במרחק של כ־${selectedDistance.toFixed(1)} ק״מ`
+                    : `About ${selectedDistance.toFixed(1)} km away`}
+                </p>
+              )}
+              <Link
+                className="restaurant-map-view-jobs ui-button ui-button--primary"
+                to="/restaurant/explore"
+              >
+                {language === 'he' ? 'צפייה במשרות' : 'View jobs'}
+              </Link>
+            </aside>
           )}
-          <Link className="restaurant-map-view-jobs" to="/restaurant/explore">
-            {language === 'he' ? 'צפייה במשרות' : 'View jobs'}
-          </Link>
-        </aside>
+        </div>
       )}
     </section>
   )

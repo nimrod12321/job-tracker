@@ -71,6 +71,14 @@ function JobsMap({
             lng: restaurant.longitude,
           }
           const marker = new google.maps.Marker({
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              fillColor: '#0F8A86',
+              fillOpacity: 1,
+              scale: 10,
+              strokeColor: '#FFFCF7',
+              strokeWeight: 3,
+            },
             map,
             position,
             title: restaurant.restaurantName,

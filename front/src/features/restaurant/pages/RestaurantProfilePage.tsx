@@ -591,7 +591,12 @@ function RestaurantProfilePage() {
         )}
 
         <div className="guided-form-actions worker-profile-actions">
-          <button type="submit" disabled={isSaving}>
+          <button
+            className="ui-button ui-button--primary"
+            type="submit"
+            disabled={isSaving}
+            aria-busy={isSaving}
+          >
             {isSaving ? text.saving : text.save}
           </button>
         </div>

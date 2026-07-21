@@ -29,7 +29,7 @@ function LegalFooter({ className = '' }: LegalFooterProps) {
           <span className="site-legal-footer-item" key={item.kind}>
             {index > 0 && <span aria-hidden="true">|</span>}
             <button
-              className="site-legal-footer-text-button"
+              className="site-legal-footer-text-button ui-button ui-button--tertiary"
               type="button"
               onClick={() => setOpenKind(item.kind)}
             >

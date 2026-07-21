@@ -220,7 +220,7 @@ function SwipeJobCard({
 
       <div className="discover-actions">
         <button
-          className="discover-dislike-button"
+          className="discover-dislike-button ui-button ui-button--secondary"
           type="button"
           disabled={isRecording || isCommittingSwipe}
           onClick={() => void onDecision('disliked')}
@@ -240,7 +240,7 @@ function SwipeJobCard({
         )}
 
         <button
-          className="discover-like-button"
+          className="discover-like-button ui-button ui-button--primary"
           type="button"
           disabled={isRecording || isCommittingSwipe}
           onClick={() => void onDecision('liked')}

@@ -26,7 +26,7 @@ function AdminShell({ children }: { children: ReactNode }) {
             <p>Admin</p>
           </div>
           <button
-            className="admin-logout-button"
+            className="admin-logout-button ui-button ui-button--tertiary"
             type="button"
             onClick={handleLogout}
           >

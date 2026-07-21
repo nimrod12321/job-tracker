@@ -189,7 +189,7 @@ function DiscoverPage() {
           {error}
         </p>
         <button
-          className="discover-retry-button"
+          className="discover-retry-button ui-button ui-button--primary"
           type="button"
           onClick={() => void loadJobs(excludeExternalIds)}
         >
@@ -231,6 +231,7 @@ function DiscoverPage() {
           <div className="discover-end-actions">
             <Link to="/discover/liked">View liked jobs</Link>
             <button
+              className="ui-button ui-button--primary"
               type="button"
               onClick={() => void loadJobs(excludeExternalIds)}
             >

@@ -545,6 +545,7 @@ function AdminRestaurantDetailPage() {
             )}
             <div className="admin-actions">
               <button
+                className="ui-button ui-button--tertiary"
                 type="button"
                 disabled={!publicQrLink}
                 onClick={() => void handleCopyQrLink()}
@@ -552,6 +553,7 @@ function AdminRestaurantDetailPage() {
                 Copy public link
               </button>
               <button
+                className="ui-button ui-button--primary"
                 type="button"
                 disabled={!publicQrLink}
                 onClick={() => void handleDownloadQrPoster()}
@@ -596,6 +598,7 @@ function AdminRestaurantDetailPage() {
           ) : (
             <div className="admin-actions">
               <button
+                className="ui-button ui-button--tertiary"
                 type="button"
                 disabled={!activationLink || isSubmitting}
                 onClick={() => void handleCopyActivationLink()}
@@ -603,6 +606,7 @@ function AdminRestaurantDetailPage() {
                 Copy activation link
               </button>
               <button
+                className="ui-button ui-button--secondary"
                 type="button"
                 disabled={isSubmitting}
                 onClick={() => void handleRegenerateActivationLink()}
@@ -651,6 +655,7 @@ function AdminRestaurantDetailPage() {
             }}
           />
           <button
+            className="ui-button ui-button--secondary"
             type="submit"
             disabled={!locationPlaceId || isSavingLocation}
           >
@@ -734,7 +739,12 @@ function AdminRestaurantDetailPage() {
               onChange={(event) => updateForm('description', event.target.value)}
             />
           </label>
-          <button type="submit" disabled={isSubmitting}>
+          <button
+            className="ui-button ui-button--primary"
+            type="submit"
+            disabled={isSubmitting}
+            aria-busy={isSubmitting}
+          >
             {isSubmitting ? 'Saving...' : 'Save restaurant'}
           </button>
         </form>
@@ -748,7 +758,7 @@ function AdminRestaurantDetailPage() {
             </p>
           </div>
           <button
-            className="admin-danger-button"
+            className="admin-danger-button ui-button ui-button--destructive"
             type="button"
             disabled={isSubmitting}
             onClick={() => void handleDeleteRestaurant()}

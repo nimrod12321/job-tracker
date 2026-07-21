@@ -333,6 +333,7 @@ function LikedJobsPage() {
                       </Link>
                     ) : (
                       <button
+                        className="ui-button ui-button--primary"
                         type="button"
                         disabled={Boolean(pendingAction)}
                         onClick={() => void handleSave(job)}
@@ -342,7 +343,7 @@ function LikedJobsPage() {
                     )}
 
                     <button
-                      className="liked-job-remove-button"
+                      className="liked-job-remove-button ui-button ui-button--destructive"
                       type="button"
                       disabled={Boolean(pendingAction)}
                       onClick={() => void handleRemove(job)}

@@ -7,6 +7,9 @@ type GoogleMapsNamespace = {
       options: Record<string, unknown>,
     ) => GoogleMapInstance
     Marker: new (options: Record<string, unknown>) => GoogleMarkerInstance
+    SymbolPath: {
+      CIRCLE: unknown
+    }
     LatLngBounds: new () => GoogleBoundsInstance
     places: {
       Autocomplete: new (

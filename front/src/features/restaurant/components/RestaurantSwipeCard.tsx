@@ -147,7 +147,7 @@ function RestaurantSwipeCard({
     shift: language === 'he' ? 'משמרות' : 'Shift',
     requirements: language === 'he' ? 'דרישות' : 'Need',
     skip: language === 'he' ? 'דלג' : 'Skip',
-    apply: language === 'he' ? 'הגש בקשה' : 'Like · Apply',
+    apply: language === 'he' ? 'הגש בקשה' : 'Apply',
     applying: language === 'he' ? 'שולח...' : 'Applying...',
   }
   const avatar = getRestaurantAvatar(job)
@@ -331,7 +331,7 @@ function RestaurantSwipeCard({
 
       <div className="restaurant-job-actions">
         <button
-          className="restaurant-skip-button"
+          className="restaurant-skip-button ui-button ui-button--secondary"
           type="button"
           disabled={isApplying || isAnimating || isPreview || isCommittingSwipe}
           onClick={onSkip}
@@ -339,7 +339,7 @@ function RestaurantSwipeCard({
           {text.skip}
         </button>
         <button
-          className="restaurant-apply-button"
+          className="restaurant-apply-button ui-button ui-button--primary"
           type="button"
           disabled={isApplying || isAnimating || isPreview || isCommittingSwipe}
           onClick={() => void onApply()}

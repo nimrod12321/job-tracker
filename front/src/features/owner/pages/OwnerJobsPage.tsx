@@ -763,29 +763,32 @@ function OwnerJobsPage() {
           highlightedJobId === job.id ? ' is-highlighted' : ''
         }${isExpanded ? ' is-expanded' : ' is-collapsed'}`}
         key={job.id}
-        tabIndex={isExpanded ? undefined : 0}
-        onClick={() => {
-          if (!isExpanded) {
-            setExpandedJobId(job.id)
-          }
-        }}
-        onKeyDown={(event) => {
-          if (!isExpanded && (event.key === 'Enter' || event.key === ' ')) {
-            event.preventDefault()
-            setExpandedJobId(job.id)
-          }
-        }}
       >
         <div className="owner-job-card-header">
-          <div>
-            <p>{job.restaurantName}</p>
-            <h3>{getRestaurantRoleLabel(job.role, language)}</h3>
-            {!isExpanded && (
+          {isExpanded ? (
+            <div>
+              <p>{job.restaurantName}</p>
+              <h3>{getRestaurantRoleLabel(job.role, language)}</h3>
+            </div>
+          ) : (
+            <button
+              className="owner-job-open-button"
+              type="button"
+              aria-expanded={false}
+              onClick={() => setExpandedJobId(job.id)}
+            >
+              <span className="owner-job-open-copy">
+                <span>{job.restaurantName}</span>
+                <strong>{getRestaurantRoleLabel(job.role, language)}</strong>
+              </span>
               <span className="owner-job-manage-hint">
                 {text.tapToManage}
               </span>
-            )}
-          </div>
+              <span className="owner-disclosure-chevron" aria-hidden="true">
+                ⌄
+              </span>
+            </button>
+          )}
           <div className="owner-job-card-side">
             <span
               className={`owner-job-status ${
@@ -796,7 +799,7 @@ function OwnerJobsPage() {
             </span>
             {isExpanded && (
               <button
-                className="owner-job-toggle-button peepss-close-button"
+                className="owner-job-toggle-button peepss-close-button ui-icon-button"
                 type="button"
                 aria-label={text.collapseJob}
                 onClick={(event) => {
@@ -826,6 +829,7 @@ function OwnerJobsPage() {
         {isExpanded && !isJobBoardPilotPaused && (
           <div className="owner-job-actions">
             <button
+              className="ui-button ui-button--secondary"
               type="button"
               disabled={isBusy}
               onClick={(event) => {
@@ -836,7 +840,7 @@ function OwnerJobsPage() {
               {text.edit}
             </button>
             <button
-              className="owner-active-button"
+              className="owner-active-button ui-button ui-button--secondary"
               type="button"
               disabled={isBusy}
               onClick={(event) => {
@@ -851,7 +855,7 @@ function OwnerJobsPage() {
                   : text.activate}
             </button>
             <button
-              className="owner-delete-button"
+              className="owner-delete-button ui-button ui-button--destructive"
               type="button"
               disabled={isBusy}
               onClick={(event) => {
@@ -903,23 +907,6 @@ function OwnerJobsPage() {
             ? 'owner-qr-widget-expanded'
             : 'owner-qr-widget-collapsed'
         }`}
-        role={!isQrExpanded && publicHiringLink ? 'button' : undefined}
-        tabIndex={!isQrExpanded && publicHiringLink ? 0 : undefined}
-        onClick={() => {
-          if (!isQrExpanded && publicHiringLink) {
-            handleToggleQr()
-          }
-        }}
-        onKeyDown={(event) => {
-          if (
-            !isQrExpanded &&
-            publicHiringLink &&
-            (event.key === 'Enter' || event.key === ' ')
-          ) {
-            event.preventDefault()
-            handleToggleQr()
-          }
-        }}
       >
         {isQrExpanded ? (
           <div className="owner-qr-expanded-content">
@@ -931,7 +918,7 @@ function OwnerJobsPage() {
                   <p>{ownerProfile.slug ? text.qrDescription : text.qrMissing}</p>
                 </div>
                 <button
-                  className="owner-qr-close-button peepss-close-button"
+                  className="owner-qr-close-button peepss-close-button ui-icon-button"
                   type="button"
                   aria-label={text.closeQr}
                   onClick={handleCloseQr}
@@ -952,6 +939,7 @@ function OwnerJobsPage() {
 
               <div className="owner-qr-actions">
                 <button
+                  className="ui-button ui-button--secondary"
                   type="button"
                   disabled={!publicHiringLink}
                   onClick={() => void handlePreviewQrPoster()}
@@ -961,6 +949,7 @@ function OwnerJobsPage() {
                     : text.previewPoster}
                 </button>
                 <button
+                  className="ui-button ui-button--primary"
                   type="button"
                   disabled={!publicHiringLink}
                   onClick={() => void handleDownloadQrPoster()}
@@ -968,6 +957,7 @@ function OwnerJobsPage() {
                   {text.downloadQr}
                 </button>
                 <button
+                  className="ui-button ui-button--tertiary"
                   type="button"
                   disabled={!publicHiringLink}
                   onClick={() => void handleCopyQrLink()}
@@ -1008,7 +998,9 @@ function OwnerJobsPage() {
 
                     return (
                       <button
-                        className={isEnabled ? 'is-enabled' : 'is-disabled'}
+                        className={`ui-chip ${
+                          isEnabled ? 'is-enabled' : 'is-disabled'
+                        }`}
                         type="button"
                         key={role.value}
                         aria-pressed={isEnabled}
@@ -1038,7 +1030,13 @@ function OwnerJobsPage() {
             </div>
           </div>
         ) : (
-          <>
+          <button
+            className="owner-qr-disclosure ui-disclosure-button"
+            type="button"
+            aria-expanded={false}
+            disabled={!publicHiringLink}
+            onClick={handleToggleQr}
+          >
             <div className="owner-qr-widget-copy">
               <span aria-hidden="true">▦</span>
               <div className="owner-qr-text">
@@ -1047,8 +1045,11 @@ function OwnerJobsPage() {
                   {ownerProfile.slug ? text.qrCollapsedSubtitle : text.qrMissing}
                 </p>
               </div>
+              <span className="owner-disclosure-chevron" aria-hidden="true">
+                ⌄
+              </span>
             </div>
-          </>
+          </button>
         )}
       </section>
 
@@ -1077,7 +1078,9 @@ function OwnerJobsPage() {
         <>
           <div className="owner-job-primary-action">
             <button
-              className={`owner-job-create-card${isCreating ? ' is-active' : ''}`}
+              className={`owner-job-create-card ui-button ui-button--primary${
+                isCreating ? ' is-active' : ''
+              }`}
               type="button"
               aria-expanded={isCreating}
               onClick={startCreating}
@@ -1095,7 +1098,7 @@ function OwnerJobsPage() {
               onSubmit={handleSubmit}
             >
               <button
-                className="owner-form-close-button peepss-close-button"
+                className="owner-form-close-button peepss-close-button ui-icon-button"
                 type="button"
                 aria-label={editingJobId ? text.closeEditJob : text.closeCreateJob}
                 onClick={resetForm}
@@ -1206,14 +1209,19 @@ function OwnerJobsPage() {
               <div className="guided-form-actions">
                 {jobStep > 1 && (
                   <button
-                    className="restaurant-skip-button"
+                    className="restaurant-skip-button ui-button ui-button--secondary"
                     type="button"
                     onClick={() => setJobStep((currentStep) => currentStep - 1)}
                   >
                     {text.back}
                   </button>
                 )}
-                <button type="submit" disabled={isSubmitting}>
+                <button
+                  className="ui-button ui-button--primary"
+                  type="submit"
+                  disabled={isSubmitting}
+                  aria-busy={isSubmitting}
+                >
                   {isSubmitting
                     ? text.saving
                     : jobStep === 4

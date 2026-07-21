@@ -206,7 +206,7 @@ function AppLayout({
           <div className="restaurant-options" ref={optionsRef}>
             <button
               type="button"
-              className="restaurant-options-trigger"
+              className="restaurant-options-trigger ui-icon-button"
               aria-label={language === 'he' ? 'אפשרויות' : 'Options'}
               aria-expanded={isOptionsOpen}
               onClick={() =>
@@ -245,6 +245,7 @@ function AppLayout({
                 />
                 <button
                   type="button"
+                  className="ui-button ui-button--tertiary"
                   onClick={() => {
                     setIsOptionsOpen(false)
                     onLogout()
@@ -258,7 +259,11 @@ function AppLayout({
         ) : (
           <div className="header-user-actions">
             {userEmail && <span>{userEmail}</span>}
-            <button type="button" onClick={onLogout}>
+            <button
+              className="ui-button ui-button--secondary"
+              type="button"
+              onClick={onLogout}
+            >
               Log out
             </button>
           </div>

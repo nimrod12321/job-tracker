@@ -210,7 +210,7 @@ function JobForm({
           onChange={(event) => setJobDescription(event.target.value)}
         />
       </label>
-      <button type="submit">
+      <button className="ui-button ui-button--primary" type="submit">
         {submitLabel ?? (initialJob ? 'Save changes' : 'Save job')}
       </button>
     </form>

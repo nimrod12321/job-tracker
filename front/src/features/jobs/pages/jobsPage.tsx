@@ -144,6 +144,7 @@ function JobsPage() {
             Import job
           </Link>
           <button
+            className="ui-button ui-button--primary"
             type="button"
             aria-expanded={isFormVisible}
             aria-controls="job-form"
@@ -203,7 +204,11 @@ function JobsPage() {
           <h2>No jobs yet.</h2>
           <p>Add a job manually or import one from a pasted description.</p>
           <div className="empty-state-actions">
-            <button type="button" onClick={() => setIsFormVisible(true)}>
+            <button
+              className="ui-button ui-button--primary"
+              type="button"
+              onClick={() => setIsFormVisible(true)}
+            >
               Add job
             </button>
             <Link className="secondary-action-link" to="/jobs/import">

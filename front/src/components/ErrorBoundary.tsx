@@ -53,7 +53,11 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
         <div className="error-boundary-card">
           <h1>{text.heading}</h1>
           <p>{text.body}</p>
-          <button type="button" onClick={this.handleReload}>
+          <button
+            className="ui-button ui-button--primary"
+            type="button"
+            onClick={this.handleReload}
+          >
             {text.reload}
           </button>
         </div>

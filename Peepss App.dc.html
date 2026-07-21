@@ -1,0 +1,1387 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="design_doc_mode" content="canvas">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Oxygen:wght@300;400;700&amp;family=Aboreto&amp;display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --page: #FBF2E7;
+      --surface: #FFFCF7;
+      --surface-2: #EEEAE3;
+      --ink: #2A1E16;
+      --muted: #5F5347;
+      --coral: #147268;
+      --coral-soft: #DCEBE7;
+      --border: #DED6C8;
+      --danger: #C0392B;
+      --danger-soft: #FBE9E6;
+      --ok: #3E8E5A;
+    }
+    body { margin: 0; background: var(--page); font-family: 'Oxygen', sans-serif; color: var(--ink); }
+    * { box-sizing: border-box; }
+    a { color: var(--ink); text-decoration: none; }
+    a:hover { color: var(--coral); }
+    button { font-family: 'Oxygen', sans-serif; cursor: pointer; }
+    input { font-family: 'Oxygen', sans-serif; }
+    input::placeholder { color: var(--muted); }
+    button:focus-visible, a:focus-visible, input:focus-visible, [tabindex]:focus-visible {
+      outline: 2px solid var(--coral); outline-offset: 2px;
+    }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+  </style>
+</helmet>
+
+<div style="padding: 48px 48px 120px 48px;">
+
+  <div style="margin-bottom: 40px;">
+    <div style="font-family: 'Aboreto', serif; font-size: 40px; color: var(--ink);">peepss</div>
+    <div style="font-size: 16px; color: var(--muted); margin-top: 6px;">swipe, apply. — worker &amp; owner flows, restyled with a controlled action system</div>
+  </div>
+
+  <!-- ============================================================= -->
+  <!-- INTERACTION SYSTEM LEGEND -->
+  <!-- ============================================================= -->
+  <div style="margin-bottom: 56px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 26px 28px; max-width: 1180px;">
+    <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 20px;">Interaction system</div>
+    <div style="display: flex; flex-wrap: wrap; gap: 32px;">
+
+      <div style="display: flex; flex-direction: column; gap: 12px; min-width: 190px;">
+        <div style="font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em;">Action hierarchy</div>
+        <button style="height: 42px; padding: 0 18px; border-radius: 6px; border: 1px solid rgba(42,30,22,0.14); color: var(--ink); font-size: 15px; font-weight: 700; background: var(--coral); color: #FFFFFF">Primary — Send code</button>
+        <button style="height: 42px; padding: 0 18px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); font-size: 15px;">Secondary — Preview</button>
+        <button style="height: 42px; padding: 0 18px; border-radius: 6px; border: none; background: transparent; color: var(--ink); font-size: 15px; text-align: left;">Tertiary — Copy link</button>
+        <button style="height: 42px; padding: 0 18px; border-radius: 6px; border: none; background: var(--danger-soft); color: var(--danger); font-size: 15px; text-align: left;">Destructive — Delete</button>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px; min-width: 200px;">
+        <div style="font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em;">Selection controls</div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <span style="display: inline-flex; align-items: center; gap: 6px; padding: 9px 15px; border-radius: 22px; border: 1px solid var(--coral); background: var(--coral-soft); color: var(--ink); font-size: 13px;"><span style="font-size: 12px;">✓</span>selected</span>
+          <span style="padding: 9px 15px; border-radius: 22px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: 13px;">unselected</span>
+        </div>
+        <div style="font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 6px;">Segmented nav</div>
+        <div style="display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 22px; padding: 4px; width: fit-content;">
+          <span style="padding: 7px 18px; border-radius: 18px; background: var(--surface); box-shadow: 0 1px 3px rgba(60,40,20,0.12); font-size: 13px; font-weight: 700;">Explore</span>
+          <span style="padding: 7px 18px; border-radius: 18px; color: var(--muted); font-size: 13px;">Matches</span>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px; min-width: 200px;">
+        <div style="font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em;">Disclosure &amp; icon</div>
+        <div style="display: flex; align-items: center; justify-content: space-between; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px;">
+          <span style="font-size: 14px;">QR hiring</span>
+          <span aria-hidden="true" style="color: var(--muted); font-size: 14px;">▾</span>
+        </div>
+        <div style="display: flex; gap: 12px;">
+          <button aria-label="Options" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: transparent; color: var(--ink); font-size: 18px; display: flex; align-items: center; justify-content: center;">⋯</button>
+          <button aria-label="Close" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: transparent; color: var(--ink); font-size: 16px; display: flex; align-items: center; justify-content: center;">✕</button>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px; min-width: 150px;">
+        <div style="font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em;">Palette</div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <div style="width: 34px; height: 34px; border-radius: 8px; background: var(--page); border: 1px solid var(--border);" title="page"></div>
+          <div style="width: 34px; height: 34px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border);" title="surface"></div>
+          <div style="width: 34px; height: 34px; border-radius: 8px; background: var(--coral);" title="coral"></div>
+          <div style="width: 34px; height: 34px; border-radius: 8px; background: var(--ink);" title="ink"></div>
+          <div style="width: 34px; height: 34px; border-radius: 8px; background: var(--ok);" title="ok"></div>
+          <div style="width: 34px; height: 34px; border-radius: 8px; background: var(--danger);" title="danger"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================= -->
+  <!-- SECTION: ONBOARDING & AUTH -->
+  <!-- ============================================================= -->
+  <div data-screen-label="Onboarding" style="--coral:#D93B47; --coral-soft:#F8E1E3; margin-bottom: 64px;">
+    <div style="font-size: 14px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 20px;">Onboarding &amp; Auth</div>
+    <div style="display: flex; flex-wrap: wrap; gap: 40px;">
+
+      <!-- 01 Welcome -->
+      <div data-screen-label="01 Welcome" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">01 — Welcome</div>
+        <div style="width: 422px; padding: 12px 10px; border-radius: 54px; background: #1a1512; box-shadow: 0 18px 40px rgba(60,40,20,0.18); box-sizing: border-box;">
+          <div style="position: relative; width: 402px; height: 874px; background: var(--surface); overflow: hidden; border-radius: 40px;">
+            <div style="position: absolute; left: -43px; bottom: -170px; width: 495px; height: 255px; border-radius: 50%; background: var(--coral-soft); z-index: 0;"></div>
+            <div style="position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; padding: 110px 32px 0 32px; text-align: center; height: 100%;">
+              <div style="font-family: 'Aboreto', serif; font-size: 42px; line-height: 1; color: var(--ink);">peepss</div>
+              <div style="height: 20px;"></div>
+              <div style="font-family: 'Aboreto', serif; font-size: 26px; line-height: 1; color: var(--ink);">swipe, apply.</div>
+              <div style="height: 54px;"></div>
+              <div style="font-size: 15px; color: var(--muted); line-height: 1.5; margin-bottom: 36px;">restaurant jobs &amp; restaurant talent, matched with a swipe.</div>
+              <button style="width: 100%; height: 50px; border-radius: 6px; border: 1px solid rgba(42,30,22,0.14); background: var(--coral); color: #FFFFFF; font-size: 18px; font-weight: 700; margin-bottom: 12px;">I'm hiring</button>
+              <button style="width: 100%; height: 50px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); font-size: 18px; margin-bottom: 22px;">I'm looking for work</button>
+              <div style="font-size: 14px; color: var(--muted);">already have an account? <a href="#" style="color: var(--coral);">log in</a></div>
+              <div style="flex: 1;"></div>
+              <div style="display: flex; gap: 18px; padding: 20px 0; font-size: 13px;">
+                <a href="#" style="color: var(--muted);">Terms</a>
+                <a href="#" style="color: var(--muted);">Privacy</a>
+                <a href="#" style="color: var(--muted);">Accessibility</a>
+                <a href="#" style="color: var(--muted);">Contact</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 02 Login -->
+      <div data-screen-label="02 Log in" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">02 — Log in (phone OTP)</div>
+        <div style="width: 422px; padding: 12px 10px; border-radius: 54px; background: #1a1512; box-shadow: 0 18px 40px rgba(60,40,20,0.18); box-sizing: border-box;">
+          <div style="position: relative; width: 402px; height: 874px; background: var(--surface); overflow: hidden; border-radius: 40px;">
+            <div style="position: absolute; left: -43px; bottom: -170px; width: 495px; height: 255px; border-radius: 50%; background: var(--coral-soft); z-index: 0;"></div>
+            <div style="position: relative; z-index: 1; display: flex; flex-direction: column; align-items: flex-start; padding: 68px 21px 0 21px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; margin-bottom: 34px;">
+                <div style="font-family: 'Aboreto', serif; font-size: 40px; line-height: 1; color: var(--ink);">peepss</div>
+                <button style="height: 34px; padding: 0 14px; border-radius: 18px; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); font-size: 13px;">EN / עב</button>
+              </div>
+              <div style="font-family: 'Aboreto', serif; font-size: 22px; color: var(--ink); margin-bottom: 22px;">swipe, apply.</div>
+              <div style="display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 24px; padding: 4px; margin-bottom: 24px; width: 100%;">
+                <button aria-pressed="true" style="flex: 1; height: 40px; border: none; border-radius: 20px; background: var(--surface); box-shadow: 0 1px 3px rgba(60,40,20,0.12); color: var(--ink); font-size: 16px; font-weight: 700;">login</button>
+                <button aria-pressed="false" style="flex: 1; height: 40px; border: none; border-radius: 20px; background: transparent; color: var(--muted); font-size: 16px;">register</button>
+              </div>
+              <div style="width: 100%; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); padding: 24px 18px; display: flex; flex-direction: column; gap: 18px;">
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <label for="p02" style="font-size: 16px;">phone</label>
+                  <input id="p02" type="tel" placeholder="+972 5_ ___ ____" style="width: 100%; height: 46px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); font-size: 16px; padding: 0 14px;">
+                </div>
+                <button style="width: 100%; height: 46px; border-radius: 6px; border: 1px solid rgba(42,30,22,0.14); background: var(--coral); color: #FFFFFF; font-size: 17px; font-weight: 700;">send code</button>
+                <div style="text-align: center; font-size: 13px; color: var(--muted);">we'll text you a 4-digit code</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 02b Verify OTP -->
+      <div data-screen-label="02b Verify" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">02b — Verify code</div>
+        <div style="width: 422px; padding: 12px 10px; border-radius: 54px; background: #1a1512; box-shadow: 0 18px 40px rgba(60,40,20,0.18); box-sizing: border-box;">
+          <div style="position: relative; width: 402px; height: 874px; background: var(--surface); overflow: hidden; border-radius: 40px;">
+            <div style="position: absolute; left: -43px; bottom: -170px; width: 495px; height: 255px; border-radius: 50%; background: var(--coral-soft); z-index: 0;"></div>
+            <div style="position: relative; z-index: 1; display: flex; flex-direction: column; align-items: flex-start; padding: 68px 21px 0 21px;">
+              <div style="font-family: 'Aboreto', serif; font-size: 40px; line-height: 1; color: var(--ink); margin-bottom: 34px;">peepss</div>
+              <div style="width: 100%; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); padding: 24px 18px; display: flex; flex-direction: column; gap: 18px;">
+                <div style="font-size: 16px;">enter the code</div>
+                <div style="font-size: 13px; color: var(--muted); margin-top: -8px;">sent to +972 54 123 4567</div>
+                <div style="display: flex; gap: 10px;">
+                  <input maxlength="1" value="4" style="width: 100%; height: 58px; text-align: center; border-radius: 8px; border: 1px solid var(--coral); background: var(--coral-soft); font-size: 24px;">
+                  <input maxlength="1" value="1" style="width: 100%; height: 58px; text-align: center; border-radius: 8px; border: 1px solid var(--coral); background: var(--coral-soft); font-size: 24px;">
+                  <input maxlength="1" value="9" style="width: 100%; height: 58px; text-align: center; border-radius: 8px; border: 1px solid var(--coral); background: var(--coral-soft); font-size: 24px;">
+                  <input maxlength="1" placeholder="•" style="width: 100%; height: 58px; text-align: center; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); font-size: 24px; color: var(--muted);">
+                </div>
+                <button style="width: 100%; height: 46px; border-radius: 6px; border: 1px solid rgba(42,30,22,0.14); background: var(--coral); color: #FFFFFF; font-size: 17px; font-weight: 700;">verify &amp; continue</button>
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <button style="border: none; background: transparent; color: var(--ink); font-size: 14px; padding: 6px 0;">resend code</button>
+                  <button style="border: none; background: transparent; color: var(--ink); font-size: 14px; padding: 6px 0;">change number</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 03 Register worker -->
+      <div data-screen-label="03 Register worker" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">03 — Register (worker)</div>
+        <div style="width: 422px; padding: 12px 10px; border-radius: 54px; background: #1a1512; box-shadow: 0 18px 40px rgba(60,40,20,0.18); box-sizing: border-box;">
+          <div style="position: relative; width: 402px; height: 874px; background: var(--surface); overflow: hidden; border-radius: 40px;">
+            <div style="position: absolute; left: -43px; bottom: -170px; width: 495px; height: 255px; border-radius: 50%; background: var(--coral-soft); z-index: 0;"></div>
+            <div style="position: relative; z-index: 1; display: flex; flex-direction: column; align-items: flex-start; padding: 60px 21px 0 21px;">
+              <div style="font-family: 'Aboreto', serif; font-size: 34px; line-height: 1; color: var(--ink); margin-bottom: 20px;">peepss</div>
+              <div style="display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 24px; padding: 4px; margin-bottom: 22px; width: 100%;">
+                <button aria-pressed="false" style="flex: 1; height: 40px; border: none; border-radius: 20px; background: transparent; color: var(--muted); font-size: 16px;">login</button>
+                <button aria-pressed="true" style="flex: 1; height: 40px; border: none; border-radius: 20px; background: var(--surface); box-shadow: 0 1px 3px rgba(60,40,20,0.12); color: var(--ink); font-size: 16px; font-weight: 700;">register</button>
+              </div>
+              <div style="width: 100%; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); padding: 22px 18px; display: flex; flex-direction: column; gap: 16px;">
+                <div style="font-size: 13px; color: var(--muted);">I'm registering as</div>
+                <div style="display: flex; gap: 12px;">
+                  <button aria-pressed="false" style="flex: 1; height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: 13px;"><span style="width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--muted); display: inline-block;"></span>owner</button>
+                  <button aria-pressed="true" style="flex: 1; height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 8px; border: 1px solid var(--coral); background: var(--coral-soft); color: var(--ink); font-size: 13px;"><span style="width: 12px; height: 12px; border-radius: 50%; border: 3px solid var(--coral); background: var(--surface); display: inline-block;"></span>looking for work</button>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <label for="fn" style="font-size: 16px;">first name</label>
+                  <input id="fn" placeholder="Jordan" style="width: 100%; height: 46px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); font-size: 16px; padding: 0 14px;">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <label for="ln" style="font-size: 16px;">last name</label>
+                  <input id="ln" placeholder="Reyes" style="width: 100%; height: 46px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); font-size: 16px; padding: 0 14px;">
+                </div>
+                <button style="width: 100%; height: 46px; border-radius: 6px; border: 1px solid rgba(42,30,22,0.14); background: var(--coral); color: #FFFFFF; font-size: 17px; font-weight: 700; margin-top: 4px;">send code</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 04 Register owner -->
+      <div data-screen-label="04 Register owner" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">04 — Register (owner)</div>
+        <div style="width: 422px; padding: 12px 10px; border-radius: 54px; background: #1a1512; box-shadow: 0 18px 40px rgba(60,40,20,0.18); box-sizing: border-box;">
+          <div style="position: relative; width: 402px; height: 874px; background: var(--surface); overflow: hidden; border-radius: 40px;">
+            <div style="position: absolute; left: -43px; bottom: -170px; width: 495px; height: 255px; border-radius: 50%; background: var(--coral-soft); z-index: 0;"></div>
+            <div style="position: relative; z-index: 1; display: flex; flex-direction: column; align-items: flex-start; padding: 60px 21px 0 21px;">
+              <div style="font-family: 'Aboreto', serif; font-size: 34px; line-height: 1; color: var(--ink); margin-bottom: 20px;">peepss</div>
+              <div style="display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 24px; padding: 4px; margin-bottom: 22px; width: 100%;">
+                <button aria-pressed="false" style="flex: 1; height: 40px; border: none; border-radius: 20px; background: transparent; color: var(--muted); font-size: 16px;">login</button>
+                <button aria-pressed="true" style="flex: 1; height: 40px; border: none; border-radius: 20px; background: var(--surface); box-shadow: 0 1px 3px rgba(60,40,20,0.12); color: var(--ink); font-size: 16px; font-weight: 700;">register</button>
+              </div>
+              <div style="width: 100%; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); padding: 22px 18px; display: flex; flex-direction: column; gap: 16px;">
+                <div style="font-size: 13px; color: var(--muted);">I'm registering as</div>
+                <div style="display: flex; gap: 12px;">
+                  <button aria-pressed="true" style="flex: 1; height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 8px; border: 1px solid var(--coral); background: var(--coral-soft); color: var(--ink); font-size: 13px;"><span style="width: 12px; height: 12px; border-radius: 50%; border: 3px solid var(--coral); background: var(--surface); display: inline-block;"></span>owner</button>
+                  <button aria-pressed="false" style="flex: 1; height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: 13px;"><span style="width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--muted); display: inline-block;"></span>looking for work</button>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <label for="rn" style="font-size: 16px;">restaurant name</label>
+                  <input id="rn" placeholder="Nonna's Trattoria" style="width: 100%; height: 46px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); font-size: 16px; padding: 0 14px;">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <label for="yn" style="font-size: 16px;">your name</label>
+                  <input id="yn" placeholder="Sam Ortega" style="width: 100%; height: 46px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); font-size: 16px; padding: 0 14px;">
+                </div>
+                <button style="width: 100%; height: 46px; border-radius: 6px; border: 1px solid rgba(42,30,22,0.14); background: var(--coral); color: #FFFFFF; font-size: 17px; font-weight: 700; margin-top: 4px;">send code</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================= -->
+  <!-- SECTION: WORKER FLOW -->
+  <!-- ============================================================= -->
+  <div data-screen-label="Worker flow" style="--coral:#C0850F; --coral-soft:#F7EBD6; margin-bottom: 64px;">
+    <div style="font-size: 14px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--coral); margin-bottom: 20px;">Worker Flow</div>
+    <div style="display: flex; flex-wrap: wrap; gap: 40px;">
+
+      <!-- 05 Worker profile setup -->
+      <div data-screen-label="05 Worker profile" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">05 — Set up your profile</div>
+        <div style="width: 422px; padding: 12px 10px; border-radius: 54px; background: #1a1512; box-shadow: 0 18px 40px rgba(60,40,20,0.18); box-sizing: border-box;">
+          <div style="position: relative; width: 402px; height: 874px; background: var(--surface); overflow: hidden; border-radius: 40px;">
+            <div style="padding: 60px 24px 24px 24px; display: flex; flex-direction: column; align-items: center; height: 100%; overflow: hidden;">
+              <div style="font-size: 22px; font-family: 'Aboreto', serif; margin-bottom: 4px;">tell us about you</div>
+              <div style="font-size: 14px; color: var(--muted); margin-bottom: 22px;">this is what restaurants will see</div>
+              <div style="width: 96px; height: 96px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface-2); display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--muted); margin-bottom: 24px;">photo</div>
+              <div style="width: 100%; display: flex; flex-direction: column; gap: 16px;">
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label for="w-name" style="font-size: 15px;">full name</label>
+                  <input id="w-name" placeholder="e.g. Jordan Reyes" style="width: 100%; height: 46px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); font-size: 16px; padding: 0 14px;">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <label style="font-size: 15px;">roles you do</label>
+                  <div role="group" style="display: flex; flex-wrap: wrap; gap: 8px;">
+                    <button aria-pressed="true" style="display: inline-flex; align-items: center; gap: 6px; padding: 9px 15px; border-radius: 22px; border: 1px solid var(--coral); background: var(--coral-soft); color: var(--ink); font-size: 13px;"><span style="font-size: 11px;">✓</span>line cook</button>
+                    <button aria-pressed="true" style="display: inline-flex; align-items: center; gap: 6px; padding: 9px 15px; border-radius: 22px; border: 1px solid var(--coral); background: var(--coral-soft); color: var(--ink); font-size: 13px;"><span style="font-size: 11px;">✓</span>barista</button>
+                    <button aria-pressed="false" style="padding: 9px 15px; border-radius: 22px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: 13px;">server</button>
+                    <button aria-pressed="false" style="padding: 9px 15px; border-radius: 22px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: 13px;">host</button>
+                  </div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <label style="font-size: 15px;">experience</label>
+                  <div role="radiogroup" style="display: flex; gap: 8px;">
+                    <button role="radio" aria-checked="false" style="flex: 1; padding: 11px 0; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: 13px;">0–1 yr</button>
+                    <button role="radio" aria-checked="true" style="flex: 1; padding: 11px 0; border-radius: 8px; border: 1px solid var(--coral); background: var(--coral-soft); color: var(--ink); font-size: 13px;">1–3 yrs</button>
+                    <button role="radio" aria-checked="false" style="flex: 1; padding: 11px 0; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: 13px;">3+ yrs</button>
+                  </div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <label style="font-size: 15px;">availability</label>
+                  <div role="group" style="display: flex; flex-wrap: wrap; gap: 8px;">
+                    <button aria-pressed="true" style="display: inline-flex; align-items: center; gap: 6px; padding: 9px 15px; border-radius: 22px; border: 1px solid var(--coral); background: var(--coral-soft); color: var(--ink); font-size: 13px;"><span style="font-size: 11px;">✓</span>mornings</button>
+                    <button aria-pressed="false" style="padding: 9px 15px; border-radius: 22px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: 13px;">evenings</button>
+                    <button aria-pressed="true" style="display: inline-flex; align-items: center; gap: 6px; padding: 9px 15px; border-radius: 22px; border: 1px solid var(--coral); background: var(--coral-soft); color: var(--ink); font-size: 13px;"><span style="font-size: 11px;">✓</span>weekends</button>
+                  </div>
+                </div>
+              </div>
+              <button style="margin-top: 24px; width: 100%; height: 48px; border-radius: 6px; border: 1px solid rgba(42,30,22,0.14); background: var(--coral); color: #FFFFFF; font-size: 17px; font-weight: 700;">save profile</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 06 Worker discover -->
+      <div data-screen-label="06 Discover jobs" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">06 — Explore jobs (immersive, no footer)</div>
+        <div style="width: 422px; padding: 12px 10px; border-radius: 54px; background: #1a1512; box-shadow: 0 18px 40px rgba(60,40,20,0.18); box-sizing: border-box;">
+          <div style="position: relative; width: 402px; height: 874px; background: var(--surface); overflow: hidden; border-radius: 40px;">
+            <div style="padding: 58px 20px 0 20px; display: flex; flex-direction: column; align-items: center;">
+              <div style="width: 100%; display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px;">
+                <div style="display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 22px; padding: 4px;">
+                  <button aria-pressed="true" style="border: none; padding: 7px 16px; border-radius: 18px; background: var(--surface); box-shadow: 0 1px 3px rgba(60,40,20,0.12); color: var(--ink); font-size: 13px; font-weight: 700;">explore</button>
+                  <button aria-pressed="false" style="border: none; padding: 7px 16px; border-radius: 18px; background: transparent; color: var(--muted); font-size: 13px;">matches</button>
+                </div>
+                <button aria-label="Options" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: transparent; color: var(--ink); font-size: 18px; display: flex; align-items: center; justify-content: center;">⋯</button>
+              </div>
+              <div style="width: 362px; height: 566px; border-radius: 18px; border: 1px solid var(--border); overflow: hidden; position: relative; background: var(--surface);">
+                <div style="width: 100%; height: 366px; background: var(--surface-2); display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--muted);">restaurant photo</div>
+                <div style="position: absolute; top: 16px; right: 16px; background: var(--surface); border: 1px solid var(--ok); color: var(--ok); border-radius: 20px; padding: 5px 12px; font-size: 12px;">hiring now</div>
+                <div style="padding: 18px 20px;">
+                  <div style="font-size: 22px; font-weight: 700;">Nonna's Trattoria</div>
+                  <div style="font-size: 16px; color: var(--muted); margin-bottom: 12px;">line cook · full-time</div>
+                  <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+                    <span style="padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface-2); font-size: 12px;">$22–26/hr</span>
+                    <span style="padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface-2); font-size: 12px;">evenings</span>
+                    <span style="padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface-2); font-size: 12px;">2.1 mi</span>
+                  </div>
+                  <div style="font-size: 13px; color: var(--muted);">busy Italian kitchen looking for a fast, friendly line cook.</div>
+                </div>
+              </div>
+              <div style="display: flex; gap: 14px; margin-top: 22px; width: 362px;">
+                <button style="flex: 1; height: 52px; border-radius: 26px; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 8px;"><span aria-hidden="true">✕</span>skip</button>
+                <button style="flex: 2; height: 52px; border-radius: 26px; border: 1px solid rgba(42,30,22,0.14); background: var(--coral); color: #FFFFFF; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px;"><span aria-hidden="true">♥</span>apply</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 07 Worker match -->
+      <div data-screen-label="07 Worker match" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">07 — It's a match (contact reveal)</div>
+        <div style="width: 422px; padding: 12px 10px; border-radius: 54px; background: #1a1512; box-shadow: 0 18px 40px rgba(60,40,20,0.18); box-sizing: border-box;">
+          <div style="position: relative; width: 402px; height: 874px; background: #33251C; overflow: hidden; border-radius: 40px;">
+            <div style="padding: 100px 32px 0 32px; display: flex; flex-direction: column; align-items: center; text-align: center;">
+              <div style="font-family: 'Aboreto', serif; font-size: 30px; color: var(--coral); margin-bottom: 6px;">it's a match!</div>
+              <div style="font-size: 15px; color: rgba(255,255,255,0.82); margin-bottom: 30px;">Nonna's Trattoria wants to talk to you</div>
+              <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 30px;">
+                <div style="width: 88px; height: 88px; border-radius: 50%; border: 3px solid var(--surface); background: var(--surface-2); margin-right: -16px; z-index: 1;"></div>
+                <div style="width: 88px; height: 88px; border-radius: 50%; border: 3px solid var(--surface); background: var(--surface-2);"></div>
+              </div>
+              <div style="width: 100%; background: var(--surface); border-radius: 15px; border: 1px solid var(--border); padding: 20px; text-align: left; margin-bottom: 24px;">
+                <div style="font-size: 18px; font-weight: 700; margin-bottom: 10px;">Nonna's Trattoria</div>
+                <div style="font-size: 14px; color: var(--muted); margin-bottom: 4px;">line cook · full-time · 2.1 mi</div>
+                <div style="font-size: 14px; color: var(--muted);">+972 3 555 0148</div>
+              </div>
+              <div style="display: flex; gap: 12px; width: 100%; margin-bottom: 14px;">
+                <button style="flex: 1; height: 48px; border-radius: 6px; border: 1px solid rgba(42,30,22,0.14); background: var(--coral); color: #FFFFFF; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px;">Call</button>
+                <button style="flex: 1; height: 48px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 8px;">WhatsApp</button>
+              </div>
+              <button style="border: none; background: transparent; color: var(--surface); font-size: 15px; padding: 8px 0;">keep exploring</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 08 Worker matches list -->
+      <div data-screen-label="08 Worker matches" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">08 — Your matches</div>
+        <div style="width: 422px; padding: 12px 10px; border-radius: 54px; background: #1a1512; box-shadow: 0 18px 40px rgba(60,40,20,0.18); box-sizing: border-box;">
+          <div style="position: relative; width: 402px; height: 874px; background: var(--surface); overflow: hidden; border-radius: 40px;">
+            <div style="padding: 58px 20px 0 20px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+                <div style="display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 22px; padding: 4px;">
+                  <button aria-pressed="false" style="border: none; padding: 7px 16px; border-radius: 18px; background: transparent; color: var(--muted); font-size: 13px;">explore</button>
+                  <button aria-pressed="true" style="border: none; padding: 7px 16px; border-radius: 18px; background: var(--surface); box-shadow: 0 1px 3px rgba(60,40,20,0.12); color: var(--ink); font-size: 13px; font-weight: 700;">matches</button>
+                </div>
+                <button aria-label="Options" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: transparent; color: var(--ink); font-size: 18px; display: flex; align-items: center; justify-content: center;">⋯</button>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="display: flex; align-items: center; gap: 14px; padding: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface);">
+                  <div style="width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface-2); flex-shrink: 0;"></div>
+                  <div style="flex: 1;">
+                    <div style="font-size: 15px; font-weight: 700;">Nonna's Trattoria</div>
+                    <div style="font-size: 13px; color: var(--muted);">line cook · matched today</div>
+                  </div>
+                  <button aria-label="Call Nonna's Trattoria" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: transparent; color: var(--ink); font-size: 16px;">☎</button>
+                  <button aria-label="WhatsApp Nonna's Trattoria" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--coral); background: var(--coral-soft); color: var(--ink); font-size: 15px;">✆</button>
+                </div>
+                <div style="display: flex; align-items: center; gap: 14px; padding: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface);">
+                  <div style="width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface-2); flex-shrink: 0;"></div>
+                  <div style="flex: 1;">
+                    <div style="font-size: 15px; font-weight: 700;">Blue Fig Cafe</div>
+                    <div style="font-size: 13px; color: var(--muted);">barista · matched 2 days ago</div>
+                  </div>
+                  <button aria-label="Call Blue Fig Cafe" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: transparent; color: var(--ink); font-size: 16px;">☎</button>
+                  <button aria-label="WhatsApp Blue Fig Cafe" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--coral); background: var(--coral-soft); color: var(--ink); font-size: 15px;">✆</button>
+                </div>
+                <div style="display: flex; align-items: center; gap: 14px; padding: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface);">
+                  <div style="width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface-2); flex-shrink: 0;"></div>
+                  <div style="flex: 1;">
+                    <div style="font-size: 15px; font-weight: 700;">Harbor House Grill</div>
+                    <div style="font-size: 13px; color: var(--muted);">server · matched 4 days ago</div>
+                  </div>
+                  <button aria-label="Call Harbor House Grill" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: transparent; color: var(--ink); font-size: 16px;">☎</button>
+                  <button aria-label="WhatsApp Harbor House Grill" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--coral); background: var(--coral-soft); color: var(--ink); font-size: 15px;">✆</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 09 Worker profile -->
+      <div data-screen-label="09 Worker settings" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">09 — Profile &amp; settings</div>
+        <div style="width: 422px; padding: 12px 10px; border-radius: 54px; background: #1a1512; box-shadow: 0 18px 40px rgba(60,40,20,0.18); box-sizing: border-box;">
+          <div style="position: relative; width: 402px; height: 874px; background: var(--surface); overflow: hidden; border-radius: 40px;">
+            <div style="padding: 58px 24px 0 24px;">
+              <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 24px;">
+                <div style="width: 84px; height: 84px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface-2); margin-bottom: 12px;"></div>
+                <div style="font-size: 20px; font-weight: 700;">Jordan Reyes</div>
+                <div style="font-size: 14px; color: var(--muted);">line cook · barista</div>
+                <button style="margin-top: 12px; padding: 9px 18px; border-radius: 22px; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); font-size: 13px;">edit profile</button>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button style="display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 15px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--ink); font-size: 15px; text-align: left;">notifications<span aria-hidden="true" style="color: var(--muted);">›</span></button>
+                <button style="display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 15px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--ink); font-size: 15px; text-align: left;">availability<span aria-hidden="true" style="color: var(--muted);">›</span></button>
+                <button style="display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 15px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--ink); font-size: 15px; text-align: left;">privacy<span aria-hidden="true" style="color: var(--muted);">›</span></button>
+                <button style="display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 15px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--ink); font-size: 15px; text-align: left;">support<span aria-hidden="true" style="color: var(--muted);">›</span></button>
+                <button style="align-self: flex-start; margin-top: 6px; border: none; background: transparent; color: var(--danger); font-size: 15px; padding: 10px 0;">log out</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================= -->
+  <!-- SECTION: OWNER FLOW -->
+  <!-- ============================================================= -->
+  <div data-screen-label="Owner flow" style="--coral:#2E9E5B; --coral-soft:#DCF1E4;">
+    <div style="font-size: 14px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 20px;">Owner Flow — QR hiring</div>
+    <div style="display: flex; flex-wrap: wrap; gap: 40px;">
+
+      <!-- 10 Owner home / QR hiring -->
+      <div data-screen-label="10 Owner home" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">10 — Owner home (QR hiring)</div>
+        <div style="width: 422px; padding: 12px 10px; border-radius: 54px; background: #1a1512; box-shadow: 0 18px 40px rgba(60,40,20,0.18); box-sizing: border-box;">
+          <div style="position: relative; width: 402px; height: 874px; background: var(--surface); overflow: hidden; border-radius: 40px;">
+            <div style="padding: 58px 20px 0 20px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+                <div style="font-family: 'Aboreto', serif; font-size: 22px;">peepss</div>
+                <button aria-label="Options" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: transparent; color: var(--ink); font-size: 18px; display: flex; align-items: center; justify-content: center;">⋯</button>
+              </div>
+              <div style="font-size: 20px; font-weight: 700; margin-bottom: 4px;">Nonna's Trattoria</div>
+              <div style="font-size: 13px; color: var(--muted); margin-bottom: 18px;">hiring by QR — no swiping needed</div>
+
+              <div style="border: 1px solid var(--border); border-radius: 14px; background: var(--surface); overflow: hidden; margin-bottom: 14px;">
+                <button aria-expanded="true" style="width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 15px 16px; border: none; background: var(--surface-2); color: var(--ink); font-size: 15px; font-weight: 700; text-align: left;">QR hiring<span aria-hidden="true">▾</span></button>
+                <div style="padding: 18px 16px; display: flex; flex-direction: column; gap: 16px;">
+                  <div>
+                    <div style="font-size: 13px; color: var(--muted); margin-bottom: 8px;">roles open in your QR form</div>
+                    <div role="group" style="display: flex; flex-wrap: wrap; gap: 8px;">
+                      <button aria-pressed="true" style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 20px; border: 1px solid var(--coral); background: var(--coral-soft); color: var(--ink); font-size: 13px;"><span style="font-size: 11px;">✓</span>line cook</button>
+                      <button aria-pressed="true" style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 20px; border: 1px solid var(--coral); background: var(--coral-soft); color: var(--ink); font-size: 13px;"><span style="font-size: 11px;">✓</span>server</button>
+                      <button aria-pressed="false" style="padding: 8px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: 13px;">barista</button>
+                      <button aria-pressed="false" style="padding: 8px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: 13px;">dishwasher</button>
+                    </div>
+                    <div style="font-size: 12px; color: var(--muted); margin-top: 8px;">saved automatically</div>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 14px; padding: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2);">
+                    <div style="width: 64px; height: 64px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--muted);">QR</div>
+                    <div style="flex: 1;">
+                      <div style="font-size: 14px; font-weight: 700;">candidate poster</div>
+                      <div style="font-size: 12px; color: var(--muted);">print &amp; display at your door</div>
+                    </div>
+                  </div>
+                  <button style="width: 100%; height: 48px; border-radius: 6px; border: 1px solid rgba(42,30,22,0.14); background: var(--coral); color: #FFFFFF; font-size: 16px; font-weight: 700;">Download poster</button>
+                  <button style="width: 100%; height: 44px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); font-size: 15px;">Preview poster</button>
+                  <button style="align-self: center; border: none; background: transparent; color: var(--ink); font-size: 14px; padding: 6px 0;">Copy candidate link</button>
+                </div>
+              </div>
+
+              <button aria-expanded="false" style="width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 15px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--muted); font-size: 15px; text-align: left;">Candidates (12 new)<span aria-hidden="true">▸</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 11 Owner applications -->
+      <div data-screen-label="11 Owner applications" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">11 — Candidates (accordion + status)</div>
+        <div style="width: 422px; padding: 12px 10px; border-radius: 54px; background: #1a1512; box-shadow: 0 18px 40px rgba(60,40,20,0.18); box-sizing: border-box;">
+          <div style="position: relative; width: 402px; height: 874px; background: var(--surface); overflow: hidden; border-radius: 40px;">
+            <div style="padding: 58px 20px 0 20px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px;">
+                <div style="font-size: 20px; font-weight: 700;">Candidates</div>
+                <button aria-label="Options" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: transparent; color: var(--ink); font-size: 18px; display: flex; align-items: center; justify-content: center;">⋯</button>
+              </div>
+
+              <button aria-expanded="true" style="width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border: none; border-bottom: 2px solid var(--coral); background: transparent; color: var(--ink); font-size: 14px; font-weight: 700; text-align: left; margin-bottom: 12px;">QR candidates · 12<span aria-hidden="true">▾</span></button>
+
+              <!-- expanded candidate -->
+              <div style="border: 1px solid var(--coral); border-radius: 12px; background: var(--surface); padding: 16px; margin-bottom: 10px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                  <div style="width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface-2); flex-shrink: 0;"></div>
+                  <div style="flex: 1;">
+                    <div style="font-size: 15px; font-weight: 700;">Priya Nandan</div>
+                    <div style="font-size: 12px; color: var(--muted);">line cook · 3+ yrs</div>
+                  </div>
+                  <button aria-label="Collapse" style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border); background: transparent; color: var(--ink); font-size: 14px;">▴</button>
+                </div>
+                <div style="font-size: 13px; color: var(--muted); margin-bottom: 14px;">available evenings &amp; weekends · applied 2h ago via QR</div>
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 14px;">
+                  <span style="font-size: 12px; color: var(--muted);">status</span>
+                  <button aria-haspopup="listbox" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); font-size: 13px;">Contacted<span aria-hidden="true" style="color: var(--muted);">▾</span></button>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                  <button style="flex: 1; height: 44px; border-radius: 6px; border: 1px solid rgba(42,30,22,0.14); background: var(--coral); color: #FFFFFF; font-size: 14px; font-weight: 700;">Call</button>
+                  <button style="flex: 1; height: 44px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); font-size: 14px;">WhatsApp</button>
+                  <button aria-label="Remove candidate" style="width: 44px; height: 44px; border-radius: 6px; border: none; background: var(--danger-soft); color: var(--danger); font-size: 16px;">🗑</button>
+                </div>
+              </div>
+
+              <!-- collapsed candidates -->
+              <div style="display: flex; align-items: center; gap: 12px; padding: 13px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); margin-bottom: 10px;">
+                <div style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface-2); flex-shrink: 0;"></div>
+                <div style="flex: 1;">
+                  <div style="font-size: 14px; font-weight: 700;">Marcus Webb</div>
+                  <div style="font-size: 12px; color: var(--muted);">server · 1–3 yrs</div>
+                </div>
+                <span style="padding: 5px 10px; border-radius: 8px; background: var(--coral-soft); color: var(--ink); font-size: 12px;">New</span>
+                <button aria-label="Expand Marcus Webb" style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border); background: transparent; color: var(--ink); font-size: 14px;">▾</button>
+              </div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 13px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); margin-bottom: 10px;">
+                <div style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface-2); flex-shrink: 0;"></div>
+                <div style="flex: 1;">
+                  <div style="font-size: 14px; font-weight: 700;">Sam Ortega</div>
+                  <div style="font-size: 12px; color: var(--muted);">barista · 0–1 yr</div>
+                </div>
+                <span style="padding: 5px 10px; border-radius: 8px; background: rgba(62,142,90,0.14); color: var(--ok); font-size: 12px;">Relevant</span>
+                <button aria-label="Expand Sam Ortega" style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border); background: transparent; color: var(--ink); font-size: 14px;">▾</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 12 Owner profile -->
+      <div data-screen-label="12 Owner profile" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">12 — Restaurant profile</div>
+        <div style="width: 422px; padding: 12px 10px; border-radius: 54px; background: #1a1512; box-shadow: 0 18px 40px rgba(60,40,20,0.18); box-sizing: border-box;">
+          <div style="position: relative; width: 402px; height: 874px; background: var(--surface); overflow: hidden; border-radius: 40px;">
+            <div style="padding: 58px 24px 0 24px;">
+              <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 24px;">
+                <div style="width: 84px; height: 84px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface-2); margin-bottom: 12px;"></div>
+                <div style="font-size: 20px; font-weight: 700;">Nonna's Trattoria</div>
+                <div style="font-size: 14px; color: var(--muted);">hiring: line cook, server</div>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 16px;">
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label style="font-size: 15px;">restaurant location</label>
+                  <div style="display: flex; align-items: center; justify-content: space-between; padding: 13px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); color: var(--muted); font-size: 14px;">14 Rothschild Blvd, Tel Aviv<span style="font-size: 11px; color: var(--ok);">✓ verified</span></div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label for="disp" style="font-size: 15px;">display name</label>
+                  <input id="disp" value="Nonna's Trattoria" style="width: 100%; height: 46px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); font-size: 16px; padding: 0 14px;">
+                </div>
+              </div>
+              <button style="margin-top: 24px; width: 100%; height: 48px; border-radius: 6px; border: 1px solid rgba(42,30,22,0.14); background: var(--coral); color: #FFFFFF; font-size: 17px; font-weight: 700;">Save changes</button>
+
+              <div style="margin-top: 22px; display: flex; flex-direction: column; gap: 10px;">
+                <button style="display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 15px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--ink); font-size: 15px; text-align: left;">Team access<span aria-hidden="true" style="color: var(--muted);">›</span></button>
+                <button style="display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 15px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--ink); font-size: 15px; text-align: left;">Notifications<span aria-hidden="true" style="color: var(--muted);">›</span></button>
+                <button style="align-self: flex-start; margin-top: 6px; border: none; background: transparent; color: var(--danger); font-size: 15px; padding: 10px 0;">log out</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+
+<div style="padding: 0 48px 120px 48px;">
+
+  <!-- ============================================================= -->
+  <!-- SECTION: WORKER MAP -->
+  <!-- ============================================================= -->
+  <div data-screen-label="Worker map" style="--coral:#0F8A86; --coral-soft:#D8EEED; margin-bottom: 64px;">
+    <div style="font-size: 14px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--coral); margin-bottom: 20px;">Worker Flow — Map (feature flag)</div>
+    <div style="display: flex; flex-wrap: wrap; gap: 40px;">
+
+      <!-- M1 Map + sheet -->
+      <div data-screen-label="Map sheet" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">Map — restaurant sheet</div>
+        <div style="width: 422px; padding: 12px 10px; border-radius: 54px; background: #1a1512; box-shadow: 0 18px 40px rgba(60,40,20,0.18); box-sizing: border-box;">
+          <div style="position: relative; width: 402px; height: 874px; overflow: hidden; border-radius: 40px; background: #E9EEE6;">
+            <!-- roadmap texture -->
+            <div style="position: absolute; inset: 0; background:
+              linear-gradient(90deg, transparent 48%, #Dfe6da 48%, #DfE6DA 52%, transparent 52%),
+              linear-gradient(0deg, transparent 30%, #DFE6DA 30%, #DFE6DA 32%, transparent 32%),
+              linear-gradient(0deg, transparent 68%, #DFE6DA 68%, #DFE6DA 70%, transparent 70%),
+              linear-gradient(120deg, transparent 74%, #E4EADF 74%, #E4EADF 78%, transparent 78%); "></div>
+            <!-- top controls -->
+            <div style="position: absolute; top: 58px; left: 20px; right: 20px; display: flex; align-items: center; justify-content: space-between; z-index: 3;">
+              <div style="display: inline-flex; background: var(--surface); border: 1px solid var(--border); border-radius: 22px; padding: 4px; box-shadow: 0 2px 8px rgba(60,40,20,0.12);">
+                <button aria-pressed="false" style="border: none; padding: 7px 16px; border-radius: 18px; background: transparent; color: var(--muted); font-size: 13px;">swipe</button>
+                <button aria-pressed="true" style="border: none; padding: 7px 16px; border-radius: 18px; background: var(--coral); color: #FFFFFF; font-size: 13px; font-weight: 700;">map</button>
+              </div>
+              <button aria-label="Options" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); color: var(--ink); font-size: 18px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(60,40,20,0.12);">⋯</button>
+            </div>
+            <!-- markers -->
+            <div style="position: absolute; top: 250px; left: 120px; z-index: 2; width: 30px; height: 30px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--coral); border: 2px solid var(--surface); box-shadow: 0 3px 6px rgba(0,0,0,0.2);"></div>
+            <div style="position: absolute; top: 330px; left: 250px; z-index: 2; width: 24px; height: 24px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--coral); border: 2px solid var(--surface); box-shadow: 0 3px 6px rgba(0,0,0,0.2);"></div>
+            <div style="position: absolute; top: 400px; left: 90px; z-index: 2; width: 24px; height: 24px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--coral); border: 2px solid var(--surface); box-shadow: 0 3px 6px rgba(0,0,0,0.2);"></div>
+            <!-- bottom sheet -->
+            <div style="position: absolute; left: 0; right: 0; bottom: 0; background: var(--surface); border-top-left-radius: 20px; border-top-right-radius: 20px; border: 1px solid var(--border); padding: 16px 20px 26px 20px; z-index: 4; box-shadow: 0 -6px 24px rgba(60,40,20,0.12);">
+              <div style="display: flex; align-items: flex-start; justify-content: space-between;">
+                <div>
+                  <div style="width: 40px; height: 4px; border-radius: 2px; background: var(--border); margin: 0 auto 14px auto;"></div>
+                  <div style="font-size: 18px; font-weight: 700;">Nonna's Trattoria</div>
+                  <div style="font-size: 13px; color: var(--muted); margin-bottom: 12px;">14 Rothschild Blvd · 2.1 mi away</div>
+                </div>
+                <button aria-label="Close sheet" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: transparent; color: var(--ink); font-size: 16px; display: flex; align-items: center; justify-content: center;">✕</button>
+              </div>
+              <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;">
+                <a href="#" style="padding: 8px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); font-size: 13px;">line cook ›</a>
+                <a href="#" style="padding: 8px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); font-size: 13px;">server ›</a>
+              </div>
+              <button style="width: 100%; height: 48px; border-radius: 6px; border: 1px solid rgba(42,30,22,0.14); background: var(--coral); color: #FFFFFF; font-size: 16px; font-weight: 700;">View jobs</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- M2 Map no-location -->
+      <div data-screen-label="Map add location" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">Map — no verified location</div>
+        <div style="width: 422px; padding: 12px 10px; border-radius: 54px; background: #1a1512; box-shadow: 0 18px 40px rgba(60,40,20,0.18); box-sizing: border-box;">
+          <div style="position: relative; width: 402px; height: 874px; overflow: hidden; border-radius: 40px; background: #E9EEE6;">
+            <div style="position: absolute; inset: 0; background:
+              linear-gradient(90deg, transparent 48%, #Dfe6da 48%, #DfE6DA 52%, transparent 52%),
+              linear-gradient(0deg, transparent 40%, #DFE6DA 40%, #DFE6DA 42%, transparent 42%);"></div>
+            <div style="position: absolute; top: 58px; left: 20px; right: 20px; display: flex; align-items: center; justify-content: space-between; z-index: 3;">
+              <div style="display: inline-flex; background: var(--surface); border: 1px solid var(--border); border-radius: 22px; padding: 4px; box-shadow: 0 2px 8px rgba(60,40,20,0.12);">
+                <button aria-pressed="false" style="border: none; padding: 7px 16px; border-radius: 18px; background: transparent; color: var(--muted); font-size: 13px;">swipe</button>
+                <button aria-pressed="true" style="border: none; padding: 7px 16px; border-radius: 18px; background: var(--coral); color: #FFFFFF; font-size: 13px; font-weight: 700;">map</button>
+              </div>
+              <button aria-label="Options" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); color: var(--ink); font-size: 18px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(60,40,20,0.12);">⋯</button>
+            </div>
+            <div style="position: absolute; left: 30px; right: 30px; top: 50%; transform: translateY(-50%); background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 26px 22px; text-align: center; z-index: 3; box-shadow: 0 6px 20px rgba(60,40,20,0.12);">
+              <div style="font-size: 17px; font-weight: 700; margin-bottom: 8px;">add your location</div>
+              <div style="font-size: 14px; color: var(--muted); line-height: 1.5; margin-bottom: 18px;">we use your approximate home street to show jobs nearby. it's never shown to restaurants.</div>
+              <button style="width: 100%; height: 48px; border-radius: 6px; border: 1px solid rgba(42,30,22,0.14); background: var(--coral); color: #FFFFFF; font-size: 16px; font-weight: 700;">Add location</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================= -->
+  <!-- SECTION: OWNER JOB BOARD + TEAM -->
+  <!-- ============================================================= -->
+  <div data-screen-label="Owner job board" style="--coral:#2F6FDB; --coral-soft:#E1ECFC; margin-bottom: 64px;">
+    <div style="font-size: 14px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 20px;">Owner Flow — Job Board (dev) &amp; Team</div>
+    <div style="display: flex; flex-wrap: wrap; gap: 40px;">
+
+      <!-- JB1 Job Board coming soon / dev -->
+      <div data-screen-label="Job board" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">Job Board — coming soon + dev create</div>
+        <div style="width: 422px; padding: 12px 10px; border-radius: 54px; background: #1a1512; box-shadow: 0 18px 40px rgba(60,40,20,0.18); box-sizing: border-box;">
+          <div style="position: relative; width: 402px; height: 874px; background: var(--surface); overflow: hidden; border-radius: 40px;">
+            <div style="padding: 58px 20px 0 20px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+                <div style="font-size: 20px; font-weight: 700;">Job Board</div>
+                <button aria-label="Options" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: transparent; color: var(--ink); font-size: 18px; display: flex; align-items: center; justify-content: center;">⋯</button>
+              </div>
+              <div style="border: 1px dashed var(--border); border-radius: 14px; background: var(--surface-2); padding: 26px 20px; text-align: center; margin-bottom: 20px;">
+                <div style="font-size: 16px; font-weight: 700; margin-bottom: 6px;">Coming soon</div>
+                <div style="font-size: 13px; color: var(--muted);">for now, hiring runs through your QR poster on Owner Home.</div>
+              </div>
+              <div style="font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px;">Dev build only</div>
+              <div style="border: 1px solid var(--border); border-radius: 12px; background: var(--surface); overflow: hidden; margin-bottom: 12px;">
+                <button aria-expanded="false" style="width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border: none; background: var(--surface); color: var(--ink); font-size: 15px; text-align: left;">
+                  <span>line cook · <span style="color: var(--ok);">active</span></span>
+                  <span aria-hidden="true" style="color: var(--muted);">▸</span>
+                </button>
+              </div>
+              <button style="width: 100%; height: 48px; border-radius: 6px; border: 1px solid rgba(42,30,22,0.14); background: var(--coral); color: #FFFFFF; font-size: 16px; font-weight: 700;">Create job</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- JB2 Create job 4-step -->
+      <div data-screen-label="Create job" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">Create job — step 2 of 4</div>
+        <div style="width: 422px; padding: 12px 10px; border-radius: 54px; background: #1a1512; box-shadow: 0 18px 40px rgba(60,40,20,0.18); box-sizing: border-box;">
+          <div style="position: relative; width: 402px; height: 874px; background: var(--surface); overflow: hidden; border-radius: 40px;">
+            <div style="padding: 58px 20px 0 20px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                <div style="font-size: 18px; font-weight: 700;">New job</div>
+                <button aria-label="Close form" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: transparent; color: var(--ink); font-size: 16px; display: flex; align-items: center; justify-content: center;">✕</button>
+              </div>
+              <!-- step indicator -->
+              <div style="display: flex; gap: 6px; margin-bottom: 22px;">
+                <div style="flex: 1; height: 4px; border-radius: 2px; background: var(--coral);"></div>
+                <div style="flex: 1; height: 4px; border-radius: 2px; background: var(--coral);"></div>
+                <div style="flex: 1; height: 4px; border-radius: 2px; background: var(--border);"></div>
+                <div style="flex: 1; height: 4px; border-radius: 2px; background: var(--border);"></div>
+              </div>
+              <div style="font-size: 15px; font-weight: 700; margin-bottom: 4px;">shifts</div>
+              <div style="font-size: 13px; color: var(--muted); margin-bottom: 16px;">pick one or more</div>
+              <div role="group" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 28px;">
+                <button aria-pressed="true" style="display: inline-flex; align-items: center; gap: 6px; padding: 11px 18px; border-radius: 22px; border: 1px solid var(--coral); background: var(--coral-soft); color: var(--ink); font-size: 14px;"><span style="font-size: 12px;">✓</span>morning</button>
+                <button aria-pressed="false" style="padding: 11px 18px; border-radius: 22px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: 14px;">afternoon</button>
+                <button aria-pressed="true" style="display: inline-flex; align-items: center; gap: 6px; padding: 11px 18px; border-radius: 22px; border: 1px solid var(--coral); background: var(--coral-soft); color: var(--ink); font-size: 14px;"><span style="font-size: 12px;">✓</span>evening</button>
+                <button aria-pressed="false" style="padding: 11px 18px; border-radius: 22px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: 14px;">night</button>
+                <button aria-pressed="false" style="padding: 11px 18px; border-radius: 22px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: 14px;">weekends</button>
+              </div>
+              <div style="display: flex; gap: 12px;">
+                <button style="flex: 1; height: 48px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); font-size: 16px;">Back</button>
+                <button style="flex: 1; height: 48px; border-radius: 6px; border: 1px solid rgba(42,30,22,0.14); background: var(--coral); color: #FFFFFF; font-size: 16px; font-weight: 700;">Next</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- T1 Owner Team -->
+      <div data-screen-label="Owner team" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">Team (owner only, inside options)</div>
+        <div style="width: 422px; padding: 12px 10px; border-radius: 54px; background: #1a1512; box-shadow: 0 18px 40px rgba(60,40,20,0.18); box-sizing: border-box;">
+          <div style="position: relative; width: 402px; height: 874px; background: var(--surface); overflow: hidden; border-radius: 40px;">
+            <div style="padding: 58px 20px 0 20px;">
+              <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+                <button aria-label="Back" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: transparent; color: var(--ink); font-size: 16px; display: flex; align-items: center; justify-content: center;">‹</button>
+                <div style="font-size: 20px; font-weight: 700;">Team</div>
+              </div>
+              <div style="border: 1px solid var(--border); border-radius: 14px; background: var(--surface); padding: 18px 16px; margin-bottom: 20px;">
+                <div style="font-size: 15px; font-weight: 700; margin-bottom: 14px;">add hiring manager</div>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                  <input placeholder="display name (optional)" style="width: 100%; height: 46px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); font-size: 16px; padding: 0 14px;">
+                  <input type="tel" placeholder="phone number" style="width: 100%; height: 46px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); font-size: 16px; padding: 0 14px;">
+                  <button style="width: 100%; height: 46px; border-radius: 6px; border: 1px solid rgba(42,30,22,0.14); background: var(--coral); color: #FFFFFF; font-size: 16px; font-weight: 700;">Add hiring manager</button>
+                </div>
+              </div>
+              <div style="font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px;">members</div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 13px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); margin-bottom: 10px;">
+                <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--border); flex-shrink: 0;"></div>
+                <div style="flex: 1;">
+                  <div style="font-size: 14px; font-weight: 700;">Sam Ortega <span style="font-weight: 400; color: var(--muted); font-size: 12px;">· owner</span></div>
+                  <div style="font-size: 12px; color: var(--muted);">054-1111111</div>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 13px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); margin-bottom: 10px;">
+                <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--border); flex-shrink: 0;"></div>
+                <div style="flex: 1;">
+                  <div style="font-size: 14px; font-weight: 700;">Dana Levi <span style="font-weight: 400; color: var(--muted); font-size: 12px;">· manager</span></div>
+                  <div style="font-size: 12px; color: var(--muted);">054-2223333</div>
+                </div>
+                <button style="border: none; background: transparent; color: var(--danger); font-size: 14px; padding: 8px 10px;">Remove</button>
+              </div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 13px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface);">
+                <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--border); flex-shrink: 0;"></div>
+                <div style="flex: 1;">
+                  <div style="font-size: 14px; font-weight: 700;">+972 54 987 6543 <span style="font-weight: 400; color: var(--muted); font-size: 12px;">· pending</span></div>
+                  <div style="font-size: 12px; color: var(--muted);">invited — awaiting first login</div>
+                </div>
+                <button style="border: none; background: transparent; color: var(--danger); font-size: 14px; padding: 8px 10px;">Remove</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================= -->
+  <!-- SECTION: PUBLIC QR APPLICATION -->
+  <!-- ============================================================= -->
+  <div data-screen-label="Public QR" style="--coral:#5147D6; --coral-soft:#E7E5FA; margin-bottom: 64px;">
+    <div style="font-size: 14px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 20px;">Public candidate — /r/:slug</div>
+    <div style="display: flex; flex-wrap: wrap; gap: 40px;">
+
+      <!-- P0 Not hiring -->
+      <div data-screen-label="QR not hiring" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">Not hiring (no OTP)</div>
+        <div style="width: 422px; padding: 12px 10px; border-radius: 54px; background: #1a1512; box-shadow: 0 18px 40px rgba(60,40,20,0.18); box-sizing: border-box;">
+          <div style="position: relative; width: 402px; height: 874px; background: var(--surface); overflow: hidden; border-radius: 40px;">
+            <div style="padding: 58px 24px 0 24px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 40px;">
+                <div style="font-family: 'Aboreto', serif; font-size: 24px;">peepss</div>
+                <button style="height: 34px; padding: 0 14px; border-radius: 18px; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); font-size: 13px;">EN / עב</button>
+              </div>
+              <div style="text-align: center; margin-top: 100px;">
+                <div style="width: 72px; height: 72px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--border); margin: 0 auto 20px auto; display: flex; align-items: center; justify-content: center; font-size: 26px; color: var(--muted);">🍽</div>
+                <div style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">Nonna's Trattoria</div>
+                <div style="font-size: 15px; color: var(--muted); line-height: 1.5;">isn't hiring right now.<br>check back soon!</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- P1 Identify -->
+      <div data-screen-label="QR identify" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">Step 1 — identify</div>
+        <div style="width: 422px; padding: 12px 10px; border-radius: 54px; background: #1a1512; box-shadow: 0 18px 40px rgba(60,40,20,0.18); box-sizing: border-box;">
+          <div style="position: relative; width: 402px; height: 874px; background: var(--surface); overflow: hidden; border-radius: 40px;">
+            <div style="padding: 58px 24px 0 24px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+                <div style="font-family: 'Aboreto', serif; font-size: 24px;">peepss</div>
+                <button style="height: 34px; padding: 0 14px; border-radius: 18px; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); font-size: 13px;">EN / עב</button>
+              </div>
+              <div style="text-align: center; margin-bottom: 8px;">
+                <div style="font-size: 20px; font-weight: 700;">apply at Nonna's Trattoria</div>
+                <div style="font-size: 13px; color: var(--muted);">step 1 of 3</div>
+              </div>
+              <div style="display: flex; gap: 6px; margin: 16px 0 24px 0;">
+                <div style="flex: 1; height: 4px; border-radius: 2px; background: var(--coral);"></div>
+                <div style="flex: 1; height: 4px; border-radius: 2px; background: var(--border);"></div>
+                <div style="flex: 1; height: 4px; border-radius: 2px; background: var(--border);"></div>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 16px;">
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label for="qn" style="font-size: 15px;">full name</label>
+                  <input id="qn" placeholder="your name" style="width: 100%; height: 46px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); font-size: 16px; padding: 0 14px;">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label for="qp" style="font-size: 15px;">phone</label>
+                  <input id="qp" type="tel" placeholder="+972 5_ ___ ____" style="width: 100%; height: 46px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); font-size: 16px; padding: 0 14px;">
+                </div>
+              </div>
+              <div style="font-size: 12px; color: var(--muted); line-height: 1.5; margin: 16px 0;">by continuing you'll get a one-time SMS code to verify your number.</div>
+              <button style="width: 100%; height: 48px; border-radius: 6px; border: 1px solid rgba(42,30,22,0.14); background: var(--coral); color: #FFFFFF; font-size: 17px; font-weight: 700;">Send me a code</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- P2 Verify auto -->
+      <div data-screen-label="QR verify" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">Step 2 — auto-verify</div>
+        <div style="width: 422px; padding: 12px 10px; border-radius: 54px; background: #1a1512; box-shadow: 0 18px 40px rgba(60,40,20,0.18); box-sizing: border-box;">
+          <div style="position: relative; width: 402px; height: 874px; background: var(--surface); overflow: hidden; border-radius: 40px;">
+            <div style="padding: 58px 24px 0 24px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+                <div style="font-family: 'Aboreto', serif; font-size: 24px;">peepss</div>
+                <button style="height: 34px; padding: 0 14px; border-radius: 18px; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); font-size: 13px;">EN / עב</button>
+              </div>
+              <div style="display: flex; gap: 6px; margin-bottom: 28px;">
+                <div style="flex: 1; height: 4px; border-radius: 2px; background: var(--coral);"></div>
+                <div style="flex: 1; height: 4px; border-radius: 2px; background: var(--coral);"></div>
+                <div style="flex: 1; height: 4px; border-radius: 2px; background: var(--border);"></div>
+              </div>
+              <div style="font-size: 18px; font-weight: 700; margin-bottom: 4px;">enter the code</div>
+              <div style="font-size: 13px; color: var(--muted); margin-bottom: 20px;">sent to +972 54 123 4567</div>
+              <div style="display: flex; gap: 10px; margin-bottom: 14px;">
+                <input maxlength="1" value="4" style="width: 100%; height: 58px; text-align: center; border-radius: 8px; border: 1px solid var(--coral); background: var(--coral-soft); font-size: 24px;">
+                <input maxlength="1" value="1" style="width: 100%; height: 58px; text-align: center; border-radius: 8px; border: 1px solid var(--coral); background: var(--coral-soft); font-size: 24px;">
+                <input maxlength="1" value="9" style="width: 100%; height: 58px; text-align: center; border-radius: 8px; border: 1px solid var(--coral); background: var(--coral-soft); font-size: 24px;">
+                <input maxlength="1" value="2" style="width: 100%; height: 58px; text-align: center; border-radius: 8px; border: 1px solid var(--coral); background: var(--coral-soft); font-size: 24px;">
+              </div>
+              <div style="display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; color: var(--muted); margin-bottom: 22px;">
+                <span style="width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--coral); border-top-color: transparent; display: inline-block;"></span>
+                verifying automatically…
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+                <button style="border: none; background: transparent; color: var(--ink); font-size: 14px; padding: 6px 0;">resend code</button>
+                <button style="border: none; background: transparent; color: var(--ink); font-size: 14px; padding: 6px 0;">change phone</button>
+              </div>
+              <div style="text-align: center;">
+                <button style="border: none; background: transparent; color: var(--muted); font-size: 13px; text-decoration: underline; text-underline-offset: 3px; padding: 6px 0;">enter code manually · Continue</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- P3 Details -->
+      <div data-screen-label="QR details" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">Step 3 — application details</div>
+        <div style="width: 422px; padding: 12px 10px; border-radius: 54px; background: #1a1512; box-shadow: 0 18px 40px rgba(60,40,20,0.18); box-sizing: border-box;">
+          <div style="position: relative; width: 402px; height: 874px; background: var(--surface); overflow: hidden; border-radius: 40px;">
+            <div style="padding: 58px 22px 0 22px;">
+              <div style="display: flex; gap: 6px; margin-bottom: 20px;">
+                <div style="flex: 1; height: 4px; border-radius: 2px; background: var(--coral);"></div>
+                <div style="flex: 1; height: 4px; border-radius: 2px; background: var(--coral);"></div>
+                <div style="flex: 1; height: 4px; border-radius: 2px; background: var(--coral);"></div>
+              </div>
+              <div style="font-size: 18px; font-weight: 700; margin-bottom: 16px;">a bit about you</div>
+              <div style="display: flex; flex-direction: column; gap: 16px;">
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label for="qage" style="font-size: 15px;">age</label>
+                  <input id="qage" type="number" placeholder="e.g. 24" style="width: 120px; height: 46px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); font-size: 16px; padding: 0 14px;">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <label style="font-size: 15px;">roles you want</label>
+                  <div role="group" style="display: flex; flex-wrap: wrap; gap: 8px;">
+                    <button aria-pressed="true" style="display: inline-flex; align-items: center; gap: 6px; padding: 9px 15px; border-radius: 22px; border: 1px solid var(--coral); background: var(--coral-soft); color: var(--ink); font-size: 13px;"><span style="font-size: 11px;">✓</span>line cook</button>
+                    <button aria-pressed="false" style="padding: 9px 15px; border-radius: 22px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: 13px;">server</button>
+                  </div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <label style="font-size: 15px;">experience</label>
+                  <div role="radiogroup" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button role="radio" aria-checked="false" style="padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: 13px;">none</button>
+                    <button role="radio" aria-checked="false" style="padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: 13px;">1 yr</button>
+                    <button role="radio" aria-checked="true" style="padding: 10px 14px; border-radius: 8px; border: 1px solid var(--coral); background: var(--coral-soft); color: var(--ink); font-size: 13px;">3+ yrs</button>
+                  </div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <label style="font-size: 15px;">availability</label>
+                  <div role="group" style="display: flex; flex-wrap: wrap; gap: 8px;">
+                    <button aria-pressed="true" style="display: inline-flex; align-items: center; gap: 6px; padding: 9px 15px; border-radius: 22px; border: 1px solid var(--coral); background: var(--coral-soft); color: var(--ink); font-size: 13px;"><span style="font-size: 11px;">✓</span>evenings</button>
+                    <button aria-pressed="true" style="display: inline-flex; align-items: center; gap: 6px; padding: 9px 15px; border-radius: 22px; border: 1px solid var(--coral); background: var(--coral-soft); color: var(--ink); font-size: 13px;"><span style="font-size: 11px;">✓</span>weekends</button>
+                  </div>
+                </div>
+              </div>
+              <div style="font-size: 12px; color: var(--muted); margin: 16px 0 10px 0;">by submitting you agree to our <a href="#" style="color: var(--coral);">Privacy Policy</a>.</div>
+              <button style="width: 100%; height: 48px; border-radius: 6px; border: 1px solid rgba(42,30,22,0.14); background: var(--coral); color: #FFFFFF; font-size: 17px; font-weight: 700;">Submit application</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- P4 Success -->
+      <div data-screen-label="QR success" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">Success (terminal)</div>
+        <div style="width: 422px; padding: 12px 10px; border-radius: 54px; background: #1a1512; box-shadow: 0 18px 40px rgba(60,40,20,0.18); box-sizing: border-box;">
+          <div style="position: relative; width: 402px; height: 874px; background: var(--surface); overflow: hidden; border-radius: 40px;">
+            <div style="padding: 58px 24px 0 24px; text-align: center;">
+              <div style="font-family: 'Aboreto', serif; font-size: 24px; margin-bottom: 90px;">peepss</div>
+              <div style="width: 84px; height: 84px; border-radius: 50%; background: var(--coral-soft); border: 1px solid var(--coral); margin: 0 auto 24px auto; display: flex; align-items: center; justify-content: center; font-size: 34px; color: var(--coral);">✓</div>
+              <div style="font-size: 22px; font-weight: 700; margin-bottom: 10px;">application sent!</div>
+              <div style="font-size: 15px; color: var(--muted); line-height: 1.5;">Nonna's Trattoria will reach out if you're a fit. thanks for applying with peepss.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================= -->
+  <!-- SECTION: RESTAURANT ACTIVATION / CLAIM -->
+  <!-- ============================================================= -->
+  <div data-screen-label="Activation" style="--coral:#8A44D6; --coral-soft:#F0E4FA; margin-bottom: 64px;">
+    <div style="font-size: 14px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 20px;">Restaurant activation — /claim/:slug</div>
+    <div style="display: flex; flex-wrap: wrap; gap: 40px;">
+
+      <!-- C1 Overview -->
+      <div data-screen-label="Claim overview" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">Activation overview</div>
+        <div style="width: 422px; padding: 12px 10px; border-radius: 54px; background: #1a1512; box-shadow: 0 18px 40px rgba(60,40,20,0.18); box-sizing: border-box;">
+          <div style="position: relative; width: 402px; height: 874px; background: var(--surface); overflow: hidden; border-radius: 40px;">
+            <div style="padding: 58px 24px 0 24px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+                <div style="font-family: 'Aboreto', serif; font-size: 24px;">peepss</div>
+                <button style="height: 34px; padding: 0 14px; border-radius: 18px; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); font-size: 13px;">EN / עב</button>
+              </div>
+              <div style="font-size: 13px; color: var(--coral); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 8px;">Activate your restaurant</div>
+              <div style="font-size: 24px; font-weight: 700; margin-bottom: 6px;">Nonna's Trattoria</div>
+              <div style="font-size: 14px; color: var(--muted); line-height: 1.5; margin-bottom: 20px;">your peepss hiring page is ready. activate it to start receiving candidates.</div>
+              <div style="border: 1px solid var(--border); border-radius: 14px; background: var(--surface-2); padding: 18px; margin-bottom: 14px;">
+                <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 14px;">
+                  <div style="width: 60px; height: 60px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--muted);">QR</div>
+                  <div style="font-size: 13px; color: var(--muted); line-height: 1.5;">your candidate QR is already live and printable.</div>
+                </div>
+                <div style="font-size: 13px; color: var(--muted);">hiring roles: <span style="color: var(--ink);">line cook, server</span></div>
+              </div>
+              <button style="width: 100%; height: 50px; border-radius: 6px; border: 1px solid rgba(42,30,22,0.14); background: var(--coral); color: #FFFFFF; font-size: 17px; font-weight: 700; margin-top: 8px;">Activate my restaurant</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- C2 Code -->
+      <div data-screen-label="Claim code" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">Verify &amp; activate</div>
+        <div style="width: 422px; padding: 12px 10px; border-radius: 54px; background: #1a1512; box-shadow: 0 18px 40px rgba(60,40,20,0.18); box-sizing: border-box;">
+          <div style="position: relative; width: 402px; height: 874px; background: var(--surface); overflow: hidden; border-radius: 40px;">
+            <div style="padding: 58px 24px 0 24px;">
+              <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
+                <button aria-label="Back to overview" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: transparent; color: var(--ink); font-size: 16px; display: flex; align-items: center; justify-content: center;">‹</button>
+                <div style="font-family: 'Aboreto', serif; font-size: 22px;">peepss</div>
+              </div>
+              <div style="font-size: 20px; font-weight: 700; margin-bottom: 4px;">verify to activate</div>
+              <div style="font-size: 13px; color: var(--muted); margin-bottom: 22px;">Nonna's Trattoria · +972 54 123 4567</div>
+              <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <input maxlength="1" value="4" style="width: 100%; height: 58px; text-align: center; border-radius: 8px; border: 1px solid var(--coral); background: var(--coral-soft); font-size: 24px;">
+                <input maxlength="1" value="1" style="width: 100%; height: 58px; text-align: center; border-radius: 8px; border: 1px solid var(--coral); background: var(--coral-soft); font-size: 24px;">
+                <input maxlength="1" placeholder="•" style="width: 100%; height: 58px; text-align: center; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); font-size: 24px; color: var(--muted);">
+                <input maxlength="1" placeholder="•" style="width: 100%; height: 58px; text-align: center; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); font-size: 24px; color: var(--muted);">
+              </div>
+              <button style="width: 100%; height: 50px; border-radius: 6px; border: 1px solid rgba(42,30,22,0.14); background: var(--coral); color: #FFFFFF; font-size: 17px; font-weight: 700; margin-bottom: 16px;">Activate restaurant</button>
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <button style="border: none; background: transparent; color: var(--ink); font-size: 14px; padding: 6px 0;">resend code</button>
+                <button style="border: none; background: transparent; color: var(--ink); font-size: 14px; padding: 6px 0;">change number</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- C3 Already activated -->
+      <div data-screen-label="Claim activated" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">Already activated</div>
+        <div style="width: 422px; padding: 12px 10px; border-radius: 54px; background: #1a1512; box-shadow: 0 18px 40px rgba(60,40,20,0.18); box-sizing: border-box;">
+          <div style="position: relative; width: 402px; height: 874px; background: var(--surface); overflow: hidden; border-radius: 40px;">
+            <div style="padding: 58px 24px 0 24px; text-align: center;">
+              <div style="font-family: 'Aboreto', serif; font-size: 24px; margin-bottom: 90px;">peepss</div>
+              <div style="width: 72px; height: 72px; border-radius: 50%; background: rgba(62,142,90,0.14); border: 1px solid var(--ok); margin: 0 auto 22px auto; display: flex; align-items: center; justify-content: center; font-size: 30px; color: var(--ok);">✓</div>
+              <div style="font-size: 20px; font-weight: 700; margin-bottom: 10px;">already activated</div>
+              <div style="font-size: 15px; color: var(--muted); line-height: 1.5; margin-bottom: 28px;">this restaurant is already set up. existing managers can log in with the connected number.</div>
+              <button style="width: 100%; height: 48px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); font-size: 16px;">Go to login</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- C4 Invalid link -->
+      <div data-screen-label="Claim invalid" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">Invalid / replaced link</div>
+        <div style="width: 422px; padding: 12px 10px; border-radius: 54px; background: #1a1512; box-shadow: 0 18px 40px rgba(60,40,20,0.18); box-sizing: border-box;">
+          <div style="position: relative; width: 402px; height: 874px; background: var(--surface); overflow: hidden; border-radius: 40px;">
+            <div style="padding: 58px 24px 0 24px; text-align: center;">
+              <div style="font-family: 'Aboreto', serif; font-size: 24px; margin-bottom: 90px;">peepss</div>
+              <div style="width: 72px; height: 72px; border-radius: 50%; background: var(--danger-soft); border: 1px solid var(--danger); margin: 0 auto 22px auto; display: flex; align-items: center; justify-content: center; font-size: 30px; color: var(--danger);">!</div>
+              <div style="font-size: 20px; font-weight: 700; margin-bottom: 10px;">link no longer available</div>
+              <div style="font-size: 15px; color: var(--muted); line-height: 1.5; margin-bottom: 28px;">this activation link may have been used or regenerated. contact peepss for access.</div>
+              <button style="width: 100%; height: 48px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); font-size: 16px;">Go to login</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================= -->
+  <!-- SECTION: ADMIN (desktop, English) -->
+  <!-- ============================================================= -->
+  <div data-screen-label="Admin" style="--coral:#C23C7C; --coral-soft:#FADFEC; margin-bottom: 64px;">
+    <div style="font-size: 14px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 20px;">Admin — desktop</div>
+    <div style="display: flex; flex-direction: column; gap: 40px;">
+
+      <!-- A1 Admin Restaurants list + create -->
+      <div data-screen-label="Admin restaurants" style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">Admin — Restaurants (list + create)</div>
+        <div style="width: 1120px; max-width: 100%; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); overflow: hidden; box-shadow: 0 12px 34px rgba(60,40,20,0.12);">
+          <div style="height: 40px; background: var(--surface-2); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; padding: 0 16px;">
+            <span style="width: 11px; height: 11px; border-radius: 50%; background: #E6B0A6;"></span>
+            <span style="width: 11px; height: 11px; border-radius: 50%; background: #E8D2A0;"></span>
+            <span style="width: 11px; height: 11px; border-radius: 50%; background: #B7CFAE;"></span>
+            <span style="margin-left: 12px; font-size: 12px; color: var(--muted);">peepss.app/admin/restaurants</span>
+          </div>
+          <!-- top bar -->
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 18px 26px; border-bottom: 1px solid var(--border);">
+            <div style="font-family: 'Aboreto', serif; font-size: 22px;">peepss <span style="font-family: 'Oxygen', sans-serif; font-size: 13px; color: var(--muted);">admin</span></div>
+            <div style="display: flex; align-items: center; gap: 18px;">
+              <div style="display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 22px; padding: 4px;">
+                <button aria-pressed="true" style="border: none; padding: 7px 18px; border-radius: 18px; background: var(--surface); box-shadow: 0 1px 3px rgba(60,40,20,0.12); color: var(--ink); font-size: 13px; font-weight: 700;">Restaurants</button>
+                <button aria-pressed="false" style="border: none; padding: 7px 18px; border-radius: 18px; background: transparent; color: var(--muted); font-size: 13px;">Leads</button>
+              </div>
+              <button style="border: none; background: transparent; color: var(--ink); font-size: 14px;">Logout</button>
+            </div>
+          </div>
+          <div style="display: flex; gap: 24px; padding: 26px;">
+            <!-- list -->
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 14px;">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="font-size: 18px; font-weight: 700;">Restaurants</div>
+                <button style="height: 40px; padding: 0 18px; border-radius: 6px; border: 1px solid rgba(42,30,22,0.14); background: var(--coral); color: #FFFFFF; font-size: 14px; font-weight: 700;">+ Create restaurant</button>
+              </div>
+              <a href="#" style="display: block; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); padding: 16px 18px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 16px; font-weight: 700; color: var(--ink);">Nonna's Trattoria</span>
+                    <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--coral);" title="new candidates"></span>
+                  </div>
+                  <span style="padding: 4px 10px; border-radius: 12px; background: rgba(62,142,90,0.14); color: var(--ok); font-size: 12px;">Activated</span>
+                </div>
+                <div style="display: flex; gap: 18px; font-size: 12px; color: var(--muted);">
+                  <span>✓ location verified</span>
+                  <span>QR views 214 · applied 38</span>
+                </div>
+              </a>
+              <a href="#" style="display: block; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); padding: 16px 18px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                  <span style="font-size: 16px; font-weight: 700; color: var(--ink);">Blue Fig Cafe</span>
+                  <span style="padding: 4px 10px; border-radius: 12px; background: var(--surface-2); color: var(--muted); font-size: 12px;">Not activated</span>
+                </div>
+                <div style="display: flex; gap: 18px; font-size: 12px; color: var(--muted);">
+                  <span style="color: var(--danger);">location unverified</span>
+                  <span>QR views 46 · applied 5</span>
+                </div>
+              </a>
+            </div>
+            <!-- create form -->
+            <div style="width: 360px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); padding: 20px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                <div style="font-size: 15px; font-weight: 700;">New restaurant</div>
+                <button aria-label="Close form" style="width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border); background: transparent; color: var(--ink); font-size: 14px; display: flex; align-items: center; justify-content: center;">✕</button>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 12px;">
+                <input placeholder="Restaurant name" style="width: 100%; height: 42px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); font-size: 14px; padding: 0 12px;">
+                <input placeholder="Slug (optional)" style="width: 100%; height: 42px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); font-size: 14px; padding: 0 12px;">
+                <input placeholder="Owner login phone" style="width: 100%; height: 42px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); font-size: 14px; padding: 0 12px;">
+                <input placeholder="Restaurant contact phone" style="width: 100%; height: 42px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); font-size: 14px; padding: 0 12px;">
+                <button style="width: 100%; height: 44px; border-radius: 6px; border: 1px solid rgba(42,30,22,0.14); background: var(--coral); color: #FFFFFF; font-size: 14px; font-weight: 700; margin-top: 4px;">Create restaurant</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- A2 Admin restaurant detail -->
+      <div data-screen-label="Admin detail" style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">Admin — Restaurant detail (priority order + danger zone)</div>
+        <div style="width: 1120px; max-width: 100%; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); overflow: hidden; box-shadow: 0 12px 34px rgba(60,40,20,0.12);">
+          <div style="height: 40px; background: var(--surface-2); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; padding: 0 16px;">
+            <span style="width: 11px; height: 11px; border-radius: 50%; background: #E6B0A6;"></span>
+            <span style="width: 11px; height: 11px; border-radius: 50%; background: #E8D2A0;"></span>
+            <span style="width: 11px; height: 11px; border-radius: 50%; background: #B7CFAE;"></span>
+            <span style="margin-left: 12px; font-size: 12px; color: var(--muted);">peepss.app/admin/restaurants/rst_1042</span>
+          </div>
+          <div style="padding: 22px 26px;">
+            <button style="border: none; background: transparent; color: var(--ink); font-size: 13px; padding: 6px 0; margin-bottom: 14px;">‹ Back to Restaurants</button>
+
+            <!-- 1 identity + activation -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px;">
+              <div>
+                <div style="font-size: 22px; font-weight: 700;">Nonna's Trattoria</div>
+                <div style="font-size: 13px; color: var(--muted);">/r/nonnas-trattoria</div>
+              </div>
+              <span style="padding: 6px 14px; border-radius: 14px; background: rgba(62,142,90,0.14); color: var(--ok); font-size: 13px;">Activated</span>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+              <!-- 2 candidate QR -->
+              <div style="border: 1px solid var(--border); border-radius: 12px; background: var(--surface); padding: 18px;">
+                <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 12px;">Candidate QR — public</div>
+                <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 14px;">
+                  <div style="width: 60px; height: 60px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--muted);">QR</div>
+                  <div style="font-size: 13px; color: var(--muted);">points to /r/nonnas-trattoria</div>
+                </div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                  <button style="height: 40px; padding: 0 16px; border-radius: 6px; border: 1px solid rgba(42,30,22,0.14); background: var(--coral); color: #FFFFFF; font-size: 13px; font-weight: 700;">Download poster</button>
+                  <button style="height: 40px; padding: 0 16px; border-radius: 6px; border: none; background: transparent; color: var(--ink); font-size: 13px;">Copy public link</button>
+                </div>
+              </div>
+              <!-- 3 private activation -->
+              <div style="border: 1px solid var(--border); border-radius: 12px; background: var(--surface); padding: 18px;">
+                <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 12px;">Owner activation — private</div>
+                <div style="font-size: 13px; color: var(--muted); margin-bottom: 14px;">/claim/nonnas-trattoria?token=•••</div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                  <button style="height: 40px; padding: 0 16px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); font-size: 13px;">Copy activation link</button>
+                  <button disabled="" style="height: 40px; padding: 0 16px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2); color: var(--muted); font-size: 13px; cursor: not-allowed; opacity: 0.6;">Regenerate (disabled — activated)</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4 funnel -->
+            <div style="border: 1px solid var(--border); border-radius: 12px; background: var(--surface); padding: 18px; margin-bottom: 16px;">
+              <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 12px;">QR funnel</div>
+              <div style="display: flex; gap: 30px;">
+                <div><div style="font-size: 22px; font-weight: 700;">214</div><div style="font-size: 12px; color: var(--muted);">views</div></div>
+                <div><div style="font-size: 22px; font-weight: 700;">72</div><div style="font-size: 12px; color: var(--muted);">started</div></div>
+                <div><div style="font-size: 22px; font-weight: 700;">38</div><div style="font-size: 12px; color: var(--muted);">applied</div></div>
+                <div><div style="font-size: 22px; font-weight: 700; color: var(--ok);">11</div><div style="font-size: 12px; color: var(--muted);">relevant</div></div>
+              </div>
+            </div>
+
+            <!-- 5 editing -->
+            <div style="border: 1px solid var(--border); border-radius: 12px; background: var(--surface); padding: 18px; margin-bottom: 16px;">
+              <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 14px;">Restaurant &amp; location</div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+                <input value="Nonna's Trattoria" style="height: 42px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); font-size: 14px; padding: 0 12px;">
+                <input value="nonnas-trattoria" style="height: 42px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); font-size: 14px; padding: 0 12px;">
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px; background: var(--danger-soft); border: 1px solid rgba(192,57,43,0.3); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px;">
+                <span style="color: var(--danger); font-size: 15px;">⚠</span>
+                <span style="font-size: 12px; color: var(--danger);">changing the slug changes /r/ and /claim/ links — printed posters may stop working.</span>
+              </div>
+              <div style="display: flex; gap: 10px;">
+                <button style="height: 40px; padding: 0 18px; border-radius: 6px; border: 1px solid rgba(42,30,22,0.14); background: var(--coral); color: #FFFFFF; font-size: 13px; font-weight: 700;">Save restaurant</button>
+                <button style="height: 40px; padding: 0 18px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); font-size: 13px;">Save verified location</button>
+              </div>
+            </div>
+
+            <!-- 7 danger zone -->
+            <div style="border: 1px solid rgba(192,57,43,0.35); border-radius: 12px; background: var(--danger-soft); padding: 18px;">
+              <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--danger); margin-bottom: 8px;">Danger zone</div>
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="font-size: 13px; color: var(--ink);">deleting removes the restaurant, its QR and all candidate records.</div>
+                <button style="height: 40px; padding: 0 18px; border-radius: 6px; border: 1px solid var(--danger); background: transparent; color: var(--danger); font-size: 13px; font-weight: 700;">Delete restaurant</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- A3 Admin leads -->
+      <div data-screen-label="Admin leads" style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">Admin — Leads (filters + compact status)</div>
+        <div style="width: 1120px; max-width: 100%; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); overflow: hidden; box-shadow: 0 12px 34px rgba(60,40,20,0.12);">
+          <div style="height: 40px; background: var(--surface-2); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; padding: 0 16px;">
+            <span style="width: 11px; height: 11px; border-radius: 50%; background: #E6B0A6;"></span>
+            <span style="width: 11px; height: 11px; border-radius: 50%; background: #E8D2A0;"></span>
+            <span style="width: 11px; height: 11px; border-radius: 50%; background: #B7CFAE;"></span>
+            <span style="margin-left: 12px; font-size: 12px; color: var(--muted);">peepss.app/admin/leads</span>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 18px 26px; border-bottom: 1px solid var(--border);">
+            <div style="font-family: 'Aboreto', serif; font-size: 22px;">peepss <span style="font-family: 'Oxygen', sans-serif; font-size: 13px; color: var(--muted);">admin</span></div>
+            <div style="display: flex; align-items: center; gap: 18px;">
+              <div style="display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 22px; padding: 4px;">
+                <button aria-pressed="false" style="border: none; padding: 7px 18px; border-radius: 18px; background: transparent; color: var(--muted); font-size: 13px;">Restaurants</button>
+                <button aria-pressed="true" style="border: none; padding: 7px 18px; border-radius: 18px; background: var(--surface); box-shadow: 0 1px 3px rgba(60,40,20,0.12); color: var(--ink); font-size: 13px; font-weight: 700;">Leads</button>
+              </div>
+              <button style="border: none; background: transparent; color: var(--ink); font-size: 14px;">Logout</button>
+            </div>
+          </div>
+          <!-- filters -->
+          <div style="display: flex; align-items: center; gap: 12px; padding: 18px 26px; flex-wrap: wrap; border-bottom: 1px solid var(--border);">
+            <div style="display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 20px; padding: 3px;">
+              <button aria-pressed="true" style="border: none; padding: 6px 14px; border-radius: 16px; background: var(--surface); box-shadow: 0 1px 3px rgba(60,40,20,0.12); color: var(--ink); font-size: 12px; font-weight: 700;">All</button>
+              <button aria-pressed="false" style="border: none; padding: 6px 14px; border-radius: 16px; background: transparent; color: var(--muted); font-size: 12px;">New</button>
+              <button aria-pressed="false" style="border: none; padding: 6px 14px; border-radius: 16px; background: transparent; color: var(--muted); font-size: 12px;">Contacted</button>
+              <button aria-pressed="false" style="border: none; padding: 6px 14px; border-radius: 16px; background: transparent; color: var(--muted); font-size: 12px;">Relevant</button>
+              <button aria-pressed="false" style="border: none; padding: 6px 14px; border-radius: 16px; background: transparent; color: var(--muted); font-size: 12px;">Rejected</button>
+            </div>
+            <input placeholder="Search restaurant…" style="height: 36px; border-radius: 18px; border: 1px solid var(--border); background: var(--surface); font-size: 13px; padding: 0 14px; width: 200px;">
+            <select style="height: 36px; border-radius: 18px; border: 1px solid var(--border); background: var(--surface); font-size: 13px; padding: 0 12px; color: var(--ink);">
+              <option>All roles</option>
+              <option>Line cook</option>
+              <option>Server</option>
+            </select>
+          </div>
+          <!-- rows -->
+          <div style="padding: 12px 26px 26px 26px; display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); padding: 14px 18px;">
+              <div style="flex: 1;">
+                <div style="font-size: 15px; font-weight: 700;">Priya Nandan</div>
+                <div style="font-size: 12px; color: var(--muted);">line cook · 3+ yrs · Nonna's Trattoria</div>
+              </div>
+              <div style="display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 18px; padding: 3px;">
+                <button disabled="" style="border: none; padding: 6px 12px; border-radius: 15px; background: var(--surface); box-shadow: 0 1px 3px rgba(60,40,20,0.12); color: var(--ink); font-size: 12px; cursor: default;">New</button>
+                <button style="border: none; padding: 6px 12px; border-radius: 15px; background: transparent; color: var(--muted); font-size: 12px;">Contacted</button>
+                <button style="border: none; padding: 6px 12px; border-radius: 15px; background: transparent; color: var(--muted); font-size: 12px;">Relevant</button>
+                <button style="border: none; padding: 6px 12px; border-radius: 15px; background: transparent; color: var(--muted); font-size: 12px;">Rejected</button>
+              </div>
+              <button aria-label="Call Priya" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: transparent; color: var(--ink); font-size: 15px;">☎</button>
+              <button aria-label="WhatsApp Priya" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--coral); background: var(--coral-soft); color: var(--ink); font-size: 14px;">✆</button>
+            </div>
+            <div style="display: flex; align-items: center; gap: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); padding: 14px 18px;">
+              <div style="flex: 1;">
+                <div style="font-size: 15px; font-weight: 700;">Marcus Webb</div>
+                <div style="font-size: 12px; color: var(--muted);">server · 1–3 yrs · Blue Fig Cafe</div>
+              </div>
+              <div style="display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 18px; padding: 3px;">
+                <button style="border: none; padding: 6px 12px; border-radius: 15px; background: transparent; color: var(--muted); font-size: 12px;">New</button>
+                <button disabled="" style="border: none; padding: 6px 12px; border-radius: 15px; background: var(--surface); box-shadow: 0 1px 3px rgba(60,40,20,0.12); color: var(--ink); font-size: 12px; cursor: default;">Contacted</button>
+                <button style="border: none; padding: 6px 12px; border-radius: 15px; background: transparent; color: var(--muted); font-size: 12px;">Relevant</button>
+                <button style="border: none; padding: 6px 12px; border-radius: 15px; background: transparent; color: var(--muted); font-size: 12px;">Rejected</button>
+              </div>
+              <button aria-label="Call Marcus" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: transparent; color: var(--ink); font-size: 15px;">☎</button>
+              <button aria-label="WhatsApp Marcus" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--coral); background: var(--coral-soft); color: var(--ink); font-size: 14px;">✆</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================= -->
+  <!-- SECTION: SYSTEM STATES + LEGAL MODAL -->
+  <!-- ============================================================= -->
+  <div data-screen-label="System states" style="--coral:#D93B47; --coral-soft:#F8E1E3; margin-bottom: 24px;">
+    <div style="font-size: 14px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 20px;">System states &amp; legal modal</div>
+    <div style="display: flex; flex-wrap: wrap; gap: 40px;">
+
+      <!-- S1 Session loading -->
+      <div data-screen-label="Session loading" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">Session loading (no button)</div>
+        <div style="width: 422px; padding: 12px 10px; border-radius: 54px; background: #1a1512; box-shadow: 0 18px 40px rgba(60,40,20,0.18); box-sizing: border-box;">
+          <div style="position: relative; width: 402px; height: 874px; background: var(--surface); overflow: hidden; border-radius: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;">
+            <div style="font-family: 'Aboreto', serif; font-size: 40px;">peepss</div>
+            <div style="width: 26px; height: 26px; border-radius: 50%; border: 3px solid var(--coral); border-top-color: transparent;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- S2 Restaurant-only -->
+      <div data-screen-label="Restaurant only" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">/restaurants-only (legacy account)</div>
+        <div style="width: 422px; padding: 12px 10px; border-radius: 54px; background: #1a1512; box-shadow: 0 18px 40px rgba(60,40,20,0.18); box-sizing: border-box;">
+          <div style="position: relative; width: 402px; height: 874px; background: var(--surface); overflow: hidden; border-radius: 40px;">
+            <div style="padding: 58px 24px 0 24px; text-align: center;">
+              <div style="font-family: 'Aboreto', serif; font-size: 24px; margin-bottom: 90px;">peepss</div>
+              <div style="font-size: 20px; font-weight: 700; margin-bottom: 10px;">restaurants only, for now</div>
+              <div style="font-size: 15px; color: var(--muted); line-height: 1.5; margin-bottom: 28px;">peepss is focused on restaurant hiring during this launch. we'll let you know when your account area is back.</div>
+              <button style="width: 100%; height: 48px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); font-size: 16px;">Log out</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- S3 Error boundary -->
+      <div data-screen-label="Error boundary" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">Error boundary</div>
+        <div style="width: 422px; padding: 12px 10px; border-radius: 54px; background: #1a1512; box-shadow: 0 18px 40px rgba(60,40,20,0.18); box-sizing: border-box;">
+          <div style="position: relative; width: 402px; height: 874px; background: var(--surface); overflow: hidden; border-radius: 40px;">
+            <div style="padding: 58px 24px 0 24px; text-align: center;">
+              <div style="font-family: 'Aboreto', serif; font-size: 24px; margin-bottom: 90px;">peepss</div>
+              <div style="width: 72px; height: 72px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--border); margin: 0 auto 22px auto; display: flex; align-items: center; justify-content: center; font-size: 30px; color: var(--muted);">↻</div>
+              <div style="font-size: 20px; font-weight: 700; margin-bottom: 10px;">something went wrong</div>
+              <div style="font-size: 15px; color: var(--muted); line-height: 1.5; margin-bottom: 28px;">please reload the page. if it keeps happening, contact us.</div>
+              <button style="width: 100%; height: 48px; border-radius: 6px; border: 1px solid rgba(42,30,22,0.14); background: var(--coral); color: #FFFFFF; font-size: 16px; font-weight: 700;">Reload page</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- S4 Legal modal -->
+      <div data-screen-label="Legal modal" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="font-size: 13px; color: var(--muted);">Legal modal (X / Esc / backdrop)</div>
+        <div style="width: 422px; padding: 12px 10px; border-radius: 54px; background: #1a1512; box-shadow: 0 18px 40px rgba(60,40,20,0.18); box-sizing: border-box;">
+          <div style="position: relative; width: 402px; height: 874px; background: var(--surface); overflow: hidden; border-radius: 40px;">
+            <!-- dimmed page behind -->
+            <div style="position: absolute; inset: 0; background: var(--page); opacity: 0.5;"></div>
+            <div style="position: absolute; inset: 0; background: rgba(42,30,22,0.4);"></div>
+            <!-- modal -->
+            <div role="dialog" aria-modal="true" aria-label="Privacy Policy" style="position: absolute; left: 20px; right: 20px; top: 120px; bottom: 120px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 18px 44px rgba(60,40,20,0.3); display: flex; flex-direction: column; overflow: hidden;">
+              <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; border-bottom: 1px solid var(--border);">
+                <div style="font-size: 16px; font-weight: 700;">Privacy Policy</div>
+                <button aria-label="Close" style="width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--border); background: transparent; color: var(--ink); font-size: 15px; display: flex; align-items: center; justify-content: center;">✕</button>
+              </div>
+              <div style="padding: 18px; overflow: auto; font-size: 13px; color: var(--muted); line-height: 1.6;">
+                <p style="margin: 0 0 12px 0;">peepss collects the phone number and profile details you provide to match restaurant jobs and candidates.</p>
+                <p style="margin: 0 0 12px 0;">your approximate location is used only for nearby matching and is never shown to restaurants.</p>
+                <p style="margin: 0;">you can request deletion of your data at any time by contacting us.</p>
+              </div>
+              <div style="padding: 14px 18px; border-top: 1px solid var(--border); display: flex; gap: 16px;">
+                <a href="#" style="color: var(--muted); font-size: 13px;">Terms</a>
+                <a href="#" style="color: var(--muted); font-size: 13px;">Accessibility</a>
+                <a href="#" style="color: var(--muted); font-size: 13px;">Contact</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

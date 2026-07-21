@@ -124,6 +124,7 @@ function RestaurantClaimPage({ onClaimSuccess }: ClaimPageProps) {
     completing: isHebrew ? 'מפעיל את המסעדה...' : 'Activating restaurant...',
     resend: isHebrew ? 'שליחת קוד חדש' : 'Resend code',
     changePhone: isHebrew ? 'שינוי מספר' : 'Change number',
+    backToOverview: isHebrew ? 'חזרה' : 'Back',
     unavailableTitle: isHebrew
       ? 'קישור ההפעלה הזה כבר לא זמין'
       : 'This activation link is no longer available',
@@ -327,7 +328,7 @@ function RestaurantClaimPage({ onClaimSuccess }: ClaimPageProps) {
         <div className="claim-topbar">
           <PeepssClaimLogo />
           <button
-            className="auth-language-toggle"
+            className="auth-language-toggle ui-button ui-button--secondary"
             type="button"
             aria-label={text.switchLanguageLabel}
             onClick={() => setLanguage(isHebrew ? 'en' : 'he')}
@@ -347,7 +348,10 @@ function RestaurantClaimPage({ onClaimSuccess }: ClaimPageProps) {
               : text.unavailableBody}
           </p>
           {status === 'unavailable' && <p>{text.unavailableContact}</p>}
-          <Link className="button-link" to="/login">
+          <Link
+            className="button-link ui-button ui-button--secondary"
+            to="/login"
+          >
             {text.login}
           </Link>
         </div>
@@ -360,7 +364,7 @@ function RestaurantClaimPage({ onClaimSuccess }: ClaimPageProps) {
       <div className="claim-topbar">
         <PeepssClaimLogo />
         <button
-          className="auth-language-toggle"
+          className="auth-language-toggle ui-button ui-button--secondary"
           type="button"
           aria-label={text.switchLanguageLabel}
           onClick={() => setLanguage(isHebrew ? 'en' : 'he')}
@@ -391,7 +395,11 @@ function RestaurantClaimPage({ onClaimSuccess }: ClaimPageProps) {
               )}
             </div>
             <p className="claim-positioning">{text.positioning}</p>
-            <button type="button" onClick={() => setStep('phone')}>
+            <button
+              className="ui-button ui-button--primary"
+              type="button"
+              onClick={() => setStep('phone')}
+            >
               {text.activate}
             </button>
           </>
@@ -424,8 +432,24 @@ function RestaurantClaimPage({ onClaimSuccess }: ClaimPageProps) {
               />
             </label>
             {error && <p className="message message-error" role="alert">{error}</p>}
-            <button type="submit" disabled={isLoading}>
+            <button
+              className="ui-button ui-button--primary"
+              type="submit"
+              disabled={isLoading}
+              aria-busy={isLoading}
+            >
               {isLoading ? text.sendingCode : text.sendCode}
+            </button>
+            <button
+              className="ui-button ui-button--tertiary"
+              type="button"
+              onClick={() => {
+                setStep('overview')
+                setError(null)
+                setMessage(null)
+              }}
+            >
+              {text.backToOverview}
             </button>
           </form>
         )}
@@ -452,12 +476,17 @@ function RestaurantClaimPage({ onClaimSuccess }: ClaimPageProps) {
             </label>
             {message && <p className="message message-success">{message}</p>}
             {error && <p className="message message-error" role="alert">{error}</p>}
-            <button type="submit" disabled={isLoading}>
+            <button
+              className="ui-button ui-button--primary"
+              type="submit"
+              disabled={isLoading}
+              aria-busy={isLoading}
+            >
               {isLoading ? text.completing : text.complete}
             </button>
             <div className="claim-secondary-actions">
               <button
-                className="button-secondary"
+                className="button-secondary ui-button ui-button--tertiary"
                 type="button"
                 disabled={isLoading}
                 onClick={() => void handleResendCode()}
@@ -465,7 +494,7 @@ function RestaurantClaimPage({ onClaimSuccess }: ClaimPageProps) {
                 {text.resend}
               </button>
               <button
-                className="button-secondary"
+                className="button-secondary ui-button ui-button--tertiary"
                 type="button"
                 disabled={isLoading}
                 onClick={() => {

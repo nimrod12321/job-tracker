@@ -331,16 +331,30 @@ function AdminLeadsPage() {
                   )}
                 </div>
                 <div className="admin-status-actions">
-                  {statuses.map((status) => (
-                    <button
-                      type="button"
-                      disabled={busyLeadId === lead.id || lead.status === status}
-                      key={status}
-                      onClick={() => void handleStatusChange(lead, status)}
+                  <label className="admin-inline-status-control">
+                    <span>Status</span>
+                    <select
+                      aria-label={`Status for ${lead.fullName || 'candidate'}`}
+                      value={lead.status}
+                      disabled={busyLeadId === lead.id}
+                      onChange={(event) =>
+                        void handleStatusChange(
+                          lead,
+                          event.target.value as CandidateLeadStatus,
+                        )
+                      }
                     >
-                      {statusLabels[status]}
-                    </button>
-                  ))}
+                      {statuses.map((status) => (
+                        <option
+                          disabled={status === lead.status}
+                          key={status}
+                          value={status}
+                        >
+                          {statusLabels[status]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                 </div>
               </article>
             )

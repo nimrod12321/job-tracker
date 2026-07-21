@@ -609,7 +609,12 @@ function RestaurantPublicApplyPage({
                   </p>
                 )}
                 <p className="form-consent-note">{text.smsConsent}</p>
-                <button type="submit" disabled={isSubmitting}>
+                <button
+                  className="ui-button ui-button--primary"
+                  type="submit"
+                  disabled={isSubmitting}
+                  aria-busy={isSubmitting}
+                >
                   {isSubmitting ? text.sendingCode : text.sendCode}
                 </button>
               </form>
@@ -645,13 +650,18 @@ function RestaurantPublicApplyPage({
                     {error}
                   </p>
                 )}
-                <button type="submit" disabled={isSubmitting}>
+                <button
+                  className="ui-button ui-button--tertiary"
+                  type="submit"
+                  disabled={isSubmitting}
+                  aria-busy={isSubmitting}
+                >
                   {isSubmitting ? text.verifying : text.continue}
                 </button>
                 <div className="auth-code-actions">
                   <button
                     type="button"
-                    className="text-button"
+                    className="text-button ui-button ui-button--tertiary"
                     disabled={isSubmitting || isResending}
                     onClick={handleResendCode}
                   >
@@ -659,7 +669,7 @@ function RestaurantPublicApplyPage({
                   </button>
                   <button
                     type="button"
-                    className="text-button"
+                    className="text-button ui-button ui-button--tertiary"
                     disabled={isSubmitting}
                     onClick={() => {
                       setStep('identify')
@@ -762,7 +772,12 @@ function RestaurantPublicApplyPage({
                   </Link>
                   {text.submitConsentSuffix}
                 </p>
-                <button type="submit" disabled={isSubmitting}>
+                <button
+                  className="ui-button ui-button--primary"
+                  type="submit"
+                  disabled={isSubmitting}
+                  aria-busy={isSubmitting}
+                >
                   {isSubmitting ? text.submitting : text.submit}
                 </button>
               </form>

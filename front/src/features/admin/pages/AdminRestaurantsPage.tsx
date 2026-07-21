@@ -129,7 +129,7 @@ function AdminRestaurantsPage() {
             onSubmit={handleCreateRestaurant}
           >
             <button
-              className="admin-form-close-button peepss-close-button"
+              className="admin-form-close-button peepss-close-button ui-icon-button"
               type="button"
               aria-label="Close create restaurant form"
               onClick={() => {
@@ -237,13 +237,18 @@ function AdminRestaurantsPage() {
                 {error}
               </p>
             )}
-            <button type="submit" disabled={isSubmitting}>
+            <button
+              className="ui-button ui-button--primary"
+              type="submit"
+              disabled={isSubmitting}
+              aria-busy={isSubmitting}
+            >
               {isSubmitting ? 'Creating...' : 'Create restaurant'}
             </button>
           </form>
         ) : (
           <button
-            className="admin-create-restaurant-card"
+            className="admin-create-restaurant-card ui-button ui-button--primary"
             type="button"
             onClick={() => {
               setIsCreateOpen(true)

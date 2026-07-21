@@ -209,7 +209,7 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
             <span className="peepss-logo-thin">pss</span>
           </span>
           <button
-            className="auth-language-toggle"
+            className="auth-language-toggle ui-button ui-button--secondary"
             type="button"
             aria-label={text.switchLanguageLabel}
             onClick={() => setLanguage(isHebrew ? 'en' : 'he')}
@@ -218,12 +218,14 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
           </button>
         </div>
 
-        <div className="auth-center">
-          <h1 className="auth-headline" dir="ltr">
-            {text.headline}
-          </h1>
+        <div className={`auth-center auth-center--${step}`}>
+          {step === 'details' && (
+            <h1 className="auth-headline" dir="ltr">
+              {text.headline}
+            </h1>
+          )}
 
-          <div className="auth-card">
+          {step === 'details' && (
             <nav className="auth-mode-tabs" aria-label={text.authModeLabel}>
               <Link className={mode === 'login' ? 'active' : ''} to="/login">
                 {text.loginTab}
@@ -235,7 +237,9 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
                 {text.registerTab}
               </Link>
             </nav>
+          )}
 
+          <div className="auth-card">
             {step === 'details' ? (
               <form className="auth-form" onSubmit={handleSendCode}>
                 {mode === 'register' && (
@@ -306,7 +310,12 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
                   </p>
                 )}
 
-                <button type="submit" disabled={isLoading}>
+                <button
+                  className="ui-button ui-button--primary"
+                  type="submit"
+                  disabled={isLoading}
+                  aria-busy={isLoading}
+                >
                   {isLoading ? text.sendingCode : text.sendCode}
                 </button>
               </form>
@@ -352,14 +361,19 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
                   </p>
                 )}
 
-                <button type="submit" disabled={isLoading}>
+                <button
+                  className="ui-button ui-button--primary"
+                  type="submit"
+                  disabled={isLoading}
+                  aria-busy={isLoading}
+                >
                   {isLoading ? text.verifying : text.continue}
                 </button>
 
                 <div className="auth-code-actions">
                   <button
                     type="button"
-                    className="text-button"
+                    className="text-button ui-button ui-button--tertiary"
                     disabled={isResending}
                     onClick={handleResendCode}
                   >
@@ -367,7 +381,7 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
                   </button>
                   <button
                     type="button"
-                    className="text-button"
+                    className="text-button ui-button ui-button--tertiary"
                     onClick={() => {
                       setStep('details')
                       setCode('')

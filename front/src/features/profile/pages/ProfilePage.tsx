@@ -251,6 +251,7 @@ function ProfilePage() {
             }}
           />
           <button
+            className="ui-button ui-button--secondary"
             type="button"
             onClick={() => void handleResumeUpload()}
             disabled={isUploading}
@@ -354,7 +355,11 @@ function ProfilePage() {
           </p>
         )}
 
-        <button type="submit" disabled={isSaving}>
+        <button
+          className="ui-button ui-button--primary"
+          type="submit"
+          disabled={isSaving}
+        >
           {isSaving ? 'Saving...' : 'Save profile'}
         </button>
       </form>

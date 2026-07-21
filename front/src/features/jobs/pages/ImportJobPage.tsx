@@ -140,7 +140,11 @@ function ImportJobPage() {
               placeholder="LinkedIn, company website..."
             />
           </label>
-          <button type="submit" disabled={isExtracting}>
+          <button
+            className="ui-button ui-button--primary"
+            type="submit"
+            disabled={isExtracting}
+          >
             {isExtracting
               ? 'Extracting job details...'
               : 'Extract job details'}

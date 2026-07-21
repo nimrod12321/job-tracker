@@ -102,7 +102,7 @@ function JobCard({ job, onDeleteJob, onChangeStatus, onEditJob }: JobCardProps) 
             </select>
           ) : (
             <button
-              className="job-status-button"
+              className="job-status-button ui-button ui-button--secondary"
               type="button"
               aria-label={`Change status. Current status: ${job.status}`}
               onClick={() => setIsEditingStatus(true)}
@@ -142,14 +142,14 @@ function JobCard({ job, onDeleteJob, onChangeStatus, onEditJob }: JobCardProps) 
           View details
         </Link>
         <button
-          className="edit-job-button"
+          className="edit-job-button ui-button ui-button--secondary"
           type="button"
           onClick={() => onEditJob(job)}
         >
           Edit
         </button>
         <button
-          className="delete-job-button"
+          className="delete-job-button ui-button ui-button--destructive"
           type="button"
           aria-label={`Delete ${job.position} at ${job.company}`}
           onClick={() => onDeleteJob(job.id)}

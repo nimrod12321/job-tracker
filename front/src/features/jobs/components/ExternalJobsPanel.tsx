@@ -179,7 +179,11 @@ function ExternalJobsPanel({
               onChange={(event) => setLimit(Number(event.target.value))}
             />
           </label>
-          <button type="submit" disabled={isFetching}>
+          <button
+            className="ui-button ui-button--primary"
+            type="submit"
+            disabled={isFetching}
+          >
             {isFetching ? 'Finding and ranking jobs...' : 'Find jobs'}
           </button>
         </form>
@@ -252,6 +256,7 @@ function ExternalJobsPanel({
                         </a>
                       )}
                       <button
+                        className="ui-button ui-button--primary"
                         type="button"
                         disabled={alreadySaved || isSaving}
                         onClick={() => void handleSave(draft)}

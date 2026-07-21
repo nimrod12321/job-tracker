@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   getRestaurantRoleLabel,
   type RestaurantRole,
@@ -393,18 +393,6 @@ function OwnerApplicationsPage() {
       : firstRoleLabel
   }
 
-  function handleCollapsedCardKeyDown(
-    event: KeyboardEvent<HTMLElement>,
-    candidateId: string,
-  ) {
-    if (event.key !== 'Enter' && event.key !== ' ') {
-      return
-    }
-
-    event.preventDefault()
-    setExpandedCandidateId(candidateId)
-  }
-
   function renderSectionHeader(
     title: string,
     count: number,
@@ -413,7 +401,7 @@ function OwnerApplicationsPage() {
   ) {
     return (
       <button
-        className="owner-candidate-section-header"
+        className="owner-candidate-section-header ui-disclosure-button"
         type="button"
         aria-expanded={isOpen}
         onClick={onToggle}
@@ -490,32 +478,41 @@ function OwnerApplicationsPage() {
                           isExpanded ? ' is-expanded' : ' is-collapsed'
                         }`}
                         key={lead.id}
-                        tabIndex={isExpanded ? undefined : 0}
-                        onClick={() => {
-                          if (!isExpanded) {
-                            setExpandedCandidateId(candidateId)
-                          }
-                        }}
-                        onKeyDown={
-                          isExpanded
-                            ? undefined
-                            : (event) =>
-                                handleCollapsedCardKeyDown(event, candidateId)
-                        }
                       >
                         <div className="owner-application-header">
-                          <div className="owner-worker-heading">
+                          <button
+                            className="owner-worker-heading owner-candidate-open-button"
+                            type="button"
+                            aria-expanded={isExpanded}
+                            onClick={() => {
+                              if (!isExpanded) {
+                                setExpandedCandidateId(candidateId)
+                              }
+                            }}
+                          >
                             <span
                               className="owner-worker-avatar"
                               aria-hidden="true"
                             >
                               {getWorkerInitial(candidateName)}
                             </span>
-                            <div>
-                              <p>{text.sourceQr}</p>
-                              <h2>{candidateName}</h2>
-                            </div>
-                          </div>
+                            <span className="owner-worker-copy">
+                              <span className="owner-worker-kicker">
+                                {text.sourceQr}
+                              </span>
+                              <strong className="owner-worker-name">
+                                {candidateName}
+                              </strong>
+                            </span>
+                            {!isExpanded && (
+                              <span
+                                className="owner-disclosure-chevron"
+                                aria-hidden="true"
+                              >
+                                ⌄
+                              </span>
+                            )}
+                          </button>
                           <div className="owner-candidate-header-actions">
                             <label
                               className={`owner-status-pill-select ${lead.status}`}
@@ -533,7 +530,11 @@ function OwnerApplicationsPage() {
                                 }
                               >
                                 {leadStatuses.map((status) => (
-                                  <option key={status} value={status}>
+                                  <option
+                                    disabled={status === lead.status}
+                                    key={status}
+                                    value={status}
+                                  >
                                     {getLeadStatusLabel(status)}
                                   </option>
                                 ))}
@@ -541,7 +542,7 @@ function OwnerApplicationsPage() {
                             </label>
                             {isExpanded && (
                               <button
-                                className="owner-candidate-collapse-button peepss-close-button"
+                                className="owner-candidate-collapse-button peepss-close-button ui-icon-button"
                                 type="button"
                                 aria-label={text.collapseCandidate}
                                 onClick={(event) => {
@@ -627,7 +628,7 @@ function OwnerApplicationsPage() {
 
                         <div className="owner-application-actions">
                           <button
-                            className="owner-remove-button"
+                            className="owner-remove-button ui-button ui-button--destructive"
                             type="button"
                             disabled={busyLeadId === lead.id}
                             onClick={(event) => {
@@ -678,37 +679,44 @@ function OwnerApplicationsPage() {
                           isExpanded ? ' is-expanded' : ' is-collapsed'
                         }`}
                         key={application.id}
-                        tabIndex={isExpanded ? undefined : 0}
-                        onClick={() => {
-                          if (!isExpanded) {
-                            setExpandedCandidateId(candidateId)
-                          }
-                        }}
-                        onKeyDown={
-                          isExpanded
-                            ? undefined
-                            : (event) =>
-                                handleCollapsedCardKeyDown(event, candidateId)
-                        }
                       >
                         <div className="owner-application-header">
-                          <div className="owner-worker-heading">
+                          <button
+                            className="owner-worker-heading owner-candidate-open-button"
+                            type="button"
+                            aria-expanded={isExpanded}
+                            onClick={() => {
+                              if (!isExpanded) {
+                                setExpandedCandidateId(candidateId)
+                              }
+                            }}
+                          >
                             <span
                               className="owner-worker-avatar"
                               aria-hidden="true"
                             >
                               {getWorkerInitial(workerName)}
                             </span>
-                            <div>
-                              <p>
+                            <span className="owner-worker-copy">
+                              <span className="owner-worker-kicker">
                                 {getRestaurantRoleLabel(
                                   application.job.role,
                                   language,
                                 )}
-                              </p>
-                              <h2>{workerName}</h2>
-                            </div>
-                          </div>
+                              </span>
+                              <strong className="owner-worker-name">
+                                {workerName}
+                              </strong>
+                            </span>
+                            {!isExpanded && (
+                              <span
+                                className="owner-disclosure-chevron"
+                                aria-hidden="true"
+                              >
+                                ⌄
+                              </span>
+                            )}
+                          </button>
                           <div className="owner-candidate-header-actions">
                             <label
                               className={`owner-status-pill-select ${application.status}`}
@@ -732,16 +740,26 @@ function OwnerApplicationsPage() {
                                   }
                                 }}
                               >
-                                <option value="applied">
+                                <option value="applied" disabled>
                                   {getStatusLabel('applied', language)}
                                 </option>
-                                <option value="selected">{text.select}</option>
-                                <option value="rejected">{text.reject}</option>
+                                <option
+                                  value="selected"
+                                  disabled={application.status === 'selected'}
+                                >
+                                  {text.select}
+                                </option>
+                                <option
+                                  value="rejected"
+                                  disabled={application.status === 'rejected'}
+                                >
+                                  {text.reject}
+                                </option>
                               </select>
                             </label>
                             {isExpanded && (
                               <button
-                                className="owner-candidate-collapse-button peepss-close-button"
+                                className="owner-candidate-collapse-button peepss-close-button ui-icon-button"
                                 type="button"
                                 aria-label={text.collapseCandidate}
                                 onClick={(event) => {
@@ -842,7 +860,7 @@ function OwnerApplicationsPage() {
 
                         <div className="owner-application-actions">
                           <button
-                            className="owner-remove-button"
+                            className="owner-remove-button ui-button ui-button--destructive"
                             type="button"
                             disabled={busyApplicationId === application.id}
                             onClick={(event) => {

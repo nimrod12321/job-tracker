@@ -296,7 +296,12 @@ function RestaurantExplorePage() {
         <div className="empty-state restaurant-empty-state">
           <h2>{text.completeProfile}</h2>
           <p>{text.completeProfileMessage}</p>
-          <Link to="/restaurant/profile">{text.goToProfile}</Link>
+          <Link
+            className="ui-button ui-button--primary"
+            to="/restaurant/profile"
+          >
+            {text.goToProfile}
+          </Link>
         </div>
       </section>
     )
@@ -316,7 +321,7 @@ function RestaurantExplorePage() {
           {error}
         </p>
         <button
-          className="restaurant-retry-button"
+          className="restaurant-retry-button ui-button ui-button--primary"
           type="button"
           onClick={() => void loadJobs(excludeJobIds)}
         >
@@ -340,8 +345,14 @@ function RestaurantExplorePage() {
           <h2>{text.noMore}</h2>
           <p>{text.noMoreHint}</p>
           <div className="restaurant-empty-actions">
-            <Link to="/restaurant/profile">{text.updateProfile}</Link>
+            <Link
+              className="ui-button ui-button--secondary"
+              to="/restaurant/profile"
+            >
+              {text.updateProfile}
+            </Link>
             <button
+              className="ui-button ui-button--primary"
               type="button"
               onClick={() => void loadJobs(excludeJobIds)}
             >
