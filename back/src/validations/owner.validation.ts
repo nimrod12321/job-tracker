@@ -17,6 +17,7 @@ export const ownerProfileSchema = z
     whatsappNumber: optionalText('WhatsApp number', 50),
     city: optionalText('city', 200),
     street: optionalText('street', 200),
+    locationPlaceId: optionalText('location place id', 300),
     description: optionalText('description', 2_000),
   })
   .strict()

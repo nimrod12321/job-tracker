@@ -66,6 +66,7 @@ export const restaurantProfileSchema = z
     fullName: requiredText('full name', 150),
     phoneNumber: requiredText('phone number', 50),
     location: optionalText('location', 200),
+    homePlaceId: optionalText('home place id', 300),
     wantedRoles: z
       .array(z.enum(restaurantRoles))
       .min(1, 'choose at least one wanted role')
@@ -125,6 +126,10 @@ export const restaurantExploreSchema = z
       .max(100, 'too many excluded job ids')
       .optional()
       .default([]),
+    focusJobId: z
+      .string({ error: 'focus job id must be a string' })
+      .uuid('focus job id must be valid')
+      .optional(),
   })
   .strict()
 

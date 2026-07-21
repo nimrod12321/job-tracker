@@ -25,6 +25,7 @@ type AuthUserRecord = {
   phoneVerifiedAt: Date | null
   fullName: string
   track: 'highTech' | 'restaurant' | 'restaurantOwner'
+  workerLocationRequired: boolean
   createdAt?: Date
 }
 
@@ -55,6 +56,7 @@ function mapAuthUserWithRestaurantRole(
     phoneVerifiedAt: user.phoneVerifiedAt?.toISOString() ?? null,
     fullName: user.fullName,
     track: user.track,
+    workerLocationRequired: user.workerLocationRequired,
     restaurantMemberRole,
     isAdmin: isAdminUser(user),
     ...(user.createdAt
@@ -97,6 +99,7 @@ export async function register(req: Request, res: Response) {
         email: normalizedEmail,
         passwordHash,
         track,
+        workerLocationRequired: track === 'restaurant',
       },
     })
 
@@ -184,6 +187,7 @@ export async function getMe(req: Request, res: Response) {
         phoneVerifiedAt: true,
         fullName: true,
         track: true,
+        workerLocationRequired: true,
         createdAt: true,
       },
     })
@@ -362,6 +366,7 @@ export async function verifyCode(req: Request, res: Response) {
             phoneVerifiedAt: now,
             fullName,
             track,
+            workerLocationRequired: track === 'restaurant',
           },
         })
 

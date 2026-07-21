@@ -8,6 +8,7 @@ import type {
   RestaurantApplication,
   RestaurantExploreJob,
   RestaurantMatch,
+  RestaurantMapEntry,
   RestaurantWorkerProfile,
   RestaurantWorkerProfileInput,
 } from '../types/restaurant'
@@ -81,6 +82,7 @@ export async function saveRestaurantProfile(
 export async function getRestaurantExploreJobs(input: {
   limit?: number
   excludeJobIds?: string[]
+  focusJobId?: string
 }): Promise<RestaurantExploreJob[]> {
   const response = await fetch(`${API_BASE_URL}/restaurant/explore`, {
     method: 'POST',
@@ -128,6 +130,18 @@ export async function getRestaurantMatches(): Promise<RestaurantMatch[]> {
 
   if (!response.ok) {
     await handleApiError(response, 'Failed to load restaurant matches')
+  }
+
+  return response.json()
+}
+
+export async function getRestaurantMapJobs(): Promise<RestaurantMapEntry[]> {
+  const response = await fetch(`${API_BASE_URL}/restaurant/jobs/map`, {
+    headers: getHeaders(),
+  })
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to load restaurant map jobs')
   }
 
   return response.json()

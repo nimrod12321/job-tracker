@@ -78,6 +78,11 @@ enum RestaurantMemberStatus {
   removed
 }
 
+enum RestaurantLocationStatus {
+  unverified
+  verified
+}
+
 model Job {
   id             String      @id @default(uuid())
   company        String
@@ -104,15 +109,16 @@ model Job {
 }
 
 model User {
-  id           String    @id @default(uuid())
-  email        String?   @unique
-  passwordHash String?
-  phoneNumber  String?   @unique
-  phoneVerifiedAt DateTime?
-  fullName     String    @default("")
-  track        UserTrack @default(highTech)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id                     String    @id @default(uuid())
+  email                  String?   @unique
+  passwordHash           String?
+  phoneNumber            String?   @unique
+  phoneVerifiedAt        DateTime?
+  fullName               String    @default("")
+  track                  UserTrack @default(highTech)
+  workerLocationRequired Boolean   @default(false)
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 
   jobs                    Job[]
   resumeProfile           ResumeProfile?
@@ -220,6 +226,15 @@ model RestaurantWorkerProfile {
   availability   String           @default("")
   age            Int              @default(0)
 
+  // Private, street-level location used only for worker distance/map features.
+  // No house number is stored or exposed to restaurant owners.
+  homeStreetName        String?
+  homeAreaFormatted     String?
+  homeGooglePlaceId     String?
+  homeLatitude          Float?
+  homeLongitude         Float?
+  homeLocationUpdatedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -274,6 +289,18 @@ model RestaurantOwnerProfile {
   description    String @default("")
   slug           String? @unique
   qrEnabledRoles RestaurantRole[] @default([waiter, bartender, host, cook, floorManager])
+
+  // Legacy city/street fields above remain for compatibility. Map visibility
+  // relies only on these trusted, nullable Google-verified fields.
+  locationStatus       RestaurantLocationStatus @default(unverified)
+  locationCity         String?
+  locationStreetName   String?
+  locationStreetNumber String?
+  formattedAddress     String?
+  googlePlaceId        String?
+  latitude             Float?
+  longitude            Float?
+  locationVerifiedAt   DateTime?
 
   jobs  RestaurantJob[]
   leads RestaurantCandidateLead[]

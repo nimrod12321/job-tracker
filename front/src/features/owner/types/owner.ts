@@ -11,6 +11,15 @@ export type OwnerProfile = {
   description: string
   slug: string | null
   qrEnabledRoles: RestaurantRole[]
+  locationStatus: 'unverified' | 'verified'
+  locationCity: string | null
+  locationStreetName: string | null
+  locationStreetNumber: string | null
+  formattedAddress: string | null
+  googlePlaceId: string | null
+  latitude: number | null
+  longitude: number | null
+  locationVerifiedAt: string | null
   createdAt: string
   updatedAt: string
 }
@@ -39,10 +48,16 @@ export type OwnerTeam = {
   members: OwnerTeamMember[]
 }
 
-export type OwnerProfileInput = Omit<
-  OwnerProfile,
-  'id' | 'slug' | 'qrEnabledRoles' | 'createdAt' | 'updatedAt'
->
+export type OwnerProfileInput = {
+  restaurantName: string
+  contactPerson: string
+  phoneNumber: string
+  whatsappNumber: string
+  city: string
+  street: string
+  description: string
+  locationPlaceId?: string
+}
 
 export type OwnerJobInput = {
   role: RestaurantRole

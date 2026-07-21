@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   applyToRestaurantJob,
   getRestaurantExploreJobs,
 } from '../services/restaurantApi'
 import RestaurantSwipeCard from '../components/RestaurantSwipeCard'
+import RestaurantViewSwitcher from '../components/RestaurantViewSwitcher'
 import type { RestaurantExploreJob } from '../types/restaurant'
 import { useRestaurantLanguage } from '../utils/restaurantLanguage'
 
@@ -17,6 +18,8 @@ type CardAnimationDirection = 'left' | 'right'
 function RestaurantExplorePage() {
   const { direction, language } = useRestaurantLanguage()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const focusJobId = searchParams.get('jobId') || undefined
   const [jobs, setJobs] = useState<RestaurantExploreJob[]>([])
   const [activeIndex, setActiveIndex] = useState(0)
   const [excludeJobIds, setExcludeJobIds] = useState<string[]>([])
@@ -74,6 +77,7 @@ function RestaurantExplorePage() {
       const nextJobs = await getRestaurantExploreJobs({
         limit: 10,
         excludeJobIds: excludedIds,
+        focusJobId,
       })
 
       setJobs(nextJobs)
@@ -95,7 +99,7 @@ function RestaurantExplorePage() {
     } finally {
       setIsLoading(false)
     }
-  }, [navigate])
+  }, [focusJobId, navigate])
 
   useEffect(() => {
     let isActive = true
@@ -105,6 +109,7 @@ function RestaurantExplorePage() {
         const initialJobs = await getRestaurantExploreJobs({
           limit: 10,
           excludeJobIds: [],
+          focusJobId,
         })
 
         if (isActive) {
@@ -141,7 +146,7 @@ function RestaurantExplorePage() {
     return () => {
       isActive = false
     }
-  }, [navigate])
+  }, [focusJobId, navigate])
 
   useEffect(() => {
     activeIndexRef.current = activeIndex
@@ -266,6 +271,7 @@ function RestaurantExplorePage() {
   if (isLoading) {
     return (
       <section className="restaurant-explore-page" dir={direction}>
+        <RestaurantViewSwitcher language={language} />
         <div className="page-header">
           <div>
             <h1>{text.title}</h1>
@@ -280,6 +286,7 @@ function RestaurantExplorePage() {
   if (needsProfile) {
     return (
       <section className="restaurant-explore-page" dir={direction}>
+        <RestaurantViewSwitcher language={language} />
         <div className="page-header">
           <div>
             <h1>{text.title}</h1>
@@ -298,6 +305,7 @@ function RestaurantExplorePage() {
   if (error && jobs.length === 0) {
     return (
       <section className="restaurant-explore-page" dir={direction}>
+        <RestaurantViewSwitcher language={language} />
         <div className="page-header">
           <div>
             <h1>{text.title}</h1>
@@ -321,6 +329,7 @@ function RestaurantExplorePage() {
   if (!activeJob) {
     return (
       <section className="restaurant-explore-page" dir={direction}>
+        <RestaurantViewSwitcher language={language} />
         <div className="page-header">
           <div>
             <h1>{text.title}</h1>
@@ -351,6 +360,7 @@ function RestaurantExplorePage() {
 
   return (
     <section className="restaurant-explore-page" dir={direction}>
+      <RestaurantViewSwitcher language={language} />
       <div className="page-header restaurant-explore-header">
         <div>
           <h1>{text.title}</h1>

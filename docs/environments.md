@@ -36,7 +36,35 @@ OTP_MODE=development
 
 ADMIN_PHONES="+972501234567"
 ADMIN_EMAILS=""
+
+# Optional while the Map feature is disabled. Use separate restricted keys.
+GOOGLE_MAPS_API_KEY="server-only-places-key"
 ```
+
+Recommended `front/.env` additions:
+
+```env
+VITE_GOOGLE_MAPS_API_KEY="browser-restricted-maps-key"
+VITE_ENABLE_JOB_MAP="true"
+VITE_ENABLE_JOB_BOARD="false"
+```
+
+For local Job Board and Map testing, add an ignored `front/.env.local`:
+
+```env
+VITE_ENABLE_JOB_BOARD="true"
+VITE_ENABLE_JOB_MAP="true"
+```
+
+The full owner Job Board requires both Vite development mode and
+`VITE_ENABLE_JOB_BOARD=true`. A production build always keeps the muted
+coming-soon Job Board, even if the variable is accidentally set to `true`.
+The Map flag is independent from the Job Board flag.
+
+The browser key is intentionally separate from the backend key. Restrict the
+browser key to localhost and the Peepss/Vercel domains, and restrict it to the
+Maps JavaScript/Places browser APIs. Restrict `GOOGLE_MAPS_API_KEY` to the
+backend Place Details API. Never put the backend key in a `VITE_` variable.
 
 In this mode, OTP codes are printed in the backend terminal. No real SMS or WhatsApp cost is used.
 
@@ -138,7 +166,17 @@ TWILIO_MESSAGING_SERVICE_SID="MG..."
 
 ADMIN_PHONES="+972..."
 ADMIN_EMAILS=""
+
+GOOGLE_MAPS_API_KEY="server-only-production-places-key"
 ```
+
+Set `VITE_GOOGLE_MAPS_API_KEY` and `VITE_ENABLE_JOB_MAP=true` in the frontend
+deployment only when the worker Map should be visible. With the flag missing or
+false, Swipe remains available and the Map tab is hidden.
+
+Leave `VITE_ENABLE_JOB_BOARD` unset or set it to `false` in production. The
+development-mode guard also prevents the functional Job Board from appearing
+in production if this variable is mistakenly set to `true`.
 
 Production must not use:
 

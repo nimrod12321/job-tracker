@@ -17,6 +17,11 @@ import {
   RestaurantClaimError,
 } from '../services/restaurantClaim.service.js'
 import {
+  getVerifiedRestaurantLocationData,
+  GooglePlacesError,
+  verifyRestaurantPlaceId,
+} from '../services/googlePlaces.service.js'
+import {
   candidateLeadStatusBodySchema,
   leadIdSchema,
   restaurantClaimCompleteSchema,
@@ -192,6 +197,16 @@ function mapOwnerProfile(profile: RestaurantOwnerProfile) {
     description: profile.description,
     slug: profile.slug,
     qrEnabledRoles: profile.qrEnabledRoles,
+    locationStatus: profile.locationStatus,
+    locationCity: profile.locationCity,
+    locationStreetName: profile.locationStreetName,
+    locationStreetNumber: profile.locationStreetNumber,
+    formattedAddress: profile.formattedAddress,
+    googlePlaceId: profile.googlePlaceId,
+    latitude: profile.latitude,
+    longitude: profile.longitude,
+    locationVerifiedAt:
+      profile.locationVerifiedAt?.toISOString() ?? null,
     createdAt: profile.createdAt.toISOString(),
     updatedAt: profile.updatedAt.toISOString(),
   }
@@ -436,14 +451,40 @@ export async function updateOwnerProfile(req: Request, res: Response) {
           userId,
         },
       }))
+    const { locationPlaceId, ...profileInput } = result.data
+
+    if (!existingProfile && !locationPlaceId) {
+      return res.status(400).json({
+        message: 'Choose a valid Tel Aviv–Yafo street and number.',
+      })
+    }
+
+    if (existingProfile && locationPlaceId) {
+      return res.status(403).json({
+        message: 'Need to update the restaurant location? Contact Peepss.',
+      })
+    }
+
+    const verifiedLocation = locationPlaceId
+      ? await verifyRestaurantPlaceId({ placeId: locationPlaceId })
+      : null
+    const locationData = existingProfile
+      ? {
+          city: existingProfile.city,
+          street: existingProfile.street,
+        }
+      : verifiedLocation
+        ? getVerifiedRestaurantLocationData(verifiedLocation)
+        : {}
+    const finalCity = verifiedLocation?.city ?? profileInput.city
     const shouldGenerateSlug =
       !existingProfile?.slug &&
-      result.data.restaurantName.trim() &&
-      result.data.city.trim()
+      profileInput.restaurantName.trim() &&
+      finalCity.trim()
     const slug = shouldGenerateSlug
       ? await generateUniqueRestaurantSlug(
-          result.data.restaurantName,
-          result.data.city,
+          profileInput.restaurantName,
+          finalCity,
         )
       : undefined
 
@@ -453,7 +494,8 @@ export async function updateOwnerProfile(req: Request, res: Response) {
             id: access.restaurant.id,
           },
           data: {
-            ...result.data,
+            ...profileInput,
+            ...locationData,
             ...(slug ? { slug } : {}),
           },
         })
@@ -462,11 +504,13 @@ export async function updateOwnerProfile(req: Request, res: Response) {
             userId,
           },
           update: {
-            ...result.data,
+            ...profileInput,
+            ...locationData,
             ...(slug ? { slug } : {}),
           },
           create: {
-            ...result.data,
+            ...profileInput,
+            ...locationData,
             userId,
             ...(slug ? { slug } : {}),
           },
@@ -490,6 +534,12 @@ export async function updateOwnerProfile(req: Request, res: Response) {
 
     return res.json(mapOwnerProfile(profile))
   } catch (error) {
+    if (error instanceof GooglePlacesError) {
+      return res.status(error.status).json({
+        message: error.message,
+      })
+    }
+
     console.error(error)
 
     return res.status(500).json({

@@ -33,6 +33,7 @@ export const adminRestaurantCreateSchema = z
     whatsappNumber: optionalText('WhatsApp number', 50),
     city: optionalText('city', 200),
     street: optionalText('street', 200),
+    locationPlaceId: optionalText('location place id', 300),
     description: optionalText('description', 2_000),
   })
   .strict()
@@ -51,5 +52,15 @@ export const adminRestaurantUpdateSchema = z
     city: patchText('city', 200),
     street: patchText('street', 200),
     description: patchText('description', 2_000),
+  })
+  .strict()
+
+export const adminRestaurantLocationSchema = z
+  .object({
+    placeId: z
+      .string({ error: 'place id is required' })
+      .trim()
+      .min(1, 'place id is required')
+      .max(300, 'place id is too long'),
   })
   .strict()

@@ -7,6 +7,10 @@ import { prisma } from '../lib/prisma.js'
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js'
 import { getValidationErrorMessage } from '../utils/validation.js'
 import {
+  GooglePlacesError,
+  verifyWorkerStreetPlaceId,
+} from '../services/googlePlaces.service.js'
+import {
   restaurantApplicationSchema,
   restaurantExploreSchema,
   restaurantProfileSchema,
@@ -21,7 +25,10 @@ function getUserId(req: Request) {
   return (req as AuthenticatedRequest).userId
 }
 
-function mapRestaurantProfile(profile: RestaurantWorkerProfile) {
+function mapRestaurantProfile(
+  profile: RestaurantWorkerProfile,
+  locationRequired: boolean,
+) {
   return {
     id: profile.id,
     fullName: profile.fullName,
@@ -31,6 +38,14 @@ function mapRestaurantProfile(profile: RestaurantWorkerProfile) {
     experienceText: profile.experienceText,
     availability: profile.availability,
     age: profile.age,
+    homeStreetName: profile.homeStreetName,
+    homeAreaFormatted: profile.homeAreaFormatted,
+    homeGooglePlaceId: profile.homeGooglePlaceId,
+    homeLatitude: profile.homeLatitude,
+    homeLongitude: profile.homeLongitude,
+    homeLocationUpdatedAt:
+      profile.homeLocationUpdatedAt?.toISOString() ?? null,
+    locationRequired,
     createdAt: profile.createdAt.toISOString(),
     updatedAt: profile.updatedAt.toISOString(),
   }
@@ -51,6 +66,11 @@ function mapRestaurantJob(job: RestaurantJob) {
 
 function isRestaurantWorkerProfileComplete(
   profile: RestaurantWorkerProfile | null,
+  user: {
+    workerLocationRequired: boolean
+    phoneNumber: string | null
+    phoneVerifiedAt: Date | null
+  },
 ): profile is RestaurantWorkerProfile {
   if (!profile) {
     return false
@@ -64,7 +84,7 @@ function isRestaurantWorkerProfileComplete(
     .map((item) => item.trim())
     .filter(Boolean)
 
-  return Boolean(
+  const requiredFieldsComplete = Boolean(
     profile.fullName.trim() &&
       profile.phoneNumber.trim() &&
       profile.age >= 16 &&
@@ -79,6 +99,20 @@ function isRestaurantWorkerProfileComplete(
           item as (typeof workerAvailabilityOptions)[number],
         ),
       ),
+  )
+
+  if (!requiredFieldsComplete) {
+    return false
+  }
+
+  if (!user.workerLocationRequired) {
+    return true
+  }
+
+  return Boolean(
+    user.phoneNumber &&
+      user.phoneVerifiedAt &&
+      profile.homeGooglePlaceId,
   )
 }
 
@@ -109,13 +143,29 @@ export async function getRestaurantProfile(req: Request, res: Response) {
       })
     }
 
-    const profile = await prisma.restaurantWorkerProfile.findUnique({
+    const user = await prisma.user.findUnique({
       where: {
-        userId,
+        id: userId,
+      },
+      include: {
+        restaurantWorkerProfile: true,
       },
     })
 
-    return res.json(profile ? mapRestaurantProfile(profile) : null)
+    if (!user) {
+      return res.status(404).json({
+        message: 'user not found',
+      })
+    }
+
+    return res.json(
+      user.restaurantWorkerProfile
+        ? mapRestaurantProfile(
+            user.restaurantWorkerProfile,
+            user.workerLocationRequired,
+          )
+        : null,
+    )
   } catch (error) {
     console.error(error)
 
@@ -146,23 +196,211 @@ export async function updateRestaurantProfile(
       })
     }
 
+    const user = await prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+      include: {
+        restaurantWorkerProfile: true,
+      },
+    })
+
+    if (!user) {
+      return res.status(404).json({
+        message: 'user not found',
+      })
+    }
+
+    const { homePlaceId, ...profileInput } = result.data
+
+    if (
+      user.workerLocationRequired &&
+      (!user.phoneNumber || !user.phoneVerifiedAt)
+    ) {
+      return res.status(400).json({
+        message: 'Verify your phone number before completing your profile.',
+      })
+    }
+
+    if (
+      user.workerLocationRequired &&
+      !user.restaurantWorkerProfile?.homeGooglePlaceId &&
+      !homePlaceId
+    ) {
+      return res.status(400).json({
+        message: 'Choose a valid street in Tel Aviv–Yafo.',
+      })
+    }
+
+    const verifiedStreet = homePlaceId
+      ? await verifyWorkerStreetPlaceId({ placeId: homePlaceId })
+      : null
+    const homeLocationData = verifiedStreet
+      ? {
+          homeStreetName: verifiedStreet.streetName,
+          homeAreaFormatted: verifiedStreet.formattedAddress,
+          homeGooglePlaceId: verifiedStreet.googlePlaceId,
+          homeLatitude: verifiedStreet.latitude,
+          homeLongitude: verifiedStreet.longitude,
+          homeLocationUpdatedAt: new Date(),
+        }
+      : {}
+
     const profile = await prisma.restaurantWorkerProfile.upsert({
       where: {
         userId,
       },
-      update: result.data,
+      update: {
+        ...profileInput,
+        ...(user.workerLocationRequired && user.phoneNumber
+          ? { phoneNumber: user.phoneNumber }
+          : {}),
+        ...homeLocationData,
+      },
       create: {
-        ...result.data,
+        ...profileInput,
+        ...(user.workerLocationRequired && user.phoneNumber
+          ? { phoneNumber: user.phoneNumber }
+          : {}),
+        ...homeLocationData,
         userId,
       },
     })
 
-    return res.json(mapRestaurantProfile(profile))
+    return res.json(
+      mapRestaurantProfile(profile, user.workerLocationRequired),
+    )
   } catch (error) {
+    if (error instanceof GooglePlacesError) {
+      return res.status(error.status).json({
+        message: error.message,
+      })
+    }
+
     console.error(error)
 
     return res.status(500).json({
       message: 'failed to save worker profile',
+    })
+  }
+}
+
+export async function getRestaurantMapJobs(req: Request, res: Response) {
+  try {
+    const userId = getUserId(req)
+
+    if (!userId) {
+      return res.status(401).json({
+        message: 'unauthorized',
+      })
+    }
+
+    const user = await prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+      select: {
+        track: true,
+        workerLocationRequired: true,
+        phoneNumber: true,
+        phoneVerifiedAt: true,
+        restaurantWorkerProfile: true,
+      },
+    })
+
+    if (user?.track !== 'restaurant') {
+      return res.status(403).json({
+        message: 'restaurant worker access required',
+      })
+    }
+
+    if (
+      !isRestaurantWorkerProfileComplete(
+        user.restaurantWorkerProfile,
+        user,
+      )
+    ) {
+      return res.status(400).json({
+        message: PROFILE_REQUIRED_MESSAGE,
+      })
+    }
+
+    const wantedRoles = user.restaurantWorkerProfile?.wantedRoles ?? []
+
+    const restaurants = await prisma.restaurantOwnerProfile.findMany({
+      where: {
+        locationStatus: 'verified',
+        latitude: {
+          not: null,
+        },
+        longitude: {
+          not: null,
+        },
+        jobs: {
+          some: {
+            kind: 'posted',
+            isActive: true,
+            ...(wantedRoles.length > 0
+              ? {
+                  role: {
+                    in: wantedRoles,
+                  },
+                }
+              : {}),
+          },
+        },
+      },
+      select: {
+        id: true,
+        restaurantName: true,
+        formattedAddress: true,
+        latitude: true,
+        longitude: true,
+        jobs: {
+          where: {
+            kind: 'posted',
+            isActive: true,
+            ...(wantedRoles.length > 0
+              ? {
+                  role: {
+                    in: wantedRoles,
+                  },
+                }
+              : {}),
+          },
+          select: {
+            id: true,
+            role: true,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+      },
+      orderBy: {
+        restaurantName: 'asc',
+      },
+    })
+
+    return res.json(
+      restaurants.map((restaurant) => ({
+        restaurantId: restaurant.id,
+        restaurantName: restaurant.restaurantName,
+        formattedAddress: restaurant.formattedAddress ?? '',
+        latitude: restaurant.latitude,
+        longitude: restaurant.longitude,
+        jobs: restaurant.jobs.map((job) => ({
+          id: job.id,
+          role: job.role,
+          title: job.role,
+        })),
+      })),
+    )
+  } catch (error) {
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to load restaurant map jobs',
     })
   }
 }
@@ -188,13 +426,17 @@ export async function getRestaurantExploreJobs(
       })
     }
 
-    const profile = await prisma.restaurantWorkerProfile.findUnique({
+    const user = await prisma.user.findUnique({
       where: {
-        userId,
+        id: userId,
+      },
+      include: {
+        restaurantWorkerProfile: true,
       },
     })
+    const profile = user?.restaurantWorkerProfile ?? null
 
-    if (!isRestaurantWorkerProfileComplete(profile)) {
+    if (!user || !isRestaurantWorkerProfileComplete(profile, user)) {
       return res.status(400).json({
         message: PROFILE_REQUIRED_MESSAGE,
       })
@@ -226,11 +468,20 @@ export async function getRestaurantExploreJobs(
       ],
     })
 
-    jobs.sort(
-      (firstJob, secondJob) =>
+    jobs.sort((firstJob, secondJob) => {
+      const focusDifference =
+        Number(secondJob.id === result.data.focusJobId) -
+        Number(firstJob.id === result.data.focusJobId)
+
+      if (focusDifference !== 0) {
+        return focusDifference
+      }
+
+      return (
         Number(isLocationMatch(secondJob, profile.location)) -
-        Number(isLocationMatch(firstJob, profile.location)),
-    )
+        Number(isLocationMatch(firstJob, profile.location))
+      )
+    })
 
     return res.json({
       jobs: jobs.slice(0, result.data.limit).map(mapRestaurantJob),

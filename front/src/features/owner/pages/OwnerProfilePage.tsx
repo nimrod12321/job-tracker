@@ -6,18 +6,19 @@ import {
   saveOwnerProfile,
 } from '../services/ownerApi'
 import type { OwnerProfileInput } from '../types/owner'
+import VerifiedAddressAutocomplete from '../../../components/location/VerifiedAddressAutocomplete'
 
 const emptyProfile: OwnerProfileInput = {
   restaurantName: '',
   contactPerson: '',
   phoneNumber: '',
   whatsappNumber: '',
-  city: '',
+  city: 'Tel Aviv–Yafo',
   street: '',
   description: '',
 }
 
-type ProfileField = keyof OwnerProfileInput
+type ProfileField = Exclude<keyof OwnerProfileInput, 'locationPlaceId'>
 
 function OwnerProfilePage() {
   const navigate = useNavigate()
@@ -28,6 +29,11 @@ function OwnerProfilePage() {
   const [error, setError] = useState<string | null>(null)
   const [missingFields, setMissingFields] = useState<ProfileField[]>([])
   const [success, setSuccess] = useState<string | null>(null)
+  const [isNewProfile, setIsNewProfile] = useState(true)
+  const [locationStatus, setLocationStatus] =
+    useState<'unverified' | 'verified'>('unverified')
+  const [locationInput, setLocationInput] = useState('')
+  const [locationPlaceId, setLocationPlaceId] = useState('')
 
   const text = {
     title:
@@ -61,6 +67,18 @@ function OwnerProfilePage() {
       language === 'he'
         ? 'כדי לפרסם משרות צריך להשלים את פרטי המסעדה.'
         : 'Complete your restaurant profile before posting jobs.',
+    locationTitle: language === 'he' ? 'מיקום המסעדה' : 'Restaurant location',
+    locationVerified: language === 'he' ? 'המיקום מאומת' : 'Location verified',
+    locationNeedsVerification:
+      language === 'he' ? 'נדרש אימות מיקום' : 'Location needs verification',
+    locationContact:
+      language === 'he'
+        ? 'צריכים לעדכן את מיקום המסעדה? פנו ל-Peepss.'
+        : 'Need to update the restaurant location? Contact Peepss.',
+    addressSelectionError:
+      language === 'he'
+        ? 'יש לבחור רחוב ומספר תקינים בתל אביב-יפו.'
+        : 'Choose a valid Tel Aviv–Yafo street and number.',
   }
 
   const fieldLabels: Record<ProfileField, string> = {
@@ -81,6 +99,9 @@ function OwnerProfilePage() {
         const profile = await getOwnerProfile()
 
         if (isActive && profile) {
+          setIsNewProfile(false)
+          setLocationStatus(profile.locationStatus)
+          setLocationInput(profile.formattedAddress || profile.street)
           setForm({
             restaurantName: profile.restaurantName,
             contactPerson: profile.contactPerson,
@@ -146,6 +167,15 @@ function OwnerProfilePage() {
     setError(null)
     setSuccess(null)
 
+    if (
+      locationStatus !== 'verified' &&
+      isNewProfile &&
+      !locationPlaceId
+    ) {
+      setError(text.addressSelectionError)
+      return
+    }
+
     const nextMissingFields = getMissingProfileFields()
 
     if (nextMissingFields.length > 0) {
@@ -160,6 +190,7 @@ function OwnerProfilePage() {
       const profileInput = {
         ...form,
         whatsappNumber: form.phoneNumber,
+        ...(locationPlaceId ? { locationPlaceId } : {}),
       }
       const savedProfile = await saveOwnerProfile(profileInput)
 
@@ -173,6 +204,10 @@ function OwnerProfilePage() {
         description: savedProfile.description,
       })
       setSuccess(text.saved)
+      setIsNewProfile(false)
+      setLocationStatus(savedProfile.locationStatus)
+      setLocationInput(savedProfile.formattedAddress || savedProfile.street)
+      setLocationPlaceId('')
       navigate('/owner/jobs')
     } catch (error) {
       setError(
@@ -234,32 +269,57 @@ function OwnerProfilePage() {
               )}
             </label>
 
-            <label>
-              {fieldLabels.city}
-              <input
-                aria-invalid={isMissing('city')}
-                className={isMissing('city') ? 'field-error' : ''}
-                value={form.city}
-                onChange={(event) => updateField('city', event.target.value)}
-              />
-              {isMissing('city') && (
-                <span className="field-error-text">{fieldLabels.city}</span>
+            <div className="owner-field-wide owner-location-section">
+              <div className="restaurant-location-heading">
+                <h3>{text.locationTitle}</h3>
+                <span
+                  className={`restaurant-location-status ${locationStatus}`}
+                >
+                  {locationStatus === 'verified'
+                    ? text.locationVerified
+                    : text.locationNeedsVerification}
+                </span>
+              </div>
+
+              {!isNewProfile ? (
+                <>
+                  <p className="restaurant-location-address">
+                    {locationInput || [form.street, form.city].filter(Boolean).join(', ')}
+                  </p>
+                  <p className="form-helper-text">{text.locationContact}</p>
+                </>
+              ) : (
+                <>
+                  <label>
+                    {fieldLabels.city}
+                    <input readOnly value="Tel Aviv–Yafo" />
+                  </label>
+                  <VerifiedAddressAutocomplete
+                    language={language}
+                    label={language === 'he' ? 'רחוב ומספר' : 'Street and number'}
+                    mode="restaurantAddress"
+                    placeholder={
+                      language === 'he'
+                        ? 'התחילו להקליד ובחרו כתובת'
+                        : 'Start typing and choose an address'
+                    }
+                    required
+                    value={locationInput}
+                    onInputChange={(value) => {
+                      setLocationInput(value)
+                      setLocationPlaceId('')
+                      updateField('street', '')
+                    }}
+                    onPlaceSelected={(place) => {
+                      setLocationInput(place.formattedAddress)
+                      setLocationPlaceId(place.placeId)
+                      updateField('city', 'Tel Aviv–Yafo')
+                      updateField('street', place.formattedAddress)
+                    }}
+                  />
+                </>
               )}
-            </label>
-            <label className="owner-field-wide">
-              {fieldLabels.street}
-              <input
-                aria-invalid={isMissing('street')}
-                className={isMissing('street') ? 'field-error' : ''}
-                value={form.street}
-                onChange={(event) =>
-                  updateField('street', event.target.value)
-                }
-              />
-              {isMissing('street') && (
-                <span className="field-error-text">{fieldLabels.street}</span>
-              )}
-            </label>
+            </div>
           </div>
         </section>
 

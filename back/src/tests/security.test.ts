@@ -63,6 +63,7 @@ type AuthResponse = {
   user?: {
     id?: string
     phoneNumber?: string | null
+    workerLocationRequired?: boolean
     restaurantMemberRole?: 'owner' | 'hiringManager' | null
   }
 }
@@ -107,6 +108,19 @@ type RestaurantExploreResponse = {
     contactWhatsapp?: unknown
   }>
 }
+
+type RestaurantMapResponse = Array<{
+  restaurantId: string
+  restaurantName: string
+  formattedAddress: string
+  latitude: number
+  longitude: number
+  jobs: Array<{
+    id: string
+    role: string
+    title: string
+  }>
+}>
 
 type AdminRestaurantResponse = {
   id: string
@@ -181,6 +195,7 @@ type AdminRestaurantDetailResponse = {
 
 type PrismaModule = typeof import('../lib/prisma.js')
 type OtpProviderModule = typeof import('../services/otpProvider.js')
+type GooglePlacesModule = typeof import('../services/googlePlaces.service.js')
 
 async function readJson<T>(response: Response): Promise<ApiResponse<T>> {
   const text = await response.text()
@@ -212,11 +227,20 @@ test(
 
     process.env.ADMIN_EMAILS = `${adminEmail},${secondAdminEmail}`
 
-    const [{ app }, { prisma }, { getCapturedOtpCodeForTest }] =
+    const [
+      { app },
+      { prisma },
+      { getCapturedOtpCodeForTest },
+      {
+        clearGooglePlaceDetailsForTest,
+        setGooglePlaceDetailsForTest,
+      },
+    ] =
       await Promise.all([
       import('../server.js') as Promise<{ app: Express }>,
       import('../lib/prisma.js') as Promise<PrismaModule>,
       import('../services/otpProvider.js') as Promise<OtpProviderModule>,
+      import('../services/googlePlaces.service.js') as Promise<GooglePlacesModule>,
     ])
 
     const server = createServer(app)
@@ -244,6 +268,56 @@ test(
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       }
+    }
+
+    function registerTestRestaurantPlace(
+      placeId: string,
+      streetName = 'Dizengoff Street',
+      streetNumber = '100',
+    ) {
+      setGooglePlaceDetailsForTest(placeId, {
+        id: placeId,
+        formattedAddress: `${streetName} ${streetNumber}, Tel Aviv-Yafo, Israel`,
+        location: {
+          latitude: 32.0809,
+          longitude: 34.7732,
+        },
+        addressComponents: [
+          { longText: streetName, types: ['route'] },
+          { longText: streetNumber, types: ['street_number'] },
+          { longText: 'Tel Aviv-Yafo', types: ['locality'] },
+          {
+            longText: 'Israel',
+            shortText: 'IL',
+            types: ['country'],
+          },
+        ],
+        types: ['street_address'],
+      })
+    }
+
+    function registerTestWorkerStreet(
+      placeId: string,
+      streetName = 'Dizengoff Street',
+    ) {
+      setGooglePlaceDetailsForTest(placeId, {
+        id: placeId,
+        formattedAddress: `${streetName}, Tel Aviv-Yafo, Israel`,
+        location: {
+          latitude: 32.083,
+          longitude: 34.773,
+        },
+        addressComponents: [
+          { longText: streetName, types: ['route'] },
+          { longText: 'Tel Aviv-Yafo', types: ['locality'] },
+          {
+            longText: 'Israel',
+            shortText: 'IL',
+            types: ['country'],
+          },
+        ],
+        types: ['route'],
+      })
     }
 
     async function requestPhoneCode(
@@ -303,6 +377,8 @@ test(
       const token = await registerAndLogin(email, 'restaurantOwner')
       const restaurantName = `${emailPrefix} ${runId}`
       createdRestaurantNames.push(restaurantName)
+      const locationPlaceId = `${emailPrefix}-place-${runId}`
+      registerTestRestaurantPlace(locationPlaceId)
 
       const profile = await request<OwnerProfileResponse>('/owner/profile', {
         method: 'PUT',
@@ -315,6 +391,7 @@ test(
           city: 'Tel Aviv',
           street: emailPrefix,
           description: 'Security test restaurant',
+          locationPlaceId,
         }),
       })
 
@@ -334,6 +411,93 @@ test(
 
       assert.ok(ownerA.profile.slug)
       assert.ok(ownerB.profile.slug)
+
+      const ownerAStoredProfile =
+        await prisma.restaurantOwnerProfile.findUniqueOrThrow({
+          where: {
+            id: ownerA.profile.id,
+          },
+        })
+      assert.equal(ownerAStoredProfile.locationStatus, 'verified')
+      assert.ok(ownerAStoredProfile.googlePlaceId)
+
+      const ownerAReplacementPlaceId = `owner-a-replacement-${runId}`
+      registerTestRestaurantPlace(
+        ownerAReplacementPlaceId,
+        'Allenby Street',
+        '20',
+      )
+      const ownerCannotChangeLocationAfterCreation = await request<{
+        message?: string
+      }>('/owner/profile', {
+        method: 'PUT',
+        headers: jsonHeaders(ownerA.token),
+        body: JSON.stringify({
+          restaurantName: `owner-a ${runId}`,
+          contactPerson: 'Owner',
+          phoneNumber: '0500000000',
+          whatsappNumber: '0500000000',
+          city: 'Tel Aviv',
+          street: 'Allenby Street 20',
+          description: 'Security test restaurant',
+          locationPlaceId: ownerAReplacementPlaceId,
+        }),
+      })
+      assert.equal(ownerCannotChangeLocationAfterCreation.status, 403)
+
+      const legacyOwnerEmail = `legacy-location-owner-${runId}@example.test`
+      const legacyOwnerToken = await registerAndLogin(
+        legacyOwnerEmail,
+        'restaurantOwner',
+      )
+      const legacyOwnerUser = await prisma.user.findUniqueOrThrow({
+        where: {
+          email: legacyOwnerEmail,
+        },
+      })
+      const legacyRestaurant =
+        await prisma.restaurantOwnerProfile.create({
+          data: {
+            userId: legacyOwnerUser.id,
+            restaurantName: `Legacy Location ${runId}`,
+            contactPerson: 'Legacy Owner',
+            phoneNumber: '0501111111',
+            whatsappNumber: '0501111111',
+            city: 'Tel Aviv',
+            street: 'Legacy Street',
+            description: 'Legacy unverified restaurant',
+            slug: `legacy-location-${runId}`,
+          },
+        })
+      createdOwnerProfileIds.push(legacyRestaurant.id)
+      const legacyPlaceId = `legacy-place-${runId}`
+      registerTestRestaurantPlace(legacyPlaceId, 'King George Street', '30')
+
+      const legacyOwnerCannotVerifyLocation = await request<{
+        message?: string
+      }>('/owner/profile', {
+        method: 'PUT',
+        headers: jsonHeaders(legacyOwnerToken),
+        body: JSON.stringify({
+          restaurantName: legacyRestaurant.restaurantName,
+          contactPerson: legacyRestaurant.contactPerson,
+          phoneNumber: legacyRestaurant.phoneNumber,
+          whatsappNumber: legacyRestaurant.whatsappNumber,
+          city: legacyRestaurant.city,
+          street: legacyRestaurant.street,
+          description: legacyRestaurant.description,
+          locationPlaceId: legacyPlaceId,
+        }),
+      })
+      assert.equal(legacyOwnerCannotVerifyLocation.status, 403)
+      assert.equal(
+        (
+          await prisma.restaurantOwnerProfile.findUniqueOrThrow({
+            where: { id: legacyRestaurant.id },
+          })
+        ).locationStatus,
+        'unverified',
+      )
 
       const ownerAInitialJobs = await request<OwnerJobResponse[]>(
         '/owner/jobs',
@@ -1139,6 +1303,39 @@ test(
         secondAdminEmail,
         'restaurantOwner',
       )
+
+      const nonAdminCannotUpdateOtherRestaurantLocation = await request(
+        `/admin/restaurants/${ownerB.profile.id}/location`,
+        {
+          method: 'PATCH',
+          headers: jsonHeaders(ownerA.token),
+          body: JSON.stringify({
+            placeId: ownerAReplacementPlaceId,
+          }),
+        },
+      )
+      assert.equal(nonAdminCannotUpdateOtherRestaurantLocation.status, 403)
+
+      const adminVerifiedLegacyLocation = await request(
+        `/admin/restaurants/${legacyRestaurant.id}/location`,
+        {
+          method: 'PATCH',
+          headers: jsonHeaders(adminToken),
+          body: JSON.stringify({
+            placeId: legacyPlaceId,
+          }),
+        },
+      )
+      assert.equal(adminVerifiedLegacyLocation.status, 200)
+      assert.equal(
+        (
+          await prisma.restaurantOwnerProfile.findUniqueOrThrow({
+            where: { id: legacyRestaurant.id },
+          })
+        ).locationStatus,
+        'verified',
+      )
+
       const adminRequest = await request('/admin/restaurant-leads', {
         headers: jsonHeaders(adminToken),
       })
@@ -1859,6 +2056,58 @@ test(
       assert.equal(linkedOwnerProfile.body.id, adminCreatedRestaurant.body.id)
       assert.ok(linkedOwnerProfile.body.slug)
 
+      const adminCreatedPlaceId = `admin-created-place-${runId}`
+      registerTestRestaurantPlace(
+        adminCreatedPlaceId,
+        'Nahalat Binyamin Street',
+        '40',
+      )
+      const linkedOwnerCannotVerifyAdminRestaurant = await request<{
+        message?: string
+      }>('/owner/profile', {
+        method: 'PUT',
+        headers: jsonHeaders(linkedOwnerAuth.body.token),
+        body: JSON.stringify({
+          restaurantName: adminCreatedRestaurant.body.restaurantName,
+          contactPerson: 'Linked Admin Owner',
+          phoneNumber: '0503334444',
+          whatsappNumber: '0503334444',
+          city: 'Tel Aviv',
+          street: 'Admin-created legacy address',
+          description: 'Admin-created restaurant',
+          locationPlaceId: adminCreatedPlaceId,
+        }),
+      })
+      assert.equal(linkedOwnerCannotVerifyAdminRestaurant.status, 403)
+      assert.equal(
+        (
+          await prisma.restaurantOwnerProfile.findUniqueOrThrow({
+            where: { id: adminCreatedRestaurant.body.id },
+          })
+        ).locationStatus,
+        'unverified',
+      )
+
+      const adminVerifiedAdminCreatedLocation = await request(
+        `/admin/restaurants/${adminCreatedRestaurant.body.id}/location`,
+        {
+          method: 'PATCH',
+          headers: jsonHeaders(adminToken),
+          body: JSON.stringify({
+            placeId: adminCreatedPlaceId,
+          }),
+        },
+      )
+      assert.equal(adminVerifiedAdminCreatedLocation.status, 200)
+      assert.equal(
+        (
+          await prisma.restaurantOwnerProfile.findUniqueOrThrow({
+            where: { id: adminCreatedRestaurant.body.id },
+          })
+        ).locationStatus,
+        'verified',
+      )
+
       const linkedOwnerJobs = await request<OwnerJobResponse[]>(
         '/owner/jobs',
         {
@@ -2387,6 +2636,157 @@ test(
         },
       })
 
+      const workerMe = await request<{
+        workerLocationRequired: boolean
+      }>('/auth/me', {
+        headers: jsonHeaders(workerToken),
+      })
+      assert.equal(workerMe.status, 200)
+      assert.equal(workerMe.body.workerLocationRequired, true)
+
+      const newWorkerExploreWithoutStreet =
+        await request<RestaurantExploreResponse>('/restaurant/explore', {
+          method: 'POST',
+          headers: jsonHeaders(workerToken),
+          body: JSON.stringify({
+            limit: 10,
+            excludeJobIds: [],
+          }),
+        })
+      assert.equal(newWorkerExploreWithoutStreet.status, 400)
+
+      const newWorkerMapWithoutStreet =
+        await request<RestaurantMapResponse>('/restaurant/jobs/map', {
+          headers: jsonHeaders(workerToken),
+        })
+      assert.equal(newWorkerMapWithoutStreet.status, 400)
+
+      const coordinateBypassAttempt = await request<{ message?: string }>(
+        '/restaurant/profile',
+        {
+          method: 'PUT',
+          headers: jsonHeaders(workerToken),
+          body: JSON.stringify({
+            fullName: 'Worker',
+            phoneNumber: '+972509999999',
+            location: 'Tel Aviv',
+            wantedRoles: ['waiter', 'host'],
+            experienceText: '2 years\n\nVerified QR experience',
+            availability: 'Evening, Weekends',
+            age: 25,
+            homeLatitude: 32.08,
+            homeLongitude: 34.77,
+          }),
+        },
+      )
+      assert.equal(coordinateBypassAttempt.status, 400)
+      assert.equal(
+        (
+          await prisma.restaurantWorkerProfile.findUniqueOrThrow({
+            where: { userId: workerUser.id },
+          })
+        ).homeGooglePlaceId,
+        null,
+      )
+
+      const workerStreetPlaceId = `worker-street-${runId}`
+      registerTestWorkerStreet(workerStreetPlaceId)
+      const completedNewWorkerProfile = await request<{
+        homeGooglePlaceId: string | null
+        locationRequired: boolean
+      }>('/restaurant/profile', {
+        method: 'PUT',
+        headers: jsonHeaders(workerToken),
+        body: JSON.stringify({
+          fullName: 'Worker',
+          phoneNumber: '+972509999999',
+          location: 'Tel Aviv',
+          wantedRoles: ['waiter', 'host'],
+          experienceText: '2 years\n\nVerified QR experience',
+          availability: 'Evening, Weekends',
+          age: 25,
+          homePlaceId: workerStreetPlaceId,
+        }),
+      })
+      assert.equal(completedNewWorkerProfile.status, 200)
+      assert.equal(
+        completedNewWorkerProfile.body.homeGooglePlaceId,
+        workerStreetPlaceId,
+      )
+      assert.equal(completedNewWorkerProfile.body.locationRequired, true)
+
+      const legacyWorkerEmail = `legacy-worker-${runId}@example.test`
+      const legacyWorkerToken = await registerAndLogin(
+        legacyWorkerEmail,
+        'restaurant',
+      )
+      const legacyWorkerUser = await prisma.user.update({
+        where: {
+          email: legacyWorkerEmail,
+        },
+        data: {
+          workerLocationRequired: false,
+          phoneNumber: '+972505556666',
+          phoneVerifiedAt: new Date(),
+          fullName: 'Legacy Worker',
+        },
+      })
+      await prisma.restaurantWorkerProfile.create({
+        data: {
+          userId: legacyWorkerUser.id,
+          fullName: 'Legacy Worker',
+          phoneNumber: '+972505556666',
+          location: 'Tel Aviv',
+          wantedRoles: ['waiter'],
+          experienceText: '1 year',
+          availability: 'Morning',
+          age: 24,
+        },
+      })
+
+      const legacyWorkerLogin = await request<AuthResponse>('/auth/login', {
+        method: 'POST',
+        headers: jsonHeaders(),
+        body: JSON.stringify({
+          email: legacyWorkerEmail,
+          password: 'password123',
+        }),
+      })
+      assert.equal(legacyWorkerLogin.status, 200)
+      assert.equal(
+        legacyWorkerLogin.body.user?.workerLocationRequired,
+        false,
+      )
+
+      const legacyWorkerProfile = await request<{
+        homeGooglePlaceId: string | null
+        locationRequired: boolean
+      }>('/restaurant/profile', {
+        headers: jsonHeaders(legacyWorkerToken),
+      })
+      assert.equal(legacyWorkerProfile.status, 200)
+      assert.equal(legacyWorkerProfile.body.homeGooglePlaceId, null)
+      assert.equal(legacyWorkerProfile.body.locationRequired, false)
+
+      const legacyWorkerExplore =
+        await request<RestaurantExploreResponse>('/restaurant/explore', {
+          method: 'POST',
+          headers: jsonHeaders(legacyWorkerToken),
+          body: JSON.stringify({
+            limit: 10,
+            excludeJobIds: [],
+          }),
+        })
+      assert.equal(legacyWorkerExplore.status, 200)
+
+      const legacyWorkerMap = await request<RestaurantMapResponse>(
+        '/restaurant/jobs/map',
+        {
+          headers: jsonHeaders(legacyWorkerToken),
+        },
+      )
+      assert.equal(legacyWorkerMap.status, 200)
+
       const activePostedJob = await prisma.restaurantJob.update({
         where: {
           id: ownerAWaiterJob.id,
@@ -2407,6 +2807,68 @@ test(
           isActive: false,
         },
       })
+
+      await prisma.restaurantOwnerProfile.update({
+        where: {
+          id: ownerA.profile.id,
+        },
+        data: {
+          locationStatus: 'verified',
+          locationCity: 'Tel Aviv–Yafo',
+          locationStreetName: 'Dizengoff',
+          locationStreetNumber: '100',
+          formattedAddress: 'Dizengoff St 100, Tel Aviv–Yafo, Israel',
+          googlePlaceId: `security-place-${runId}`,
+          latitude: 32.0809,
+          longitude: 34.7732,
+          locationVerifiedAt: new Date(),
+        },
+      })
+
+      const unauthenticatedMap = await request('/restaurant/jobs/map')
+      assert.equal(unauthenticatedMap.status, 401)
+
+      const restaurantMap = await request<RestaurantMapResponse>(
+        '/restaurant/jobs/map',
+        {
+          headers: jsonHeaders(workerToken),
+        },
+      )
+      assert.equal(restaurantMap.status, 200)
+      const ownerAMapEntry = restaurantMap.body.find(
+        (entry) => entry.restaurantId === ownerA.profile.id,
+      )
+      assert.ok(ownerAMapEntry)
+      assert.equal(
+        restaurantMap.body.filter(
+          (entry) => entry.restaurantId === ownerA.profile.id,
+        ).length,
+        1,
+      )
+      assert.ok(
+        ownerAMapEntry.jobs.some((job) => job.id === activePostedJob.id),
+      )
+      assert.ok(
+        ownerAMapEntry.jobs.every((job) => job.id !== undefined),
+      )
+
+      const ownerCannotReplaceVerifiedLocation = await request<{
+        message?: string
+      }>('/owner/profile', {
+        method: 'PUT',
+        headers: jsonHeaders(ownerA.token),
+        body: JSON.stringify({
+          restaurantName: `Owner A ${runId}`,
+          contactPerson: 'Owner A',
+          phoneNumber: '0500000000',
+          whatsappNumber: '0500000000',
+          city: 'Tel Aviv',
+          street: 'Changed street',
+          description: 'Existing restaurant',
+          locationPlaceId: 'must-not-be-used',
+        }),
+      })
+      assert.equal(ownerCannotReplaceVerifiedLocation.status, 403)
 
       const explore = await request<RestaurantExploreResponse>(
         '/restaurant/explore',
@@ -2436,7 +2898,35 @@ test(
             !job.restaurantName.includes(`${runId} Inactive Job`),
         ),
       )
+
+      const workerApplication = await request<{ id: string }>(
+        '/restaurant/applications',
+        {
+          method: 'POST',
+          headers: jsonHeaders(workerToken),
+          body: JSON.stringify({
+            restaurantJobId: activePostedJob.id,
+          }),
+        },
+      )
+      assert.equal(workerApplication.status, 201)
+
+      const ownerApplications = await request<
+        Array<{ worker: Record<string, unknown> }>
+      >('/owner/applications', {
+        headers: jsonHeaders(ownerA.token),
+      })
+      assert.equal(ownerApplications.status, 200)
+      const ownerVisibleWorker = ownerApplications.body.find(
+        (application) => application.worker.id === workerUser.id,
+      )?.worker
+      assert.ok(ownerVisibleWorker)
+      assert.equal(ownerVisibleWorker.homeStreetName, undefined)
+      assert.equal(ownerVisibleWorker.homeAreaFormatted, undefined)
+      assert.equal(ownerVisibleWorker.homeLatitude, undefined)
+      assert.equal(ownerVisibleWorker.homeLongitude, undefined)
     } finally {
+      clearGooglePlaceDetailsForTest()
       await prisma.restaurantCandidateLead.deleteMany({
         where: {
           ownerProfileId: {

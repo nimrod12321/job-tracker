@@ -96,6 +96,9 @@ const twilioWhatsappAuthContentSid = getOptionalEnvironmentVariable(
 const twilioMessagingServiceSid = getOptionalEnvironmentVariable(
   'TWILIO_MESSAGING_SERVICE_SID',
 )
+const googleMapsApiKey = getOptionalEnvironmentVariable(
+  'GOOGLE_MAPS_API_KEY',
+)
 
 if (nodeEnv === 'production' && !configuredFrontendUrl) {
   throw new Error('FRONTEND_URL is not set')
@@ -202,4 +205,5 @@ export const env = {
   twilioWhatsappFrom,
   twilioWhatsappAuthContentSid,
   twilioMessagingServiceSid,
+  googleMapsApiKey,
 }

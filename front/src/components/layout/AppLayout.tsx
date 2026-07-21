@@ -143,7 +143,11 @@ function AppLayout({
                 to="/restaurant/explore"
                 end
                 className={({ isActive }) =>
-                  `nav-button${isActive ? ' active' : ''}`
+                  `nav-button${
+                    isActive || location.pathname === '/restaurant/map'
+                      ? ' active'
+                      : ''
+                  }`
                 }
               >
                 {restaurantNavLabels.workerExplore}

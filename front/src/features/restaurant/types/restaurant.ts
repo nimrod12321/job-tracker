@@ -68,14 +68,42 @@ export type RestaurantWorkerProfile = {
   experienceText: string
   availability: string
   age: number
+  homeStreetName: string | null
+  homeAreaFormatted: string | null
+  homeGooglePlaceId: string | null
+  homeLatitude: number | null
+  homeLongitude: number | null
+  homeLocationUpdatedAt: string | null
+  locationRequired: boolean
   createdAt: string
   updatedAt: string
 }
 
-export type RestaurantWorkerProfileInput = Omit<
-  RestaurantWorkerProfile,
-  'id' | 'createdAt' | 'updatedAt'
->
+export type RestaurantWorkerProfileInput = {
+  fullName: string
+  phoneNumber: string
+  location: string
+  homePlaceId?: string
+  wantedRoles: RestaurantRole[]
+  experienceText: string
+  availability: string
+  age: number
+}
+
+export type RestaurantMapJob = {
+  id: string
+  role: RestaurantRole
+  title: string
+}
+
+export type RestaurantMapEntry = {
+  restaurantId: string
+  restaurantName: string
+  formattedAddress: string
+  latitude: number
+  longitude: number
+  jobs: RestaurantMapJob[]
+}
 
 export type RestaurantExploreJob = {
   id: string

@@ -144,6 +144,26 @@ export async function updateAdminRestaurant(
   return response.json()
 }
 
+export async function updateAdminRestaurantLocation(
+  id: string,
+  placeId: string,
+): Promise<AdminRestaurant> {
+  const response = await fetch(
+    `${API_BASE_URL}/admin/restaurants/${encodeURIComponent(id)}/location`,
+    {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify({ placeId }),
+    },
+  )
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to update restaurant location')
+  }
+
+  return response.json()
+}
+
 export async function regenerateAdminRestaurantClaim(
   id: string,
 ): Promise<AdminRestaurantClaim> {

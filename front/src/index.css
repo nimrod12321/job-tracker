@@ -8992,3 +8992,294 @@ button.peepss-close-button:focus-visible,
   flex: 1 1 auto;
   min-height: 0;
 }
+/* Verified Tel Aviv location foundation */
+.verified-address-field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  font-weight: 700;
+}
+
+.verified-address-field input {
+  width: 100%;
+  min-width: 0;
+}
+
+.address-search-error {
+  color: var(--peepss-primary-hover, #cf4b2c);
+}
+
+.pac-container {
+  z-index: 10000;
+  border: 1px solid var(--peepss-border, #e2cbb9);
+  border-radius: 14px;
+  background: var(--peepss-surface, #fbf8f1);
+  box-shadow: 0 12px 32px rgba(32, 29, 29, 0.14);
+  font-family: inherit;
+}
+
+.pac-item {
+  padding: 9px 12px;
+  border-top-color: rgba(118, 90, 86, 0.14);
+  color: var(--peepss-text-muted, #765a56);
+  cursor: pointer;
+}
+
+.pac-item:hover,
+.pac-item-selected {
+  background: var(--peepss-surface-soft, #f5eadc);
+}
+
+.restaurant-location-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.restaurant-location-heading h2,
+.restaurant-location-heading h3,
+.restaurant-location-heading p {
+  margin: 0;
+}
+
+.restaurant-location-status {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 26px;
+  padding: 4px 10px;
+  border: 1px solid var(--peepss-border, #e2cbb9);
+  border-radius: 999px;
+  background: var(--peepss-surface-soft, #f5eadc);
+  color: var(--peepss-text-muted, #765a56);
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.restaurant-location-status.verified {
+  border-color: rgba(39, 122, 75, 0.28);
+  background: rgba(39, 122, 75, 0.1);
+  color: #246f45;
+}
+
+.owner-location-section {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--peepss-border, #e2cbb9);
+  border-radius: 18px;
+  background: var(--peepss-surface-soft, #f5eadc);
+}
+
+.restaurant-location-address {
+  margin: 0;
+  color: var(--peepss-text, #201d1d);
+  font-weight: 750;
+}
+
+.worker-location-section {
+  display: grid;
+  gap: 12px;
+}
+
+.worker-location-privacy {
+  margin: 0;
+}
+
+.admin-location-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: end;
+}
+
+.admin-location-panel .admin-form-wide {
+  grid-column: 1 / -1;
+}
+
+.restaurant-view-switcher {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: min(240px, 100%);
+  margin-inline: auto;
+  padding: 4px;
+  border: 1px solid var(--peepss-border, #e2cbb9);
+  border-radius: 999px;
+  background: var(--peepss-surface-soft, #f5eadc);
+}
+
+.restaurant-view-switcher a,
+.restaurant-view-switcher a:visited {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 6px 18px;
+  border-radius: 999px;
+  color: var(--peepss-text-muted, #765a56);
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.restaurant-view-switcher a.active {
+  background: var(--peepss-text, #201d1d);
+  color: #fffaf3;
+}
+
+.restaurant-explore-page > .restaurant-view-switcher {
+  margin-bottom: 10px;
+}
+
+.restaurant-map-page {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  min-height: calc(100dvh - 150px);
+  overflow: hidden;
+}
+
+.restaurant-map-toolbar {
+  padding: 8px 16px 10px;
+}
+
+.restaurant-map-location-prompt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--peepss-surface-soft, #f5eadc);
+  color: var(--peepss-text, #201d1d);
+  text-align: center;
+}
+
+.restaurant-map-location-prompt p {
+  margin: 0;
+}
+
+.restaurant-map-location-prompt a {
+  flex: 0 0 auto;
+  color: var(--peepss-primary, #dc5634);
+  font-weight: 800;
+}
+
+.restaurant-jobs-map-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 440px;
+}
+
+.restaurant-jobs-map {
+  width: 100%;
+  height: 100%;
+  min-height: 440px;
+}
+
+.restaurant-map-error,
+.restaurant-map-empty {
+  position: absolute;
+  top: 18px;
+  inset-inline: 18px;
+  z-index: 2;
+  margin: 0 auto;
+  padding: 12px 16px;
+  border: 1px solid var(--peepss-border, #e2cbb9);
+  border-radius: 14px;
+  background: rgba(251, 248, 241, 0.95);
+  color: var(--peepss-text, #201d1d);
+  text-align: center;
+}
+
+.restaurant-map-sheet {
+  position: absolute;
+  inset-inline: 16px;
+  bottom: 16px;
+  z-index: 5;
+  width: min(480px, calc(100% - 32px));
+  max-height: min(56dvh, 480px);
+  margin-inline: auto;
+  padding: 20px;
+  overflow-y: auto;
+  border: 1px solid var(--peepss-border, #e2cbb9);
+  border-radius: 24px;
+  background: var(--peepss-surface, #fbf8f1);
+  box-shadow: 0 14px 38px rgba(32, 29, 29, 0.18);
+}
+
+.restaurant-map-sheet h2 {
+  margin: 0 36px 4px;
+  color: var(--peepss-text, #201d1d);
+}
+
+.restaurant-map-sheet p {
+  margin: 4px 0 12px;
+  color: var(--peepss-text-muted, #765a56);
+}
+
+.restaurant-map-sheet ul {
+  margin: 8px 0 12px;
+  padding-inline-start: 22px;
+}
+
+.restaurant-map-job-links a,
+.restaurant-map-job-links a:visited {
+  color: var(--peepss-text, #201d1d);
+  font-weight: 750;
+}
+
+.restaurant-map-job-links a:hover {
+  color: var(--peepss-primary, #dc5634);
+}
+
+.restaurant-map-sheet-close {
+  position: absolute;
+  top: 8px;
+  inset-inline-end: 8px;
+}
+
+.restaurant-map-distance {
+  font-weight: 750;
+}
+
+.restaurant-map-view-jobs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border-radius: 14px;
+  background: var(--peepss-primary, #dc5634);
+  color: #fff !important;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+@media (max-width: 640px) {
+  .restaurant-location-heading,
+  .restaurant-map-location-prompt {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-location-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .restaurant-map-page {
+    min-height: calc(100dvh - 126px);
+  }
+
+  .restaurant-map-toolbar {
+    padding-top: 4px;
+  }
+
+  .restaurant-jobs-map-wrap,
+  .restaurant-jobs-map {
+    min-height: 360px;
+  }
+}

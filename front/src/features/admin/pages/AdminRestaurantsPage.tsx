@@ -6,6 +6,7 @@ import {
   getAdminRestaurants,
 } from '../services/adminApi'
 import type { AdminRestaurant, AdminRestaurantInput } from '../types/admin'
+import VerifiedAddressAutocomplete from '../../../components/location/VerifiedAddressAutocomplete'
 
 const emptyRestaurantForm: AdminRestaurantInput = {
   restaurantName: '',
@@ -14,7 +15,7 @@ const emptyRestaurantForm: AdminRestaurantInput = {
   ownerLoginPhone: '',
   phoneNumber: '',
   whatsappNumber: '',
-  city: '',
+  city: 'Tel Aviv–Yafo',
   street: '',
   description: '',
 }
@@ -165,18 +166,28 @@ function AdminRestaurantsPage() {
             </label>
             <label>
               City
-              <input
-                value={form.city}
-                onChange={(event) => updateForm('city', event.target.value)}
-              />
+              <input readOnly value="Tel Aviv–Yafo" />
             </label>
-            <label>
-              Street
-              <input
-                value={form.street}
-                onChange={(event) => updateForm('street', event.target.value)}
-              />
-            </label>
+            <VerifiedAddressAutocomplete
+              language="en"
+              label="Street and number"
+              mode="restaurantAddress"
+              placeholder="Start typing and choose an address"
+              value={form.street}
+              onInputChange={(value) => {
+                updateForm('street', value)
+                updateForm('locationPlaceId', '')
+              }}
+              onPlaceSelected={(place) => {
+                updateForm('city', 'Tel Aviv–Yafo')
+                updateForm('street', place.formattedAddress)
+                updateForm('locationPlaceId', place.placeId)
+              }}
+            />
+            <p className="form-helper-text admin-form-wide">
+              Selecting a suggestion verifies the map location. You can also
+              create the restaurant now and verify it later.
+            </p>
             <label>
               Contact person
               <input
@@ -278,6 +289,13 @@ function AdminRestaurantsPage() {
                       : 'Not activated'}
                   </span>
                 </div>
+                <span
+                  className={`restaurant-location-status ${restaurant.locationStatus}`}
+                >
+                  {restaurant.locationStatus === 'verified'
+                    ? 'Location verified'
+                    : 'Location needs verification'}
+                </span>
                 <div
                   className="admin-restaurant-funnel-mini"
                   aria-label={`QR funnel: ${restaurant.funnelMetrics.qrScans} scans, ${restaurant.funnelMetrics.startedForms} started, ${restaurant.funnelMetrics.completedForms} completed`}

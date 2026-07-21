@@ -37,6 +37,7 @@ import ProfilePage from './features/profile/pages/ProfilePage'
 import RestaurantPublicApplyPage from './features/public/pages/RestaurantPublicApplyPage'
 import RestaurantClaimPage from './features/public/pages/RestaurantClaimPage'
 import RestaurantExplorePage from './features/restaurant/pages/RestaurantExplorePage'
+import RestaurantMapPage from './features/restaurant/pages/RestaurantMapPage'
 import RestaurantMatchesPage from './features/restaurant/pages/RestaurantMatchesPage'
 import RestaurantProfilePage from './features/restaurant/pages/RestaurantProfilePage'
 import { getRestaurantProfile } from './features/restaurant/services/restaurantApi'
@@ -71,12 +72,15 @@ function isOwnerProfileComplete(profile: OwnerProfile | null) {
   )
 }
 
-function isWorkerProfileComplete(profile: RestaurantWorkerProfile | null) {
+function isWorkerProfileComplete(
+  profile: RestaurantWorkerProfile | null,
+  user: AuthUser | null,
+) {
   if (!profile) {
     return false
   }
 
-  return Boolean(
+  const requiredFieldsComplete = Boolean(
     profile.fullName.trim() &&
       profile.phoneNumber.trim() &&
       profile.age >= 16 &&
@@ -84,6 +88,16 @@ function isWorkerProfileComplete(profile: RestaurantWorkerProfile | null) {
       profile.wantedRoles.length > 0 &&
       profile.experienceText.trim() &&
       profile.availability.trim(),
+  )
+
+  if (!requiredFieldsComplete || !profile.locationRequired) {
+    return requiredFieldsComplete
+  }
+
+  return Boolean(
+    user?.phoneNumber &&
+      user.phoneVerifiedAt &&
+      profile.homeGooglePlaceId,
   )
 }
 
@@ -96,7 +110,7 @@ async function getPostAuthPath(user: AuthUser | null) {
     try {
       const profile = await getRestaurantProfile()
 
-      return isWorkerProfileComplete(profile)
+      return isWorkerProfileComplete(profile, user)
         ? '/restaurant/explore'
         : '/restaurant/profile'
     } catch {
@@ -463,6 +477,7 @@ function App() {
             path="/restaurant/explore"
             element={<RestaurantExplorePage />}
           />
+          <Route path="/restaurant/map" element={<RestaurantMapPage />} />
         </Route>
 
         <Route

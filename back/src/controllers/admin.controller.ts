@@ -6,6 +6,7 @@ import { getValidationErrorMessage } from '../utils/validation.js'
 import {
   adminRestaurantCreateSchema,
   adminRestaurantIdSchema,
+  adminRestaurantLocationSchema,
   adminRestaurantUpdateSchema,
 } from '../validations/admin.validation.js'
 import {
@@ -19,6 +20,11 @@ import {
   regenerateRestaurantClaim,
   RestaurantClaimError,
 } from '../services/restaurantClaim.service.js'
+import {
+  getVerifiedRestaurantLocationData,
+  GooglePlacesError,
+  verifyRestaurantPlaceId,
+} from '../services/googlePlaces.service.js'
 
 const adminOwnerMembersInclude = {
   where: {
@@ -97,6 +103,15 @@ function mapAdminRestaurantSummary(restaurant: {
   description: string
   slug: string | null
   qrEnabledRoles: RestaurantRole[]
+  locationStatus: 'unverified' | 'verified'
+  locationCity: string | null
+  locationStreetName: string | null
+  locationStreetNumber: string | null
+  formattedAddress: string | null
+  googlePlaceId: string | null
+  latitude: number | null
+  longitude: number | null
+  locationVerifiedAt: Date | null
   createdAt: Date
   updatedAt: Date
   user: {
@@ -222,6 +237,16 @@ function mapAdminRestaurantSummary(restaurant: {
     description: restaurant.description,
     slug: restaurant.slug,
     qrEnabledRoles: restaurant.qrEnabledRoles,
+    locationStatus: restaurant.locationStatus,
+    locationCity: restaurant.locationCity,
+    locationStreetName: restaurant.locationStreetName,
+    locationStreetNumber: restaurant.locationStreetNumber,
+    formattedAddress: restaurant.formattedAddress,
+    googlePlaceId: restaurant.googlePlaceId,
+    latitude: restaurant.latitude,
+    longitude: restaurant.longitude,
+    locationVerifiedAt:
+      restaurant.locationVerifiedAt?.toISOString() ?? null,
     ownerLoginPhone: ownerMember?.phoneNumber ?? restaurant.user.phoneNumber,
     ownerUser,
     claim: hasActiveOwner
@@ -621,9 +646,19 @@ export async function createAdminRestaurant(req: Request, res: Response) {
       })
     }
 
+    const verifiedLocation = result.data.locationPlaceId
+      ? await verifyRestaurantPlaceId({
+          placeId: result.data.locationPlaceId,
+        })
+      : null
+    const verifiedLocationData = verifiedLocation
+      ? getVerifiedRestaurantLocationData(verifiedLocation)
+      : {}
+
     const restaurant = await prisma.$transaction(async (tx) => {
       const {
         ownerLoginPhone: _ownerLoginPhone,
+        locationPlaceId: _locationPlaceId,
         ...restaurantData
       } = result.data
       const placeholderUser = await tx.user.create({
@@ -636,6 +671,7 @@ export async function createAdminRestaurant(req: Request, res: Response) {
       const createdRestaurant = await tx.restaurantOwnerProfile.create({
         data: {
           ...restaurantData,
+          ...verifiedLocationData,
           slug,
           userId: placeholderUser.id,
         },
@@ -770,6 +806,12 @@ export async function createAdminRestaurant(req: Request, res: Response) {
 
     return res.status(201).json(mapAdminRestaurantSummary(restaurant))
   } catch (error) {
+    if (error instanceof GooglePlacesError) {
+      return res.status(error.status).json({
+        message: error.message,
+      })
+    }
+
     console.error(error)
 
     return res.status(500).json({
@@ -1129,6 +1171,151 @@ export async function updateAdminRestaurant(req: Request, res: Response) {
 
     return res.status(500).json({
       message: 'failed to update restaurant',
+    })
+  }
+}
+
+export async function updateAdminRestaurantLocation(
+  req: Request,
+  res: Response,
+) {
+  try {
+    const adminUserId = getAdminUserId(req)
+
+    if (!adminUserId) {
+      return res.status(401).json({
+        message: 'unauthorized',
+      })
+    }
+
+    const idResult = adminRestaurantIdSchema.safeParse(req.params.id)
+    const bodyResult = adminRestaurantLocationSchema.safeParse(req.body)
+
+    if (!idResult.success) {
+      return res.status(400).json({
+        message: getValidationErrorMessage(idResult.error),
+      })
+    }
+
+    if (!bodyResult.success) {
+      return res.status(400).json({
+        message: getValidationErrorMessage(bodyResult.error),
+      })
+    }
+
+    const existing = await prisma.restaurantOwnerProfile.findUnique({
+      where: {
+        id: idResult.data,
+      },
+      select: {
+        id: true,
+      },
+    })
+
+    if (!existing) {
+      return res.status(404).json({
+        message: 'restaurant not found',
+      })
+    }
+
+    const verifiedLocation = await verifyRestaurantPlaceId({
+      placeId: bodyResult.data.placeId,
+    })
+    const locationData = getVerifiedRestaurantLocationData(verifiedLocation)
+
+    await prisma.$transaction(async (tx) => {
+      const updated = await tx.restaurantOwnerProfile.update({
+        where: {
+          id: existing.id,
+        },
+        data: locationData,
+      })
+
+      await tx.restaurantJob.updateMany({
+        where: {
+          ownerProfileId: updated.id,
+        },
+        data: {
+          location: updated.city,
+          area: updated.street,
+        },
+      })
+    })
+
+    const updatedRestaurant =
+      await prisma.restaurantOwnerProfile.findUniqueOrThrow({
+        where: {
+          id: existing.id,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              phoneNumber: true,
+              fullName: true,
+            },
+          },
+          members: adminOwnerMembersInclude,
+          claim: true,
+          jobs: {
+            select: {
+              isActive: true,
+              kind: true,
+              applications: {
+                select: {
+                  createdAt: true,
+                },
+              },
+              _count: {
+                select: {
+                  applications: true,
+                },
+              },
+            },
+          },
+          leads: {
+            select: {
+              createdAt: true,
+              source: true,
+              ownerViewedAt: true,
+            },
+          },
+          qrEvents: {
+            select: {
+              type: true,
+              sessionId: true,
+              createdAt: true,
+            },
+          },
+          adminReadStates: {
+            where: {
+              adminUserId,
+            },
+            select: {
+              lastViewedCandidatesAt: true,
+            },
+          },
+          _count: {
+            select: {
+              leads: true,
+            },
+          },
+        },
+      })
+
+    return res.json(mapAdminRestaurantSummary(updatedRestaurant))
+  } catch (error) {
+    if (error instanceof GooglePlacesError) {
+      return res.status(error.status).json({
+        message: error.message,
+      })
+    }
+
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to update restaurant location',
     })
   }
 }

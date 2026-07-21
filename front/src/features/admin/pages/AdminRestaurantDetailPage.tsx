@@ -10,11 +10,13 @@ import {
   markAdminRestaurantSeen,
   regenerateAdminRestaurantClaim,
   updateAdminRestaurant,
+  updateAdminRestaurantLocation,
 } from '../services/adminApi'
 import type {
   AdminRestaurantDetail,
   AdminRestaurantInput,
 } from '../types/admin'
+import VerifiedAddressAutocomplete from '../../../components/location/VerifiedAddressAutocomplete'
 
 const emptyRestaurantForm: AdminRestaurantInput = {
   restaurantName: '',
@@ -62,6 +64,9 @@ function AdminRestaurantDetailPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [locationInput, setLocationInput] = useState('')
+  const [locationPlaceId, setLocationPlaceId] = useState('')
+  const [isSavingLocation, setIsSavingLocation] = useState(false)
   const restaurant = detail?.restaurant ?? null
   const publicQrLink = useMemo(
     () => getPublicQrLink(restaurant?.slug ?? null),
@@ -86,6 +91,10 @@ function AdminRestaurantDetailPage() {
 
         if (isActive) {
           setDetail(nextDetail)
+          setLocationInput(
+            nextDetail.restaurant.formattedAddress ||
+              nextDetail.restaurant.street,
+          )
           setForm({
             restaurantName: nextDetail.restaurant.restaurantName,
             slug: nextDetail.restaurant.slug ?? '',
@@ -287,6 +296,53 @@ function AdminRestaurantDetailPage() {
       )
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  async function handleSaveLocation(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    if (!restaurant || !locationPlaceId) {
+      setError('Choose a Tel Aviv–Yafo address from the suggestions.')
+      return
+    }
+
+    setIsSavingLocation(true)
+    setError(null)
+    setMessage(null)
+
+    try {
+      const updatedRestaurant = await updateAdminRestaurantLocation(
+        restaurant.id,
+        locationPlaceId,
+      )
+
+      setDetail((currentDetail) =>
+        currentDetail
+          ? {
+              ...currentDetail,
+              restaurant: updatedRestaurant,
+            }
+          : currentDetail,
+      )
+      setForm((currentForm) => ({
+        ...currentForm,
+        city: updatedRestaurant.city,
+        street: updatedRestaurant.street,
+      }))
+      setLocationInput(
+        updatedRestaurant.formattedAddress || updatedRestaurant.street,
+      )
+      setLocationPlaceId('')
+      setMessage('Restaurant location verified.')
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : 'Failed to update restaurant location',
+      )
+    } finally {
+      setIsSavingLocation(false)
     }
   }
 
@@ -560,6 +616,49 @@ function AdminRestaurantDetailPage() {
         </section>
 
         <form
+          className="admin-restaurant-panel admin-location-panel"
+          onSubmit={handleSaveLocation}
+        >
+          <div className="admin-form-wide restaurant-location-heading">
+            <div>
+              <h2>Restaurant location</h2>
+              <p>
+                Select a real Tel Aviv–Yafo street and number. Only verified
+                restaurants can appear on the worker map.
+              </p>
+            </div>
+            <span
+              className={`restaurant-location-status ${restaurant.locationStatus}`}
+            >
+              {restaurant.locationStatus === 'verified'
+                ? 'Location verified'
+                : 'Location needs verification'}
+            </span>
+          </div>
+          <VerifiedAddressAutocomplete
+            language="en"
+            label="Street and number"
+            mode="restaurantAddress"
+            placeholder="Start typing and choose an address"
+            value={locationInput}
+            onInputChange={(value) => {
+              setLocationInput(value)
+              setLocationPlaceId('')
+            }}
+            onPlaceSelected={(place) => {
+              setLocationInput(place.formattedAddress)
+              setLocationPlaceId(place.placeId)
+            }}
+          />
+          <button
+            type="submit"
+            disabled={!locationPlaceId || isSavingLocation}
+          >
+            {isSavingLocation ? 'Saving...' : 'Save verified location'}
+          </button>
+        </form>
+
+        <form
           className="admin-restaurant-form"
           id="edit"
           onSubmit={handleSaveRestaurant}
@@ -589,17 +688,11 @@ function AdminRestaurantDetailPage() {
           </label>
           <label>
             City
-            <input
-              value={form.city}
-              onChange={(event) => updateForm('city', event.target.value)}
-            />
+            <input readOnly value={form.city} />
           </label>
           <label>
             Street
-            <input
-              value={form.street}
-              onChange={(event) => updateForm('street', event.target.value)}
-            />
+            <input readOnly value={form.street} />
           </label>
           <label>
             Contact person

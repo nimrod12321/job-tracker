@@ -36,6 +36,15 @@ export type AdminRestaurant = {
   description: string
   slug: string | null
   qrEnabledRoles: RestaurantRole[]
+  locationStatus: 'unverified' | 'verified'
+  locationCity: string | null
+  locationStreetName: string | null
+  locationStreetNumber: string | null
+  formattedAddress: string | null
+  googlePlaceId: string | null
+  latitude: number | null
+  longitude: number | null
+  locationVerifiedAt: string | null
   ownerLoginPhone: string | null
   ownerUser: AdminOwnerUser
   claim: AdminRestaurantClaim
@@ -65,6 +74,7 @@ export type AdminRestaurantInput = {
   whatsappNumber: string
   city: string
   street: string
+  locationPlaceId?: string
   description: string
 }
 

@@ -14,11 +14,14 @@ import {
 } from '../types/restaurant'
 import { useRestaurantLanguage } from '../utils/restaurantLanguage'
 import { formatIsraeliPhoneForDisplay } from '../../../utils/phoneDisplay'
+import VerifiedAddressAutocomplete from '../../../components/location/VerifiedAddressAutocomplete'
 
 type RestaurantProfileForm = {
   fullName: string
   phoneNumber: string
   location: string
+  homeStreetInput: string
+  homePlaceId: string
   wantedRoles: RestaurantRole[]
   experienceLevel: string
   availability: string[]
@@ -30,6 +33,8 @@ const emptyProfile: RestaurantProfileForm = {
   fullName: '',
   phoneNumber: '',
   location: '',
+  homeStreetInput: '',
+  homePlaceId: '',
   wantedRoles: [],
   experienceLevel: '',
   availability: [],
@@ -160,6 +165,9 @@ function profileToForm(
     fullName: profile.fullName,
     phoneNumber: profile.phoneNumber,
     location: profile.location,
+    homeStreetInput:
+      profile.homeAreaFormatted || profile.homeStreetName || profile.location,
+    homePlaceId: '',
     wantedRoles: profile.wantedRoles,
     experienceLevel: parsedExperience.experienceLevel,
     availability: parseAvailability(profile.availability),
@@ -191,6 +199,11 @@ function RestaurantProfilePage() {
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [hasVerifiedHomeLocation, setHasVerifiedHomeLocation] =
+    useState(false)
+  const [locationWasEdited, setLocationWasEdited] = useState(false)
+  const [requiresVerifiedLocation, setRequiresVerifiedLocation] =
+    useState(true)
 
   const text = {
     title:
@@ -209,6 +222,19 @@ function RestaurantProfilePage() {
     personalDetails: language === 'he' ? 'פרטים אישיים' : 'Personal details',
     jobPreferences: language === 'he' ? 'העדפות עבודה' : 'Job preferences',
     extraDetails: language === 'he' ? 'פרטים נוספים' : 'Extra details',
+    locationTitle: language === 'he' ? 'מיקום' : 'Location',
+    locationQuestion:
+      language === 'he'
+        ? 'באיזה רחוב אתם גרים?'
+        : 'What street do you live on?',
+    locationHelp:
+      language === 'he'
+        ? 'המיקום המשוער משמש להצגת משרות קרובות. המסעדות לא יראו אותו.'
+        : 'We use your approximate location to show jobs near you. Restaurants will not see it.',
+    locationError:
+      language === 'he'
+        ? 'יש לבחור רחוב תקין בתל אביב-יפו.'
+        : 'Choose a valid street in Tel Aviv–Yafo.',
     phoneHelp:
       language === 'he'
         ? 'זה מספר הטלפון שמסעדות ישתמשו בו כדי ליצור איתך קשר.'
@@ -231,7 +257,14 @@ function RestaurantProfilePage() {
         ])
 
         if (isActive) {
+          setRequiresVerifiedLocation(
+            profile?.locationRequired ??
+              user?.workerLocationRequired ??
+              true,
+          )
+
           if (profile) {
+            setHasVerifiedHomeLocation(Boolean(profile.homeGooglePlaceId))
             setForm((currentForm) => ({
               ...currentForm,
               ...profileToForm(profile),
@@ -316,6 +349,14 @@ function RestaurantProfilePage() {
       return
     }
 
+    if (
+      (requiresVerifiedLocation || locationWasEdited) &&
+      !hasVerifiedHomeLocation
+    ) {
+      setError(text.locationError)
+      return
+    }
+
     setIsSaving(true)
 
     try {
@@ -323,6 +364,7 @@ function RestaurantProfilePage() {
         fullName: form.fullName.trim(),
         phoneNumber: form.phoneNumber.trim(),
         location: form.location.trim(),
+        ...(form.homePlaceId ? { homePlaceId: form.homePlaceId } : {}),
         wantedRoles: form.wantedRoles,
         experienceText: serializeExperienceText(form),
         availability: form.availability.join(', '),
@@ -330,6 +372,9 @@ function RestaurantProfilePage() {
       })
 
       setForm(profileToForm(profile))
+      setHasVerifiedHomeLocation(Boolean(profile.homeGooglePlaceId))
+      setRequiresVerifiedLocation(profile.locationRequired)
+      setLocationWasEdited(false)
       setSuccess(text.saved)
       navigate('/restaurant/explore')
     } catch (error) {
@@ -414,19 +459,6 @@ function RestaurantProfilePage() {
             <h2>{text.jobPreferences}</h2>
           </div>
 
-          <label className="restaurant-field-wide">
-            {language === 'he'
-              ? `אזור מועדף (${text.optional})`
-              : `Preferred area (${text.optional})`}
-            <input
-              value={form.location}
-              onChange={(event) =>
-                updateTextField('location', event.target.value)
-              }
-              placeholder={language === 'he' ? 'תל אביב' : 'Tel Aviv'}
-            />
-          </label>
-
           <fieldset className="restaurant-role-options">
             <legend>
               {language === 'he'
@@ -481,6 +513,39 @@ function RestaurantProfilePage() {
               ))}
             </div>
           </fieldset>
+        </section>
+
+        <section className="worker-profile-section worker-location-section">
+          <div className="guided-form-heading">
+            <h2>{text.locationTitle}</h2>
+          </div>
+          <VerifiedAddressAutocomplete
+            language={language}
+            label={text.locationQuestion}
+            mode="workerStreet"
+            placeholder={
+              language === 'he'
+                ? 'התחילו להקליד ובחרו רחוב'
+                : 'Start typing and choose a street'
+            }
+            required={requiresVerifiedLocation}
+            value={form.homeStreetInput}
+            onInputChange={(value) => {
+              updateTextField('homeStreetInput', value)
+              updateTextField('homePlaceId', '')
+              setHasVerifiedHomeLocation(false)
+              setLocationWasEdited(true)
+            }}
+            onPlaceSelected={(place) => {
+              updateTextField('homeStreetInput', place.formattedAddress)
+              updateTextField('homePlaceId', place.placeId)
+              setHasVerifiedHomeLocation(true)
+              setLocationWasEdited(true)
+            }}
+          />
+          <p className="form-helper-text worker-location-privacy">
+            {text.locationHelp}
+          </p>
         </section>
 
         <section className="worker-profile-section">

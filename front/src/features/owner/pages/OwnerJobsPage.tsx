@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import PeepssModal from '../../../components/common/PeepssModal'
+import { ENABLE_DEVELOPMENT_JOB_BOARD } from '../../../config/env'
 import {
   RESTAURANT_ROLES,
   getRestaurantRoleLabel,
@@ -124,7 +125,7 @@ function OwnerJobsPage() {
     ? `${window.location.origin}/r/${profile.slug}`
     : ''
   const qrStorageKey = getQrWidgetStorageKey(profile?.slug)
-  const isJobBoardPilotPaused = true
+  const isJobBoardPilotPaused = !ENABLE_DEVELOPMENT_JOB_BOARD
 
   const text = {
     title: language === 'he' ? 'התחילו לגייס' : 'Start hiring',
@@ -1239,17 +1240,25 @@ function OwnerJobsPage() {
         </p>
       )}
 
-      <section className="owner-job-list-section owner-job-board-muted">
+      <section
+        className={`owner-job-list-section${
+          isJobBoardPilotPaused ? ' owner-job-board-muted' : ''
+        }`}
+      >
         <div className="owner-list-heading">
           <div>
             <h2>{text.jobBoard}</h2>
-            <p>{text.jobBoardSoon}</p>
+            <p>
+              {isJobBoardPilotPaused ? text.jobBoardSoon : text.boardHint}
+            </p>
           </div>
-          <span>{text.comingSoon}</span>
+          {isJobBoardPilotPaused && <span>{text.comingSoon}</span>}
         </div>
-        <p className="owner-job-board-coming-soon-copy">
-          {text.jobBoardPilotHint}
-        </p>
+        {isJobBoardPilotPaused && (
+          <p className="owner-job-board-coming-soon-copy">
+            {text.jobBoardPilotHint}
+          </p>
+        )}
 
         {jobs.length > 0 ? (
           <div className="owner-job-list owner-job-board-list">
