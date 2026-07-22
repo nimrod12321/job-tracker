@@ -39,7 +39,7 @@ function AppLayout({
     .filter(Boolean)
     .join(' ')
   const restaurantNavLabels = {
-    ownerJobs: language === 'he' ? 'בית' : 'Home',
+    ownerJobs: language === 'he' ? 'התחילו לגייס' : 'Start hiring',
     ownerApplications: language === 'he' ? 'מועמדים' : 'Applications',
     ownerTeam: language === 'he' ? 'צוות' : 'Team',
     ownerProfile: language === 'he' ? 'פרופיל' : 'Profile',

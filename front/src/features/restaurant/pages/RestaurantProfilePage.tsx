@@ -548,32 +548,49 @@ function RestaurantProfilePage() {
           </p>
         </section>
 
-        <section className="worker-profile-section">
+        <section className="worker-profile-section worker-extra-details-section">
           <div className="guided-form-heading">
             <h2>{text.extraDetails}</h2>
           </div>
 
           <label className="restaurant-field-wide">
-            {language === 'he'
-              ? `עוד משהו שחשוב שמסעדות ידעו? (${text.optional})`
-              : `Anything else restaurants should know? (${text.optional})`}
-            <textarea
-              rows={4}
-              value={form.extraDetails}
-              onChange={(event) =>
-                updateTextField('extraDetails', event.target.value)
-              }
-              placeholder={
-                language === 'he'
-                  ? 'אפשר לספר בקצרה על ניסיון, העדפות או זמינות מיוחדת'
-                  : 'Add a short note about experience, preferences or special availability'
-              }
-            />
+            <span className="worker-extra-details-label">
+              <span>
+                {language === 'he'
+                  ? 'עוד משהו שחשוב שמסעדות ידעו?'
+                  : 'Anything else restaurants should know?'}
+              </span>
+              <span className="worker-optional-label">{text.optional}</span>
+            </span>
+            <span className="worker-extra-details-input-wrap">
+              <textarea
+                className="worker-extra-details-input"
+                dir={direction}
+                lang={language}
+                rows={4}
+                wrap="soft"
+                value={form.extraDetails}
+                onChange={(event) =>
+                  updateTextField('extraDetails', event.target.value)
+                }
+              />
+              {!form.extraDetails && (
+                <span
+                  className="worker-extra-details-placeholder"
+                  dir={direction}
+                  aria-hidden="true"
+                >
+                  {language === 'he'
+                    ? 'ספרו בקצרה על הניסיון שלכם'
+                    : 'Tell us briefly about your experience'}
+                </span>
+              )}
+            </span>
           </label>
 
           <p className="restaurant-profile-note">
             {language === 'he'
-              ? 'חלק מהתפקידים דורשים גיל מתאים או ניסיון.'
+              ? 'חלק מהתפקידים דורשים גיל מתאים או ניסיון קודם.'
               : 'Some roles may require legal age or experience.'}
           </p>
         </section>

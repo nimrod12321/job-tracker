@@ -1,7 +1,4 @@
-import {
-  type AppLanguage,
-  useRestaurantLanguage,
-} from '../utils/restaurantLanguage'
+import { useRestaurantLanguage } from '../utils/restaurantLanguage'
 
 type RestaurantLanguageToggleProps = {
   onChange?: () => void
@@ -9,31 +6,23 @@ type RestaurantLanguageToggleProps = {
 
 function RestaurantLanguageToggle({ onChange }: RestaurantLanguageToggleProps) {
   const { language, setLanguage } = useRestaurantLanguage()
+  const targetLanguage = language === 'he' ? 'en' : 'he'
 
-  function handleLanguageChange(nextLanguage: AppLanguage) {
-    if (nextLanguage !== language) {
-      setLanguage(nextLanguage)
-    }
-
+  function handleLanguageChange() {
+    setLanguage(targetLanguage)
     onChange?.()
   }
 
   return (
-    <div className="restaurant-language-toggle" aria-label="Language">
+    <div className="restaurant-language-toggle">
       <button
         type="button"
-        className={language === 'he' ? 'active' : ''}
-        onClick={() => handleLanguageChange('he')}
+        aria-label={
+          language === 'he' ? 'Switch to English' : 'מעבר לעברית'
+        }
+        onClick={handleLanguageChange}
       >
-        עברית
-      </button>
-      <span aria-hidden="true">|</span>
-      <button
-        type="button"
-        className={language === 'en' ? 'active' : ''}
-        onClick={() => handleLanguageChange('en')}
-      >
-        English
+        {language === 'he' ? 'English' : 'עברית'}
       </button>
     </div>
   )

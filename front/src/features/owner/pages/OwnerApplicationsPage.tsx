@@ -496,22 +496,18 @@ function OwnerApplicationsPage() {
                             >
                               {getWorkerInitial(candidateName)}
                             </span>
-                            <span className="owner-worker-copy">
-                              <span className="owner-worker-kicker">
-                                {text.sourceQr}
-                              </span>
+                            <span className="owner-candidate-summary">
                               <strong className="owner-worker-name">
                                 {candidateName}
                               </strong>
-                            </span>
-                            {!isExpanded && (
-                              <span
-                                className="owner-disclosure-chevron"
-                                aria-hidden="true"
-                              >
-                                ⌄
+                              <span>
+                                {text.appliedTo}: {rolePreview}
                               </span>
-                            )}
+                              <span>
+                                {text.experiencePreview}:{' '}
+                                {getExperiencePreview(lead.experienceText)}
+                              </span>
+                            </span>
                           </button>
                           <div className="owner-candidate-header-actions">
                             <label
@@ -554,16 +550,6 @@ function OwnerApplicationsPage() {
                               </button>
                             )}
                           </div>
-                        </div>
-
-                        <div className="owner-candidate-preview">
-                          <span>
-                            {text.experiencePreview}:{' '}
-                            {getExperiencePreview(lead.experienceText)}
-                          </span>
-                          <span>
-                            {text.appliedTo}: {rolePreview}
-                          </span>
                         </div>
 
                         <dl className="owner-worker-details">
@@ -697,25 +683,20 @@ function OwnerApplicationsPage() {
                             >
                               {getWorkerInitial(workerName)}
                             </span>
-                            <span className="owner-worker-copy">
-                              <span className="owner-worker-kicker">
-                                {getRestaurantRoleLabel(
-                                  application.job.role,
-                                  language,
-                                )}
-                              </span>
+                            <span className="owner-candidate-summary">
                               <strong className="owner-worker-name">
                                 {workerName}
                               </strong>
-                            </span>
-                            {!isExpanded && (
-                              <span
-                                className="owner-disclosure-chevron"
-                                aria-hidden="true"
-                              >
-                                ⌄
+                              <span>
+                                {text.appliedTo}: {rolePreview}
                               </span>
-                            )}
+                              <span>
+                                {text.experiencePreview}:{' '}
+                                {getExperiencePreview(
+                                  application.worker.experienceText,
+                                )}
+                              </span>
+                            </span>
                           </button>
                           <div className="owner-candidate-header-actions">
                             <label
@@ -771,18 +752,6 @@ function OwnerApplicationsPage() {
                               </button>
                             )}
                           </div>
-                        </div>
-
-                        <div className="owner-candidate-preview">
-                          <span>
-                            {text.experiencePreview}:{' '}
-                            {getExperiencePreview(
-                              application.worker.experienceText,
-                            )}
-                          </span>
-                          <span>
-                            {text.appliedTo}: {rolePreview}
-                          </span>
                         </div>
 
                         <dl className="owner-worker-details">

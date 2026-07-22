@@ -80,18 +80,6 @@ function getJobInputFromJob(job: OwnerJob): OwnerJobInput {
   }
 }
 
-function getPreview(value: string, fallback: string) {
-  const trimmedValue = value.trim()
-
-  if (!trimmedValue) {
-    return fallback
-  }
-
-  return trimmedValue.length > 120
-    ? `${trimmedValue.slice(0, 120).trim()}...`
-    : trimmedValue
-}
-
 function OwnerJobsPage() {
   const navigate = useNavigate()
   const { direction, language } = useRestaurantLanguage()
@@ -109,12 +97,12 @@ function OwnerJobsPage() {
   const [busyJobId, setBusyJobId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [isJobStatusSaved, setIsJobStatusSaved] = useState(false)
   const [posterPreviewUrl, setPosterPreviewUrl] = useState('')
   const [isPosterPreviewOpen, setIsPosterPreviewOpen] = useState(false)
   const [isPosterPreviewLoading, setIsPosterPreviewLoading] = useState(false)
   const [isQrExpanded, setIsQrExpanded] = useState(false)
   const [highlightedJobId, setHighlightedJobId] = useState<string | null>(null)
-  const [expandedJobId, setExpandedJobId] = useState<string | null>(null)
   const pendingJobIds = useRef(new Set<string>())
   const confirmedQrRolesRef = useRef<RestaurantRole[]>([])
   const desiredQrRolesRef = useRef<RestaurantRole[]>([])
@@ -177,6 +165,7 @@ function OwnerJobsPage() {
     requirements: language === 'he' ? 'דרישות' : 'Requirements',
     description: language === 'he' ? 'תיאור' : 'Description',
     saving: language === 'he' ? 'שומר...' : 'Saving...',
+    saved: language === 'he' ? 'נשמר' : 'Saved',
     saveChanges: language === 'he' ? 'שמירת שינויים' : 'Save changes',
     next: language === 'he' ? 'הבא' : 'Next',
     back: language === 'he' ? 'חזרה' : 'Back',
@@ -235,12 +224,6 @@ function OwnerJobsPage() {
         ? 'בחרו אילו תפקידים פתוחים, הורידו את המודעה והתחילו לקבל מועמדים.'
         : 'Choose which roles are open, download the poster, and start receiving candidates.',
     closeQr: language === 'he' ? 'סגור אזור ברקוד' : 'Close QR section',
-    restaurantLinkTitle:
-      language === 'he' ? 'הקישור של המסעדה' : 'Your restaurant link',
-    restaurantLinkHelper:
-      language === 'he'
-        ? 'זה הקישור שאליו מגיעים מועמדים שסורקים את ה־QR.'
-        : 'This is where candidates arrive after scanning your QR code.',
     copyLink: language === 'he' ? 'העתקת קישור' : 'Copy link',
     previewPoster:
       language === 'he' ? 'תצוגה מקדימה' : 'Preview poster',
@@ -355,6 +338,18 @@ function OwnerJobsPage() {
   }, [])
 
   useEffect(() => {
+    if (!isJobStatusSaved) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setIsJobStatusSaved(false)
+    }, 2000)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [isJobStatusSaved])
+
+  useEffect(() => {
     if (isLoading || error || isOwnerProfileComplete(profile)) {
       return
     }
@@ -446,7 +441,6 @@ function OwnerJobsPage() {
       } else {
         const createdJob = await createOwnerJob(jobInput)
         setJobs((currentJobs) => [createdJob, ...currentJobs])
-        setExpandedJobId(createdJob.id)
         setSuccess(text.created)
       }
 
@@ -478,15 +472,17 @@ function OwnerJobsPage() {
     pendingJobIds.current.add(job.id)
     setBusyJobId(job.id)
     setError(null)
-    setSuccess(nextIsActive ? text.activated : text.deactivated)
+    setSuccess(null)
+    setIsJobStatusSaved(false)
     replaceJob({ ...job, isActive: nextIsActive })
 
     try {
       const updatedJob = await setOwnerJobActive(job.id, nextIsActive)
       replaceJob(updatedJob)
+      setIsJobStatusSaved(true)
     } catch (error) {
       replaceJob(job)
-      setSuccess(null)
+      setIsJobStatusSaved(false)
       setError(
         error instanceof Error
           ? error.message
@@ -752,121 +748,43 @@ function OwnerJobsPage() {
 
   function renderJobCard(job: OwnerJob) {
     const isBusy = busyJobId === job.id
-    const location =
-      [job.city, job.street].filter(Boolean).join(' · ') ||
-      text.locationNotSet
-    const isExpanded = expandedJobId === job.id
 
     return (
       <article
-        className={`owner-job-card owner-job-board-card${
+        className={`owner-job-card owner-job-board-card owner-job-board-tile${
           highlightedJobId === job.id ? ' is-highlighted' : ''
-        }${isExpanded ? ' is-expanded' : ' is-collapsed'}`}
+        } ${job.isActive ? 'is-active' : 'is-inactive'}`}
         key={job.id}
       >
-        <div className="owner-job-card-header">
-          {isExpanded ? (
-            <div>
-              <p>{job.restaurantName}</p>
-              <h3>{getRestaurantRoleLabel(job.role, language)}</h3>
-            </div>
-          ) : (
-            <button
-              className="owner-job-open-button"
-              type="button"
-              aria-expanded={false}
-              onClick={() => setExpandedJobId(job.id)}
-            >
-              <span className="owner-job-open-copy">
-                <span>{job.restaurantName}</span>
-                <strong>{getRestaurantRoleLabel(job.role, language)}</strong>
-              </span>
-              <span className="owner-job-manage-hint">
-                {text.tapToManage}
-              </span>
-              <span className="owner-disclosure-chevron" aria-hidden="true">
-                ⌄
-              </span>
-            </button>
-          )}
-          <div className="owner-job-card-side">
-            <span
-              className={`owner-job-status ${
-                job.isActive ? 'active' : 'inactive'
-              }`}
-            >
-              {job.isActive ? text.active : text.inactive}
-            </span>
-            {isExpanded && (
-              <button
-                className="owner-job-toggle-button peepss-close-button ui-icon-button"
-                type="button"
-                aria-label={text.collapseJob}
-                onClick={(event) => {
-                  event.stopPropagation()
-                  setExpandedJobId(null)
-                }}
-              >
-                ×
-              </button>
-            )}
-          </div>
-        </div>
-
-        <p className="owner-job-status-note">
-          {job.isActive ? text.activeHint : text.inactiveHint}
-        </p>
-
-        <div className="owner-job-compact-meta">
-          <span>{location}</span>
-          {job.shiftInfo && <span>{job.shiftInfo}</span>}
-        </div>
-
-        <p className="owner-job-requirements">
-          {getPreview(job.requirements || job.description, text.noDetails)}
-        </p>
-
-        {isExpanded && !isJobBoardPilotPaused && (
-          <div className="owner-job-actions">
-            <button
-              className="ui-button ui-button--secondary"
-              type="button"
-              disabled={isBusy}
-              onClick={(event) => {
-                event.stopPropagation()
-                startEditing(job)
-              }}
-            >
-              {text.edit}
-            </button>
-            <button
-              className="owner-active-button ui-button ui-button--secondary"
-              type="button"
-              disabled={isBusy}
-              onClick={(event) => {
-                event.stopPropagation()
-                void handleActiveChange(job)
-              }}
-            >
-              {isBusy
-                ? text.saving
-                : job.isActive
-                  ? text.deactivate
-                  : text.activate}
-            </button>
-            <button
-              className="owner-delete-button ui-button ui-button--destructive"
-              type="button"
-              disabled={isBusy}
-              onClick={(event) => {
-                event.stopPropagation()
-                void handleDelete(job)
-              }}
-            >
-              {text.delete}
-            </button>
-          </div>
-        )}
+        <h3>{getRestaurantRoleLabel(job.role, language)}</h3>
+        <button
+          className={`owner-job-board-status-control ${
+            job.isActive ? 'active' : 'inactive'
+          }`}
+          type="button"
+          aria-pressed={job.isActive}
+          aria-label={job.isActive ? text.activeHint : text.inactiveHint}
+          disabled={isBusy}
+          onClick={() => void handleActiveChange(job)}
+        >
+          {isBusy ? text.saving : job.isActive ? text.active : text.inactive}
+        </button>
+        <button
+          className="ui-button ui-button--secondary"
+          type="button"
+          disabled={isBusy}
+          onClick={() => startEditing(job)}
+        >
+          {text.edit}
+        </button>
+        <button
+          className="owner-delete-button ui-button ui-button--destructive"
+          type="button"
+          disabled={isBusy}
+          onClick={() => void handleDelete(job)}
+        >
+          {text.delete}
+        </button>
       </article>
     )
   }
@@ -901,6 +819,9 @@ function OwnerJobsPage() {
 
   return (
     <section className="owner-jobs-page owner-guided-page" dir={direction}>
+      {isQrExpanded && (
+        <div className="owner-start-hiring-backdrop" aria-hidden="true" />
+      )}
       <section
         className={`owner-qr-card owner-qr-widget ${
           isQrExpanded
@@ -926,48 +847,6 @@ function OwnerJobsPage() {
                   ×
                 </button>
               </div>
-
-              {publicHiringLink && (
-                <div className="owner-qr-link-section">
-                  <h3>{text.restaurantLinkTitle}</h3>
-                  <p>{text.restaurantLinkHelper}</p>
-                  <p className="owner-qr-link owner-qr-public-link" dir="ltr">
-                    {publicHiringLink}
-                  </p>
-                </div>
-              )}
-
-              <div className="owner-qr-actions">
-                <button
-                  className="ui-button ui-button--secondary"
-                  type="button"
-                  disabled={!publicHiringLink}
-                  onClick={() => void handlePreviewQrPoster()}
-                >
-                  {isPosterPreviewLoading
-                    ? text.previewPosterLoading
-                    : text.previewPoster}
-                </button>
-                <button
-                  className="ui-button ui-button--primary"
-                  type="button"
-                  disabled={!publicHiringLink}
-                  onClick={() => void handleDownloadQrPoster()}
-                >
-                  {text.downloadQr}
-                </button>
-                <button
-                  className="ui-button ui-button--tertiary"
-                  type="button"
-                  disabled={!publicHiringLink}
-                  onClick={() => void handleCopyQrLink()}
-                >
-                  {text.copyLink}
-                </button>
-              </div>
-              <p className="owner-qr-poster-helper">
-                {text.downloadQrHelper}
-              </p>
 
               <div className="owner-qr-role-settings">
                 <div className="owner-qr-role-settings-heading">
@@ -1027,6 +906,38 @@ function OwnerJobsPage() {
                   </p>
                 )}
               </div>
+
+              <div className="owner-qr-actions" aria-label={text.qrTitle}>
+                <button
+                  className="ui-button ui-button--secondary"
+                  type="button"
+                  disabled={!publicHiringLink}
+                  onClick={() => void handlePreviewQrPoster()}
+                >
+                  {isPosterPreviewLoading
+                    ? text.previewPosterLoading
+                    : text.previewPoster}
+                </button>
+                <button
+                  className="ui-button ui-button--primary"
+                  type="button"
+                  disabled={!publicHiringLink}
+                  onClick={() => void handleDownloadQrPoster()}
+                >
+                  {text.downloadQr}
+                </button>
+                <button
+                  className="ui-button ui-button--tertiary"
+                  type="button"
+                  disabled={!publicHiringLink}
+                  onClick={() => void handleCopyQrLink()}
+                >
+                  {text.copyLink}
+                </button>
+              </div>
+              <p className="owner-qr-poster-helper">
+                {text.downloadQrHelper}
+              </p>
             </div>
           </div>
         ) : (
@@ -1074,29 +985,24 @@ function OwnerJobsPage() {
         </div>
       </PeepssModal>
 
-      {!isJobBoardPilotPaused && (
-        <>
-          <div className="owner-job-primary-action">
-            <button
-              className={`owner-job-create-card ui-button ui-button--primary${
-                isCreating ? ' is-active' : ''
-              }`}
-              type="button"
-              aria-expanded={isCreating}
-              onClick={startCreating}
-            >
-              <span className="owner-job-create-card-title">{text.createJob}</span>
-              <span className="owner-job-create-card-icon" aria-hidden="true">
-                +
-              </span>
-            </button>
-          </div>
+      <div className="owner-list-heading owner-job-board-heading">
+        <div>
+          <h2>{text.jobBoard}</h2>
+          <p>{isJobBoardPilotPaused ? text.jobBoardSoon : text.boardHint}</p>
+        </div>
+        {isJobStatusSaved && (
+          <p className="owner-job-save-notice" aria-live="polite">
+            {text.saved}
+          </p>
+        )}
+        {isJobBoardPilotPaused && <span>{text.comingSoon}</span>}
+      </div>
 
-          {isCreating && (
-            <form
-              className="owner-job-form owner-step-card"
-              onSubmit={handleSubmit}
-            >
+      {!isJobBoardPilotPaused && isCreating && (
+        <form
+          className="owner-job-form owner-step-card"
+          onSubmit={handleSubmit}
+        >
               <button
                 className="owner-form-close-button peepss-close-button ui-icon-button"
                 type="button"
@@ -1231,9 +1137,7 @@ function OwnerJobsPage() {
                       : text.next}
                 </button>
               </div>
-            </form>
-          )}
-        </>
+        </form>
       )}
 
       {error && (
@@ -1253,24 +1157,33 @@ function OwnerJobsPage() {
           isJobBoardPilotPaused ? ' owner-job-board-muted' : ''
         }`}
       >
-        <div className="owner-list-heading">
-          <div>
-            <h2>{text.jobBoard}</h2>
-            <p>
-              {isJobBoardPilotPaused ? text.jobBoardSoon : text.boardHint}
-            </p>
-          </div>
-          {isJobBoardPilotPaused && <span>{text.comingSoon}</span>}
-        </div>
         {isJobBoardPilotPaused && (
           <p className="owner-job-board-coming-soon-copy">
             {text.jobBoardPilotHint}
           </p>
         )}
 
-        {jobs.length > 0 ? (
-          <div className="owner-job-list owner-job-board-list">
+        {jobs.length > 0 || !isJobBoardPilotPaused ? (
+          <div
+            className="owner-job-list owner-job-board-list"
+            role="region"
+            aria-label={text.jobBoard}
+            tabIndex={0}
+          >
             {jobs.map((job) => renderJobCard(job))}
+            {!isJobBoardPilotPaused && (
+              <button
+                className={`owner-job-board-create-tile${
+                  isCreating && !editingJobId ? ' is-active' : ''
+                }`}
+                type="button"
+                aria-expanded={isCreating && !editingJobId}
+                onClick={startCreating}
+              >
+                <span aria-hidden="true">+</span>
+                <strong>{text.createJob}</strong>
+              </button>
+            )}
           </div>
         ) : (
           <p className="owner-empty-small">{text.emptyJobs}</p>

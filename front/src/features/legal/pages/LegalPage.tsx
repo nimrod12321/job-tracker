@@ -1,14 +1,21 @@
-import { legalContent, type LegalPageKind } from '../legalContent'
+import { useRestaurantLanguage } from '../../restaurant/utils/restaurantLanguage'
+import {
+  englishLegalContent,
+  legalContent,
+  type LegalPageKind,
+} from '../legalContent'
 
 type LegalPageProps = {
   kind: LegalPageKind
 }
 
 function LegalPage({ kind }: LegalPageProps) {
-  const content = legalContent[kind]
+  const { direction, language } = useRestaurantLanguage()
+  const content =
+    (language === 'he' ? legalContent : englishLegalContent)[kind]
 
   return (
-    <section className="legal-page" dir="rtl">
+    <section className="legal-page" dir={direction}>
       <div className="legal-card">
         <span className="peepss-logo legal-logo" aria-label="Peepss" dir="ltr">
           <span className="peepss-logo-circle" />

@@ -18,8 +18,8 @@
   --danger: #c0392b;
   --danger-soft: #fbe9e6;
   --ok: #3e8e5a;
-  --accent: #147268;
-  --accent-soft: #dcebe7;
+  --accent: #c0850f;
+  --accent-soft: #f7ebd6;
   --content-width: 760px;
   --mobile-gutter: 20px;
   --control-height: 46px;
@@ -146,59 +146,31 @@ p {
   word-break: normal;
 }
 
-/* ---------- Accent ownership ---------- */
+/* ---------- Shared restaurant accent ---------- */
 
 .auth-standard-layout,
-.auth-page {
-  --accent: #d93b47;
-  --accent-soft: #f8e1e3;
-}
-
+.auth-page,
 .restaurant-worker-shell,
 .restaurant-profile-page,
 .restaurant-matches-page,
-.restaurant-explore-page {
-  --accent: #c0850f;
-  --accent-soft: #f7ebd6;
-}
-
-.restaurant-map-page {
-  --accent: #0f8a86;
-  --accent-soft: #d8eeed;
-}
-
+.restaurant-explore-page,
+.restaurant-map-page,
 .restaurant-owner-shell,
 .owner-jobs-page,
 .owner-applications-page,
-.owner-profile-page {
-  --accent: #2e9e5b;
-  --accent-soft: #dcf1e4;
-}
-
+.owner-profile-page,
 .owner-team-page,
 .owner-job-form,
 .owner-job-board-card,
-.owner-job-list-section {
-  --accent: #2f6fdb;
-  --accent-soft: #e1ecfc;
-}
-
+.owner-job-list-section,
 .public-apply-standard-layout,
-.public-apply-page {
-  --accent: #5147d6;
-  --accent-soft: #e7e5fa;
-}
-
+.public-apply-page,
 .claim-standard-layout,
-.claim-page {
-  --accent: #8a44d6;
-  --accent-soft: #f0e4fa;
-}
-
+.claim-page,
 .admin-shell,
 .admin-forbidden-page {
-  --accent: #c23c7c;
-  --accent-soft: #fadfec;
+  --accent: #c0850f;
+  --accent-soft: #f7ebd6;
 }
 
 /* ---------- Shared brand ---------- */
@@ -609,12 +581,23 @@ button.peepss-close-button:hover {
   box-shadow: 0 14px 32px rgb(60 40 20 / 16%);
 }
 
+.restaurant-options-menu .restaurant-language-toggle {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+}
+
 .restaurant-options-menu a,
 .restaurant-options-menu > button,
 .restaurant-options-menu .restaurant-language-toggle button {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   min-height: 40px;
   width: 100%;
   border: 0;
@@ -624,7 +607,7 @@ button.peepss-close-button:hover {
   color: var(--ink);
   font-size: 14px;
   font-weight: 400;
-  text-align: start;
+  text-align: center;
 }
 
 .restaurant-options-menu a:hover,
@@ -674,26 +657,34 @@ button.peepss-close-button:hover {
 /* ---------- Auth ---------- */
 
 .auth-standard-layout {
-  min-height: 100dvh;
-  background: var(--surface);
-}
-
-.auth-standard-layout .standard-layout-main {
-  min-height: 100dvh;
-}
-
-.auth-page {
   position: relative;
   min-height: 100dvh;
   overflow: hidden;
   background: var(--surface);
+}
+
+.auth-standard-layout .standard-layout-main {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.auth-page {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  background: transparent;
   color: var(--ink);
 }
 
-.auth-page::after {
+.auth-standard-layout::after {
   position: absolute;
   z-index: 0;
-  inset-inline-start: 50%;
+  left: 50%;
   bottom: -170px;
   width: 495px;
   height: 255px;
@@ -709,9 +700,18 @@ button.peepss-close-button:hover {
   display: flex;
   flex-direction: column;
   width: min(100%, 444px);
-  min-height: 100dvh;
+  flex: 1 1 auto;
+  min-height: 0;
   margin: 0 auto;
   padding: max(54px, env(safe-area-inset-top)) 21px 24px;
+}
+
+.auth-legal-footer {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 444px);
+  padding-right: max(21px, env(safe-area-inset-right));
+  padding-left: max(21px, env(safe-area-inset-left));
 }
 
 .auth-topbar {
@@ -1395,6 +1395,11 @@ button.peepss-close-button:hover {
   gap: 12px;
   margin-top: auto;
   padding: 16px 18px 18px;
+  direction: ltr;
+}
+
+[dir='rtl'] .restaurant-job-actions .ui-button {
+  direction: rtl;
 }
 
 .restaurant-job-actions .ui-button {
@@ -1417,12 +1422,12 @@ button.peepss-close-button:hover {
 }
 
 .restaurant-apply-hint {
-  inset-inline-start: 18px;
+  left: 18px;
   color: var(--ok);
 }
 
 .restaurant-skip-hint {
-  inset-inline-end: 18px;
+  right: 18px;
   color: var(--danger);
 }
 
@@ -1602,6 +1607,113 @@ button.peepss-close-button:hover {
   color: var(--ink);
   font-size: 14px;
   font-weight: 400;
+}
+
+.worker-extra-details-label {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.worker-extra-details-label > span:first-child {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+.worker-optional-label {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.worker-extra-details-input-wrap {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.restaurant-worker-shell
+  .restaurant-profile-form
+  textarea.worker-extra-details-input {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  min-height: 96px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding-block: 14px;
+  padding-inline: 20px;
+  background: var(--surface);
+  box-shadow: none;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.6;
+  text-align: start;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: normal;
+  overflow-x: auto;
+  overflow-y: auto;
+  resize: vertical;
+}
+
+.restaurant-worker-shell
+  .restaurant-profile-form
+  textarea.worker-extra-details-input:focus {
+  border-color: var(--accent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  outline-offset: 0;
+  box-shadow: none;
+}
+
+.restaurant-worker-shell
+  .restaurant-profile-form
+  textarea.worker-extra-details-input[lang='he'] {
+  direction: rtl;
+  padding-right: 22px;
+  padding-left: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+  letter-spacing: 0;
+  text-align: right;
+  writing-mode: horizontal-tb;
+}
+
+.restaurant-worker-shell
+  .restaurant-profile-form
+.worker-extra-details-placeholder {
+  position: absolute;
+  inset-block-start: 14px;
+  inset-inline: 22px;
+  display: block;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  opacity: 0.72;
+  overflow-wrap: break-word;
+  pointer-events: none;
+  text-align: start;
+}
+
+.restaurant-worker-shell
+  .worker-extra-details-placeholder[dir='rtl'] {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+  text-align: right;
+}
+
+.restaurant-worker-shell .worker-extra-details-section .restaurant-profile-note {
+  line-height: 1.5;
 }
 
 .restaurant-worker-shell .restaurant-profile-form input,
@@ -1845,10 +1957,10 @@ button.peepss-close-button:hover {
   display: grid;
   grid-column: auto;
   gap: 10px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 14px;
-  background: var(--surface-2);
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
 }
 
 .restaurant-owner-shell .restaurant-location-heading {
@@ -1886,6 +1998,27 @@ button.peepss-close-button:hover {
   overflow: hidden;
   background: var(--surface);
   box-shadow: none;
+}
+
+.restaurant-owner-shell:has(.owner-qr-widget-expanded) > .app-content {
+  z-index: 30;
+}
+
+.owner-start-hiring-backdrop {
+  position: fixed;
+  z-index: 40;
+  inset: 0;
+  background: rgb(42 30 22 / 18%);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  overscroll-behavior: contain;
+  touch-action: none;
+}
+
+.owner-qr-widget-expanded {
+  position: relative;
+  z-index: 41;
+  box-shadow: 0 20px 52px rgb(42 30 22 / 22%);
 }
 
 .owner-qr-widget-collapsed {
@@ -1981,13 +2114,11 @@ button.peepss-close-button:hover {
   margin: -5px 0 0 -5px;
 }
 
-.owner-qr-link-section,
 .owner-qr-role-settings {
   border-top: 1px solid var(--border);
   padding-top: 18px;
 }
 
-.owner-qr-link-section h3,
 .owner-qr-role-settings h3 {
   margin: 0 0 5px;
   color: var(--ink);
@@ -1995,7 +2126,6 @@ button.peepss-close-button:hover {
   font-weight: 700;
 }
 
-.owner-qr-link-section > p,
 .owner-qr-role-settings p {
   margin: 0;
   color: var(--muted);
@@ -2003,31 +2133,28 @@ button.peepss-close-button:hover {
   line-height: 1.45;
 }
 
-.owner-qr-link,
-.owner-qr-public-link {
-  margin-top: 12px !important;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px 12px;
-  overflow: hidden;
-  background: var(--surface-2);
-  color: var(--ink) !important;
-  font-size: 12px !important;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .owner-qr-actions {
   display: grid;
-  grid-template-columns: 1fr 1.35fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 18px;
 }
 
 .owner-qr-actions .ui-button--tertiary {
-  grid-column: 1 / -1;
-  justify-self: start;
-  min-height: 34px;
-  padding: 4px 0;
+  grid-column: auto;
+  justify-self: stretch;
+  min-height: 40px;
+  padding: 7px 8px;
+}
+
+.owner-qr-actions .ui-button {
+  min-width: 0;
+  min-height: 40px;
+  padding-inline: 8px;
+  font-size: 12px;
+  line-height: 1.25;
+  white-space: normal;
 }
 
 .owner-qr-poster-helper {
@@ -2097,6 +2224,29 @@ button.peepss-close-button:hover {
   display: flex;
   justify-content: flex-start;
   margin: 0 0 16px;
+}
+
+.owner-job-board-heading {
+  position: relative;
+  margin-top: 18px;
+  margin-bottom: 10px;
+}
+
+.owner-job-save-notice {
+  position: absolute;
+  z-index: 2;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 11px;
+  background: var(--surface);
+  box-shadow: 0 5px 16px rgb(60 40 20 / 10%);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.3;
+  pointer-events: none;
 }
 
 .owner-job-create-card,
@@ -2206,6 +2356,28 @@ button.peepss-close-button:hover {
   gap: 10px;
 }
 
+.owner-job-board-list,
+.restaurant-owner-shell .owner-job-board-list {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  max-width: 100%;
+  padding: 2px 2px 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-padding-inline: 2px;
+  scroll-snap-type: inline mandatory;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+  -webkit-overflow-scrolling: touch;
+}
+
+.owner-job-board-list:focus-visible {
+  border-radius: 14px;
+  outline-offset: 3px;
+}
+
 .owner-job-card,
 .owner-job-board-card,
 .owner-job-card-draft {
@@ -2216,6 +2388,173 @@ button.peepss-close-button:hover {
   padding: 0;
   background: var(--surface);
   box-shadow: none;
+}
+
+.owner-job-board-tile,
+.restaurant-shell .owner-job-board-tile {
+  display: grid;
+  flex: 0 0 clamp(164px, 49vw, 196px);
+  grid-template-rows: minmax(44px, auto) repeat(3, auto);
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+  min-height: 204px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  background: var(--surface);
+  box-shadow: none;
+  scroll-snap-align: start;
+}
+
+.owner-job-board-tile.is-inactive,
+.restaurant-shell .owner-job-board-tile.is-inactive {
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+.owner-job-board-create-tile,
+.restaurant-shell .owner-job-board-create-tile {
+  display: grid;
+  flex: 0 0 clamp(164px, 49vw, 196px);
+  align-content: center;
+  justify-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 204px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 46%, var(--border));
+  border-radius: 10px;
+  padding: 12px;
+  background: var(--surface);
+  box-shadow: none;
+  color: var(--ink);
+  scroll-snap-align: start;
+}
+
+.owner-job-board-create-tile > span {
+  font-size: 28px;
+  font-weight: 300;
+  line-height: 1;
+}
+
+.owner-job-board-create-tile > strong {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.owner-job-board-create-tile:hover,
+.owner-job-board-create-tile.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: none;
+  transform: none;
+}
+
+.owner-job-board-tile h3,
+.restaurant-shell .owner-job-board-tile h3 {
+  display: grid;
+  align-self: stretch;
+  place-items: center;
+  margin: 0;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  padding: 4px 4px 10px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.owner-job-board-tile.is-inactive h3,
+.restaurant-shell .owner-job-board-tile.is-inactive h3 {
+  border-color: var(--border);
+  background: transparent;
+}
+
+.owner-job-board-tile > button,
+.restaurant-shell .owner-job-board-tile > button {
+  width: 100%;
+  min-width: 0;
+  min-height: 36px;
+  border-radius: 6px;
+  padding: 6px 9px;
+  font-size: 12px;
+  white-space: normal;
+}
+
+.owner-job-board-status-control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: center;
+  gap: 6px;
+  width: auto !important;
+  min-width: 96px !important;
+  border: 1px solid transparent;
+  border-radius: 999px !important;
+  box-shadow: none;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.owner-job-board-status-control::before {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: currentcolor;
+  content: '';
+}
+
+.owner-job-board-status-control.active {
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--border));
+  background: color-mix(in srgb, var(--accent-soft) 70%, var(--surface));
+  color: color-mix(in srgb, var(--accent) 82%, var(--ink));
+}
+
+.owner-job-board-status-control.active::before {
+  display: none;
+}
+
+.owner-job-board-status-control.inactive {
+  border-color: var(--border);
+  background: var(--surface);
+  color: color-mix(in srgb, var(--accent) 82%, var(--ink));
+}
+
+.owner-job-board-status-control.inactive::before {
+  display: none;
+}
+
+.owner-job-board-status-control:hover {
+  box-shadow: none;
+  filter: brightness(0.98);
+  transform: none;
+}
+
+.owner-job-board-tile > .ui-button--secondary,
+.restaurant-shell .owner-job-board-tile > .ui-button--secondary {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 400;
+}
+
+.owner-job-board-tile > .ui-button--secondary:hover,
+.restaurant-shell .owner-job-board-tile > .ui-button--secondary:hover {
+  border-color: color-mix(in srgb, var(--accent) 48%, var(--border));
+  background: var(--surface-2);
+}
+
+.owner-job-board-tile > .owner-delete-button,
+.restaurant-shell .owner-job-board-tile > .owner-delete-button {
+  border: 1px solid color-mix(in srgb, var(--danger) 20%, var(--border));
+  background: transparent;
+  color: var(--danger);
+  font-weight: 400;
 }
 
 .owner-job-card-header {
@@ -2294,8 +2633,8 @@ button.peepss-close-button:hover {
 }
 
 .restaurant-owner-shell .owner-create-job-button {
-  border-color: #2f6fdb;
-  background: #2f6fdb;
+  border-color: var(--accent);
+  background: var(--accent);
   color: #fff;
 }
 
@@ -2349,6 +2688,10 @@ button.peepss-close-button:hover {
   border-bottom: 0;
 }
 
+.owner-candidate-card.is-collapsed {
+  cursor: pointer;
+}
+
 .owner-application-header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -2360,9 +2703,10 @@ button.peepss-close-button:hover {
 .owner-worker-heading,
 .owner-candidate-open-button {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
-  align-items: center;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: start;
   gap: 10px;
+  width: 100%;
   min-width: 0;
   border: 0;
   padding: 0;
@@ -2370,6 +2714,7 @@ button.peepss-close-button:hover {
   box-shadow: none;
   color: var(--ink);
   text-align: start;
+  cursor: pointer;
 }
 
 .owner-worker-avatar {
@@ -2392,6 +2737,19 @@ button.peepss-close-button:hover {
   min-width: 0;
 }
 
+.owner-candidate-summary {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.owner-candidate-summary .owner-worker-name {
+  margin-bottom: 2px;
+}
+
 .owner-worker-kicker {
   color: var(--muted);
   font-size: 11px;
@@ -2410,6 +2768,7 @@ button.peepss-close-button:hover {
   display: flex;
   align-items: center;
   gap: 5px;
+  align-self: start;
 }
 
 .owner-status-pill-select {
@@ -3319,11 +3678,8 @@ button.peepss-close-button:hover {
   }
 
   .owner-qr-actions {
-    grid-template-columns: 1fr;
-  }
-
-  .owner-qr-actions .ui-button--tertiary {
-    grid-column: auto;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
   }
 
   .owner-worker-details {
@@ -3332,10 +3688,6 @@ button.peepss-close-button:hover {
 
   .owner-application-header {
     align-items: start;
-  }
-
-  .owner-candidate-preview {
-    padding-inline: 14px;
   }
 
   .admin-shell {

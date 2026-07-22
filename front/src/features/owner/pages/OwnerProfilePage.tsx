@@ -56,11 +56,9 @@ function OwnerProfilePage() {
     restaurantSection:
       language === 'he' ? 'פרטי המסעדה' : 'Restaurant details',
     contactSection:
-      language === 'he' ? 'איך ליצור איתכם קשר' : 'How to contact you',
+      language === 'he' ? 'יצירת קשר' : 'Contact',
     descriptionSection:
-      language === 'he'
-        ? 'ספרו לנו קצת על המסעדה'
-        : 'Tell us a bit about the restaurant',
+      language === 'he' ? 'על המסעדה' : 'About the restaurant',
     address: language === 'he' ? 'כתובת' : 'Address',
     contactPhone: language === 'he' ? 'טלפון' : 'Contact phone',
     incompleteSummary:
