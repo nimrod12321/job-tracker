@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
+import PeepssLogo from '../../../components/brand/PeepssLogo'
 import {
   requestAuthCode,
   verifyAuthCode,
@@ -48,17 +49,6 @@ function readStoredClaimToken(slug: string) {
 
 function clearClaimContext() {
   sessionStorage.removeItem(CLAIM_CONTEXT_KEY)
-}
-
-function PeepssClaimLogo() {
-  return (
-    <span className="peepss-logo auth-logo" aria-label="Peepss" dir="ltr">
-      <span className="peepss-logo-circle" />
-      <span className="peepss-logo-thin">p</span>
-      <span className="peepss-logo-bold">ee</span>
-      <span className="peepss-logo-thin">pss</span>
-    </span>
-  )
 }
 
 function RestaurantClaimPage({ onClaimSuccess }: ClaimPageProps) {
@@ -313,7 +303,7 @@ function RestaurantClaimPage({ onClaimSuccess }: ClaimPageProps) {
     return (
       <section className="claim-page" dir={direction} aria-live="polite">
         <div className="claim-topbar">
-          <PeepssClaimLogo />
+          <PeepssLogo className="auth-logo" />
         </div>
         <div className="claim-card">
           <p>{isHebrew ? 'בודקים את קישור ההפעלה...' : 'Checking activation link...'}</p>
@@ -326,7 +316,7 @@ function RestaurantClaimPage({ onClaimSuccess }: ClaimPageProps) {
     return (
       <section className="claim-page" dir={direction}>
         <div className="claim-topbar">
-          <PeepssClaimLogo />
+          <PeepssLogo className="auth-logo" />
           <button
             className="auth-language-toggle ui-button ui-button--secondary"
             type="button"
@@ -362,7 +352,7 @@ function RestaurantClaimPage({ onClaimSuccess }: ClaimPageProps) {
   return (
     <section className="claim-page" dir={direction}>
       <div className="claim-topbar">
-        <PeepssClaimLogo />
+        <PeepssLogo className="auth-logo" />
         <button
           className="auth-language-toggle ui-button ui-button--secondary"
           type="button"

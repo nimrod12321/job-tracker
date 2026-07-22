@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import PeepssLogo from '../brand/PeepssLogo'
 import LegalFooter from '../legal/LegalFooter'
 import type { UserTrack } from '../../features/auth/services/authApi'
 import RestaurantLanguageToggle from '../../features/restaurant/components/RestaurantLanguageToggle'
@@ -102,19 +103,18 @@ function AppLayout({
       className={layoutClassName}
       dir={isRestaurantSide ? direction : undefined}
     >
-      <header className="app-header">
+      <header
+        className="app-header"
+        dir={isRestaurantSide ? 'ltr' : undefined}
+      >
         <h1 aria-label="Peepss">
-          <span className="peepss-logo" aria-hidden="true" dir="ltr">
-            <span className="peepss-logo-circle" />
-            <span className="peepss-logo-thin">p</span>
-            <span className="peepss-logo-bold">ee</span>
-            <span className="peepss-logo-thin">pss</span>
-          </span>
+          <PeepssLogo decorative />
         </h1>
 
         <nav
           aria-label="Main navigation"
           className={isRestaurantOwner ? 'owner-main-nav' : undefined}
+          dir={isRestaurantSide ? direction : undefined}
         >
           {isRestaurantOwner ? (
             <>
@@ -203,7 +203,7 @@ function AppLayout({
         </nav>
 
         {isRestaurantSide ? (
-          <div className="restaurant-options" ref={optionsRef}>
+          <div className="restaurant-options" ref={optionsRef} dir="ltr">
             <button
               type="button"
               className="restaurant-options-trigger ui-icon-button"
@@ -217,7 +217,7 @@ function AppLayout({
             </button>
 
             {isOptionsOpen && (
-              <div className="restaurant-options-menu">
+              <div className="restaurant-options-menu" dir={direction}>
                 {(!isRestaurantOwner || canManageOwnerTeam) && (
                   <Link
                     to={

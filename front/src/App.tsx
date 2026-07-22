@@ -7,6 +7,7 @@ import {
   useNavigate,
 } from 'react-router-dom'
 import AppLayout from './components/layout/AppLayout'
+import PeepssLogo from './components/brand/PeepssLogo'
 import StandardLayout from './components/layout/StandardLayout'
 import ProtectedRoute from './components/routing/ProtectedRoute'
 import { getCurrentUser, type AuthUser } from './features/auth/services/authApi'
@@ -290,16 +291,7 @@ function App() {
     return (
       <section className="checking-session-screen" aria-live="polite">
         <div className="checking-session-card">
-          <span
-            className="peepss-logo checking-session-logo"
-            aria-label="Peepss"
-            dir="ltr"
-          >
-            <span className="peepss-logo-circle" />
-            <span className="peepss-logo-thin">p</span>
-            <span className="peepss-logo-bold">ee</span>
-            <span className="peepss-logo-thin">pss</span>
-          </span>
+          <PeepssLogo className="checking-session-logo" />
           <p className="checking-session-text">{loadingText}</p>
         </div>
       </section>
@@ -424,16 +416,7 @@ function App() {
               <StandardLayout className="restaurant-only-standard-layout">
                 <section className="restaurant-only-page">
                   <div className="restaurant-only-card">
-                    <span
-                      className="peepss-logo auth-logo"
-                      aria-label="Peepss"
-                      dir="ltr"
-                    >
-                      <span className="peepss-logo-circle" />
-                      <span className="peepss-logo-thin">p</span>
-                      <span className="peepss-logo-bold">ee</span>
-                      <span className="peepss-logo-thin">pss</span>
-                    </span>
+                    <PeepssLogo className="auth-logo" />
                     <h1>Peepss is currently open for restaurants only.</h1>
                     <p>כרגע Peepss פתוחה למסעדות בלבד.</p>
                     <button

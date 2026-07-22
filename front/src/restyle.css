@@ -9,17 +9,19 @@
  */
 
 :root {
-  --page: #fbf2e7;
-  --surface: #fffcf7;
-  --surface-2: #eeeae3;
-  --ink: #2a1e16;
-  --muted: #5f5347;
-  --border: #ded6c8;
-  --danger: #c0392b;
-  --danger-soft: #fbe9e6;
-  --ok: #3e8e5a;
-  --accent: #c0850f;
-  --accent-soft: #f7ebd6;
+  --page: #fff9f1;
+  --surface: #fbf8f1;
+  --surface-2: #fff0da;
+  --ink: #231f20;
+  --muted: #6f625e;
+  --border: #ead8be;
+  --danger: #a83d32;
+  --danger-soft: #f8e7e4;
+  --ok: #3f7252;
+  --accent: #fdba5d;
+  --accent-soft: #fff0da;
+  --action: #fdba5d;
+  --action-hover: #efa94a;
   --content-width: 760px;
   --mobile-gutter: 20px;
   --control-height: 46px;
@@ -39,7 +41,7 @@ body,
 }
 
 html {
-  background: var(--page);
+  background: var(--surface);
 }
 
 body {
@@ -47,7 +49,7 @@ body {
   min-height: 100%;
   margin: 0;
   overflow-x: clip;
-  background: var(--surface);
+  background: var(--page);
   color: var(--ink);
   font-family: 'Oxygen', ui-sans-serif, system-ui, sans-serif;
 }
@@ -176,8 +178,8 @@ p {
 .claim-page,
 .admin-shell,
 .admin-forbidden-page {
-  --accent: #c0850f;
-  --accent-soft: #f7ebd6;
+  --accent: #fdba5d;
+  --accent-soft: #fff0da;
 }
 
 /* ---------- Shared brand ---------- */
@@ -188,21 +190,12 @@ p {
 .admin-shell .peepss-logo,
 .public-apply-page .peepss-logo,
 .claim-page .peepss-logo {
-  position: relative;
-  display: inline-flex;
-  align-items: baseline;
-  width: auto;
+  display: block;
+  width: 124px;
   height: auto;
-  max-width: none;
+  max-width: 100%;
   overflow: visible;
-  color: var(--ink);
-  font-family: 'Aboreto', serif;
-  font-size: clamp(30px, 8vw, 40px);
-  font-weight: 400;
-  line-height: 1;
-  letter-spacing: 0.015em;
-  text-transform: lowercase;
-  white-space: nowrap;
+  object-fit: contain;
 }
 
 .peepss-logo-circle {
@@ -216,6 +209,41 @@ p {
   color: inherit;
   font: inherit;
   letter-spacing: inherit;
+}
+
+img.peepss-logo.peepss-logo-image {
+  display: block;
+  width: 124px;
+  max-width: 32vw;
+  height: auto;
+  object-fit: contain;
+}
+
+.auth-page img.peepss-logo.auth-logo,
+.claim-page img.peepss-logo.auth-logo {
+  width: 104px;
+  max-width: 30vw;
+}
+
+.restaurant-shell img.peepss-logo.peepss-logo-image {
+  width: 116px;
+  max-width: 31vw;
+}
+
+.admin-shell img.peepss-logo.admin-logo {
+  width: 104px;
+  max-width: 100%;
+}
+
+.public-apply-page img.peepss-logo.public-apply-logo {
+  width: 108px;
+  max-width: 32vw;
+}
+
+.legal-page img.peepss-logo.legal-logo,
+.checking-session-card img.peepss-logo.checking-session-logo {
+  width: 124px;
+  max-width: 42vw;
 }
 
 /* ---------- Controlled actions ---------- */
@@ -262,9 +290,9 @@ p {
 .auth-page .ui-button.ui-button--primary,
 .claim-page .ui-button.ui-button--primary,
 .public-apply-page .ui-button.ui-button--primary {
-  border-color: rgb(42 30 22 / 14%);
-  background: var(--accent);
-  color: #fff;
+  border-color: color-mix(in srgb, var(--action) 84%, #000);
+  background: var(--action);
+  color: var(--ink);
   font-weight: 700;
 }
 
@@ -274,8 +302,8 @@ p {
 .auth-page .ui-button.ui-button--primary:hover,
 .claim-page .ui-button.ui-button--primary:hover,
 .public-apply-page .ui-button.ui-button--primary:hover {
-  background: color-mix(in srgb, var(--accent) 86%, #000);
-  color: #fff;
+  background: var(--action-hover);
+  color: var(--ink);
 }
 
 .ui-button.ui-button--secondary,
@@ -578,7 +606,8 @@ button.peepss-close-button:hover {
 .restaurant-options-menu {
   position: absolute;
   inset-block-start: calc(100% + 8px);
-  inset-inline-end: 0;
+  right: 0;
+  left: auto;
   z-index: 50;
   display: grid;
   min-width: 188px;
@@ -1303,6 +1332,19 @@ button.peepss-close-button:hover {
   font-size: 12px;
 }
 
+.restaurant-job-details {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.restaurant-job-details::-webkit-scrollbar {
+  display: none;
+}
+
 .restaurant-job-card-top {
   display: grid;
   grid-template-columns: 44px minmax(0, 1fr);
@@ -1397,6 +1439,7 @@ button.peepss-close-button:hover {
 .restaurant-job-description,
 .restaurant-job-requirements {
   margin: 8px 18px 0;
+  padding-bottom: 3px;
   color: var(--muted);
   font-size: 13px;
   line-height: 1.45;
@@ -1417,7 +1460,7 @@ button.peepss-close-button:hover {
 .restaurant-job-requirements p {
   margin: 3px 0 0;
   border: 0;
-  padding: 0;
+  padding: 0 0 2px;
   color: var(--muted);
   font-size: 13px;
   line-height: 1.4;
@@ -1768,12 +1811,15 @@ button.peepss-close-button:hover {
   color: var(--muted);
 }
 
-.restaurant-worker-shell .restaurant-role-options label,
-.restaurant-worker-shell .restaurant-role-options label:has(input:checked) {
+.restaurant-shell .restaurant-role-options label,
+.restaurant-shell .restaurant-role-options label:has(input:checked),
+.public-apply-form .restaurant-role-options label,
+.public-apply-form .restaurant-role-options label:has(input:checked) {
   border: 0;
   border-radius: 0;
   padding: 0;
   background: transparent;
+  box-shadow: none;
   color: inherit;
 }
 
@@ -1869,6 +1915,27 @@ button.peepss-close-button:hover {
 
 .guided-form-actions .ui-button--primary {
   min-width: 150px;
+}
+
+.owner-job-form .owner-job-field-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+.owner-job-form .owner-job-word-count {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.owner-job-form .owner-job-field-heading .owner-job-word-count {
+  margin: 0;
 }
 
 /* ---------- Owner ---------- */
@@ -2111,9 +2178,8 @@ button.peepss-close-button:hover {
   line-height: 1.4;
 }
 
-.owner-disclosure-chevron {
-  color: var(--muted);
-  font-size: 14px;
+.owner-qr-widget-collapsed .owner-qr-widget-copy {
+  grid-template-columns: 34px minmax(0, 1fr);
 }
 
 .owner-qr-expanded-content {
@@ -2173,6 +2239,42 @@ button.peepss-close-button:hover {
   gap: 10px;
   border-top: 1px solid var(--border);
   padding-top: 18px;
+}
+
+.qr-format-selector {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  width: min(100%, 330px);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 4px;
+  background: var(--surface-2);
+}
+
+.qr-format-selector button {
+  min-width: 0;
+  min-height: 36px;
+  border: 0;
+  border-radius: 7px;
+  padding: 6px 10px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.qr-format-selector button.is-selected {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 1px 4px rgb(35 31 32 / 10%);
+}
+
+.qr-format-selector button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 65%, transparent);
+  outline-offset: 1px;
 }
 
 .owner-qr-actions .ui-button--tertiary {
@@ -3482,6 +3584,18 @@ button.peepss-close-button:hover {
   background: #fff;
 }
 
+.admin-qr-panel .qr-format-selector {
+  margin: 12px 0;
+}
+
+.owner-poster-preview-image.is-qr-only {
+  width: min(100%, 440px);
+  aspect-ratio: 1;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 10px 32px rgb(32 29 29 / 12%);
+}
+
 .admin-activation-link,
 .admin-qr-link {
   border: 1px solid var(--border);
@@ -3644,6 +3758,52 @@ button.peepss-close-button:hover {
       ),
       var(--surface);
     background-repeat: no-repeat;
+  }
+
+  .restaurant-shell:has(.restaurant-explore-page) {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    min-height: 100dvh;
+    overflow: hidden;
+  }
+
+  .restaurant-shell:has(.restaurant-explore-page) > .app-content {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .restaurant-shell .restaurant-explore-page {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .restaurant-shell .restaurant-card-stack {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
+  }
+
+  .restaurant-shell .restaurant-card-stack .restaurant-job-card {
+    position: relative;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .restaurant-shell .restaurant-card-stack .restaurant-job-actions {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    position: static;
+    flex: 0 0 auto;
+    margin: 0;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
   }
 
   .admin-shell {
@@ -3912,15 +4072,114 @@ button.peepss-close-button:hover {
 
   .restaurant-job-card,
   .restaurant-shell .restaurant-job-card {
-    min-height: 450px;
+    min-height: 0;
   }
 
   .restaurant-job-card::before {
-    flex-basis: min(40%, 210px);
+    flex-basis: 72px;
+  }
+
+  .restaurant-shell .restaurant-job-card-top {
+    gap: 10px;
+    padding: 11px 14px 5px;
+  }
+
+  .restaurant-shell .restaurant-job-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
+
+  .restaurant-shell .restaurant-job-name {
+    font-size: 15px;
+  }
+
+  .restaurant-shell .restaurant-job-role-line,
+  .restaurant-shell .restaurant-job-card .restaurant-job-role-line h2 {
+    font-size: 14px;
+  }
+
+  .restaurant-shell .restaurant-job-location {
+    padding: 0 14px 5px;
+    font-size: 12px;
+  }
+
+  .restaurant-shell .restaurant-vibe-badges {
+    gap: 6px;
+    padding: 0 14px 6px;
+  }
+
+  .restaurant-shell .restaurant-vibe-badges span {
+    min-height: 25px;
+    padding: 4px 9px;
+    font-size: 11px;
+  }
+
+  .restaurant-shell .restaurant-job-highlight {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px;
+    width: auto;
+    min-height: 0;
+    margin: 2px 14px 0;
+    border-radius: 12px;
+    padding: 7px 10px;
+  }
+
+  .restaurant-shell .restaurant-job-highlight span {
+    align-self: start;
+    white-space: nowrap;
+  }
+
+  .restaurant-shell .restaurant-job-highlight strong {
+    display: -webkit-box;
+    min-width: 0;
+    overflow: hidden;
+    font-size: 13px;
+    line-height: 1.3;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .restaurant-shell .restaurant-job-description,
+  .restaurant-shell .restaurant-job-requirements {
+    margin: 5px 14px 0;
+    padding-bottom: 1px;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .restaurant-shell .restaurant-job-description {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .restaurant-shell .restaurant-job-requirements {
+    padding-top: 6px;
+  }
+
+  .restaurant-shell .restaurant-job-requirements strong {
+    font-size: 11px;
+  }
+
+  .restaurant-shell .restaurant-job-requirements p {
+    margin-top: 2px;
+    padding-bottom: 1px;
+    font-size: 12px;
+    line-height: 1.35;
+    -webkit-line-clamp: 2;
   }
 
   .restaurant-job-actions {
-    padding-block-end: 14px;
+    gap: 8px;
+    padding: 9px 14px 12px;
+  }
+
+  .restaurant-shell .restaurant-job-actions .ui-button {
+    min-height: 42px;
+    font-size: 14px;
   }
 
   .restaurant-owner-shell .owner-job-board-list,
@@ -4028,10 +4287,10 @@ button.peepss-close-button:hover {
     width: min(100%, 446px);
     min-height: calc(100dvh - 48px);
     margin: 24px auto;
-    border: 10px solid #1a1512;
-    border-radius: 48px;
-    overflow: hidden;
-    box-shadow: 0 18px 40px rgb(60 40 20 / 18%);
+    border: 0;
+    border-radius: 0;
+    overflow: visible;
+    box-shadow: none;
   }
 
   .auth-shell {

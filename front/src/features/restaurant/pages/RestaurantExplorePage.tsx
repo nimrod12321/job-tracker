@@ -64,7 +64,6 @@ function RestaurantExplorePage() {
     updateProfile: language === 'he' ? 'עדכון פרופיל' : 'Update profile',
     findMore: language === 'he' ? 'חפש עוד משמרות' : 'Find more jobs',
     skipped: language === 'he' ? 'דילגת' : 'Skipped',
-    applied: language === 'he' ? 'נשלח' : 'Sent',
   }
 
   const loadJobs = useCallback(async (excludedIds: string[]) => {
@@ -206,7 +205,7 @@ function RestaurantExplorePage() {
 
     isCardActionPending.current = true
     setError(null)
-    setFeedback(text.applied)
+    setFeedback(null)
     rememberJob(jobToApply.id)
     animateToNext('right')
 

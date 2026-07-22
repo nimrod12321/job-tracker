@@ -284,50 +284,52 @@ function RestaurantSwipeCard({
         {text.skipHint}
       </span>
 
-      <div className="restaurant-job-card-top">
-        <div
-          className="restaurant-job-avatar"
-          style={{ backgroundColor: avatar.backgroundColor }}
-          aria-hidden="true"
-        >
-          <span>{avatar.initial}</span>
-        </div>
-        <div>
-          <p className="restaurant-job-name">{job.restaurantName}</p>
-          <div className="restaurant-job-role-line">
-            <h2>{getRestaurantRoleLabel(job.role, language)}</h2>
-            <span className="restaurant-job-role-icon" aria-hidden="true">
-              {placeIcon}
-            </span>
+      <div className="restaurant-job-details">
+        <div className="restaurant-job-card-top">
+          <div
+            className="restaurant-job-avatar"
+            style={{ backgroundColor: avatar.backgroundColor }}
+            aria-hidden="true"
+          >
+            <span>{avatar.initial}</span>
+          </div>
+          <div>
+            <p className="restaurant-job-name">{job.restaurantName}</p>
+            <div className="restaurant-job-role-line">
+              <h2>{getRestaurantRoleLabel(job.role, language)}</h2>
+              <span className="restaurant-job-role-icon" aria-hidden="true">
+                {placeIcon}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
-      <p className="restaurant-job-location">
-        {[job.city, job.street].filter(Boolean).join(' · ')}
-      </p>
-      <div className="restaurant-vibe-badges" aria-label="Restaurant vibe">
-        {vibeBadges.map((badge) => (
-          <span key={badge}>{badge}</span>
-        ))}
-      </div>
-
-      {job.shiftInfo && (
-        <div className="restaurant-job-highlight">
-          <span>{text.shift}</span>
-          <strong>{job.shiftInfo}</strong>
+        <p className="restaurant-job-location">
+          {[job.city, job.street].filter(Boolean).join(' · ')}
+        </p>
+        <div className="restaurant-vibe-badges" aria-label="Restaurant vibe">
+          {vibeBadges.map((badge) => (
+            <span key={badge}>{badge}</span>
+          ))}
         </div>
-      )}
 
-      {description && (
-        <p className="restaurant-job-description">{description}</p>
-      )}
+        {job.shiftInfo && (
+          <div className="restaurant-job-highlight">
+            <span>{text.shift}</span>
+            <strong>{job.shiftInfo}</strong>
+          </div>
+        )}
 
-      {requirements && (
-        <div className="restaurant-job-requirements">
-          <strong>{text.requirements}</strong>
-          <p>{requirements}</p>
-        </div>
-      )}
+        {description && (
+          <p className="restaurant-job-description">{description}</p>
+        )}
+
+        {requirements && (
+          <div className="restaurant-job-requirements">
+            <strong>{text.requirements}</strong>
+            <p>{requirements}</p>
+          </div>
+        )}
+      </div>
 
       <div className="restaurant-job-actions">
         <button

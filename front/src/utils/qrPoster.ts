@@ -18,6 +18,8 @@ type DownloadQrPosterOptions = {
   slug: string
 }
 
+export type QrAssetFormat = 'poster' | 'qr'
+
 function loadImage(src: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
     const image = new Image()
@@ -43,6 +45,49 @@ export async function downloadQrPoster({
   link.href = posterDataUrl
   link.download = `peepss-${safeSlug}-qr-poster.png`
   link.click()
+}
+
+export async function downloadQrOnly({
+  publicUrl,
+  slug,
+}: DownloadQrPosterOptions) {
+  const qrDataUrl = await createQrOnlyDataUrl(publicUrl)
+  const link = document.createElement('a')
+  const safeSlug = sanitizeFileNamePart(slug) || 'restaurant'
+
+  link.href = qrDataUrl
+  link.download = `peepss-${safeSlug}-qr.png`
+  link.click()
+}
+
+export function createQrOnlyDataUrl(publicUrl: string) {
+  return QRCode.toDataURL(publicUrl, {
+    errorCorrectionLevel: 'H',
+    margin: 4,
+    width: 1200,
+    color: {
+      dark: '#231f20',
+      light: '#ffffff',
+    },
+  })
+}
+
+export function createQrAssetDataUrl(
+  publicUrl: string,
+  format: QrAssetFormat,
+) {
+  return format === 'poster'
+    ? createQrPosterDataUrl(publicUrl)
+    : createQrOnlyDataUrl(publicUrl)
+}
+
+export function downloadQrAsset(
+  options: DownloadQrPosterOptions,
+  format: QrAssetFormat,
+) {
+  return format === 'poster'
+    ? downloadQrPoster(options)
+    : downloadQrOnly(options)
 }
 
 export async function createQrPosterDataUrl(publicUrl: string) {

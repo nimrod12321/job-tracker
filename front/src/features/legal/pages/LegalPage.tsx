@@ -1,3 +1,4 @@
+import PeepssLogo from '../../../components/brand/PeepssLogo'
 import { useRestaurantLanguage } from '../../restaurant/utils/restaurantLanguage'
 import {
   englishLegalContent,
@@ -17,12 +18,7 @@ function LegalPage({ kind }: LegalPageProps) {
   return (
     <section className="legal-page" dir={direction}>
       <div className="legal-card">
-        <span className="peepss-logo legal-logo" aria-label="Peepss" dir="ltr">
-          <span className="peepss-logo-circle" />
-          <span className="peepss-logo-thin">p</span>
-          <span className="peepss-logo-bold">ee</span>
-          <span className="peepss-logo-thin">pss</span>
-        </span>
+        <PeepssLogo className="legal-logo" />
         <h1>{content.title}</h1>
         <p className="legal-intro">{content.intro}</p>
 

@@ -9,6 +9,22 @@ const optionalText = (field: string, maxLength: number) =>
     .optional()
     .default('')
 
+const countWords = (value: string) => {
+  const trimmedValue = value.trim()
+
+  return trimmedValue ? trimmedValue.split(/\s+/u).length : 0
+}
+
+const limitedJobText = (
+  field: string,
+  maxLength: number,
+  maxWords: number,
+) =>
+  optionalText(field, maxLength).refine(
+    (value) => countWords(value) <= maxWords,
+    `${field} must be ${maxWords} words or fewer`,
+  )
+
 export const ownerProfileSchema = z
   .object({
     restaurantName: optionalText('restaurant name', 200),
@@ -27,9 +43,9 @@ export const ownerJobSchema = z
     role: z.enum(restaurantRoles, {
       error: 'role is invalid',
     }),
-    description: optionalText('description', 2_000),
-    requirements: optionalText('requirements', 2_000),
-    shiftInfo: optionalText('shift info', 500),
+    description: limitedJobText('description', 2_000, 18),
+    requirements: limitedJobText('requirements', 2_000, 16),
+    shiftInfo: limitedJobText('shift info', 500, 14),
     contactPhone: optionalText('contact phone', 50),
     contactWhatsapp: optionalText('contact WhatsApp', 50),
   })

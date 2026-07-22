@@ -1,8 +1,13 @@
-import QRCode from 'qrcode'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import PeepssModal from '../../../components/common/PeepssModal'
 import { getRestaurantRoleLabel } from '../../restaurant/types/restaurant'
-import { downloadQrPoster } from '../../../utils/qrPoster'
+import {
+  createQrAssetDataUrl,
+  createQrOnlyDataUrl,
+  downloadQrAsset,
+  type QrAssetFormat,
+} from '../../../utils/qrPoster'
 import AdminShell from '../components/AdminShell'
 import {
   deleteAdminRestaurant,
@@ -60,6 +65,11 @@ function AdminRestaurantDetailPage() {
   const [detail, setDetail] = useState<AdminRestaurantDetail | null>(null)
   const [form, setForm] = useState<AdminRestaurantInput>(emptyRestaurantForm)
   const [qrCodeUrl, setQrCodeUrl] = useState('')
+  const [qrAssetFormat, setQrAssetFormat] =
+    useState<QrAssetFormat>('poster')
+  const [qrPreviewUrl, setQrPreviewUrl] = useState('')
+  const [isQrPreviewOpen, setIsQrPreviewOpen] = useState(false)
+  const [isQrPreviewLoading, setIsQrPreviewLoading] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
@@ -143,14 +153,7 @@ function AdminRestaurantDetailPage() {
       }
 
       try {
-        const dataUrl = await QRCode.toDataURL(publicQrLink, {
-          margin: 1,
-          width: 320,
-          color: {
-            dark: '#1f1d1e',
-            light: '#fffaf3',
-          },
-        })
+        const dataUrl = await createQrOnlyDataUrl(publicQrLink)
 
         if (isActive) {
           setQrCodeUrl(dataUrl)
@@ -185,19 +188,44 @@ function AdminRestaurantDetailPage() {
     setMessage('QR link copied.')
   }
 
-  async function handleDownloadQrPoster() {
+  async function handleDownloadQrAsset() {
     if (!publicQrLink || !restaurant?.slug) {
       return
     }
 
     try {
-      await downloadQrPoster({
-        publicUrl: publicQrLink,
-        slug: restaurant.slug,
-      })
+      await downloadQrAsset(
+        {
+          publicUrl: publicQrLink,
+          slug: restaurant.slug,
+        },
+        qrAssetFormat,
+      )
       setError(null)
     } catch {
-      setError('Failed to download QR poster.')
+      setError('Failed to download QR image.')
+    }
+  }
+
+  async function handlePreviewQrAsset() {
+    if (!publicQrLink) {
+      return
+    }
+
+    setIsQrPreviewOpen(true)
+    setIsQrPreviewLoading(true)
+    setQrPreviewUrl('')
+    setError(null)
+
+    try {
+      setQrPreviewUrl(
+        await createQrAssetDataUrl(publicQrLink, qrAssetFormat),
+      )
+    } catch {
+      setError('Failed to prepare QR preview.')
+      setIsQrPreviewOpen(false)
+    } finally {
+      setIsQrPreviewLoading(false)
     }
   }
 
@@ -543,6 +571,28 @@ function AdminRestaurantDetailPage() {
                 {publicQrLink}
               </p>
             )}
+            <div
+              className="qr-format-selector"
+              role="group"
+              aria-label="Choose QR download format"
+            >
+              <button
+                type="button"
+                className={qrAssetFormat === 'poster' ? 'is-selected' : ''}
+                aria-pressed={qrAssetFormat === 'poster'}
+                onClick={() => setQrAssetFormat('poster')}
+              >
+                Full poster
+              </button>
+              <button
+                type="button"
+                className={qrAssetFormat === 'qr' ? 'is-selected' : ''}
+                aria-pressed={qrAssetFormat === 'qr'}
+                onClick={() => setQrAssetFormat('qr')}
+              >
+                QR only
+              </button>
+            </div>
             <div className="admin-actions">
               <button
                 className="ui-button ui-button--tertiary"
@@ -553,16 +603,51 @@ function AdminRestaurantDetailPage() {
                 Copy public link
               </button>
               <button
+                className="ui-button ui-button--secondary"
+                type="button"
+                disabled={!publicQrLink}
+                onClick={() => void handlePreviewQrAsset()}
+              >
+                Preview
+              </button>
+              <button
                 className="ui-button ui-button--primary"
                 type="button"
                 disabled={!publicQrLink}
-                onClick={() => void handleDownloadQrPoster()}
+                onClick={() => void handleDownloadQrAsset()}
               >
-                Download QR poster
+                {qrAssetFormat === 'poster'
+                  ? 'Download poster'
+                  : 'Download QR only'}
               </button>
             </div>
           </article>
         </section>
+
+        <PeepssModal
+          isOpen={isQrPreviewOpen}
+          onClose={() => setIsQrPreviewOpen(false)}
+          size="large"
+          title={qrAssetFormat === 'poster' ? 'Poster preview' : 'QR preview'}
+        >
+          <div className="owner-poster-preview">
+            {isQrPreviewLoading ? (
+              <p>Preparing preview...</p>
+            ) : qrPreviewUrl ? (
+              <img
+                alt={
+                  qrAssetFormat === 'poster' ? 'Poster preview' : 'QR preview'
+                }
+                className={`owner-poster-preview-image${
+                  qrAssetFormat === 'qr' ? ' is-qr-only' : ''
+                }`}
+                src={qrPreviewUrl}
+              />
+            ) : (
+              <p>Preview is unavailable.</p>
+            )}
+          </div>
+        </PeepssModal>
 
         <section className="admin-restaurant-panel admin-activation-panel">
           <div className="admin-activation-heading">

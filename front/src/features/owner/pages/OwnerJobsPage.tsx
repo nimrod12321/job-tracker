@@ -9,8 +9,9 @@ import {
 } from '../../restaurant/types/restaurant'
 import { useRestaurantLanguage } from '../../restaurant/utils/restaurantLanguage'
 import {
-  createQrPosterDataUrl,
-  downloadQrPoster,
+  createQrAssetDataUrl,
+  downloadQrAsset,
+  type QrAssetFormat,
 } from '../../../utils/qrPoster'
 import {
   createOwnerJob,
@@ -44,6 +45,28 @@ const shiftOptions = [
   { he: 'סופי שבוע', en: 'Weekends' },
   { he: 'גמיש', en: 'Flexible' },
 ]
+
+// Keep these aligned with ownerJobSchema on the backend and with the compact
+// two-line sections rendered by RestaurantSwipeCard.
+const JOB_TEXT_WORD_LIMITS = {
+  shiftInfo: 14,
+  description: 18,
+  requirements: 16,
+} as const
+
+function countWords(value: string) {
+  const trimmedValue = value.trim()
+
+  return trimmedValue ? trimmedValue.split(/\s+/u).length : 0
+}
+
+function limitWords(value: string, maximumWords: number) {
+  if (countWords(value) <= maximumWords) {
+    return value
+  }
+
+  return value.trim().split(/\s+/u).slice(0, maximumWords).join(' ')
+}
 
 function getQrWidgetStorageKey(slug: string | null | undefined) {
   return slug ? `peepss_owner_qr_widget_open_${slug}` : ''
@@ -101,6 +124,8 @@ function OwnerJobsPage() {
   const [posterPreviewUrl, setPosterPreviewUrl] = useState('')
   const [isPosterPreviewOpen, setIsPosterPreviewOpen] = useState(false)
   const [isPosterPreviewLoading, setIsPosterPreviewLoading] = useState(false)
+  const [qrAssetFormat, setQrAssetFormat] =
+    useState<QrAssetFormat>('poster')
   const [isQrExpanded, setIsQrExpanded] = useState(false)
   const [highlightedJobId, setHighlightedJobId] = useState<string | null>(null)
   const pendingJobIds = useRef(new Set<string>())
@@ -164,6 +189,7 @@ function OwnerJobsPage() {
     contactWhatsapp: language === 'he' ? 'וואטסאפ' : 'WhatsApp',
     requirements: language === 'he' ? 'דרישות' : 'Requirements',
     description: language === 'he' ? 'תיאור' : 'Description',
+    words: language === 'he' ? 'מילים' : 'words',
     saving: language === 'he' ? 'שומר...' : 'Saving...',
     saved: language === 'he' ? 'נשמר' : 'Saved',
     saveChanges: language === 'he' ? 'שמירת שינויים' : 'Save changes',
@@ -227,16 +253,32 @@ function OwnerJobsPage() {
     copyLink: language === 'he' ? 'העתקת קישור' : 'Copy link',
     previewPoster:
       language === 'he' ? 'תצוגה מקדימה' : 'Preview poster',
+    qrFormat:
+      language === 'he' ? 'בחירת פורמט' : 'Choose format',
+    fullPoster:
+      language === 'he' ? 'מודעה מלאה' : 'Full poster',
+    qrOnly:
+      language === 'he' ? 'QR בלבד' : 'QR only',
+    previewQr:
+      language === 'he' ? 'תצוגת QR' : 'Preview QR',
     previewPosterLoading:
       language === 'he' ? 'מכינים תצוגה...' : 'Preparing preview...',
     posterPreviewTitle:
       language === 'he' ? 'תצוגה מקדימה של המודעה' : 'Poster preview',
+    qrPreviewTitle:
+      language === 'he' ? 'תצוגה מקדימה של ה־QR' : 'QR preview',
     downloadQr:
       language === 'he' ? 'הורדת המודעה' : 'Download poster',
+    downloadQrOnly:
+      language === 'he' ? 'הורדת QR בלבד' : 'Download QR only',
     downloadQrHelper:
       language === 'he'
         ? 'המודעה מוכנה להדפסה ולתלייה במסעדה.'
         : 'The poster is ready to print and display at your restaurant.',
+    downloadQrOnlyHelper:
+      language === 'he'
+        ? 'קובץ QR נקי לשימוש דיגיטלי או בעיצוב משלכם.'
+        : 'A clean QR image for digital use or your own design.',
     downloadQrFailed:
       language === 'he'
         ? 'לא הצלחנו להוריד את מודעת ה־QR.'
@@ -379,6 +421,41 @@ function OwnerJobsPage() {
     }))
   }
 
+  function getJobTextLimitError(input: OwnerJobInput, currentStep: number) {
+    const fields = [
+      {
+        label: text.shiftInfo,
+        value: input.shiftInfo,
+        limit: JOB_TEXT_WORD_LIMITS.shiftInfo,
+        step: 2,
+      },
+      {
+        label: text.requirements,
+        value: input.requirements,
+        limit: JOB_TEXT_WORD_LIMITS.requirements,
+        step: 3,
+      },
+      {
+        label: text.description,
+        value: input.description,
+        limit: JOB_TEXT_WORD_LIMITS.description,
+        step: 3,
+      },
+    ]
+    const invalidField = fields.find(
+      (field) =>
+        field.step <= currentStep && countWords(field.value) > field.limit,
+    )
+
+    if (!invalidField) {
+      return null
+    }
+
+    return language === 'he'
+      ? `${invalidField.label}: אפשר לכתוב עד ${invalidField.limit} מילים.`
+      : `${invalidField.label}: use up to ${invalidField.limit} words.`
+  }
+
   function resetForm() {
     setForm(emptyJobForm)
     setEditingJobId(null)
@@ -419,7 +496,15 @@ function OwnerJobsPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
+    const wordLimitError = getJobTextLimitError(form, jobStep)
+
+    if (wordLimitError) {
+      setError(wordLimitError)
+      return
+    }
+
     if (jobStep < 4) {
+      setError(null)
       setJobStep((currentStep) => currentStep + 1)
       return
     }
@@ -559,12 +644,21 @@ function OwnerJobsPage() {
       .map((item) => item.trim())
       .filter(Boolean)
 
-    updateField(
-      'shiftInfo',
-      currentValues.includes(label)
-        ? currentValues.filter((item) => item !== label).join(', ')
-        : [...currentValues, label].join(', '),
-    )
+    const nextValue = currentValues.includes(label)
+      ? currentValues.filter((item) => item !== label).join(', ')
+      : [...currentValues, label].join(', ')
+
+    if (countWords(nextValue) > JOB_TEXT_WORD_LIMITS.shiftInfo) {
+      setError(
+        language === 'he'
+          ? `משמרות: אפשר לבחור עד ${JOB_TEXT_WORD_LIMITS.shiftInfo} מילים.`
+          : `Shift info: use up to ${JOB_TEXT_WORD_LIMITS.shiftInfo} words.`,
+      )
+      return
+    }
+
+    setError(null)
+    updateField('shiftInfo', nextValue)
   }
 
   async function handleCopyQrLink() {
@@ -581,23 +675,26 @@ function OwnerJobsPage() {
     }
   }
 
-  async function handleDownloadQrPoster() {
+  async function handleDownloadQrAsset() {
     if (!publicHiringLink || !profile?.slug) {
       return
     }
 
     try {
-      await downloadQrPoster({
-        publicUrl: publicHiringLink,
-        slug: profile.slug,
-      })
+      await downloadQrAsset(
+        {
+          publicUrl: publicHiringLink,
+          slug: profile.slug,
+        },
+        qrAssetFormat,
+      )
       setError(null)
     } catch {
       setError(text.downloadQrFailed)
     }
   }
 
-  async function handlePreviewQrPoster() {
+  async function handlePreviewQrAsset() {
     if (!publicHiringLink) {
       return
     }
@@ -606,7 +703,8 @@ function OwnerJobsPage() {
 
     if (
       posterPreviewUrl &&
-      posterPreviewPublicUrlRef.current === publicHiringLink
+      posterPreviewPublicUrlRef.current ===
+        `${qrAssetFormat}:${publicHiringLink}`
     ) {
       return
     }
@@ -616,8 +714,11 @@ function OwnerJobsPage() {
     setError(null)
 
     try {
-      const dataUrl = await createQrPosterDataUrl(publicHiringLink)
-      posterPreviewPublicUrlRef.current = publicHiringLink
+      const dataUrl = await createQrAssetDataUrl(
+        publicHiringLink,
+        qrAssetFormat,
+      )
+      posterPreviewPublicUrlRef.current = `${qrAssetFormat}:${publicHiringLink}`
       setPosterPreviewUrl(dataUrl)
     } catch {
       setError(text.downloadQrFailed)
@@ -907,24 +1008,51 @@ function OwnerJobsPage() {
                 )}
               </div>
 
+              <div
+                className="qr-format-selector"
+                role="group"
+                aria-label={text.qrFormat}
+              >
+                <button
+                  type="button"
+                  className={qrAssetFormat === 'poster' ? 'is-selected' : ''}
+                  aria-pressed={qrAssetFormat === 'poster'}
+                  onClick={() => setQrAssetFormat('poster')}
+                >
+                  {text.fullPoster}
+                </button>
+                <button
+                  type="button"
+                  className={qrAssetFormat === 'qr' ? 'is-selected' : ''}
+                  aria-pressed={qrAssetFormat === 'qr'}
+                  onClick={() => setQrAssetFormat('qr')}
+                >
+                  {text.qrOnly}
+                </button>
+              </div>
+
               <div className="owner-qr-actions" aria-label={text.qrTitle}>
                 <button
                   className="ui-button ui-button--secondary"
                   type="button"
                   disabled={!publicHiringLink}
-                  onClick={() => void handlePreviewQrPoster()}
+                  onClick={() => void handlePreviewQrAsset()}
                 >
                   {isPosterPreviewLoading
                     ? text.previewPosterLoading
-                    : text.previewPoster}
+                    : qrAssetFormat === 'poster'
+                      ? text.previewPoster
+                      : text.previewQr}
                 </button>
                 <button
                   className="ui-button ui-button--primary"
                   type="button"
                   disabled={!publicHiringLink}
-                  onClick={() => void handleDownloadQrPoster()}
+                  onClick={() => void handleDownloadQrAsset()}
                 >
-                  {text.downloadQr}
+                  {qrAssetFormat === 'poster'
+                    ? text.downloadQr
+                    : text.downloadQrOnly}
                 </button>
                 <button
                   className="ui-button ui-button--tertiary"
@@ -936,7 +1064,9 @@ function OwnerJobsPage() {
                 </button>
               </div>
               <p className="owner-qr-poster-helper">
-                {text.downloadQrHelper}
+                {qrAssetFormat === 'poster'
+                  ? text.downloadQrHelper
+                  : text.downloadQrOnlyHelper}
               </p>
             </div>
           </div>
@@ -956,9 +1086,6 @@ function OwnerJobsPage() {
                   {ownerProfile.slug ? text.qrCollapsedSubtitle : text.qrMissing}
                 </p>
               </div>
-              <span className="owner-disclosure-chevron" aria-hidden="true">
-                ⌄
-              </span>
             </div>
           </button>
         )}
@@ -968,15 +1095,25 @@ function OwnerJobsPage() {
         isOpen={isPosterPreviewOpen}
         onClose={() => setIsPosterPreviewOpen(false)}
         size="large"
-        title={text.posterPreviewTitle}
+        title={
+          qrAssetFormat === 'poster'
+            ? text.posterPreviewTitle
+            : text.qrPreviewTitle
+        }
       >
         <div className="owner-poster-preview">
           {isPosterPreviewLoading ? (
             <p>{text.previewPosterLoading}</p>
           ) : posterPreviewUrl ? (
             <img
-              alt={text.posterPreviewTitle}
-              className="owner-poster-preview-image"
+              alt={
+                qrAssetFormat === 'poster'
+                  ? text.posterPreviewTitle
+                  : text.qrPreviewTitle
+              }
+              className={`owner-poster-preview-image${
+                qrAssetFormat === 'qr' ? ' is-qr-only' : ''
+              }`}
               src={posterPreviewUrl}
             />
           ) : (
@@ -1071,28 +1208,56 @@ function OwnerJobsPage() {
                       )
                     })}
                   </div>
+                  <p className="owner-job-word-count" aria-live="polite">
+                    {countWords(form.shiftInfo)}/
+                    {JOB_TEXT_WORD_LIMITS.shiftInfo} {text.words}
+                  </p>
                 </fieldset>
               )}
 
               {jobStep === 3 && (
                 <>
                   <label className="owner-field-wide">
-                    {text.requirements}
+                    <span className="owner-job-field-heading">
+                      <span>{text.requirements}</span>
+                      <span className="owner-job-word-count" aria-live="polite">
+                        {countWords(form.requirements)}/
+                        {JOB_TEXT_WORD_LIMITS.requirements} {text.words}
+                      </span>
+                    </span>
                     <textarea
                       rows={3}
                       value={form.requirements}
                       onChange={(event) =>
-                        updateField('requirements', event.target.value)
+                        updateField(
+                          'requirements',
+                          limitWords(
+                            event.target.value,
+                            JOB_TEXT_WORD_LIMITS.requirements,
+                          ),
+                        )
                       }
                     />
                   </label>
                   <label className="owner-field-wide">
-                    {text.description}
+                    <span className="owner-job-field-heading">
+                      <span>{text.description}</span>
+                      <span className="owner-job-word-count" aria-live="polite">
+                        {countWords(form.description)}/
+                        {JOB_TEXT_WORD_LIMITS.description} {text.words}
+                      </span>
+                    </span>
                     <textarea
                       rows={4}
                       value={form.description}
                       onChange={(event) =>
-                        updateField('description', event.target.value)
+                        updateField(
+                          'description',
+                          limitWords(
+                            event.target.value,
+                            JOB_TEXT_WORD_LIMITS.description,
+                          ),
+                        )
                       }
                     />
                   </label>
