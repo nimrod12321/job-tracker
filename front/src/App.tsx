@@ -377,7 +377,14 @@ function App() {
           }
         />
       </Route>
-      <Route element={<StandardLayout className="claim-standard-layout" />}>
+      <Route
+        element={
+          <StandardLayout
+            className="claim-standard-layout"
+            footerClassName="claim-legal-footer"
+          />
+        }
+      >
         <Route
           path="/claim/:restaurantSlug"
           element={
