@@ -658,13 +658,24 @@ button.peepss-close-button:hover {
 .site-legal-footer,
 .app-legal-footer,
 .admin-legal-footer {
+  position: relative;
   flex: 0 0 auto;
   width: 100%;
   margin-top: auto;
   border: 0;
   padding: 18px 20px max(14px, env(safe-area-inset-bottom));
-  background: transparent;
+  background-color: transparent;
+  background-image: url('/assets/peepss-minis.svg');
+  background-repeat: no-repeat;
+  background-position: center top;
+  background-size: 68px auto;
   color: var(--muted);
+}
+
+.site-legal-footer nav,
+.site-legal-footer > p {
+  position: relative;
+  z-index: 1;
 }
 
 .site-legal-footer nav,
@@ -751,8 +762,11 @@ button.peepss-close-button:hover {
   z-index: 1;
   width: min(100%, 444px);
   margin-top: auto;
-  padding-top: 10px;
-  padding-bottom: max(12px, env(safe-area-inset-bottom));
+  padding-top: 18px;
+  padding-bottom: max(
+    4px,
+    calc(env(safe-area-inset-bottom) - 8px)
+  );
   padding-right: max(21px, env(safe-area-inset-right));
   padding-left: max(21px, env(safe-area-inset-left));
 }
@@ -2362,9 +2376,13 @@ button.peepss-close-button:hover {
   margin: 0 0 16px;
 }
 
+.owner-jobs-page > .owner-qr-card {
+  margin-bottom: 2px;
+}
+
 .owner-job-board-heading {
   position: relative;
-  margin-top: 18px;
+  margin-top: 0;
   margin-bottom: 10px;
 }
 
