@@ -1529,6 +1529,188 @@ button.peepss-close-button:hover {
   text-align: center;
 }
 
+/* Swipe is a dedicated viewport surface. Keep the gesture and its actions
+   isolated from document scrolling without changing Map or other worker pages. */
+.restaurant-swipe-layout {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: var(--surface);
+}
+
+.restaurant-swipe-layout-main {
+  display: flex;
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.restaurant-shell .swipe-immersive-page,
+.swipe-immersive-page {
+  box-sizing: border-box;
+  position: fixed;
+  z-index: 101;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: none;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  margin: 0;
+  padding-block-start: max(8px, env(safe-area-inset-top));
+  padding-inline-end: max(12px, env(safe-area-inset-right));
+  padding-block-end: max(10px, env(safe-area-inset-bottom));
+  padding-inline-start: max(12px, env(safe-area-inset-left));
+  overflow: hidden;
+  overscroll-behavior: none;
+  background:
+    radial-gradient(
+      ellipse 62% 72px at 50% 100%,
+      var(--accent-soft) 0 98%,
+      transparent 100%
+    ),
+    var(--surface);
+  color: var(--ink);
+}
+
+.swipe-immersive-topbar {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  width: min(100%, 442px);
+  margin: 0 auto 6px;
+  direction: ltr;
+}
+
+.restaurant-shell img.peepss-logo.swipe-immersive-logo,
+img.peepss-logo.swipe-immersive-logo {
+  width: 100px;
+  max-width: 31vw;
+  height: auto;
+  max-height: 36px;
+  object-fit: contain;
+}
+
+.swipe-immersive-exit,
+.restaurant-shell .swipe-immersive-exit {
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  min-height: 38px;
+  color: var(--ink);
+}
+
+.swipe-immersive-content {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  width: min(100%, 442px);
+  min-height: 0;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.swipe-immersive-state {
+  display: grid;
+  flex: 1 1 auto;
+  min-height: 0;
+  place-items: center;
+}
+
+.swipe-immersive-state > * {
+  width: 100%;
+}
+
+.restaurant-shell
+  .swipe-immersive-page
+  .restaurant-card-stack {
+  flex: 1 1 auto;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.restaurant-shell
+  .swipe-immersive-page
+  .restaurant-card-stack
+  .restaurant-job-card {
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+.swipe-immersive-page .restaurant-job-card::before {
+  flex-basis: clamp(62px, 15dvh, 120px);
+}
+
+.swipe-immersive-page .restaurant-job-details {
+  overflow: hidden;
+}
+
+.restaurant-swipe-card-minis {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  padding: 0 12px 5px;
+  pointer-events: none;
+}
+
+.restaurant-swipe-card-minis img {
+  display: block;
+  width: 96px;
+  max-width: 34%;
+  height: auto;
+  object-fit: contain;
+}
+
+.swipe-immersive-page .restaurant-job-actions {
+  padding-bottom: 7px;
+}
+
+.swipe-immersive-page .restaurant-swipe-card {
+  will-change: auto;
+}
+
+.swipe-immersive-page .restaurant-swipe-card.is-dragging,
+.swipe-immersive-page .restaurant-swipe-card.is-committing {
+  will-change: transform;
+}
+
+.swipe-action-announcer {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .restaurant-match-list {
   display: grid;
   gap: 12px;

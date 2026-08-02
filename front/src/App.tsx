@@ -7,6 +7,7 @@ import {
   useNavigate,
 } from 'react-router-dom'
 import AppLayout from './components/layout/AppLayout'
+import ImmersiveLayout from './components/layout/ImmersiveLayout'
 import PeepssLogo from './components/brand/PeepssLogo'
 import StandardLayout from './components/layout/StandardLayout'
 import ProtectedRoute from './components/routing/ProtectedRoute'
@@ -456,6 +457,24 @@ function App() {
         <Route
           element={
             isRestaurantWorkerOnly ? (
+              <ImmersiveLayout
+                className="restaurant-shell restaurant-worker-shell restaurant-swipe-layout"
+                mainClassName="restaurant-swipe-layout-main"
+              />
+            ) : (
+              <Navigate to={homePath} replace />
+            )
+          }
+        >
+          <Route
+            path="/restaurant/explore"
+            element={<RestaurantExplorePage />}
+          />
+        </Route>
+
+        <Route
+          element={
+            isRestaurantWorkerOnly ? (
               <AppLayout
                 userEmail={getUserDisplayName(currentUser)}
                 userTrack={userTrack}
@@ -467,10 +486,6 @@ function App() {
             )
           }
         >
-          <Route
-            path="/restaurant/explore"
-            element={<RestaurantExplorePage />}
-          />
           <Route path="/restaurant/map" element={<RestaurantMapPage />} />
         </Route>
 

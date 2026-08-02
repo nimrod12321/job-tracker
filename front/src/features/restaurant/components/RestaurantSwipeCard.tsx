@@ -5,7 +5,10 @@ import {
 } from '../types/restaurant'
 import type { AppLanguage } from '../utils/restaurantLanguage'
 
-const SWIPE_THRESHOLD = 100
+const INTENT_THRESHOLD = 8
+const HORIZONTAL_INTENT_RATIO = 1.2
+const SWIPE_DISTANCE_RATIO = 0.28
+const SWIPE_VELOCITY_THRESHOLD = 0.5
 const SWIPE_EXIT_DISTANCE = 900
 const avatarColors = [
   '#ef4b23',
@@ -37,6 +40,19 @@ type RestaurantSwipeCardProps = {
   language: AppLanguage
   onApply: () => Promise<boolean>
   onSkip: () => boolean
+}
+
+type GestureIntent = 'pending' | 'horizontal' | 'vertical'
+
+function isInteractiveTarget(target: EventTarget | null) {
+  return (
+    target instanceof Element &&
+    Boolean(
+      target.closest(
+        "button, a, input, textarea, select, [role='button']",
+      ),
+    )
+  )
 }
 
 function getRestaurantAvatar(job: RestaurantExploreJob) {
@@ -129,9 +145,14 @@ function RestaurantSwipeCard({
   onApply,
   onSkip,
 }: RestaurantSwipeCardProps) {
-  const dragStartX = useRef<number | null>(null)
+  const dragStart = useRef<{
+    x: number
+    y: number
+    startedAt: number
+  } | null>(null)
   const dragOffsetRef = useRef(0)
   const activePointerId = useRef<number | null>(null)
+  const gestureIntent = useRef<GestureIntent | null>(null)
   const [dragOffsetX, setDragOffsetX] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
   const [isCommittingSwipe, setIsCommittingSwipe] = useState(false)
@@ -139,7 +160,7 @@ function RestaurantSwipeCard({
   const rotation = Math.max(-8, Math.min(8, dragOffsetX / 24))
   const hintOpacity = Math.min(
     1,
-    Math.abs(dragOffsetX) / SWIPE_THRESHOLD,
+    Math.abs(dragOffsetX) / 100,
   )
   const text = {
     applyHint: language === 'he' ? 'הגש' : 'APPLY',
@@ -163,48 +184,77 @@ function RestaurantSwipeCard({
   const requirements = getCleanDemoText(job.requirements)
 
   function resetDrag() {
-    dragStartX.current = null
+    dragStart.current = null
     dragOffsetRef.current = 0
     activePointerId.current = null
+    gestureIntent.current = null
     setIsDragging(false)
     setIsCommittingSwipe(false)
     setDragOffsetX(0)
   }
 
   function handlePointerDown(event: PointerEvent<HTMLElement>) {
-    const target = event.target as HTMLElement
-
     if (
       isApplying ||
       isAnimating ||
       isPreview ||
       isCommittingSwipe ||
+      !event.isPrimary ||
       event.button !== 0 ||
-      target.closest('button, a')
+      isInteractiveTarget(event.target)
     ) {
       return
     }
 
-    dragStartX.current = event.clientX
+    dragStart.current = {
+      x: event.clientX,
+      y: event.clientY,
+      startedAt: performance.now(),
+    }
     dragOffsetRef.current = 0
     activePointerId.current = event.pointerId
-    setIsDragging(true)
-    event.preventDefault()
-    event.currentTarget.setPointerCapture(event.pointerId)
+    gestureIntent.current = 'pending'
   }
 
   function handlePointerMove(event: PointerEvent<HTMLElement>) {
     if (
-      dragStartX.current === null ||
+      dragStart.current === null ||
       activePointerId.current !== event.pointerId
     ) {
       return
     }
 
-    const nextOffset = event.clientX - dragStartX.current
+    const deltaX = event.clientX - dragStart.current.x
+    const deltaY = event.clientY - dragStart.current.y
+
+    if (gestureIntent.current === 'pending') {
+      if (Math.hypot(deltaX, deltaY) < INTENT_THRESHOLD) {
+        return
+      }
+
+      gestureIntent.current =
+        Math.abs(deltaX) > Math.abs(deltaY) * HORIZONTAL_INTENT_RATIO
+          ? 'horizontal'
+          : 'vertical'
+
+      if (gestureIntent.current === 'vertical') {
+        return
+      }
+
+      setIsDragging(true)
+
+      if (!event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.setPointerCapture(event.pointerId)
+      }
+    }
+
+    if (gestureIntent.current !== 'horizontal') {
+      return
+    }
+
     event.preventDefault()
-    dragOffsetRef.current = nextOffset
-    setDragOffsetX(nextOffset)
+    dragOffsetRef.current = deltaX
+    setDragOffsetX(deltaX)
   }
 
   async function handlePointerUp(event: PointerEvent<HTMLElement>) {
@@ -212,16 +262,35 @@ function RestaurantSwipeCard({
       return
     }
 
+    const start = dragStart.current
+    const finalIntent = gestureIntent.current
+    const finalOffset = dragOffsetRef.current
+    const elapsedMs = start
+      ? Math.max(1, performance.now() - start.startedAt)
+      : Number.POSITIVE_INFINITY
+    const swipeVelocity = Math.abs(finalOffset) / elapsedMs
+    const distanceThreshold =
+      event.currentTarget.getBoundingClientRect().width *
+      SWIPE_DISTANCE_RATIO
+
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId)
     }
 
-    const finalOffset = dragOffsetRef.current
-    dragStartX.current = null
+    dragStart.current = null
     activePointerId.current = null
+    gestureIntent.current = null
     setIsDragging(false)
 
-    if (Math.abs(finalOffset) < SWIPE_THRESHOLD) {
+    const passedDistance = Math.abs(finalOffset) >= distanceThreshold
+    const passedVelocity =
+      Math.abs(finalOffset) >= INTENT_THRESHOLD &&
+      swipeVelocity >= SWIPE_VELOCITY_THRESHOLD
+
+    if (
+      finalIntent !== 'horizontal' ||
+      (!passedDistance && !passedVelocity)
+    ) {
       dragOffsetRef.current = 0
       setDragOffsetX(0)
       return
@@ -242,6 +311,10 @@ function RestaurantSwipeCard({
 
   function handlePointerCancel(event: PointerEvent<HTMLElement>) {
     if (activePointerId.current === event.pointerId) {
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId)
+      }
+
       resetDrag()
     }
   }
@@ -256,7 +329,7 @@ function RestaurantSwipeCard({
       style={
         isDragging || isCommittingSwipe
           ? {
-              transform: `translateX(${dragOffsetX}px) rotate(${rotation}deg)`,
+              transform: `translate3d(${dragOffsetX}px, 0, 0) rotate(${rotation}deg)`,
             }
           : undefined
       }
@@ -348,6 +421,10 @@ function RestaurantSwipeCard({
         >
           {isApplying ? text.applying : text.apply}
         </button>
+      </div>
+
+      <div className="restaurant-swipe-card-minis" aria-hidden="true">
+        <img src="/assets/peepss-minis.svg" alt="" />
       </div>
     </article>
   )

@@ -142,6 +142,7 @@ function AppLayout({
               <NavLink
                 to="/restaurant/explore"
                 end
+                state={{ swipeReturnTo: location.pathname }}
                 className={({ isActive }) =>
                   `nav-button${
                     isActive || location.pathname === '/restaurant/map'

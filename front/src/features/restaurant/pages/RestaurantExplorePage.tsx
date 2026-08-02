@@ -1,11 +1,17 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import PeepssLogo from '../../../components/brand/PeepssLogo'
 import {
   applyToRestaurantJob,
   getRestaurantExploreJobs,
 } from '../services/restaurantApi'
 import RestaurantSwipeCard from '../components/RestaurantSwipeCard'
-import RestaurantViewSwitcher from '../components/RestaurantViewSwitcher'
 import type { RestaurantExploreJob } from '../types/restaurant'
 import { useRestaurantLanguage } from '../utils/restaurantLanguage'
 
@@ -17,6 +23,7 @@ type CardAnimationDirection = 'left' | 'right'
 
 function RestaurantExplorePage() {
   const { direction, language } = useRestaurantLanguage()
+  const location = useLocation()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const focusJobId = searchParams.get('jobId') || undefined
@@ -64,7 +71,56 @@ function RestaurantExplorePage() {
     updateProfile: language === 'he' ? 'עדכון פרופיל' : 'Update profile',
     findMore: language === 'he' ? 'חפש עוד משמרות' : 'Find more jobs',
     skipped: language === 'he' ? 'דילגת' : 'Skipped',
+    exitSwipe: language === 'he' ? 'יציאה מהחלקה' : 'Exit swipe',
   }
+
+  const handleExitSwipe = useCallback(() => {
+    const routeState = location.state as
+      | { swipeReturnTo?: unknown }
+      | null
+    const returnTo = routeState?.swipeReturnTo
+
+    if (
+      typeof returnTo === 'string' &&
+      returnTo.startsWith('/restaurant/') &&
+      returnTo !== location.pathname
+    ) {
+      navigate(returnTo)
+      return
+    }
+
+    navigate('/restaurant/matches', { replace: true })
+  }, [location.pathname, location.state, navigate])
+
+  useEffect(() => {
+    const body = document.body
+    const root = document.documentElement
+    const previousBodyOverflow = body.style.overflow
+    const previousBodyOverscroll = body.style.overscrollBehavior
+    const previousRootOverflow = root.style.overflow
+    const previousRootOverscroll = root.style.overscrollBehavior
+
+    body.style.overflow = 'hidden'
+    body.style.overscrollBehavior = 'none'
+    root.style.overflow = 'hidden'
+    root.style.overscrollBehavior = 'none'
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        handleExitSwipe()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      body.style.overflow = previousBodyOverflow
+      body.style.overscrollBehavior = previousBodyOverscroll
+      root.style.overflow = previousRootOverflow
+      root.style.overscrollBehavior = previousRootOverscroll
+    }
+  }, [handleExitSwipe])
 
   const loadJobs = useCallback(async (excludedIds: string[]) => {
     setIsLoading(true)
@@ -267,31 +323,39 @@ function RestaurantExplorePage() {
     return `restaurant-card-current restaurant-card-exit-${animationDirection}`
   }
 
-  if (isLoading) {
+  function renderSwipePage(content: ReactNode) {
     return (
-      <section className="restaurant-explore-page" dir={direction}>
-        <RestaurantViewSwitcher language={language} />
-        <div className="page-header">
-          <div>
-            <h1>{text.title}</h1>
-            <p>{text.subtitle}</p>
-          </div>
-        </div>
-        <p className="status-message">{text.loading}</p>
+      <section className="restaurant-explore-page swipe-immersive-page" dir={direction}>
+        <header className="swipe-immersive-topbar">
+          <PeepssLogo className="swipe-immersive-logo" />
+          <button
+            type="button"
+            className="swipe-immersive-exit peepss-close-button"
+            aria-label={text.exitSwipe}
+            onClick={handleExitSwipe}
+          >
+            ×
+          </button>
+        </header>
+        <div className="swipe-immersive-content">{content}</div>
+        <p className="swipe-action-announcer" aria-live="polite">
+          {feedback || ''}
+        </p>
       </section>
     )
   }
 
+  if (isLoading) {
+    return renderSwipePage(
+      <div className="swipe-immersive-state">
+        <p className="status-message">{text.loading}</p>
+      </div>,
+    )
+  }
+
   if (needsProfile) {
-    return (
-      <section className="restaurant-explore-page" dir={direction}>
-        <RestaurantViewSwitcher language={language} />
-        <div className="page-header">
-          <div>
-            <h1>{text.title}</h1>
-            <p>{text.subtitle}</p>
-          </div>
-        </div>
+    return renderSwipePage(
+      <div className="swipe-immersive-state">
         <div className="empty-state restaurant-empty-state">
           <h2>{text.completeProfile}</h2>
           <p>{text.completeProfileMessage}</p>
@@ -302,20 +366,13 @@ function RestaurantExplorePage() {
             {text.goToProfile}
           </Link>
         </div>
-      </section>
+      </div>,
     )
   }
 
   if (error && jobs.length === 0) {
-    return (
-      <section className="restaurant-explore-page" dir={direction}>
-        <RestaurantViewSwitcher language={language} />
-        <div className="page-header">
-          <div>
-            <h1>{text.title}</h1>
-            <p>{text.subtitle}</p>
-          </div>
-        </div>
+    return renderSwipePage(
+      <div className="swipe-immersive-state">
         <p className="message message-error" role="alert">
           {error}
         </p>
@@ -326,20 +383,13 @@ function RestaurantExplorePage() {
         >
           {text.tryAgain}
         </button>
-      </section>
+      </div>,
     )
   }
 
   if (!activeJob) {
-    return (
-      <section className="restaurant-explore-page" dir={direction}>
-        <RestaurantViewSwitcher language={language} />
-        <div className="page-header">
-          <div>
-            <h1>{text.title}</h1>
-            <p>{text.subtitle}</p>
-          </div>
-        </div>
+    return renderSwipePage(
+      <div className="swipe-immersive-state">
         <div className="empty-state restaurant-empty-state">
           <h2>{text.noMore}</h2>
           <p>{text.noMoreHint}</p>
@@ -359,31 +409,12 @@ function RestaurantExplorePage() {
             </button>
           </div>
         </div>
-        {feedback && (
-          <p className="restaurant-feedback" aria-live="polite">
-            {feedback}
-          </p>
-        )}
-      </section>
+      </div>,
     )
   }
 
-  return (
-    <section className="restaurant-explore-page" dir={direction}>
-      <RestaurantViewSwitcher language={language} />
-      <div className="page-header restaurant-explore-header">
-        <div>
-          <h1>{text.title}</h1>
-          <p>{text.subtitle}</p>
-        </div>
-      </div>
-
-      {feedback && (
-        <p className="restaurant-feedback" aria-live="polite">
-          {feedback}
-        </p>
-      )}
-
+  return renderSwipePage(
+    <>
       {error && (
         <p className="message message-error" role="alert">
           {error}
@@ -418,7 +449,7 @@ function RestaurantExplorePage() {
           onSkip={handleSkip}
         />
       </div>
-    </section>
+    </>,
   )
 }
 
