@@ -5,8 +5,9 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import PeepssLogo from '../../../components/brand/PeepssLogo'
+import { ENABLE_JOB_MAP } from '../../../config/env'
 import {
   applyToRestaurantJob,
   getRestaurantExploreJobs,
@@ -23,7 +24,6 @@ type CardAnimationDirection = 'left' | 'right'
 
 function RestaurantExplorePage() {
   const { direction, language } = useRestaurantLanguage()
-  const location = useLocation()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const focusJobId = searchParams.get('jobId') || undefined
@@ -75,22 +75,11 @@ function RestaurantExplorePage() {
   }
 
   const handleExitSwipe = useCallback(() => {
-    const routeState = location.state as
-      | { swipeReturnTo?: unknown }
-      | null
-    const returnTo = routeState?.swipeReturnTo
-
-    if (
-      typeof returnTo === 'string' &&
-      returnTo.startsWith('/restaurant/') &&
-      returnTo !== location.pathname
-    ) {
-      navigate(returnTo)
-      return
-    }
-
-    navigate('/restaurant/matches', { replace: true })
-  }, [location.pathname, location.state, navigate])
+    navigate(
+      ENABLE_JOB_MAP ? '/restaurant/map' : '/restaurant/matches',
+      { replace: true },
+    )
+  }, [navigate])
 
   useEffect(() => {
     const body = document.body
