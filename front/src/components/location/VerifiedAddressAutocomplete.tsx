@@ -36,6 +36,7 @@ function VerifiedAddressAutocomplete({
 }: VerifiedAddressAutocompleteProps) {
   const inputRef = useRef<HTMLInputElement | null>(null)
   const onPlaceSelectedRef = useRef(onPlaceSelected)
+  const selectedDisplayValuesRef = useRef<Set<string>>(new Set())
   const [loadError, setLoadError] = useState(false)
 
   useEffect(() => {
@@ -78,10 +79,17 @@ function VerifiedAddressAutocomplete({
             return
           }
 
+          const formattedAddress =
+            place.formatted_address?.trim() || place.name?.trim() || ''
+          const inputDisplayValue = inputRef.current?.value.trim() || ''
+
+          selectedDisplayValuesRef.current = new Set(
+            [formattedAddress, inputDisplayValue].filter(Boolean),
+          )
+
           onPlaceSelectedRef.current({
             placeId: place.place_id,
-            formattedAddress:
-              place.formatted_address?.trim() || place.name?.trim() || '',
+            formattedAddress,
           })
         })
       })
@@ -109,7 +117,19 @@ function VerifiedAddressAutocomplete({
         placeholder={placeholder}
         required={required}
         value={value}
-        onChange={(event) => onInputChange(event.target.value)}
+        onChange={(event) => {
+          const nextValue = event.target.value
+
+          // Google may dispatch an input event while committing a suggestion.
+          // Do not treat that event as manual editing and clear the Place ID.
+          if (selectedDisplayValuesRef.current.has(nextValue.trim())) {
+            selectedDisplayValuesRef.current.clear()
+            return
+          }
+
+          selectedDisplayValuesRef.current.clear()
+          onInputChange(nextValue)
+        }}
       />
       {loadError && (
         <span className="form-helper-text address-search-error" role="status">

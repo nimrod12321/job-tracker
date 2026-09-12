@@ -16,6 +16,26 @@ function createFetch(place: Record<string, unknown>): typeof fetch {
     })) as typeof fetch
 }
 
+function createFetchSequence(
+  responses: Array<Record<string, unknown>>,
+): typeof fetch {
+  let responseIndex = 0
+
+  return (async () => {
+    const responseBody = responses[responseIndex]
+    responseIndex += 1
+
+    assert.ok(responseBody, 'unexpected Google Places request')
+
+    return new Response(JSON.stringify(responseBody), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+  }) as typeof fetch
+}
+
 const telAvivComponents = [
   { longText: 'Dizengoff Street', types: ['route'] },
   { longText: '100', types: ['street_number'] },
@@ -101,5 +121,46 @@ test('worker location accepts a Tel Aviv route and stores no house number', asyn
 
   assert.equal(location.streetName, 'Dizengoff Street')
   assert.equal(location.formattedAddress, 'Dizengoff Street, Tel Aviv-Yafo')
+  assert.equal('streetNumber' in location, false)
+})
+
+test('worker can select a numbered address while only its street is stored', async () => {
+  const location = await verifyWorkerStreetPlaceId({
+    placeId: 'worker-address',
+    apiKey: 'test-key',
+    fetchImpl: createFetchSequence([
+      {
+        id: 'worker-address',
+        formattedAddress: 'Dizengoff St 100, Tel Aviv-Yafo, Israel',
+        location: { latitude: 32.0809, longitude: 34.7732 },
+        addressComponents: telAvivComponents,
+        types: ['street_address'],
+      },
+      {
+        suggestions: [
+          {
+            placePrediction: {
+              placeId: 'worker-route',
+            },
+          },
+        ],
+      },
+      {
+        id: 'worker-route',
+        formattedAddress: 'Dizengoff Street, Tel Aviv-Yafo, Israel',
+        location: { latitude: 32.083, longitude: 34.773 },
+        addressComponents: telAvivComponents.filter(
+          (component) => !component.types.includes('street_number'),
+        ),
+        types: ['route'],
+      },
+    ]),
+  })
+
+  assert.equal(location.googlePlaceId, 'worker-route')
+  assert.equal(location.streetName, 'Dizengoff Street')
+  assert.equal(location.formattedAddress, 'Dizengoff Street, Tel Aviv-Yafo')
+  assert.equal(location.latitude, 32.083)
+  assert.equal(location.formattedAddress.includes('100'), false)
   assert.equal('streetNumber' in location, false)
 })

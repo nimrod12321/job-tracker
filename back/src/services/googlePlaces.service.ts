@@ -8,6 +8,13 @@ const GOOGLE_PLACE_FIELDS = [
   'types',
 ].join(',')
 
+const TEL_AVIV_LOCATION_RESTRICTION = {
+  rectangle: {
+    low: { latitude: 31.95, longitude: 34.7 },
+    high: { latitude: 32.15, longitude: 34.9 },
+  },
+}
+
 type GoogleAddressComponent = {
   longText?: string
   shortText?: string
@@ -23,6 +30,14 @@ export type GooglePlaceDetails = {
   }
   addressComponents?: GoogleAddressComponent[]
   types?: string[]
+}
+
+type GoogleAutocompleteResponse = {
+  suggestions?: Array<{
+    placePrediction?: {
+      placeId?: string
+    }
+  }>
 }
 
 const testPlaceDetails = new Map<string, GooglePlaceDetails>()
@@ -198,6 +213,67 @@ async function fetchPlaceDetails(input: {
   return (await response.json()) as GooglePlaceDetails
 }
 
+async function fetchWorkerStreetDetails(input: {
+  streetName: string
+  city: string
+  apiKey?: string
+  fetchImpl?: typeof fetch
+}) {
+  const apiKey = input.apiKey ?? env.googleMapsApiKey
+
+  if (!apiKey) {
+    throw new GooglePlacesError(
+      'Address search is temporarily unavailable. Please try again.',
+      503,
+    )
+  }
+
+  const fetchImpl = input.fetchImpl ?? fetch
+  const response = await fetchImpl(
+    'https://places.googleapis.com/v1/places:autocomplete',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': apiKey,
+      },
+      body: JSON.stringify({
+        input: `${input.streetName}, ${input.city}`,
+        includedPrimaryTypes: ['route'],
+        includedRegionCodes: ['il'],
+        locationRestriction: TEL_AVIV_LOCATION_RESTRICTION,
+      }),
+    },
+  )
+
+  if (!response.ok) {
+    console.error('Google street autocomplete verification failed', {
+      status: response.status,
+    })
+    throw new GooglePlacesError(
+      'Address search is temporarily unavailable. Please try again.',
+      response.status >= 500 ? 503 : 400,
+    )
+  }
+
+  const result = (await response.json()) as GoogleAutocompleteResponse
+  const streetPlaceId = result.suggestions
+    ?.map((suggestion) => suggestion.placePrediction?.placeId)
+    .find((placeId): placeId is string => Boolean(placeId))
+
+  if (!streetPlaceId) {
+    throw new GooglePlacesError(
+      'Choose an address from the list. Peepss will save only the street.',
+    )
+  }
+
+  return fetchPlaceDetails({
+    placeId: streetPlaceId,
+    apiKey,
+    fetchImpl,
+  })
+}
+
 export async function verifyRestaurantPlaceId(input: {
   placeId: string
   apiKey?: string
@@ -232,12 +308,43 @@ export async function verifyWorkerStreetPlaceId(input: {
   fetchImpl?: typeof fetch
 }): Promise<VerifiedWorkerStreet> {
   const place = await fetchPlaceDetails(input)
-  const common = validateCommonPlace(place)
+  let common = validateCommonPlace(place)
 
-  // A worker chooses a street/route, never a precise home address.
   if (!place.types?.includes('route')) {
+    const isAddressWithStreet = place.types?.some((type) =>
+      ['street_address', 'premise', 'subpremise'].includes(type),
+    )
+
+    if (!isAddressWithStreet) {
+      throw new GooglePlacesError(
+        'Choose an address from the list. Peepss will save only the street.',
+      )
+    }
+
+    const streetPlace = await fetchWorkerStreetDetails({
+      streetName: common.route,
+      city: common.city,
+      ...(input.apiKey ? { apiKey: input.apiKey } : {}),
+      ...(input.fetchImpl ? { fetchImpl: input.fetchImpl } : {}),
+    })
+    const verifiedStreet = validateCommonPlace(streetPlace)
+
+    if (
+      !streetPlace.types?.includes('route') ||
+      normalizeAddressName(verifiedStreet.route) !==
+        normalizeAddressName(common.route)
+    ) {
+      throw new GooglePlacesError(
+        'Choose an address from the list. Peepss will save only the street.',
+      )
+    }
+
+    common = verifiedStreet
+  }
+
+  if (!common.route) {
     throw new GooglePlacesError(
-      'Choose a valid street in Tel Aviv–Yafo.',
+      'Choose an address from the list. Peepss will save only the street.',
     )
   }
 

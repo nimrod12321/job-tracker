@@ -225,16 +225,16 @@ function RestaurantProfilePage() {
     locationTitle: language === 'he' ? 'מיקום' : 'Location',
     locationQuestion:
       language === 'he'
-        ? 'באיזה רחוב אתם גרים?'
-        : 'What street do you live on?',
+        ? 'מה הכתובת שלכם?'
+        : 'What is your address?',
     locationHelp:
       language === 'he'
-        ? 'המיקום המשוער משמש להצגת משרות קרובות. המסעדות לא יראו אותו.'
-        : 'We use your approximate location to show jobs near you. Restaurants will not see it.',
+        ? 'בחרו כתובת מהרשימה. אנחנו שומרים רק את הרחוב כדי להציג משרות קרובות.'
+        : 'Choose an address from the list. We save only the street to show nearby jobs.',
     locationError:
       language === 'he'
-        ? 'יש לבחור רחוב תקין בתל אביב-יפו.'
-        : 'Choose a valid street in Tel Aviv–Yafo.',
+        ? 'בחרו כתובת מהרשימה. אנחנו נשמור רק את הרחוב.'
+        : 'Choose an address from the list. We will save only the street.',
     phoneHelp:
       language === 'he'
         ? 'זה מספר הטלפון שמסעדות ישתמשו בו כדי ליצור איתך קשר.'
@@ -349,9 +349,13 @@ function RestaurantProfilePage() {
       return
     }
 
+    const hasSelectedOrSavedHomeLocation =
+      Boolean(form.homePlaceId) ||
+      (!locationWasEdited && hasVerifiedHomeLocation)
+
     if (
       (requiresVerifiedLocation || locationWasEdited) &&
-      !hasVerifiedHomeLocation
+      !hasSelectedOrSavedHomeLocation
     ) {
       setError(text.locationError)
       return
@@ -525,20 +529,26 @@ function RestaurantProfilePage() {
             mode="workerStreet"
             placeholder={
               language === 'he'
-                ? 'התחילו להקליד ובחרו רחוב'
-                : 'Start typing and choose a street'
+                ? 'הקלידו כתובת ובחרו מהרשימה'
+                : 'Type an address and choose it from the list'
             }
             required={requiresVerifiedLocation}
             value={form.homeStreetInput}
             onInputChange={(value) => {
-              updateTextField('homeStreetInput', value)
-              updateTextField('homePlaceId', '')
+              setForm((currentForm) => ({
+                ...currentForm,
+                homeStreetInput: value,
+                homePlaceId: '',
+              }))
               setHasVerifiedHomeLocation(false)
               setLocationWasEdited(true)
             }}
             onPlaceSelected={(place) => {
-              updateTextField('homeStreetInput', place.formattedAddress)
-              updateTextField('homePlaceId', place.placeId)
+              setForm((currentForm) => ({
+                ...currentForm,
+                homeStreetInput: place.formattedAddress,
+                homePlaceId: place.placeId,
+              }))
               setHasVerifiedHomeLocation(true)
               setLocationWasEdited(true)
             }}
