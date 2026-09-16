@@ -1,9 +1,5 @@
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   RESTAURANT_ROLES,
   getRestaurantRoleLabel,
@@ -11,85 +7,126 @@ import {
 } from '../../restaurant/types/restaurant'
 import AdminShell from '../components/AdminShell'
 import {
-  getAdminRestaurantLeads,
+  getAdminCandidates,
   updateAdminRestaurantLeadStatus,
 } from '../services/adminApi'
 import type {
-  AdminRestaurantCandidateLead,
+  AdminCandidate,
+  AdminCandidateSource,
+  AdminCandidateStatus,
   CandidateLeadStatus,
 } from '../types/admin'
 
-const statuses: CandidateLeadStatus[] = [
+const qrStatuses: CandidateLeadStatus[] = [
   'new',
   'contacted',
   'relevant',
   'rejected',
 ]
 
-const statusLabels: Record<CandidateLeadStatus, string> = {
+const statusLabels: Record<AdminCandidateStatus, string> = {
   new: 'New',
   contacted: 'Contacted',
   relevant: 'Relevant',
   rejected: 'Rejected',
+  applied: 'Applied',
+  selected: 'Selected',
+}
+
+type StatusFilter = AdminCandidateStatus | 'all' | 'attention'
+
+function needsAttention(candidate: AdminCandidate) {
+  if (candidate.source === 'qr') {
+    return candidate.ownerViewState === 'unviewed' || candidate.status === 'new'
+  }
+
+  return candidate.status === 'applied'
 }
 
 function AdminLeadsPage() {
-  const [leads, setLeads] = useState<AdminRestaurantCandidateLead[]>([])
+  const [searchParams] = useSearchParams()
+  const [candidates, setCandidates] = useState<AdminCandidate[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [statusFilter, setStatusFilter] = useState<CandidateLeadStatus | 'all'>(
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [sourceFilter, setSourceFilter] = useState<AdminCandidateSource | 'all'>(
     'all',
   )
-  const [restaurantQuery, setRestaurantQuery] = useState('')
+  const [restaurantQuery, setRestaurantQuery] = useState(
+    searchParams.get('restaurant') ?? '',
+  )
   const [roleFilter, setRoleFilter] = useState<RestaurantRole | 'all'>('all')
-  const [busyLeadId, setBusyLeadId] = useState<string | null>(null)
-  const pendingLeadIds = useRef(new Set<string>())
+  const [busyCandidateId, setBusyCandidateId] = useState<string | null>(null)
+  const pendingCandidateIds = useRef(new Set<string>())
 
   const isForbidden = error?.toLowerCase().includes('admin access required')
-  const filteredLeads = useMemo(() => {
+  const filteredCandidates = useMemo(() => {
     const normalizedRestaurantQuery = restaurantQuery.trim().toLowerCase()
 
-    return leads.filter((lead) => {
-      const matchesStatus =
-        statusFilter === 'all' || lead.status === statusFilter
-      const matchesRestaurant =
-        !normalizedRestaurantQuery ||
-        `${lead.restaurant.restaurantName} ${lead.restaurant.city} ${lead.restaurant.street}`
-          .toLowerCase()
-          .includes(normalizedRestaurantQuery)
-      const matchesRole =
-        roleFilter === 'all' || lead.wantedRoles.includes(roleFilter)
+    return candidates
+      .filter((candidate) => {
+        const matchesStatus =
+          statusFilter === 'all' ||
+          (statusFilter === 'attention'
+            ? needsAttention(candidate)
+            : candidate.status === statusFilter)
+        const matchesSource =
+          sourceFilter === 'all' || candidate.source === sourceFilter
+        const matchesRestaurant =
+          !normalizedRestaurantQuery ||
+          `${candidate.restaurant.restaurantName} ${candidate.restaurant.city} ${candidate.restaurant.street} ${candidate.restaurant.id}`
+            .toLowerCase()
+            .includes(normalizedRestaurantQuery)
+        const matchesRole =
+          roleFilter === 'all' || candidate.roles.includes(roleFilter)
 
-      return matchesStatus && matchesRestaurant && matchesRole
-    })
-  }, [leads, restaurantQuery, roleFilter, statusFilter])
+        return matchesStatus && matchesSource && matchesRestaurant && matchesRole
+      })
+      .sort((first, second) => {
+        const attentionDifference =
+          Number(needsAttention(second)) - Number(needsAttention(first))
+
+        if (attentionDifference !== 0) {
+          return attentionDifference
+        }
+
+        return (
+          new Date(second.createdAt).getTime() -
+          new Date(first.createdAt).getTime()
+        )
+      })
+  }, [candidates, restaurantQuery, roleFilter, sourceFilter, statusFilter])
   const stats = useMemo(
     () => ({
-      total: leads.length,
-      new: leads.filter((lead) => lead.status === 'new').length,
-      contacted: leads.filter((lead) => lead.status === 'contacted').length,
-      relevant: leads.filter((lead) => lead.status === 'relevant').length,
-      rejected: leads.filter((lead) => lead.status === 'rejected').length,
+      total: candidates.length,
+      attention: candidates.filter(needsAttention).length,
+      qr: candidates.filter((candidate) => candidate.source === 'qr').length,
+      jobBoard: candidates.filter(
+        (candidate) => candidate.source === 'jobBoard',
+      ).length,
+      ownerUnviewed: candidates.filter(
+        (candidate) => candidate.ownerViewState === 'unviewed',
+      ).length,
     }),
-    [leads],
+    [candidates],
   )
 
   useEffect(() => {
     let isActive = true
 
-    async function loadLeads() {
+    async function loadCandidates() {
       try {
-        const nextLeads = await getAdminRestaurantLeads()
+        const nextCandidates = await getAdminCandidates()
 
         if (isActive) {
-          setLeads(nextLeads)
+          setCandidates(nextCandidates)
         }
-      } catch (error) {
+      } catch (loadError) {
         if (isActive) {
           setError(
-            error instanceof Error
-              ? error.message
-              : 'Failed to load restaurant leads',
+            loadError instanceof Error
+              ? loadError.message
+              : 'Failed to load candidates',
           )
         }
       } finally {
@@ -99,7 +136,7 @@ function AdminLeadsPage() {
       }
     }
 
-    void loadLeads()
+    void loadCandidates()
 
     return () => {
       isActive = false
@@ -107,51 +144,70 @@ function AdminLeadsPage() {
   }, [])
 
   async function handleStatusChange(
-    lead: AdminRestaurantCandidateLead,
+    candidate: AdminCandidate,
     status: CandidateLeadStatus,
   ) {
-    if (pendingLeadIds.current.has(lead.id) || lead.status === status) {
+    if (
+      candidate.source !== 'qr' ||
+      pendingCandidateIds.current.has(candidate.id) ||
+      candidate.status === status
+    ) {
       return
     }
 
-    pendingLeadIds.current.add(lead.id)
-    setBusyLeadId(lead.id)
+    pendingCandidateIds.current.add(candidate.id)
+    setBusyCandidateId(candidate.id)
     setError(null)
-    setLeads((currentLeads) =>
-      currentLeads.map((currentLead) =>
-        currentLead.id === lead.id ? { ...currentLead, status } : currentLead,
+    setCandidates((currentCandidates) =>
+      currentCandidates.map((currentCandidate) =>
+        currentCandidate.id === candidate.id
+          ? { ...currentCandidate, status }
+          : currentCandidate,
       ),
     )
 
     try {
-      const updatedLead = await updateAdminRestaurantLeadStatus(lead.id, status)
+      const updatedLead = await updateAdminRestaurantLeadStatus(
+        candidate.id,
+        status,
+      )
 
-      setLeads((currentLeads) =>
-        currentLeads.map((currentLead) =>
-          currentLead.id === updatedLead.id ? updatedLead : currentLead,
+      setCandidates((currentCandidates) =>
+        currentCandidates.map((currentCandidate) =>
+          currentCandidate.id === updatedLead.id
+            ? {
+                ...currentCandidate,
+                status: updatedLead.status,
+                updatedAt: updatedLead.updatedAt,
+                ownerViewedAt: updatedLead.ownerViewedAt,
+                ownerViewState: updatedLead.ownerViewedAt
+                  ? 'viewed'
+                  : 'unviewed',
+              }
+            : currentCandidate,
         ),
       )
-    } catch (error) {
-      setLeads((currentLeads) =>
-        currentLeads.map((currentLead) =>
-          currentLead.id === lead.id ? lead : currentLead,
+    } catch (updateError) {
+      setCandidates((currentCandidates) =>
+        currentCandidates.map((currentCandidate) =>
+          currentCandidate.id === candidate.id ? candidate : currentCandidate,
         ),
       )
       setError(
-        error instanceof Error
-          ? error.message
-          : 'Failed to update restaurant lead',
+        updateError instanceof Error
+          ? updateError.message
+          : 'Failed to update candidate',
       )
     } finally {
-      pendingLeadIds.current.delete(lead.id)
-      setBusyLeadId(null)
+      pendingCandidateIds.current.delete(candidate.id)
+      setBusyCandidateId(null)
     }
   }
 
   if (isLoading) {
     return (
       <AdminShell>
-        <p className="status-message">Loading restaurant leads...</p>
+        <p className="status-message">Loading candidates...</p>
       </AdminShell>
     )
   }
@@ -169,40 +225,56 @@ function AdminLeadsPage() {
 
   return (
     <AdminShell>
-      <section className="admin-leads-page">
-        <div className="admin-page-heading">
+      <section className="admin-leads-page admin-candidates-page">
+        <header className="admin-page-heading">
           <div>
-            <h1>QR Leads</h1>
-            <p>All candidates who applied through restaurant QR links.</p>
+            <p className="admin-eyebrow">Operations</p>
+            <h1>Candidates</h1>
+            <p>External/QR candidates and Job Board applications across restaurants.</p>
           </div>
-          <span>More statistics coming later.</span>
+          <span>{stats.attention} need attention</span>
+        </header>
+
+        <div className="admin-stat-grid admin-candidate-stat-grid" aria-label="Candidate summary">
+          <StatCard label="Total applications" value={stats.total} />
+          <StatCard label="Needs attention" value={stats.attention} />
+          <StatCard label="External / QR" value={stats.qr} />
+          <StatCard label="Job Board" value={stats.jobBoard} />
+          <StatCard label="Not yet in owner list" value={stats.ownerUnviewed} />
         </div>
 
-        <div className="admin-stat-grid" aria-label="QR lead stats">
-          <StatCard label="Total leads" value={stats.total} />
-          <StatCard label="New" value={stats.new} />
-          <StatCard label="Contacted" value={stats.contacted} />
-          <StatCard label="Relevant" value={stats.relevant} />
-          <StatCard label="Rejected" value={stats.rejected} />
-        </div>
-
-        <div className="admin-leads-toolbar">
+        <div className="admin-leads-toolbar admin-candidate-toolbar">
           <label>
             Status
             <select
               value={statusFilter}
               onChange={(event) =>
-                setStatusFilter(
-                  event.target.value as CandidateLeadStatus | 'all',
+                setStatusFilter(event.target.value as StatusFilter)
+              }
+            >
+              <option value="all">All statuses</option>
+              <option value="attention">New / needs attention</option>
+              <option value="new">New (external / QR)</option>
+              <option value="contacted">Contacted</option>
+              <option value="relevant">Relevant</option>
+              <option value="applied">Applied (Job Board)</option>
+              <option value="selected">Selected (Job Board)</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </label>
+          <label>
+            Source
+            <select
+              value={sourceFilter}
+              onChange={(event) =>
+                setSourceFilter(
+                  event.target.value as AdminCandidateSource | 'all',
                 )
               }
             >
-              <option value="all">All</option>
-              {statuses.map((status) => (
-                <option key={status} value={status}>
-                  {statusLabels[status]}
-                </option>
-              ))}
+              <option value="all">All sources</option>
+              <option value="qr">External / QR</option>
+              <option value="jobBoard">Job Board / swipe</option>
             </select>
           </label>
           <label>
@@ -237,132 +309,178 @@ function AdminLeadsPage() {
           </p>
         )}
 
-        {leads.length === 0 ? (
+        {candidates.length === 0 ? (
           <div className="empty-state admin-empty-state">
-            <h2>No QR leads yet</h2>
-            <p>
-              When candidates apply through restaurant QR codes, they will
-              appear here.
-            </p>
+            <h2>No candidates yet</h2>
+            <p>External/QR and Job Board applications will appear here.</p>
           </div>
-        ) : filteredLeads.length === 0 ? (
+        ) : filteredCandidates.length === 0 ? (
           <div className="empty-state admin-empty-state">
-            <h2>No leads match these filters</h2>
-            <p>Try changing the status, restaurant, or role filter.</p>
+            <h2>No candidates match these filters</h2>
+            <p>Try changing the status, source, restaurant, or role.</p>
           </div>
         ) : (
           <div className="admin-leads-list">
-            {filteredLeads.map((lead) => {
-            const whatsappNumber = lead.phoneNumber.replace(/\D/g, '')
-            const restaurantLocation =
-              [lead.restaurant.city, lead.restaurant.street]
-                .filter(Boolean)
-                .join(' · ') || 'Not provided'
-
-            return (
-              <article className="admin-lead-card" key={lead.id}>
-                <div className="admin-lead-header">
-                  <div>
-                    <h2>{lead.fullName}</h2>
-                    <p>
-                      Applied via QR to:{' '}
-                      <strong>{lead.restaurant.restaurantName}</strong>
-                    </p>
-                  </div>
-                  <div className="admin-lead-badges">
-                    <span className="admin-source-badge">QR</span>
-                    <span className={`admin-status-badge ${lead.status}`}>
-                      {statusLabels[lead.status]}
-                    </span>
-                  </div>
-                </div>
-
-                <dl className="admin-lead-details">
-                  <div>
-                    <dt>Restaurant</dt>
-                    <dd>{lead.restaurant.restaurantName}</dd>
-                  </div>
-                  <div>
-                    <dt>Location</dt>
-                    <dd>{restaurantLocation}</dd>
-                  </div>
-                  <div>
-                    <dt>Phone</dt>
-                    <dd>{lead.phoneNumber}</dd>
-                  </div>
-                  <div>
-                    <dt>Submitted</dt>
-                    <dd>{new Date(lead.createdAt).toLocaleDateString()}</dd>
-                  </div>
-                  {lead.age !== null && (
-                    <div>
-                      <dt>Age</dt>
-                      <dd>{lead.age}</dd>
-                    </div>
-                  )}
-                </dl>
-
-                <div className="admin-lead-section">
-                  <strong>Interested in</strong>
-                  <p>
-                    {lead.wantedRoles
-                      .map((role) => getRestaurantRoleLabel(role))
-                      .join(', ')}
-                  </p>
-                </div>
-                <div className="admin-lead-section">
-                  <strong>Experience</strong>
-                  <p>{lead.experienceText || 'Not provided'}</p>
-                </div>
-                <div className="admin-lead-section">
-                  <strong>Availability</strong>
-                  <p>{lead.availability || 'Not provided'}</p>
-                </div>
-                <div className="admin-actions">
-                  <a href={`tel:${lead.phoneNumber}`}>Call</a>
-                  {whatsappNumber && (
-                    <a
-                      href={`https://wa.me/${whatsappNumber}`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      WhatsApp
-                    </a>
-                  )}
-                </div>
-                <div className="admin-status-actions">
-                  <label className="admin-inline-status-control">
-                    <span>Status</span>
-                    <select
-                      aria-label={`Status for ${lead.fullName || 'candidate'}`}
-                      value={lead.status}
-                      disabled={busyLeadId === lead.id}
-                      onChange={(event) =>
-                        void handleStatusChange(
-                          lead,
-                          event.target.value as CandidateLeadStatus,
-                        )
-                      }
-                    >
-                      {statuses.map((status) => (
-                        <option
-                          disabled={status === lead.status}
-                          key={status}
-                          value={status}
-                        >
-                          {statusLabels[status]}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-              </article>
-            )
-            })}
+            {filteredCandidates.map((candidate) => (
+              <CandidateCard
+                busy={busyCandidateId === candidate.id}
+                candidate={candidate}
+                key={`${candidate.source}-${candidate.id}`}
+                onStatusChange={handleStatusChange}
+              />
+            ))}
           </div>
         )}
       </section>
     </AdminShell>
+  )
+}
+
+function CandidateCard({
+  candidate,
+  busy,
+  onStatusChange,
+}: {
+  candidate: AdminCandidate
+  busy: boolean
+  onStatusChange: (
+    candidate: AdminCandidate,
+    status: CandidateLeadStatus,
+  ) => Promise<void>
+}) {
+  const whatsappNumber = candidate.phoneNumber.replace(/\D/g, '')
+  const restaurantLocation =
+    [candidate.restaurant.city, candidate.restaurant.street]
+      .filter(Boolean)
+      .join(' · ') || 'Not provided'
+  const viewLabel =
+    candidate.ownerViewState === 'viewed'
+      ? 'Seen in owner list'
+      : candidate.ownerViewState === 'unviewed'
+        ? 'Waiting for restaurant'
+        : 'Owner view not tracked'
+
+  return (
+    <article
+      className={`admin-lead-card admin-candidate-card${needsAttention(candidate) ? ' needs-attention' : ''}`}
+    >
+      <div className="admin-lead-header">
+        <div>
+          <h2>{candidate.fullName || 'Candidate'}</h2>
+          <p>
+            <Link to={`/admin/restaurants/${candidate.restaurant.id}`}>
+              {candidate.restaurant.restaurantName}
+            </Link>
+          </p>
+        </div>
+        <div className="admin-lead-badges">
+          <span className={`admin-source-badge ${candidate.source}`}>
+            {candidate.source === 'qr' ? 'External / QR' : 'Job Board'}
+          </span>
+          <span className={`admin-status-badge ${candidate.status}`}>
+            {statusLabels[candidate.status]}
+          </span>
+          <span className={`admin-view-badge ${candidate.ownerViewState}`}>
+            {viewLabel}
+          </span>
+        </div>
+      </div>
+
+      <dl className="admin-lead-details">
+        <div>
+          <dt>Role</dt>
+          <dd>
+            {candidate.roles.map((role) => getRestaurantRoleLabel(role)).join(', ')}
+          </dd>
+        </div>
+        <div>
+          <dt>Source</dt>
+          <dd>{candidate.source === 'qr' ? 'Public hiring page' : 'Job Board / swipe'}</dd>
+        </div>
+        <div>
+          <dt>Applied</dt>
+          <dd>{new Date(candidate.createdAt).toLocaleString()}</dd>
+        </div>
+        <div>
+          <dt>Location</dt>
+          <dd>{restaurantLocation}</dd>
+        </div>
+        {candidate.phoneNumber && (
+          <div>
+            <dt>Phone</dt>
+            <dd>{candidate.phoneNumber}</dd>
+          </div>
+        )}
+        {candidate.age !== null && (
+          <div>
+            <dt>Age</dt>
+            <dd>{candidate.age}</dd>
+          </div>
+        )}
+      </dl>
+
+      {(candidate.experienceText || candidate.availability) && (
+        <div className="admin-candidate-notes">
+          {candidate.experienceText && (
+            <div className="admin-lead-section">
+              <strong>Experience</strong>
+              <p>{candidate.experienceText}</p>
+            </div>
+          )}
+          {candidate.availability && (
+            <div className="admin-lead-section">
+              <strong>Availability</strong>
+              <p>{candidate.availability}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="admin-candidate-card-footer">
+        <div className="admin-actions">
+          {candidate.phoneNumber && <a href={`tel:${candidate.phoneNumber}`}>Call</a>}
+          {whatsappNumber && (
+            <a
+              href={`https://wa.me/${whatsappNumber}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              WhatsApp
+            </a>
+          )}
+          <Link to={`/admin/restaurants/${candidate.restaurant.id}`}>
+            Restaurant detail
+          </Link>
+        </div>
+
+        {candidate.source === 'qr' ? (
+          <label className="admin-inline-status-control">
+            <span>Status</span>
+            <select
+              aria-label={`Status for ${candidate.fullName || 'candidate'}`}
+              value={candidate.status}
+              disabled={busy}
+              onChange={(event) =>
+                void onStatusChange(
+                  candidate,
+                  event.target.value as CandidateLeadStatus,
+                )
+              }
+            >
+              {qrStatuses.map((status) => (
+                <option key={status} value={status}>
+                  {statusLabels[status]}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <small className="admin-data-note">
+            Owner-view tracking is not available for Job Board applications.
+          </small>
+        )}
+      </div>
+    </article>
   )
 }
 

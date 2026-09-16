@@ -143,7 +143,9 @@ function mapAdminRestaurantSummary(restaurant: {
   }
   leads?: Array<{
     createdAt: Date
+    updatedAt: Date
     source?: string
+    status: 'new' | 'contacted' | 'relevant' | 'rejected'
     ownerViewedAt?: Date | null
   }>
   qrEvents?: Array<{
@@ -187,6 +189,15 @@ function mapAdminRestaurantSummary(restaurant: {
     restaurant.qrEvents?.filter((event) => event.type === 'qrFormStarted') ?? []
   const qrLeads = restaurant.leads?.filter((lead) => lead.source === 'qr') ?? []
   const ownerViewedLeads = qrLeads.filter((lead) => lead.ownerViewedAt)
+  const ownerUnviewedQrCandidates = qrLeads.filter(
+    (lead) => !lead.ownerViewedAt,
+  ).length
+  const qrCandidateStatusCounts = {
+    new: qrLeads.filter((lead) => lead.status === 'new').length,
+    contacted: qrLeads.filter((lead) => lead.status === 'contacted').length,
+    relevant: qrLeads.filter((lead) => lead.status === 'relevant').length,
+    rejected: qrLeads.filter((lead) => lead.status === 'rejected').length,
+  }
   const qrEventDates = restaurant.qrEvents?.map((event) => event.createdAt) ?? []
   const completedDates = qrLeads.map((lead) => lead.createdAt)
   const ownerViewDates = ownerViewedLeads
@@ -225,6 +236,16 @@ function mapAdminRestaurantSummary(restaurant: {
           fullName: restaurant.user.fullName,
         }
       : null)
+  const latestActivityDates = [
+    restaurant.updatedAt,
+    ...candidateActivityDates,
+    ...qrEventDates,
+    ...(restaurant.leads?.map((lead) => lead.updatedAt) ?? []),
+    ...ownerViewDates,
+  ]
+  const latestActivityAt = new Date(
+    Math.max(...latestActivityDates.map((date) => date.getTime())),
+  ).toISOString()
 
   return {
     id: restaurant.id,
@@ -249,6 +270,7 @@ function mapAdminRestaurantSummary(restaurant: {
       restaurant.locationVerifiedAt?.toISOString() ?? null,
     ownerLoginPhone: ownerMember?.phoneNumber ?? restaurant.user.phoneNumber,
     ownerUser,
+    hasActiveOwner,
     claim: hasActiveOwner
       ? {
           ...mappedClaim,
@@ -257,8 +279,13 @@ function mapAdminRestaurantSummary(restaurant: {
         }
       : mappedClaim,
     activeJobsCount,
+    enabledHiringRolesCount: restaurant.qrEnabledRoles.length,
     qrLeadsCount: restaurant._count.leads,
     applicationsCount,
+    totalCandidatesCount: restaurant._count.leads + applicationsCount,
+    ownerUnviewedQrCandidates,
+    qrCandidateStatusCounts,
+    latestActivityAt,
     funnelMetrics: {
       qrScans: qrPageViewEvents.length,
       uniqueQrVisitors,
@@ -534,6 +561,100 @@ function mapAdminLead(lead: {
   }
 }
 
+function mapAdminQrCandidate(lead: Parameters<typeof mapAdminLead>[0]) {
+  const mappedLead = mapAdminLead(lead)
+
+  return {
+    id: mappedLead.id,
+    source: 'qr' as const,
+    fullName: mappedLead.fullName,
+    phoneNumber: mappedLead.phoneNumber,
+    roles: mappedLead.wantedRoles,
+    experienceText: mappedLead.experienceText,
+    availability: mappedLead.availability,
+    age: mappedLead.age,
+    status: mappedLead.status,
+    ownerViewState: mappedLead.ownerViewedAt
+      ? ('viewed' as const)
+      : ('unviewed' as const),
+    ownerViewedAt: mappedLead.ownerViewedAt,
+    createdAt: mappedLead.createdAt,
+    updatedAt: mappedLead.updatedAt,
+    restaurant: mappedLead.restaurant,
+    job: null,
+  }
+}
+
+function mapAdminJobCandidate(application: {
+  id: string
+  status: 'applied' | 'selected' | 'rejected'
+  createdAt: Date
+  updatedAt: Date
+  user: {
+    id: string
+    fullName: string
+    phoneNumber: string | null
+    restaurantWorkerProfile: {
+      fullName: string
+      phoneNumber: string
+      wantedRoles: RestaurantRole[]
+      experienceText: string
+      availability: string
+      age: number
+    } | null
+  }
+  restaurantJob: {
+    id: string
+    role: RestaurantRole
+    restaurantName: string
+    ownerProfile: {
+      id: string
+      restaurantName: string
+      city: string
+      street: string
+      slug: string | null
+    } | null
+  }
+}) {
+  const profile = application.user.restaurantWorkerProfile
+  const restaurant = application.restaurantJob.ownerProfile
+
+  return {
+    id: application.id,
+    source: 'jobBoard' as const,
+    fullName: profile?.fullName || application.user.fullName,
+    phoneNumber: profile?.phoneNumber || application.user.phoneNumber || '',
+    roles: [application.restaurantJob.role],
+    experienceText: profile?.experienceText || '',
+    availability: profile?.availability || '',
+    age: profile?.age || null,
+    status: application.status,
+    ownerViewState: 'notTracked' as const,
+    ownerViewedAt: null,
+    createdAt: application.createdAt.toISOString(),
+    updatedAt: application.updatedAt.toISOString(),
+    restaurant: restaurant
+      ? {
+          id: restaurant.id,
+          restaurantName: restaurant.restaurantName,
+          city: restaurant.city,
+          street: restaurant.street,
+          slug: restaurant.slug,
+        }
+      : {
+          id: '',
+          restaurantName: application.restaurantJob.restaurantName,
+          city: '',
+          street: '',
+          slug: null,
+        },
+    job: {
+      id: application.restaurantJob.id,
+      role: application.restaurantJob.role,
+    },
+  }
+}
+
 export async function getAdminRestaurants(req: Request, res: Response) {
   try {
     const adminUserId = getAdminUserId(req)
@@ -575,7 +696,9 @@ export async function getAdminRestaurants(req: Request, res: Response) {
         leads: {
           select: {
             createdAt: true,
+            updatedAt: true,
             source: true,
+            status: true,
             ownerViewedAt: true,
           },
         },
@@ -705,7 +828,9 @@ export async function createAdminRestaurant(req: Request, res: Response) {
           leads: {
             select: {
               createdAt: true,
+              updatedAt: true,
               source: true,
+              status: true,
               ownerViewedAt: true,
             },
           },
@@ -776,7 +901,9 @@ export async function createAdminRestaurant(req: Request, res: Response) {
           leads: {
             select: {
               createdAt: true,
+              updatedAt: true,
               source: true,
+              status: true,
               ownerViewedAt: true,
             },
           },
@@ -1138,7 +1265,9 @@ export async function updateAdminRestaurant(req: Request, res: Response) {
           leads: {
             select: {
               createdAt: true,
+              updatedAt: true,
               source: true,
+              status: true,
               ownerViewedAt: true,
             },
           },
@@ -1277,7 +1406,9 @@ export async function updateAdminRestaurantLocation(
           leads: {
             select: {
               createdAt: true,
+              updatedAt: true,
               source: true,
+              status: true,
               ownerViewedAt: true,
             },
           },
@@ -1548,6 +1679,78 @@ export async function getAdminRestaurantLeads(
 
     return res.status(500).json({
       message: 'failed to fetch restaurant leads',
+    })
+  }
+}
+
+export async function getAdminCandidates(_req: Request, res: Response) {
+  try {
+    const [qrCandidates, jobApplications] = await Promise.all([
+      prisma.restaurantCandidateLead.findMany({
+        include: {
+          ownerProfile: true,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+      prisma.restaurantApplication.findMany({
+        include: {
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+              phoneNumber: true,
+              restaurantWorkerProfile: {
+                select: {
+                  fullName: true,
+                  phoneNumber: true,
+                  wantedRoles: true,
+                  experienceText: true,
+                  availability: true,
+                  age: true,
+                },
+              },
+            },
+          },
+          restaurantJob: {
+            select: {
+              id: true,
+              role: true,
+              restaurantName: true,
+              ownerProfile: {
+                select: {
+                  id: true,
+                  restaurantName: true,
+                  city: true,
+                  street: true,
+                  slug: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+    ])
+
+    const candidates = [
+      ...qrCandidates.map(mapAdminQrCandidate),
+      ...jobApplications.map(mapAdminJobCandidate),
+    ].sort(
+      (first, second) =>
+        new Date(second.createdAt).getTime() -
+        new Date(first.createdAt).getTime(),
+    )
+
+    return res.json(candidates)
+  } catch (error) {
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to fetch candidates',
     })
   }
 }

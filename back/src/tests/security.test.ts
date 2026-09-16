@@ -132,6 +132,18 @@ type AdminRestaurantResponse = {
   city: string
   street: string
   qrLeadsCount: number
+  applicationsCount: number
+  totalCandidatesCount: number
+  hasActiveOwner: boolean
+  enabledHiringRolesCount: number
+  ownerUnviewedQrCandidates: number
+  qrCandidateStatusCounts: {
+    new: number
+    contacted: number
+    relevant: number
+    rejected: number
+  }
+  latestActivityAt: string
   funnelMetrics: {
     qrScans: number
     uniqueQrVisitors: number
@@ -154,6 +166,24 @@ type AdminRestaurantResponse = {
     token: string | null
     claimedAt: string | null
     createdAt: string | null
+  }
+}
+
+type AdminCandidateResponse = {
+  id: string
+  source: 'qr' | 'jobBoard'
+  fullName: string
+  status:
+    | 'new'
+    | 'contacted'
+    | 'relevant'
+    | 'rejected'
+    | 'applied'
+    | 'selected'
+  ownerViewState: 'viewed' | 'unviewed' | 'notTracked'
+  restaurant: {
+    id: string
+    restaurantName: string
   }
 }
 
@@ -1341,6 +1371,11 @@ test(
       })
       assert.equal(adminRequest.status, 200)
 
+      const nonAdminCandidatesRequest = await request('/admin/candidates', {
+        headers: jsonHeaders(nonAdminToken),
+      })
+      assert.equal(nonAdminCandidatesRequest.status, 403)
+
       const nonAdminRestaurantsRequest = await request(
         '/admin/restaurants',
         {
@@ -1371,7 +1406,12 @@ test(
             typeof restaurant.id === 'string' &&
             typeof restaurant.restaurantName === 'string' &&
             typeof restaurant.hasNewCandidate === 'boolean' &&
-            typeof restaurant.newCandidateCount === 'number',
+            typeof restaurant.newCandidateCount === 'number' &&
+            typeof restaurant.hasActiveOwner === 'boolean' &&
+            typeof restaurant.enabledHiringRolesCount === 'number' &&
+            typeof restaurant.totalCandidatesCount === 'number' &&
+            typeof restaurant.ownerUnviewedQrCandidates === 'number' &&
+            typeof restaurant.latestActivityAt === 'string',
         ),
       )
       const ownerAAdminRestaurant = adminRestaurantsRequest.body.find(
@@ -1384,6 +1424,39 @@ test(
       )
       assert.equal(ownerBAdminRestaurant?.hasNewCandidate, true)
       assert.equal(ownerBAdminRestaurant?.newCandidateCount, 2)
+
+      const adminUnifiedApplication =
+        await prisma.restaurantApplication.create({
+          data: {
+            userId: hiringManagerAuth.body.user.id,
+            restaurantJobId: ownerAWaiterJob.id,
+            status: 'applied',
+          },
+        })
+      const adminCandidatesRequest = await request<AdminCandidateResponse[]>(
+        '/admin/candidates',
+        {
+          headers: jsonHeaders(adminToken),
+        },
+      )
+      assert.equal(adminCandidatesRequest.status, 200)
+      const unifiedQrCandidate = adminCandidatesRequest.body.find(
+        (candidate) => candidate.id === ownerALead.id,
+      )
+      assert.equal(unifiedQrCandidate?.source, 'qr')
+      assert.equal(unifiedQrCandidate?.restaurant.id, ownerA.profile.id)
+      const unifiedJobCandidate = adminCandidatesRequest.body.find(
+        (candidate) => candidate.id === adminUnifiedApplication.id,
+      )
+      assert.equal(unifiedJobCandidate?.source, 'jobBoard')
+      assert.equal(unifiedJobCandidate?.status, 'applied')
+      assert.equal(unifiedJobCandidate?.ownerViewState, 'notTracked')
+      assert.equal(unifiedJobCandidate?.restaurant.id, ownerA.profile.id)
+      await prisma.restaurantApplication.delete({
+        where: {
+          id: adminUnifiedApplication.id,
+        },
+      })
 
       const nonAdminMarkSeen = await request(
         `/admin/restaurants/${ownerA.profile.id}/mark-seen`,

@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import AdminShell from '../components/AdminShell'
 import {
@@ -29,6 +29,22 @@ function AdminRestaurantsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const isForbidden = error?.toLowerCase().includes('admin access required')
+  const stats = useMemo(
+    () => ({
+      activeOwners: restaurants.filter((restaurant) => restaurant.hasActiveOwner)
+        .length,
+      hiringConfigured: restaurants.filter(
+        (restaurant) => restaurant.enabledHiringRolesCount > 0,
+      ).length,
+      withCandidates: restaurants.filter(
+        (restaurant) => restaurant.totalCandidatesCount > 0,
+      ).length,
+      waiting: restaurants.filter(
+        (restaurant) => restaurant.ownerUnviewedQrCandidates > 0,
+      ).length,
+    }),
+    [restaurants],
+  )
 
   useEffect(() => {
     let isActive = true
@@ -117,10 +133,30 @@ function AdminRestaurantsPage() {
       <section className="admin-restaurants-page">
         <div className="admin-page-heading">
           <div>
+            <p className="admin-eyebrow">Operations</p>
             <h1>Restaurants</h1>
-            <p>Create and manage restaurants using Peepss QR hiring.</p>
+            <p>Activation, hiring configuration, candidates, and recent activity.</p>
           </div>
           <span>{restaurants.length} restaurants</span>
+        </div>
+
+        <div className="admin-stat-grid admin-restaurant-stat-grid">
+          <article className="admin-stat-card">
+            <span>Active owners</span>
+            <strong>{stats.activeOwners}</strong>
+          </article>
+          <article className="admin-stat-card">
+            <span>Hiring configured</span>
+            <strong>{stats.hiringConfigured}</strong>
+          </article>
+          <article className="admin-stat-card">
+            <span>With candidates</span>
+            <strong>{stats.withCandidates}</strong>
+          </article>
+          <article className="admin-stat-card">
+            <span>Waiting for restaurant</span>
+            <strong>{stats.waiting}</strong>
+          </article>
         </div>
 
         {isCreateOpen ? (
@@ -285,32 +321,58 @@ function AdminRestaurantsPage() {
                   />
                 )}
                 <div className="admin-restaurant-card-title-row">
-                  <h2>{restaurant.restaurantName}</h2>
-                  <span
-                    className={`admin-activation-badge ${restaurant.claim.status}`}
-                  >
-                    {restaurant.claim.status === 'claimed'
-                      ? 'Activated'
-                      : 'Not activated'}
+                  <div>
+                    <h2>{restaurant.restaurantName}</h2>
+                    <p>
+                      {[restaurant.city, restaurant.street]
+                        .filter(Boolean)
+                        .join(' · ') || 'Location not provided'}
+                    </p>
+                  </div>
+                  <div className="admin-restaurant-state-badges">
+                    <span
+                      className={`admin-activation-badge ${restaurant.hasActiveOwner ? 'claimed' : 'missing'}`}
+                    >
+                      {restaurant.hasActiveOwner ? 'Activated' : 'No active owner'}
+                    </span>
+                    <span
+                      className={`admin-hiring-badge ${restaurant.enabledHiringRolesCount > 0 ? 'active' : 'inactive'}`}
+                    >
+                      {restaurant.enabledHiringRolesCount > 0
+                        ? `${restaurant.enabledHiringRolesCount} hiring roles`
+                        : 'No roles enabled'}
+                    </span>
+                  </div>
+                </div>
+                <div className="admin-restaurant-operational-metrics">
+                  <span>
+                    <strong>{restaurant.totalCandidatesCount}</strong>
+                    candidates
+                  </span>
+                  <span className={restaurant.ownerUnviewedQrCandidates > 0 ? 'needs-attention' : ''}>
+                    <strong>{restaurant.ownerUnviewedQrCandidates}</strong>
+                    waiting for restaurant
+                  </span>
+                  <span>
+                    <strong>{restaurant.funnelMetrics.qrScans}</strong>
+                    hiring page views
+                  </span>
+                  <span>
+                    <strong>{restaurant.funnelMetrics.completedForms}</strong>
+                    external applications
                   </span>
                 </div>
-                <span
-                  className={`restaurant-location-status ${restaurant.locationStatus}`}
-                >
-                  {restaurant.locationStatus === 'verified'
-                    ? 'Location verified'
-                    : 'Location needs verification'}
-                </span>
-                <div
-                  className="admin-restaurant-funnel-mini"
-                  aria-label={`QR funnel: ${restaurant.funnelMetrics.qrScans} scans, ${restaurant.funnelMetrics.startedForms} started, ${restaurant.funnelMetrics.completedForms} completed`}
-                >
-                  <span>{restaurant.funnelMetrics.qrScans} scans</span>
-                  <span>{restaurant.funnelMetrics.startedForms} started</span>
-                  <span>{restaurant.funnelMetrics.completedForms} done</span>
+                <div className="admin-restaurant-card-footer">
+                  <span
+                    className={`restaurant-location-status ${restaurant.locationStatus}`}
+                  >
+                    {restaurant.locationStatus === 'verified'
+                      ? 'Location verified'
+                      : 'Location needs verification'}
+                  </span>
                   <span>
-                    {restaurant.funnelMetrics.ownerViewedCompletedForms}/
-                    {restaurant.funnelMetrics.completedForms} viewed
+                    Latest activity{' '}
+                    {new Date(restaurant.latestActivityAt).toLocaleString()}
                   </span>
                 </div>
               </Link>

@@ -5,6 +5,7 @@ import {
   notifyAuthSessionExpired,
 } from '../../auth/utils/authStorage'
 import type {
+  AdminCandidate,
   AdminRestaurant,
   AdminRestaurantClaim,
   AdminRestaurantCandidateLead,
@@ -60,6 +61,18 @@ export async function getAdminRestaurantLeads(): Promise<
 
   if (!response.ok) {
     await handleApiError(response, 'Failed to load restaurant leads')
+  }
+
+  return response.json()
+}
+
+export async function getAdminCandidates(): Promise<AdminCandidate[]> {
+  const response = await fetch(`${API_BASE_URL}/admin/candidates`, {
+    headers: getHeaders(),
+  })
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to load candidates')
   }
 
   return response.json()

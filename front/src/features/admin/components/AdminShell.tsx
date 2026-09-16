@@ -30,8 +30,9 @@ function AdminShell({ children }: { children: ReactNode }) {
           </button>
         </div>
         <nav className="admin-nav" aria-label="Admin navigation">
+          <NavLink to="/admin/overview">Overview</NavLink>
           <NavLink to="/admin/restaurants">Restaurants</NavLink>
-          <NavLink to="/admin/leads">Leads</NavLink>
+          <NavLink to="/admin/candidates">Candidates</NavLink>
         </nav>
       </aside>
       <main className="admin-main">

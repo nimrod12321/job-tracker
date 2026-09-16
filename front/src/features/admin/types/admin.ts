@@ -47,15 +47,54 @@ export type AdminRestaurant = {
   locationVerifiedAt: string | null
   ownerLoginPhone: string | null
   ownerUser: AdminOwnerUser
+  hasActiveOwner: boolean
   claim: AdminRestaurantClaim
   activeJobsCount: number
+  enabledHiringRolesCount: number
   qrLeadsCount: number
   applicationsCount: number
+  totalCandidatesCount: number
+  ownerUnviewedQrCandidates: number
+  qrCandidateStatusCounts: Record<CandidateLeadStatus, number>
+  latestActivityAt: string
   funnelMetrics: AdminRestaurantFunnelMetrics
   hasNewCandidate: boolean
   newCandidateCount: number
   createdAt: string
   updatedAt: string
+}
+
+export type AdminCandidateSource = 'qr' | 'jobBoard'
+export type AdminCandidateStatus =
+  | CandidateLeadStatus
+  | 'applied'
+  | 'selected'
+
+export type AdminCandidate = {
+  id: string
+  source: AdminCandidateSource
+  fullName: string
+  phoneNumber: string
+  roles: RestaurantRole[]
+  experienceText: string
+  availability: string
+  age: number | null
+  status: AdminCandidateStatus
+  ownerViewState: 'viewed' | 'unviewed' | 'notTracked'
+  ownerViewedAt: string | null
+  createdAt: string
+  updatedAt: string
+  restaurant: {
+    id: string
+    restaurantName: string
+    city: string
+    street: string
+    slug: string | null
+  }
+  job: {
+    id: string
+    role: RestaurantRole
+  } | null
 }
 
 export type AdminRestaurantClaim = {

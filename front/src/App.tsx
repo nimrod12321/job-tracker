@@ -19,6 +19,7 @@ import {
   saveAuthToken,
 } from './features/auth/utils/authStorage'
 import AdminLeadsPage from './features/admin/pages/AdminLeadsPage'
+import AdminOverviewPage from './features/admin/pages/AdminOverviewPage'
 import AdminRestaurantDetailPage from './features/admin/pages/AdminRestaurantDetailPage'
 import AdminRestaurantsPage from './features/admin/pages/AdminRestaurantsPage'
 import AuthPage from './features/auth/pages/AuthPage'
@@ -48,7 +49,7 @@ import { getStoredRestaurantLanguage } from './features/restaurant/utils/restaur
 
 function getHomePath(user: AuthUser | null) {
   if (user?.isAdmin) {
-    return '/admin/restaurants'
+    return '/admin/overview'
   }
 
   if (user?.restaurantMemberRole) {
@@ -262,7 +263,7 @@ function App() {
       setCurrentUser(user)
       navigate(
         user.isAdmin
-          ? '/admin/restaurants'
+          ? '/admin/overview'
           : profileComplete
             ? '/owner/jobs'
             : '/owner/profile',
@@ -398,7 +399,12 @@ function App() {
       </Route>
 
       <Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
-        <Route path="/admin/leads" element={<AdminLeadsPage />} />
+        <Route path="/admin/overview" element={<AdminOverviewPage />} />
+        <Route path="/admin/candidates" element={<AdminLeadsPage />} />
+        <Route
+          path="/admin/leads"
+          element={<Navigate to="/admin/candidates" replace />}
+        />
         <Route
           path="/admin/restaurants"
           element={<AdminRestaurantsPage />}
@@ -412,7 +418,7 @@ function App() {
           path="/restaurants-only"
           element={
             currentUser?.isAdmin ? (
-              <Navigate to="/admin/restaurants" replace />
+              <Navigate to="/admin/overview" replace />
             ) : (
               <StandardLayout className="restaurant-only-standard-layout">
                 <section className="restaurant-only-page">
@@ -437,7 +443,7 @@ function App() {
         <Route
           element={
             currentUser?.isAdmin ? (
-              <Navigate to="/admin/restaurants" replace />
+              <Navigate to="/admin/overview" replace />
             ) : userTrack === 'highTech' && !currentUser?.restaurantMemberRole ? (
               <Navigate to="/restaurants-only" replace />
             ) : (

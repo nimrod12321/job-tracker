@@ -2,6 +2,7 @@ import { Router } from 'express'
 import {
   createAdminRestaurant,
   deleteAdminRestaurant,
+  getAdminCandidates,
   getAdminRestaurantDetail,
   getAdminRestaurantLeads,
   getAdminRestaurants,
@@ -18,6 +19,7 @@ const adminRouter = Router()
 
 adminRouter.use(requireAuth, requireAdmin)
 adminRouter.get('/restaurants', getAdminRestaurants)
+adminRouter.get('/candidates', getAdminCandidates)
 adminRouter.post('/restaurants', createAdminRestaurant)
 adminRouter.post('/restaurants/:id/mark-seen', markAdminRestaurantSeen)
 adminRouter.get('/restaurants/:id', getAdminRestaurantDetail)

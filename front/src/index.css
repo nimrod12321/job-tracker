@@ -5149,6 +5149,106 @@ textarea:focus-visible {
   font-weight: 750;
 }
 
+.owner-promotion-section {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.owner-promotion-section > h3,
+.owner-instagram-share-copy h4 {
+  margin: 0;
+  color: var(--restaurant-ink, #1f1d1e);
+  font-weight: 900;
+}
+
+.owner-promotion-section > h3 {
+  font-size: 0.95rem;
+}
+
+.owner-instagram-share-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  border: 1px solid var(--restaurant-border, #ead7c7);
+  border-radius: 20px;
+  padding: 0.85rem;
+  background: rgb(255 253 248 / 72%);
+}
+
+.owner-instagram-share-copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.25rem;
+}
+
+.owner-instagram-share-copy h4 {
+  font-size: 0.95rem;
+}
+
+.owner-instagram-share-copy p,
+.owner-instagram-share-helper {
+  margin: 0;
+  color: var(--restaurant-muted, #765a56);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.owner-instagram-share-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.owner-instagram-share-actions .ui-button {
+  white-space: nowrap;
+}
+
+.owner-instagram-share-helper {
+  grid-column: 1 / -1;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.owner-instagram-guidance {
+  display: grid;
+  gap: 1rem;
+  color: var(--restaurant-ink, #1f1d1e);
+}
+
+.owner-instagram-guidance p,
+.owner-instagram-guidance ol {
+  margin: 0;
+}
+
+.owner-instagram-guide-label {
+  margin-bottom: 0.4rem !important;
+  font-weight: 900;
+}
+
+.owner-instagram-guidance ol {
+  display: grid;
+  gap: 0.35rem;
+  padding-inline-start: 1.4rem;
+  color: var(--restaurant-muted, #765a56);
+}
+
+.owner-instagram-manual-copy {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.owner-instagram-manual-copy input {
+  width: 100%;
+  min-width: 0;
+  direction: ltr;
+  text-align: left;
+}
+
+.owner-instagram-open-link {
+  justify-self: start;
+}
+
 .owner-qr-role-settings {
   display: grid;
   gap: 0.7rem;
@@ -5489,7 +5589,8 @@ textarea:focus-visible {
 }
 
 .admin-leads-page,
-.admin-restaurants-page {
+.admin-restaurants-page,
+.admin-overview-page {
   display: grid;
   gap: 1.25rem;
   width: min(100%, 1180px);
@@ -5527,10 +5628,23 @@ textarea:focus-visible {
   font-size: 0.82rem;
 }
 
+.admin-eyebrow {
+  margin: 0 0 0.35rem !important;
+  color: var(--restaurant-primary, #dc5634) !important;
+  font-size: 0.72rem !important;
+  font-weight: 950 !important;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
 .admin-stat-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.75rem;
+}
+
+.admin-restaurant-stat-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .admin-stat-card,
@@ -5565,11 +5679,27 @@ textarea:focus-visible {
   line-height: 1;
 }
 
+.admin-stat-card p {
+  margin: 0.25rem 0 0;
+  color: #7a5142;
+  font-size: 0.74rem;
+  line-height: 1.35;
+}
+
+.admin-stat-card--attention {
+  border-color: rgb(220 86 52 / 38%);
+  background: #fff6ee;
+}
+
 .admin-leads-toolbar {
   display: grid;
   grid-template-columns: 0.8fr 1.4fr 1fr;
   gap: 0.85rem;
   padding: 1rem;
+}
+
+.admin-candidate-toolbar {
+  grid-template-columns: repeat(2, minmax(140px, 0.8fr)) minmax(220px, 1.4fr) minmax(160px, 1fr);
 }
 
 .admin-leads-toolbar label {
@@ -5656,6 +5786,11 @@ textarea:focus-visible {
   color: #c2410c;
 }
 
+.admin-source-badge.jobBoard {
+  background: #eef6f5;
+  color: #245c5a;
+}
+
 .admin-status-badge.new {
   background: #fff7ed;
   color: #c2410c;
@@ -5674,6 +5809,43 @@ textarea:focus-visible {
 .admin-status-badge.rejected {
   background: #fff1f2;
   color: #b42318;
+}
+
+.admin-status-badge.applied {
+  background: #fff7ed;
+  color: #9a5b11;
+}
+
+.admin-status-badge.selected {
+  background: #eef8ee;
+  color: #15803d;
+}
+
+.admin-view-badge {
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: 999px;
+  padding: 0.35rem 0.58rem;
+  background: #fffdf8;
+  color: #765a56;
+  font-size: 0.7rem;
+  font-weight: 850;
+  line-height: 1;
+}
+
+.admin-view-badge.unviewed {
+  border-color: rgb(220 86 52 / 35%);
+  background: #fff2e8;
+  color: #a63f25;
+}
+
+.admin-view-badge.viewed {
+  border-color: rgb(36 92 90 / 24%);
+  background: #eef6f5;
+  color: #245c5a;
+}
+
+.admin-view-badge.notTracked {
+  color: #806f66;
 }
 
 .admin-lead-details {
@@ -5741,7 +5913,7 @@ textarea:focus-visible {
 }
 
 .admin-restaurants-list {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
   gap: 0.85rem;
 }
 
@@ -5749,8 +5921,8 @@ textarea:focus-visible {
 .admin-create-restaurant-card {
   position: relative;
   display: grid;
-  align-content: center;
-  min-height: 118px;
+  align-content: start;
+  min-height: 210px;
   border: 1px solid var(--restaurant-border, var(--border));
   border-radius: 24px;
   padding: 1rem;
@@ -5773,9 +5945,96 @@ textarea:focus-visible {
 }
 
 .admin-restaurant-card-title-row {
-  display: grid;
-  gap: 0.45rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
   padding-inline-end: 0.9rem;
+}
+
+.admin-restaurant-card-title-row > div:first-child {
+  min-width: 0;
+}
+
+.admin-restaurant-card-title-row p {
+  margin: 0.35rem 0 0;
+  overflow: hidden;
+  color: #7a5142;
+  font-size: 0.8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-restaurant-state-badges {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.admin-hiring-badge {
+  width: fit-content;
+  border: 1px solid var(--peepss-border, #e2cbb9);
+  border-radius: 999px;
+  padding: 0.24rem 0.48rem;
+  background: #fffdf8;
+  color: var(--peepss-text-muted, #765a56);
+  font-size: 0.68rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.admin-hiring-badge.active {
+  border-color: rgb(36 92 90 / 24%);
+  background: #eef6f5;
+  color: #245c5a;
+}
+
+.admin-hiring-badge.inactive {
+  border-color: rgb(220 86 52 / 28%);
+  background: #fff2e8;
+  color: #a63f25;
+}
+
+.admin-restaurant-operational-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.admin-restaurant-operational-metrics > span {
+  display: grid;
+  gap: 0.1rem;
+  border: 1px solid rgb(226 203 185 / 70%);
+  border-radius: 14px;
+  padding: 0.62rem;
+  background: #fffdf8;
+  color: #765a56;
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.admin-restaurant-operational-metrics > span.needs-attention {
+  border-color: rgb(220 86 52 / 38%);
+  background: #fff6ee;
+}
+
+.admin-restaurant-operational-metrics strong {
+  color: #1f1d1e;
+  font-size: 1.2rem;
+}
+
+.admin-restaurant-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  margin-top: auto;
+  padding-top: 0.85rem;
+  color: #7a5142;
+  font-size: 0.72rem;
 }
 
 .admin-restaurant-compact-card h2 {
@@ -5987,6 +6246,432 @@ textarea:focus-visible {
 
 .admin-funnel-panel {
   gap: 0.85rem;
+}
+
+.admin-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.admin-section-heading h2,
+.admin-section-heading p {
+  margin: 0;
+}
+
+.admin-section-heading p:not(.admin-eyebrow) {
+  margin-top: 0.25rem;
+  color: #7a5142;
+}
+
+.admin-section-heading > a {
+  flex: 0 0 auto;
+  color: var(--restaurant-primary, #dc5634);
+  font-size: 0.84rem;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.admin-overview-page {
+  display: grid;
+  gap: 1.4rem;
+  width: min(100%, 1180px);
+  margin-inline: auto;
+}
+
+.admin-overview-page > section {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.admin-overview-metrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.admin-overview-grid {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.75fr);
+  align-items: stretch;
+  gap: 1rem !important;
+}
+
+.admin-overview-funnel,
+.admin-candidate-summary {
+  align-content: start;
+}
+
+.admin-funnel-flow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.admin-funnel-step {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 0.3rem;
+  min-height: 132px;
+  border: 1px solid rgb(226 203 185 / 78%);
+  border-radius: 16px;
+  padding: 0.8rem;
+  background: #fffdf8;
+}
+
+.admin-funnel-step:not(:last-child)::after {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-end: -0.48rem;
+  z-index: 1;
+  color: var(--restaurant-primary, #dc5634);
+  content: '→';
+  font-weight: 950;
+  transform: translateY(-50%);
+}
+
+.admin-funnel-step span {
+  color: #7a5142;
+  font-size: 0.7rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.admin-funnel-step strong {
+  color: #1f1d1e;
+  font-size: 1.85rem;
+  line-height: 1;
+}
+
+.admin-funnel-step small {
+  color: #806f66;
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+
+.admin-candidate-summary dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.admin-candidate-summary dl > div {
+  display: grid;
+  gap: 0.2rem;
+  border-bottom: 1px solid rgb(226 203 185 / 72%);
+  padding: 0.55rem 0;
+}
+
+.admin-candidate-summary dt {
+  color: #7a5142;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.admin-candidate-summary dd {
+  margin: 0;
+  color: #1f1d1e;
+  font-size: 1.35rem;
+  font-weight: 900;
+}
+
+.admin-attention-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.admin-attention-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid rgb(220 86 52 / 28%);
+  border-radius: 18px;
+  padding: 0.9rem 1rem;
+  background: #fffaf3;
+  color: #1f1d1e;
+  text-decoration: none;
+}
+
+.admin-attention-item:hover {
+  border-color: var(--restaurant-primary, #dc5634);
+}
+
+.admin-attention-item ul {
+  margin: 0.35rem 0 0;
+  padding-inline-start: 1.15rem;
+  color: #7a5142;
+  font-size: 0.82rem;
+}
+
+.admin-attention-item > span {
+  color: var(--restaurant-primary, #dc5634);
+  font-size: 1.2rem;
+  font-weight: 950;
+}
+
+.admin-clear-state {
+  gap: 0.2rem;
+}
+
+.admin-clear-state p {
+  margin: 0;
+}
+
+.admin-restaurant-command-card {
+  gap: 0.9rem;
+}
+
+.admin-command-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.admin-command-metrics > div {
+  display: grid;
+  gap: 0.25rem;
+  border-inline-start: 3px solid rgb(36 92 90 / 35%);
+  padding: 0.45rem 0.65rem;
+}
+
+.admin-command-metrics > div.needs-attention {
+  border-inline-start-color: var(--restaurant-primary, #dc5634);
+}
+
+.admin-command-metrics span {
+  color: #7a5142;
+  font-size: 0.72rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.admin-command-metrics strong {
+  color: #1f1d1e;
+  font-size: 1.6rem;
+  line-height: 1.1;
+}
+
+.admin-command-metrics .admin-date-value {
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.admin-role-summary {
+  margin: 0 !important;
+  border-top: 1px solid rgb(226 203 185 / 75%);
+  padding-top: 0.75rem;
+}
+
+.admin-identity-meta {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin: 0;
+}
+
+.admin-identity-meta dt {
+  color: #7a5142;
+  font-size: 0.7rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.admin-identity-meta dd {
+  margin: 0.2rem 0 0;
+  overflow-wrap: anywhere;
+  color: #1f1d1e;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.admin-current-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  border-top: 1px solid rgb(226 203 185 / 70%);
+  border-bottom: 1px solid rgb(226 203 185 / 70%);
+  padding: 0.65rem 0;
+  color: #7a5142;
+  font-size: 0.75rem;
+}
+
+.admin-current-status-row > span {
+  margin-inline-end: auto;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.admin-current-status-row strong {
+  border-radius: 999px;
+  padding: 0.28rem 0.48rem;
+  background: #fffdf8;
+  color: #1f1d1e;
+  font-size: 0.7rem;
+}
+
+.admin-hiring-distribution-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.75fr);
+  gap: 1rem;
+}
+
+.admin-hiring-link-block,
+.admin-hiring-distribution-grid .admin-qr-panel {
+  display: grid;
+  align-content: start;
+  gap: 0.8rem;
+  border: 1px solid rgb(226 203 185 / 75%);
+  border-radius: 18px;
+  padding: 1rem;
+  background: #fffdf8;
+}
+
+.admin-hiring-link-block > span {
+  color: #7a5142;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.admin-candidate-source-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.admin-candidate-source-grid > div {
+  min-width: 0;
+  border: 1px solid rgb(226 203 185 / 75%);
+  border-radius: 18px;
+  padding: 1rem;
+  background: #fffdf8;
+}
+
+.admin-candidate-source-grid h3 {
+  margin: 0 0 0.8rem;
+  color: #1f1d1e;
+  font-size: 1rem;
+}
+
+.admin-list-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.admin-administration-section {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.admin-settings-panel {
+  overflow: clip;
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: 18px;
+  background: rgb(255 250 243 / 96%);
+  box-shadow: 0 10px 28px rgb(93 49 13 / 5%);
+}
+
+.admin-settings-panel > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.95rem 1rem;
+  color: #1f1d1e;
+  font-weight: 900;
+  cursor: pointer;
+  list-style: none;
+}
+
+.admin-settings-panel > summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-settings-panel > summary::after {
+  margin-inline-start: auto;
+  color: #7a5142;
+  content: '+';
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.admin-settings-panel[open] > summary::after {
+  content: '−';
+}
+
+.admin-settings-panel > summary > :last-child:not(:first-child) {
+  margin-inline-start: 0;
+}
+
+.admin-settings-panel-content {
+  border-top: 1px solid rgb(226 203 185 / 70%);
+  padding: 1rem;
+}
+
+.admin-settings-panel-content.admin-restaurant-form,
+.admin-settings-panel-content.admin-location-panel,
+.admin-settings-panel-content.admin-danger-zone {
+  border: 0;
+  border-top: 1px solid rgb(226 203 185 / 70%);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.admin-danger-settings {
+  border-color: #e8b5a9;
+}
+
+.admin-candidate-card.needs-attention {
+  border-inline-start: 4px solid var(--restaurant-primary, #dc5634);
+}
+
+.admin-candidate-notes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.admin-candidate-card-footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  border-top: 1px solid rgb(226 203 185 / 72%);
+  padding-top: 0.85rem;
+}
+
+.admin-inline-status-control {
+  display: grid;
+  gap: 0.25rem;
+  color: #7a5142;
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.admin-inline-status-control select {
+  min-height: 40px;
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: 999px;
+  padding: 0.45rem 2rem 0.45rem 0.75rem;
+  background: #fffdf8;
+  color: #1f1d1e;
+  font: inherit;
+  font-weight: 850;
+}
+
+.admin-data-note {
+  max-width: 280px;
+  color: #806f66;
+  line-height: 1.4;
+  text-align: end;
 }
 
 .admin-funnel-grid {
@@ -6886,13 +7571,63 @@ textarea:focus-visible {
   }
 
   .admin-leads-toolbar,
+  .admin-candidate-toolbar,
   .admin-lead-details,
   .admin-restaurant-form,
   .admin-restaurant-detail-grid,
   .admin-funnel-grid,
   .admin-funnel-timestamps,
+  .admin-overview-metrics,
+  .admin-overview-grid,
+  .admin-funnel-flow,
+  .admin-command-metrics,
+  .admin-identity-meta,
+  .admin-hiring-distribution-grid,
+  .admin-candidate-source-grid,
+  .admin-candidate-notes,
   .admin-compact-list article {
     grid-template-columns: 1fr;
+  }
+
+  .admin-overview-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-funnel-step {
+    min-height: 0;
+  }
+
+  .admin-funnel-step:not(:last-child)::after {
+    inset-block-start: auto;
+    inset-block-end: -0.68rem;
+    inset-inline-end: 50%;
+    transform: translateX(50%) rotate(90deg);
+  }
+
+  .admin-section-heading,
+  .admin-candidate-card-footer,
+  .admin-restaurant-card-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-restaurant-card-title-row {
+    display: grid;
+  }
+
+  .admin-restaurant-state-badges,
+  .admin-list-badges {
+    justify-content: flex-start;
+  }
+
+  .admin-current-status-row > span {
+    width: 100%;
+    margin-inline-end: 0;
+  }
+
+  .admin-data-note {
+    max-width: none;
+    text-align: start;
   }
 
   .admin-compact-list article {
@@ -7675,6 +8410,20 @@ textarea:focus-visible {
   .owner-qr-widget-expanded .owner-qr-actions button,
   .owner-qr-widget-expanded .owner-qr-actions a {
     width: 100%;
+  }
+
+  .owner-instagram-share-card {
+    grid-template-columns: 1fr;
+  }
+
+  .owner-instagram-share-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    width: 100%;
+  }
+
+  .owner-instagram-share-helper {
+    grid-column: 1;
   }
 
   .owner-qr-role-settings-heading {

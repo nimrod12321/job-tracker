@@ -84,6 +84,14 @@ function getStoredQrWidgetOpen(slug: string | null | undefined) {
   return storedValue === null ? true : storedValue === 'true'
 }
 
+function isMobileInstagramContext() {
+  return (
+    /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+    (navigator.maxTouchPoints > 1 &&
+      window.matchMedia('(max-width: 900px)').matches)
+  )
+}
+
 function isOwnerProfileComplete(profile: OwnerProfile | null) {
   return Boolean(
     profile?.restaurantName.trim() &&
@@ -124,6 +132,12 @@ function OwnerJobsPage() {
   const [posterPreviewUrl, setPosterPreviewUrl] = useState('')
   const [isPosterPreviewOpen, setIsPosterPreviewOpen] = useState(false)
   const [isPosterPreviewLoading, setIsPosterPreviewLoading] = useState(false)
+  const [isInstagramGuidanceOpen, setIsInstagramGuidanceOpen] =
+    useState(false)
+  const [isInstagramSharing, setIsInstagramSharing] = useState(false)
+  const [instagramCopyStatus, setInstagramCopyStatus] = useState<
+    'copied' | 'manual'
+  >('copied')
   const [qrAssetFormat, setQrAssetFormat] =
     useState<QrAssetFormat>('poster')
   const [isQrExpanded, setIsQrExpanded] = useState(false)
@@ -134,6 +148,7 @@ function OwnerJobsPage() {
   const isQrRolesSaveRunningRef = useRef(false)
   const savedStatusTimeoutRef = useRef<number | null>(null)
   const posterPreviewPublicUrlRef = useRef('')
+  const isInstagramSharePendingRef = useRef(false)
   const publicHiringLink = profile?.slug
     ? `${window.location.origin}/r/${profile.slug}`
     : ''
@@ -250,7 +265,46 @@ function OwnerJobsPage() {
         ? 'בחרו אילו תפקידים פתוחים, הורידו את המודעה והתחילו לקבל מועמדים.'
         : 'Choose which roles are open, download the poster, and start receiving candidates.',
     closeQr: language === 'he' ? 'סגור אזור ברקוד' : 'Close QR section',
-    copyLink: language === 'he' ? 'העתקת קישור' : 'Copy link',
+    copyLink: language === 'he' ? 'העתקת לינק' : 'Copy link',
+    promoteHiring:
+      language === 'he' ? 'קדמו את הגיוס' : 'Promote your hiring',
+    instagramTitle:
+      language === 'he'
+        ? 'פרסמו סטורי באינסטגרם'
+        : 'Post an Instagram Story',
+    instagramDescription:
+      language === 'he'
+        ? 'ספרו לעוקבים שאתם מגייסים ושלחו אותם ישירות לעמוד הגיוס שלכם ב־Peepss.'
+        : "Let your followers know you're hiring and send them directly to your Peepss application page.",
+    postStory: language === 'he' ? 'פרסמו סטורי' : 'Post a Story',
+    openingInstagram:
+      language === 'he' ? 'מעתיקים לינק...' : 'Copying link...',
+    instagramHelper:
+      language === 'he'
+        ? 'לינק הגיוס יועתק אוטומטית.'
+        : 'Your hiring link will be copied automatically.',
+    hiringLinkCopied:
+      language === 'he'
+        ? 'לינק הגיוס הועתק ✓'
+        : 'Hiring link copied ✓',
+    copyHiringLink:
+      language === 'he' ? 'העתקת לינק הגיוס' : 'Copy your hiring link',
+    manualCopyHelp:
+      language === 'he'
+        ? 'לא הצלחנו להעתיק אוטומטית. לחצו לחיצה ארוכה על הלינק והעתיקו אותו.'
+        : 'Automatic copying was unavailable. Press and hold the link to copy it manually.',
+    instagramGuideLabel: language === 'he' ? 'באינסטגרם:' : 'In Instagram:',
+    instagramGuideSteps:
+      language === 'he'
+        ? ['צרו סטורי', 'לחצו על Stickers', 'בחרו Link', 'הדביקו את הלינק של Peepss']
+        : [
+            'Create your Story',
+            'Tap Stickers',
+            'Choose Link',
+            'Paste your Peepss link',
+          ],
+    openInstagram:
+      language === 'he' ? 'פתיחת Instagram' : 'Open Instagram',
     previewPoster:
       language === 'he' ? 'תצוגה מקדימה' : 'Preview poster',
     qrFormat:
@@ -666,12 +720,67 @@ function OwnerJobsPage() {
       return
     }
 
-    try {
-      await navigator.clipboard.writeText(publicHiringLink)
+    const didCopy = await copyHiringLink()
+
+    if (didCopy) {
       setSuccess(text.copied)
       setError(null)
+      return
+    }
+
+    setInstagramCopyStatus('manual')
+    setIsInstagramGuidanceOpen(true)
+    setSuccess(null)
+    setError(null)
+  }
+
+  async function copyHiringLink() {
+    if (!publicHiringLink || !navigator.clipboard?.writeText) {
+      return false
+    }
+
+    try {
+      await navigator.clipboard.writeText(publicHiringLink)
+      return true
     } catch {
-      setError(publicHiringLink)
+      return false
+    }
+  }
+
+  async function handlePostInstagramStory() {
+    if (!publicHiringLink || isInstagramSharePendingRef.current) {
+      return
+    }
+
+    isInstagramSharePendingRef.current = true
+    setIsInstagramSharing(true)
+    setError(null)
+    setSuccess(null)
+
+    const copyPromise = copyHiringLink()
+
+    if (isMobileInstagramContext()) {
+      try {
+        window.open(
+          'https://www.instagram.com/',
+          '_blank',
+          'noopener,noreferrer',
+        )
+      } catch {
+        // The guidance modal keeps the link and a manual Instagram action
+        // available when the browser blocks app/web opening.
+      }
+    }
+
+    try {
+      const didCopy = await copyPromise
+
+      setInstagramCopyStatus(didCopy ? 'copied' : 'manual')
+      setSuccess(didCopy ? text.hiringLinkCopied : null)
+      setIsInstagramGuidanceOpen(true)
+    } finally {
+      isInstagramSharePendingRef.current = false
+      setIsInstagramSharing(false)
     }
   }
 
@@ -1008,6 +1117,39 @@ function OwnerJobsPage() {
                 )}
               </div>
 
+              <div className="owner-promotion-section">
+                <h3>{text.promoteHiring}</h3>
+                <div className="owner-instagram-share-card">
+                  <div className="owner-instagram-share-copy">
+                    <h4>{text.instagramTitle}</h4>
+                    <p>{text.instagramDescription}</p>
+                  </div>
+                  <div className="owner-instagram-share-actions">
+                    <button
+                      className="ui-button ui-button--primary"
+                      type="button"
+                      disabled={!publicHiringLink || isInstagramSharing}
+                      onClick={() => void handlePostInstagramStory()}
+                    >
+                      {isInstagramSharing
+                        ? text.openingInstagram
+                        : text.postStory}
+                    </button>
+                    <button
+                      className="ui-button ui-button--tertiary"
+                      type="button"
+                      disabled={!publicHiringLink || isInstagramSharing}
+                      onClick={() => void handleCopyQrLink()}
+                    >
+                      {text.copyLink}
+                    </button>
+                  </div>
+                  <p className="owner-instagram-share-helper">
+                    {text.instagramHelper}
+                  </p>
+                </div>
+              </div>
+
               <div
                 className="qr-format-selector"
                 role="group"
@@ -1053,14 +1195,6 @@ function OwnerJobsPage() {
                   {qrAssetFormat === 'poster'
                     ? text.downloadQr
                     : text.downloadQrOnly}
-                </button>
-                <button
-                  className="ui-button ui-button--tertiary"
-                  type="button"
-                  disabled={!publicHiringLink}
-                  onClick={() => void handleCopyQrLink()}
-                >
-                  {text.copyLink}
                 </button>
               </div>
               <p className="owner-qr-poster-helper">
@@ -1118,6 +1252,51 @@ function OwnerJobsPage() {
             />
           ) : (
             <p>{text.downloadQrFailed}</p>
+          )}
+        </div>
+      </PeepssModal>
+
+      <PeepssModal
+        isOpen={isInstagramGuidanceOpen}
+        onClose={() => setIsInstagramGuidanceOpen(false)}
+        size="small"
+        title={
+          instagramCopyStatus === 'copied'
+            ? text.hiringLinkCopied
+            : text.copyHiringLink
+        }
+      >
+        <div className="owner-instagram-guidance" dir={direction}>
+          {instagramCopyStatus === 'manual' && (
+            <div className="owner-instagram-manual-copy">
+              <p>{text.manualCopyHelp}</p>
+              <input
+                aria-label={text.copyHiringLink}
+                onFocus={(event) => event.currentTarget.select()}
+                readOnly
+                value={publicHiringLink}
+              />
+            </div>
+          )}
+          <div>
+            <p className="owner-instagram-guide-label">
+              {text.instagramGuideLabel}
+            </p>
+            <ol>
+              {text.instagramGuideSteps.map((step) => (
+                <li key={step}>{step}</li>
+              ))}
+            </ol>
+          </div>
+          {isMobileInstagramContext() && (
+            <a
+              className="ui-button ui-button--secondary owner-instagram-open-link"
+              href="https://www.instagram.com/"
+              rel="noreferrer"
+              target="_blank"
+            >
+              {text.openInstagram}
+            </a>
           )}
         </div>
       </PeepssModal>
