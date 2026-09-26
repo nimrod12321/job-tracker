@@ -1,4 +1,9 @@
 import { API_BASE_URL } from '../../../config/env'
+import type {
+  OwnerAcquisitionFlow,
+  OwnerOtpVerifiedAttempt,
+  OwnerSignupAttempt,
+} from '../../../analytics/ownerFunnel'
 
 async function getErrorMessage(
   response: Response,
@@ -52,6 +57,7 @@ type RequestCodeResponse = {
 type VerifyCodeResponse = {
   token: string
   user: AuthUser
+  ownerAcquisitionFlow: OwnerAcquisitionFlow | null
 }
 
 export async function registerUser(
@@ -110,6 +116,7 @@ export async function getCurrentUser(token: string): Promise<AuthUser> {
 export async function requestAuthCode(input: {
   phoneNumber: string
   purpose: 'login' | 'register' | 'qrApply'
+  analytics?: OwnerSignupAttempt
 }): Promise<RequestCodeResponse> {
   const response = await fetch(`${API_BASE_URL}/auth/request-code`, {
     method: 'POST',
@@ -132,6 +139,8 @@ export async function verifyAuthCode(input: {
   purpose: 'login' | 'register' | 'qrApply'
   fullName?: string
   track?: 'restaurant' | 'restaurantOwner'
+  ownerFlowHint?: 'selfServe' | 'claim'
+  ownerOtpAnalytics?: OwnerOtpVerifiedAttempt
 }): Promise<VerifyCodeResponse> {
   const response = await fetch(`${API_BASE_URL}/auth/verify-code`, {
     method: 'POST',

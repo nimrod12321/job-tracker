@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import PeepssLogo from '../../../components/brand/PeepssLogo'
 import {
@@ -7,6 +7,14 @@ import {
   type UserTrack,
 } from '../services/authApi'
 import { useRestaurantLanguage } from '../../restaurant/utils/restaurantLanguage'
+import {
+  createOwnerOtpVerifiedAttempt,
+  createOwnerSignupAttempt,
+  linkOwnerOtpVerified,
+  type OwnerOtpVerifiedAttempt,
+  type OwnerSignupAttempt,
+} from '../../../analytics/ownerFunnel'
+import { persistAnalyticsAcquisition } from '../../../analytics/events'
 
 type AuthPageProps = {
   mode: 'login' | 'register'
@@ -27,6 +35,8 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isResending, setIsResending] = useState(false)
+  const signupAttemptRef = useRef<OwnerSignupAttempt | null>(null)
+  const otpVerifiedAttemptRef = useRef<OwnerOtpVerifiedAttempt | null>(null)
   const isHebrew = language === 'he'
   const purpose = mode
   const text = {
@@ -77,7 +87,14 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+    signupAttemptRef.current = null
+    otpVerifiedAttemptRef.current = null
   }, [mode])
+
+  function resetOwnerAnalyticsAttempt() {
+    signupAttemptRef.current = null
+    otpVerifiedAttemptRef.current = null
+  }
 
   function validateDetails() {
     if (mode === 'register' && fullName.trim().length < 2) {
@@ -103,9 +120,29 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
   }
 
   async function requestCode() {
+    const flowHint =
+      mode === 'register' && track === 'restaurantOwner'
+        ? 'selfServe'
+        : undefined
+    const existingAttempt = signupAttemptRef.current
+    const attemptMatchesFlow =
+      existingAttempt && existingAttempt.flowHint === flowHint
+    const analytics = attemptMatchesFlow
+      ? existingAttempt
+      : createOwnerSignupAttempt(flowHint)
+
+    signupAttemptRef.current = analytics
+
+    if (flowHint) {
+      // This is the explicit self-serve owner-intent boundary. Persistence is
+      // deliberately fire-and-forget so analytics cannot delay OTP delivery.
+      void persistAnalyticsAcquisition()
+    }
+
     await requestAuthCode({
       phoneNumber,
       purpose,
+      ...(analytics ? { analytics } : {}),
     })
   }
 
@@ -143,6 +180,9 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
     setIsLoading(true)
 
     try {
+      const analyticsAttempt =
+        otpVerifiedAttemptRef.current ?? createOwnerOtpVerifiedAttempt()
+      otpVerifiedAttemptRef.current = analyticsAttempt
       const response = await verifyAuthCode({
         phoneNumber,
         code,
@@ -153,7 +193,23 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
               track,
             }
           : {}),
+        ...(mode === 'register' && track === 'restaurantOwner'
+          ? { ownerFlowHint: 'selfServe' as const }
+          : {}),
+        ...(analyticsAttempt
+          ? {
+              ownerOtpAnalytics: analyticsAttempt,
+            }
+          : {}),
       })
+
+      if (response.ownerAcquisitionFlow && analyticsAttempt) {
+        void linkOwnerOtpVerified({
+          token: response.token,
+          flow: response.ownerAcquisitionFlow,
+          attempt: analyticsAttempt,
+        })
+      }
       const activeElement = document.activeElement
 
       if (activeElement instanceof HTMLElement) {
@@ -258,7 +314,10 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
                   <input
                     type="tel"
                     value={phoneNumber}
-                    onChange={(event) => setPhoneNumber(event.target.value)}
+                    onChange={(event) => {
+                      setPhoneNumber(event.target.value)
+                      resetOwnerAnalyticsAttempt()
+                    }}
                     placeholder={text.phonePlaceholder}
                     required
                     autoComplete="tel"
@@ -275,7 +334,10 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
                         name="track"
                         value="restaurant"
                         checked={track === 'restaurant'}
-                        onChange={() => setTrack('restaurant')}
+                        onChange={() => {
+                          setTrack('restaurant')
+                          resetOwnerAnalyticsAttempt()
+                        }}
                       />
                       <span>
                         <strong>{text.worker}</strong>
@@ -287,7 +349,10 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
                         name="track"
                         value="restaurantOwner"
                         checked={track === 'restaurantOwner'}
-                        onChange={() => setTrack('restaurantOwner')}
+                        onChange={() => {
+                          setTrack('restaurantOwner')
+                          resetOwnerAnalyticsAttempt()
+                        }}
                       />
                       <span>
                         <strong>{text.owner}</strong>
@@ -383,6 +448,7 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
                       setCode('')
                       setError(null)
                       setMessage(null)
+                      resetOwnerAnalyticsAttempt()
                     }}
                   >
                     {text.changePhone}

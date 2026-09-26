@@ -14,6 +14,7 @@ import healthRouter from './routes/health.routes.js'
 import profileRouter from './routes/profile.routes.js'
 import publicRestaurantRouter from './routes/publicRestaurant.routes.js'
 import restaurantRouter from './routes/restaurant.routes.js'
+import analyticsRouter from './routes/analytics.routes.js'
 
 export const app = express()
 
@@ -49,6 +50,7 @@ app.use(express.json())
 
 app.use('/api/health', healthRouter)
 app.use('/health', healthRouter)
+app.use('/api/analytics', analyticsRouter)
 app.use('/api/admin', adminRouter)
 app.use('/api/discover', discoveryRouter)
 app.use('/api/jobs', jobsRouter)

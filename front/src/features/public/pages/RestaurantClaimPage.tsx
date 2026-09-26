@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import PeepssLogo from '../../../components/brand/PeepssLogo'
 import {
@@ -13,6 +13,14 @@ import {
   RestaurantClaimApiError,
   type PublicRestaurantClaim,
 } from '../services/restaurantClaimApi'
+import {
+  createOwnerOtpVerifiedAttempt,
+  createOwnerSignupAttempt,
+  linkOwnerOtpVerified,
+  recordClaimSignupStarted,
+  type OwnerOtpVerifiedAttempt,
+  type OwnerSignupAttempt,
+} from '../../../analytics/ownerFunnel'
 
 const CLAIM_CONTEXT_KEY = 'peepss-restaurant-claim-context'
 
@@ -70,6 +78,8 @@ function RestaurantClaimPage({ onClaimSuccess }: ClaimPageProps) {
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const signupAttemptRef = useRef<OwnerSignupAttempt | null>(null)
+  const otpVerifiedAttemptRef = useRef<OwnerOtpVerifiedAttempt | null>(null)
 
   const text = {
     switchLanguage: isHebrew ? 'English' : 'עברית',
@@ -200,6 +210,18 @@ function RestaurantClaimPage({ onClaimSuccess }: ClaimPageProps) {
     }
   }, [claimToken, restaurantSlug])
 
+  function handleActivate() {
+    const attempt =
+      signupAttemptRef.current ?? createOwnerSignupAttempt()
+    signupAttemptRef.current = attempt
+
+    if (attempt) {
+      void recordClaimSignupStarted(attempt)
+    }
+
+    setStep('phone')
+  }
+
   async function handleRequestCode(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError(null)
@@ -239,13 +261,30 @@ function RestaurantClaimPage({ onClaimSuccess }: ClaimPageProps) {
     setIsLoading(true)
 
     try {
+      const analyticsAttempt =
+        otpVerifiedAttemptRef.current ?? createOwnerOtpVerifiedAttempt()
+      otpVerifiedAttemptRef.current = analyticsAttempt
       const auth = await verifyAuthCode({
         phoneNumber,
         code,
         purpose: 'register',
         fullName: fullName.trim(),
         track: 'restaurantOwner',
+        ownerFlowHint: 'claim',
+        ...(analyticsAttempt
+          ? {
+              ownerOtpAnalytics: analyticsAttempt,
+            }
+          : {}),
       })
+
+      if (auth.ownerAcquisitionFlow && analyticsAttempt) {
+        void linkOwnerOtpVerified({
+          token: auth.token,
+          flow: auth.ownerAcquisitionFlow,
+          attempt: analyticsAttempt,
+        })
+      }
       const completed = await completePublicRestaurantClaim({
         slug: restaurantSlug,
         token: claimToken,
@@ -388,7 +427,7 @@ function RestaurantClaimPage({ onClaimSuccess }: ClaimPageProps) {
             <button
               className="ui-button ui-button--primary"
               type="button"
-              onClick={() => setStep('phone')}
+              onClick={handleActivate}
             >
               {text.activate}
             </button>
@@ -418,7 +457,10 @@ function RestaurantClaimPage({ onClaimSuccess }: ClaimPageProps) {
                 required
                 autoComplete="tel"
                 placeholder="050-1234567"
-                onChange={(event) => setPhoneNumber(event.target.value)}
+                onChange={(event) => {
+                  setPhoneNumber(event.target.value)
+                  otpVerifiedAttemptRef.current = null
+                }}
               />
             </label>
             {error && <p className="message message-error" role="alert">{error}</p>}
@@ -492,6 +534,7 @@ function RestaurantClaimPage({ onClaimSuccess }: ClaimPageProps) {
                   setError(null)
                   setMessage(null)
                   setStep('phone')
+                  otpVerifiedAttemptRef.current = null
                 }}
               >
                 {text.changePhone}

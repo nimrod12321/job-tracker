@@ -129,6 +129,7 @@ model User {
   restaurantMemberships   RestaurantMember[] @relation("RestaurantMemberUser")
   restaurantInvitesSent   RestaurantMember[] @relation("RestaurantMemberInviter")
   adminRestaurantReadStates AdminRestaurantReadState[]
+  analyticsAcquisitions   AnalyticsAcquisition[]
 }
 
 model OtpVerification {
@@ -437,4 +438,50 @@ model RestaurantApplication {
   @@unique([userId, restaurantJobId])
   @@index([userId])
   @@index([restaurantJobId])
+}
+
+model AnalyticsAcquisition {
+  id String @id @default(uuid())
+
+  anonymousAcquisitionId String @unique
+
+  firstSource      String
+  firstMedium      String
+  firstCampaign    String?
+  firstReferrer    String?
+  direct           Boolean
+  firstLandingPath String
+  firstTouchedAt   DateTime
+
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  events AnalyticsEvent[]
+
+  @@index([firstTouchedAt])
+  @@index([expiresAt])
+  @@index([userId])
+}
+
+model AnalyticsEvent {
+  id String @id @default(uuid())
+
+  acquisitionId String
+  acquisition   AnalyticsAcquisition @relation(fields: [acquisitionId], references: [id], onDelete: Cascade)
+
+  clientEventId String @unique
+  eventName     String
+  occurredAt    DateTime
+  receivedAt    DateTime @default(now())
+  route         String?
+  properties    Json     @default("{}")
+  expiresAt     DateTime
+
+  @@index([acquisitionId])
+  @@index([eventName])
+  @@index([occurredAt])
+  @@index([expiresAt])
 }

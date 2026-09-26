@@ -3,12 +3,21 @@ import { env } from '../config/env.js'
 
 type AuthTokenPayload = {
   userId: string
+  authMethod?: 'otp'
+  ownerAcquisitionId?: string
+  ownerAcquisitionFlow?: 'selfServe' | 'claim' | 'pendingPhone'
 }
 
-export function signAuthToken(userId: string) {
+type SignAuthTokenOptions = Omit<AuthTokenPayload, 'userId'>
+
+export function signAuthToken(
+  userId: string,
+  options: SignAuthTokenOptions = {},
+) {
   return jwt.sign(
     {
       userId,
+      ...options,
     },
     env.jwtSecret,
     {
@@ -32,5 +41,16 @@ export function verifyAuthToken(token: string): AuthTokenPayload {
 
   return {
     userId: payload.userId,
+    ...(payload.authMethod === 'otp'
+      ? { authMethod: payload.authMethod }
+      : {}),
+    ...(typeof payload.ownerAcquisitionId === 'string'
+      ? { ownerAcquisitionId: payload.ownerAcquisitionId }
+      : {}),
+    ...(payload.ownerAcquisitionFlow === 'selfServe' ||
+    payload.ownerAcquisitionFlow === 'claim' ||
+    payload.ownerAcquisitionFlow === 'pendingPhone'
+      ? { ownerAcquisitionFlow: payload.ownerAcquisitionFlow }
+      : {}),
   }
 }

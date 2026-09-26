@@ -11,7 +11,8 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "seed:restaurant": "tsx src/scripts/seedRestaurantJobs.ts",
-    "repair:owner-drafts": "tsx src/scripts/repairOwnerStarterDrafts.ts"
+    "repair:owner-drafts": "tsx src/scripts/repairOwnerStarterDrafts.ts",
+    "analytics:cleanup": "tsx src/scripts/cleanupAnalytics.ts"
   },
   "keywords": [],
   "author": "",

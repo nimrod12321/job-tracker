@@ -5,6 +5,11 @@ import './index.css';
 import './restyle.css';
 import App from './App.tsx';
 import ErrorBoundary from './components/ErrorBoundary.tsx';
+import { initializeAcquisitionCapture } from './analytics/acquisition.ts';
+
+// Capture immutable first-touch context before React Router can redirect.
+// This is local-only; Stage 1 does not emit or persist analytics events.
+initializeAcquisitionCapture();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

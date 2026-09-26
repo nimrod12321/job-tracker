@@ -6,6 +6,11 @@ import { signAuthToken } from '../lib/jwt.js'
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js'
 import { requestOtpCode, verifyOtpCode } from '../services/otp.service.js'
 import {
+  recordOwnerOtpVerifiedBestEffort,
+  recordOwnerSignupStartedFromAuth,
+  resolveOwnerAcquisitionFlow,
+} from '../services/analytics.service.js'
+import {
   getPrimaryRestaurantMembershipRole,
   linkPendingRestaurantMemberships,
 } from '../services/restaurantAccess.service.js'
@@ -17,6 +22,10 @@ import {
   requestCodeSchema,
   verifyCodeSchema,
 } from '../validations/auth.validation.js'
+import {
+  ownerOtpAnalyticsAttemptSchema,
+  ownerSignupAnalyticsSchema,
+} from '../validations/analytics.validation.js'
 
 type AuthUserRecord = {
   id: string
@@ -27,6 +36,47 @@ type AuthUserRecord = {
   track: 'highTech' | 'restaurant' | 'restaurantOwner'
   workerLocationRequired: boolean
   createdAt?: Date
+}
+
+function getOwnerFlowHint(value: unknown) {
+  return value === 'selfServe' || value === 'claim' ? value : null
+}
+
+function getOwnerOtpAnalyticsAttempt(value: unknown) {
+  const result = ownerOtpAnalyticsAttemptSchema.safeParse(value)
+  return result.success ? result.data : null
+}
+
+function getOtpTokenAnalyticsOptions(
+  ownerAcquisitionFlow: Awaited<
+    ReturnType<typeof resolveOwnerAcquisitionFlow>
+  >,
+  ownerOtpAnalytics: ReturnType<typeof getOwnerOtpAnalyticsAttempt>,
+) {
+  return {
+    authMethod: 'otp' as const,
+    ...(ownerAcquisitionFlow && ownerOtpAnalytics
+      ? {
+          ownerAcquisitionFlow,
+          ownerAcquisitionId:
+            ownerOtpAnalytics.anonymousAcquisitionId,
+        }
+      : {}),
+  }
+}
+
+async function attemptOwnerOtpAnalyticsRecording(input: {
+  userId: string
+  flow: Awaited<ReturnType<typeof resolveOwnerAcquisitionFlow>>
+  analytics: ReturnType<typeof getOwnerOtpAnalyticsAttempt>
+}) {
+  if (!input.flow || !input.analytics) return
+
+  await recordOwnerOtpVerifiedBestEffort({
+    userId: input.userId,
+    flow: input.flow,
+    ...input.analytics,
+  })
 }
 
 function isAdminUser(user: {
@@ -85,7 +135,6 @@ export async function register(req: Request, res: Response) {
         email: normalizedEmail,
       },
     })
-
     if (existingUser) {
       return res.status(409).json({
         message: 'user already exists',
@@ -231,6 +280,21 @@ export async function requestCode(req: Request, res: Response) {
       })
     }
 
+    const analytics = ownerSignupAnalyticsSchema.safeParse(
+      result.data.analytics,
+    )
+    if (analytics.success) {
+      void recordOwnerSignupStartedFromAuth({
+        analytics: analytics.data,
+        phoneNumber,
+        purpose: result.data.purpose,
+      }).catch((error) => {
+        // Acquisition analytics is deliberately non-critical. A storage or
+        // validation race must never stop a valid OTP from being delivered.
+        console.error('Failed to record owner signup start:', error)
+      })
+    }
+
     try {
       await requestOtpCode(phoneNumber, result.data.purpose)
     } catch (error) {
@@ -267,6 +331,10 @@ export async function verifyCode(req: Request, res: Response) {
         message: getValidationErrorMessage(result.error),
       })
     }
+
+    const ownerOtpAnalytics = getOwnerOtpAnalyticsAttempt(
+      result.data.ownerOtpAnalytics,
+    )
 
     if (
       result.data.purpose === 'register' ||
@@ -323,7 +391,28 @@ export async function verifyCode(req: Request, res: Response) {
         })
       }
 
-      const token = signAuthToken(existingUser.id)
+      let ownerAcquisitionFlow: Awaited<
+        ReturnType<typeof resolveOwnerAcquisitionFlow>
+      > = null
+      try {
+        const ownerFlowHint = getOwnerFlowHint(result.data.ownerFlowHint)
+        ownerAcquisitionFlow = await resolveOwnerAcquisitionFlow({
+          phoneNumber,
+          purpose: result.data.purpose,
+          ...(result.data.track ? { track: result.data.track } : {}),
+          ...(ownerFlowHint ? { flowHint: ownerFlowHint } : {}),
+        })
+      } catch (error) {
+        console.error('Failed to resolve owner acquisition flow:', error)
+      }
+
+      const token = signAuthToken(
+        existingUser.id,
+        getOtpTokenAnalyticsOptions(
+          ownerAcquisitionFlow,
+          ownerOtpAnalytics,
+        ),
+      )
       await linkPendingRestaurantMemberships(
         existingUser.id,
         existingUser.phoneNumber,
@@ -331,13 +420,35 @@ export async function verifyCode(req: Request, res: Response) {
       const restaurantMemberRole =
         await getPrimaryRestaurantMembershipRole(existingUser.id)
 
+      await attemptOwnerOtpAnalyticsRecording({
+        userId: existingUser.id,
+        flow: ownerAcquisitionFlow,
+        analytics: ownerOtpAnalytics,
+      })
+
       return res.json({
         token,
         user: mapAuthUserWithRestaurantRole(
           existingUser,
           restaurantMemberRole,
         ),
+        ownerAcquisitionFlow,
       })
+    }
+
+    let ownerAcquisitionFlow: Awaited<
+      ReturnType<typeof resolveOwnerAcquisitionFlow>
+    > = null
+    try {
+      const ownerFlowHint = getOwnerFlowHint(result.data.ownerFlowHint)
+      ownerAcquisitionFlow = await resolveOwnerAcquisitionFlow({
+        phoneNumber,
+        purpose: result.data.purpose,
+        ...(result.data.track ? { track: result.data.track } : {}),
+        ...(ownerFlowHint ? { flowHint: ownerFlowHint } : {}),
+      })
+    } catch (error) {
+      console.error('Failed to resolve owner acquisition flow:', error)
     }
 
     const now = new Date()
@@ -373,11 +484,24 @@ export async function verifyCode(req: Request, res: Response) {
     await linkPendingRestaurantMemberships(user.id, user.phoneNumber)
     const restaurantMemberRole =
       await getPrimaryRestaurantMembershipRole(user.id)
-    const token = signAuthToken(user.id)
+    const token = signAuthToken(
+      user.id,
+      getOtpTokenAnalyticsOptions(
+        ownerAcquisitionFlow,
+        ownerOtpAnalytics,
+      ),
+    )
+
+    await attemptOwnerOtpAnalyticsRecording({
+      userId: user.id,
+      flow: ownerAcquisitionFlow,
+      analytics: ownerOtpAnalytics,
+    })
 
     return res.json({
       token,
       user: mapAuthUserWithRestaurantRole(user, restaurantMemberRole),
+      ownerAcquisitionFlow,
     })
   } catch (error) {
     console.error(error)

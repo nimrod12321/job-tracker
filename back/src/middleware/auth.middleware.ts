@@ -3,6 +3,9 @@ import { verifyAuthToken } from '../lib/jwt.js'
 
 export interface AuthenticatedRequest extends Request {
   userId?: string
+  authMethod?: 'otp'
+  ownerAcquisitionId?: string
+  ownerAcquisitionFlow?: 'selfServe' | 'claim' | 'pendingPhone'
 }
 
 export const requireAuth: RequestHandler = (req, res, next) => {
@@ -19,7 +22,18 @@ export const requireAuth: RequestHandler = (req, res, next) => {
   try {
     const payload = verifyAuthToken(token)
 
-    ;(req as AuthenticatedRequest).userId = payload.userId
+    const authenticatedRequest = req as AuthenticatedRequest
+    authenticatedRequest.userId = payload.userId
+    if (payload.authMethod) {
+      authenticatedRequest.authMethod = payload.authMethod
+    }
+    if (payload.ownerAcquisitionId) {
+      authenticatedRequest.ownerAcquisitionId = payload.ownerAcquisitionId
+    }
+    if (payload.ownerAcquisitionFlow) {
+      authenticatedRequest.ownerAcquisitionFlow =
+        payload.ownerAcquisitionFlow
+    }
 
     return next()
   } catch (error) {

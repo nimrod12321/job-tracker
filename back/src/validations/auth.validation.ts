@@ -36,6 +36,9 @@ export const requestCodeSchema = z
       .min(1, 'phone number is required')
       .max(50, 'phone number is too long'),
     purpose: otpPurposeSchema,
+    // Analytics is observational. The controller validates this separately
+    // so malformed analytics metadata can never block OTP delivery.
+    analytics: z.unknown().optional(),
   })
   .strict()
 
@@ -59,5 +62,8 @@ export const verifyCodeSchema = z
       .max(150, 'full name is too long')
       .optional(),
     track: z.enum(['restaurant', 'restaurantOwner']).optional(),
+    // This is validated separately for the same non-blocking reason.
+    ownerFlowHint: z.unknown().optional(),
+    ownerOtpAnalytics: z.unknown().optional(),
   })
   .strict()
