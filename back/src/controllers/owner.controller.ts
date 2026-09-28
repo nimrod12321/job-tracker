@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express'
+import { randomUUID } from 'node:crypto'
 import type {
   RestaurantJob,
   RestaurantOwnerProfile,
@@ -21,6 +22,7 @@ import {
   GooglePlacesError,
   verifyRestaurantPlaceId,
 } from '../services/googlePlaces.service.js'
+import { recordAuthenticatedOwnerActivityBestEffort } from '../services/analytics.service.js'
 import {
   candidateLeadStatusBodySchema,
   leadIdSchema,
@@ -580,6 +582,16 @@ export async function updateOwnerQrRoles(req: Request, res: Response) {
       },
       data: {
         qrEnabledRoles: result.data.qrEnabledRoles,
+      },
+    })
+
+    void recordAuthenticatedOwnerActivityBestEffort(userId, {
+      clientEventId: randomUUID(),
+      eventName: 'hiring_roles_updated',
+      occurredAt: new Date().toISOString(),
+      route: '/owner/jobs',
+      properties: {
+        roleCount: profile.qrEnabledRoles.length,
       },
     })
 

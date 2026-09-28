@@ -4,7 +4,9 @@ import {
   ANALYTICS_EVENT_PROPERTY_ALLOWLIST,
   ANALYTICS_EVENT_RETENTION_DAYS,
   APPROVED_ANALYTICS_EVENT_NAMES,
+  OWNER_ACTIVITY_EVENT_NAMES,
   OWNER_ACQUISITION_FLOWS,
+  type ApprovedAnalyticsEventName,
 } from '../config/analytics.js'
 
 const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000
@@ -122,6 +124,43 @@ const analyticsPropertyValueSchema = z.union([
   z.null(),
 ])
 
+function validateEventDetails(
+  value: {
+    eventName: ApprovedAnalyticsEventName
+    occurredAt: string
+    properties: Record<string, string | number | boolean | null>
+  },
+  context: z.RefinementCtx,
+) {
+  validateTimestamp(
+    value.occurredAt,
+    ANALYTICS_EVENT_RETENTION_DAYS,
+    context,
+  )
+
+  const propertyKeys = Object.keys(value.properties)
+  if (propertyKeys.length > 6) {
+    context.addIssue({
+      code: 'custom',
+      path: ['properties'],
+      message: 'too many event properties',
+    })
+  }
+
+  const allowedKeys = new Set(
+    ANALYTICS_EVENT_PROPERTY_ALLOWLIST[value.eventName],
+  )
+  for (const key of propertyKeys) {
+    if (!allowedKeys.has(key)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['properties', key],
+        message: `property is not allowed for ${value.eventName}`,
+      })
+    }
+  }
+}
+
 export const analyticsEventSchema = z
   .strictObject({
     anonymousAcquisitionId: anonymousAcquisitionIdSchema,
@@ -137,39 +176,34 @@ export const analyticsEventSchema = z
       .default({}),
   })
   .superRefine((value, context) => {
-    validateTimestamp(
-      value.occurredAt,
-      ANALYTICS_EVENT_RETENTION_DAYS,
-      context,
-    )
-
-    const propertyKeys = Object.keys(value.properties)
-    if (propertyKeys.length > 6) {
-      context.addIssue({
-        code: 'custom',
-        path: ['properties'],
-        message: 'too many event properties',
-      })
-    }
-
-    const allowedKeys = new Set(
-      ANALYTICS_EVENT_PROPERTY_ALLOWLIST[value.eventName],
-    )
-    for (const key of propertyKeys) {
-      if (!allowedKeys.has(key)) {
-        context.addIssue({
-          code: 'custom',
-          path: ['properties', key],
-          message: `property is not allowed for ${value.eventName}`,
-        })
-      }
-    }
+    validateEventDetails(value, context)
   })
 
 export type AnalyticsAcquisitionInput = z.infer<
   typeof analyticsAcquisitionSchema
 >
 export type AnalyticsEventInput = z.infer<typeof analyticsEventSchema>
+
+export const ownerActivityEventSchema = z
+  .strictObject({
+    clientEventId: z.uuid(),
+    eventName: z.enum(OWNER_ACTIVITY_EVENT_NAMES),
+    occurredAt: timestampSchema,
+    route: privatePathSchema.nullish(),
+    properties: z
+      .record(
+        z.string().min(1).max(40).regex(/^[a-z][a-zA-Z0-9]*$/),
+        analyticsPropertyValueSchema,
+      )
+      .default({}),
+  })
+  .superRefine((value, context) => {
+    validateEventDetails(value, context)
+  })
+
+export type OwnerActivityEventInput = z.infer<
+  typeof ownerActivityEventSchema
+>
 
 export const ownerSignupAnalyticsSchema = z
   .strictObject({

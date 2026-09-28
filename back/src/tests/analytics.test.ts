@@ -282,10 +282,10 @@ test(
       const eventPayload = {
         anonymousAcquisitionId: acquisitionId,
         clientEventId,
-        eventName: 'hiring_link_copied',
+        eventName: 'owner_signup_started',
         occurredAt,
         route: '/owner/jobs',
-        properties: { method: 'button' },
+        properties: { flow: 'claim' },
       }
       const eventCreated = await post<{ created: boolean }>(
         '/analytics/events',
@@ -307,7 +307,7 @@ test(
 
       const conflictingRetry = await post('/analytics/events', {
         ...eventPayload,
-        properties: { method: 'keyboard' },
+        properties: { flow: 'selfServe' },
       })
       assert.equal(conflictingRetry.status, 409)
 

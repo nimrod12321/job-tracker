@@ -2,6 +2,13 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import PeepssModal from '../../../components/common/PeepssModal'
 import { ENABLE_DEVELOPMENT_JOB_BOARD } from '../../../config/env'
+import { sendOwnerActivityEvent } from '../../../analytics/ownerActivity'
+import {
+  copyHiringLinkAndRecord,
+  recordInstagramAssistOpened,
+  recordQrAssetDownloadStarted,
+  recordRecruitmentKitOpenTransition,
+} from '../../../analytics/ownerActivityActions'
 import {
   RESTAURANT_ROLES,
   getRestaurantRoleLabel,
@@ -720,7 +727,10 @@ function OwnerJobsPage() {
       return
     }
 
-    const didCopy = await copyHiringLink()
+    const didCopy = await copyHiringLinkAndRecord(
+      copyHiringLink,
+      sendOwnerActivityEvent,
+    )
 
     if (didCopy) {
       setSuccess(text.copied)
@@ -756,6 +766,7 @@ function OwnerJobsPage() {
     setIsInstagramSharing(true)
     setError(null)
     setSuccess(null)
+    recordInstagramAssistOpened(sendOwnerActivityEvent)
 
     const copyPromise = copyHiringLink()
 
@@ -788,6 +799,8 @@ function OwnerJobsPage() {
     if (!publicHiringLink || !profile?.slug) {
       return
     }
+
+    recordQrAssetDownloadStarted(qrAssetFormat, sendOwnerActivityEvent)
 
     try {
       await downloadQrAsset(
@@ -941,6 +954,11 @@ function OwnerJobsPage() {
   function handleToggleQr() {
     const nextIsExpanded = !isQrExpanded
 
+    recordRecruitmentKitOpenTransition(
+      isQrExpanded,
+      nextIsExpanded,
+      sendOwnerActivityEvent,
+    )
     setIsQrExpanded(nextIsExpanded)
 
     if (qrStorageKey) {

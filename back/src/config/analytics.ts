@@ -18,6 +18,25 @@ export const APPROVED_ANALYTICS_EVENT_NAMES = [
 export type ApprovedAnalyticsEventName =
   (typeof APPROVED_ANALYTICS_EVENT_NAMES)[number]
 
+export const OWNER_ACTIVITY_EVENT_NAMES = [
+  'hiring_roles_updated',
+  'recruitment_kit_opened',
+  'hiring_link_copied',
+  'poster_download_started',
+  'qr_download_started',
+  'instagram_assist_opened',
+] as const satisfies readonly ApprovedAnalyticsEventName[]
+
+export type OwnerActivityEventName =
+  (typeof OWNER_ACTIVITY_EVENT_NAMES)[number]
+
+export const RECRUITMENT_ASSET_EVENT_NAMES = [
+  'hiring_link_copied',
+  'poster_download_started',
+  'qr_download_started',
+  'instagram_assist_opened',
+] as const satisfies readonly OwnerActivityEventName[]
+
 export const OWNER_ACQUISITION_FLOWS = [
   'selfServe',
   'claim',

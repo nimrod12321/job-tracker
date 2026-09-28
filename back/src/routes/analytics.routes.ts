@@ -2,6 +2,7 @@ import { Router } from 'express'
 import {
   createAnalyticsAcquisition,
   createAnalyticsEvent,
+  createOwnerActivityEvent,
   linkOwnerAcquisition,
 } from '../controllers/analytics.controller.js'
 import { requireAuth } from '../middleware/auth.middleware.js'
@@ -25,6 +26,12 @@ analyticsRouter.post(
   createAnalyticsAcquisition,
 )
 analyticsRouter.post('/events', eventRateLimit, createAnalyticsEvent)
+analyticsRouter.post(
+  '/owner-events',
+  eventRateLimit,
+  requireAuth,
+  createOwnerActivityEvent,
+)
 analyticsRouter.post('/link', eventRateLimit, requireAuth, linkOwnerAcquisition)
 
 export default analyticsRouter

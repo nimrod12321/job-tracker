@@ -2,6 +2,7 @@ import type { Prisma } from '../generated/prisma/client.js'
 import {
   ANALYTICS_ACQUISITION_RETENTION_DAYS,
   ANALYTICS_EVENT_RETENTION_DAYS,
+  RECRUITMENT_ASSET_EVENT_NAMES,
   type OwnerAcquisitionFlow,
   retentionDateFrom,
 } from '../config/analytics.js'
@@ -12,6 +13,7 @@ import type {
   OwnerAcquisitionLinkInput,
   OwnerOtpAnalyticsAttemptInput,
   OwnerSignupAnalyticsInput,
+  OwnerActivityEventInput,
 } from '../validations/analytics.validation.js'
 
 function isUniqueConstraintError(error: unknown) {
@@ -84,7 +86,7 @@ export async function registerAnalyticsAcquisition(
   }
 }
 
-type EventResult =
+export type EventResult =
   | { status: 'created' | 'duplicate'; eventId: string }
   | { status: 'acquisition_not_found' | 'conflict' }
 
@@ -157,6 +159,98 @@ export async function recordAnalyticsEvent(
 
     return { status: 'conflict' }
   }
+}
+
+async function findDurableOwnerAcquisition(userId: string) {
+  return prisma.analyticsAcquisition.findFirst({
+    where: { userId },
+    orderBy: [{ firstTouchedAt: 'asc' }, { createdAt: 'asc' }],
+    select: {
+      anonymousAcquisitionId: true,
+    },
+  })
+}
+
+export async function recordAuthenticatedOwnerActivity(
+  userId: string,
+  input: OwnerActivityEventInput,
+): Promise<EventResult> {
+  const acquisition = await findDurableOwnerAcquisition(userId)
+
+  if (!acquisition) {
+    return { status: 'acquisition_not_found' }
+  }
+
+  return recordAnalyticsEvent({
+    anonymousAcquisitionId: acquisition.anonymousAcquisitionId,
+    ...input,
+  })
+}
+
+type AuthenticatedOwnerActivityRecorder = (
+  userId: string,
+  input: OwnerActivityEventInput,
+) => Promise<EventResult>
+
+export async function recordAuthenticatedOwnerActivityBestEffort(
+  userId: string,
+  input: OwnerActivityEventInput,
+  dependencies: {
+    record?: AuthenticatedOwnerActivityRecorder
+    logError?: (message: string, error?: unknown) => void
+  } = {},
+) {
+  const record = dependencies.record ?? recordAuthenticatedOwnerActivity
+  const logError = dependencies.logError ?? console.error
+  const logSafely = (message: string, error?: unknown) => {
+    try {
+      if (error === undefined) {
+        logError(message)
+      } else {
+        logError(message, error)
+      }
+    } catch {
+      // Analytics and logging are observational and never product-critical.
+    }
+  }
+
+  try {
+    const result = await record(userId, input)
+    if (result.status === 'conflict') {
+      logSafely(
+        `Owner activity analytics was not recorded: ${result.status}`,
+      )
+    }
+    return result
+  } catch (error) {
+    logSafely('Failed to record owner activity analytics', error)
+    return { status: 'failed' as const }
+  }
+}
+
+export async function isRestaurantHiringReady(restaurantId: string) {
+  const restaurant = await prisma.restaurantOwnerProfile.findUnique({
+    where: { id: restaurantId },
+    select: { qrEnabledRoles: true },
+  })
+
+  return Boolean(restaurant && restaurant.qrEnabledRoles.length > 0)
+}
+
+export async function hasRecruitmentAssetBeenUsed(
+  anonymousAcquisitionId: string,
+) {
+  return Boolean(
+    await prisma.analyticsEvent.findFirst({
+      where: {
+        acquisition: { anonymousAcquisitionId },
+        eventName: {
+          in: [...RECRUITMENT_ASSET_EVENT_NAMES],
+        },
+      },
+      select: { id: true },
+    }),
+  )
 }
 
 export async function resolveOwnerAcquisitionFlow(input: {
