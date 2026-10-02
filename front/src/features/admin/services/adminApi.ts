@@ -5,6 +5,9 @@ import {
   notifyAuthSessionExpired,
 } from '../../auth/utils/authStorage'
 import type {
+  AdminAcquisitionFunnelReport,
+  AdminAcquisitionFunnelStageKey,
+  AdminAcquisitionStageDetailsReport,
   AdminCandidate,
   AdminRestaurant,
   AdminRestaurantClaim,
@@ -25,6 +28,36 @@ function getHeaders(): Headers {
   }
 
   return headers
+}
+
+export async function getAdminAcquisitionFunnelStage(
+  stage: AdminAcquisitionFunnelStageKey,
+  filters: {
+    source?: string
+    medium?: string
+    campaign?: string
+    page?: number
+    pageSize?: number
+  } = {},
+): Promise<AdminAcquisitionStageDetailsReport> {
+  const query = new URLSearchParams()
+  if (filters.source) query.set('source', filters.source)
+  if (filters.medium) query.set('medium', filters.medium)
+  if (filters.campaign) query.set('campaign', filters.campaign)
+  if (filters.page) query.set('page', String(filters.page))
+  if (filters.pageSize) query.set('pageSize', String(filters.pageSize))
+
+  const suffix = query.size > 0 ? `?${query.toString()}` : ''
+  const response = await fetch(
+    `${API_BASE_URL}/admin/analytics/acquisition-funnel/stage/${encodeURIComponent(stage)}${suffix}`,
+    { headers: getHeaders() },
+  )
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to load acquisition stage details')
+  }
+
+  return response.json()
 }
 
 async function handleApiError(
@@ -85,6 +118,29 @@ export async function getAdminRestaurants(): Promise<AdminRestaurant[]> {
 
   if (!response.ok) {
     await handleApiError(response, 'Failed to load restaurants')
+  }
+
+  return response.json()
+}
+
+export async function getAdminAcquisitionFunnel(filters: {
+  source?: string
+  medium?: string
+  campaign?: string
+} = {}): Promise<AdminAcquisitionFunnelReport> {
+  const query = new URLSearchParams()
+  if (filters.source) query.set('source', filters.source)
+  if (filters.medium) query.set('medium', filters.medium)
+  if (filters.campaign) query.set('campaign', filters.campaign)
+
+  const suffix = query.size > 0 ? `?${query.toString()}` : ''
+  const response = await fetch(
+    `${API_BASE_URL}/admin/analytics/acquisition-funnel${suffix}`,
+    { headers: getHeaders() },
+  )
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to load acquisition funnel')
   }
 
   return response.json()

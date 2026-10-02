@@ -6309,6 +6309,95 @@ textarea:focus-visible {
   gap: 0.5rem;
 }
 
+.admin-acquisition-funnel-flow {
+  grid-template-columns: repeat(auto-fit, minmax(126px, 1fr));
+}
+
+.admin-acquisition-filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.admin-acquisition-filters label {
+  display: grid;
+  gap: 0.3rem;
+  color: #7a5142;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.admin-acquisition-filters select {
+  min-width: 0;
+  border: 1px solid rgb(226 203 185 / 88%);
+  border-radius: 12px;
+  padding: 0.65rem 0.75rem;
+  background: #fffdf8;
+  color: var(--peepss-text, #201d1d);
+  font: inherit;
+}
+
+.admin-acquisition-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.admin-acquisition-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+  text-align: start;
+}
+
+.admin-acquisition-table th,
+.admin-acquisition-table td {
+  border-bottom: 1px solid rgb(226 203 185 / 72%);
+  padding: 0.65rem 0.55rem;
+  text-align: start;
+  white-space: nowrap;
+}
+
+.admin-acquisition-table th {
+  color: #7a5142;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+
+.admin-acquisition-breakdowns {
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+}
+
+.admin-acquisition-breakdowns h3 {
+  margin: 0 0 0.4rem;
+}
+
+.admin-acquisition-breakdowns dl {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.admin-acquisition-breakdowns dl > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid rgb(226 203 185 / 72%);
+  padding-block: 0.4rem;
+}
+
+.admin-acquisition-breakdowns dt {
+  color: #7a5142;
+}
+
+.admin-acquisition-breakdowns dd {
+  margin: 0;
+  color: #1f1d1e;
+  font-weight: 900;
+}
+
 .admin-funnel-step {
   position: relative;
   display: grid;
@@ -6349,6 +6438,117 @@ textarea:focus-visible {
   color: #806f66;
   font-size: 0.68rem;
   line-height: 1.35;
+}
+
+.admin-acquisition-stage-button {
+  width: 100%;
+  appearance: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.admin-acquisition-stage-button:hover {
+  border-color: var(--peepss-primary, #dc5634);
+  background: #fffaf3;
+}
+
+.admin-acquisition-stage-button:focus-visible {
+  border-color: var(--peepss-primary, #dc5634);
+  outline: 2px solid rgb(220 86 52 / 25%);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgb(220 86 52 / 16%);
+}
+
+.admin-acquisition-stage-button .admin-acquisition-current-count {
+  font-size: 1.85rem;
+}
+
+.admin-acquisition-stage-button .admin-acquisition-current-label {
+  color: var(--peepss-text, #201d1d);
+  font-weight: 900;
+}
+
+.admin-acquisition-stage-button .admin-acquisition-reached-count {
+  margin-block-start: 0.2rem;
+  color: #7a5142;
+  font-weight: 850;
+}
+
+.admin-acquisition-stage-details {
+  display: grid;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+.admin-acquisition-stage-summary {
+  margin: 0;
+  color: #7a5142;
+}
+
+.admin-acquisition-stage-table td {
+  vertical-align: top;
+}
+
+.admin-acquisition-attribution {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.admin-acquisition-attribution strong,
+.admin-acquisition-attribution small {
+  font-size: inherit;
+  line-height: 1.35;
+}
+
+.admin-acquisition-attribution small {
+  color: #806f66;
+}
+
+.admin-acquisition-contact-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.admin-acquisition-contact-actions a {
+  color: var(--peepss-primary, #dc5634);
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.admin-acquisition-contact-actions a:hover {
+  text-decoration: underline;
+}
+
+.admin-acquisition-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.7rem;
+}
+
+.admin-acquisition-pagination button {
+  border: 1px solid rgb(226 203 185 / 88%);
+  border-radius: 10px;
+  padding: 0.45rem 0.7rem;
+  background: #fffdf8;
+  color: var(--peepss-text, #201d1d);
+  font: inherit;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.admin-acquisition-pagination button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.admin-acquisition-pagination span {
+  color: #806f66;
+  font-size: 0.75rem;
+  font-weight: 800;
 }
 
 .admin-candidate-summary dl {
@@ -7591,6 +7791,10 @@ textarea:focus-visible {
 
   .admin-overview-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-acquisition-filters {
+    grid-template-columns: 1fr;
   }
 
   .admin-funnel-step {

@@ -4,6 +4,13 @@ import {
   type RestaurantRole,
 } from '../../restaurant/types/restaurant'
 import { useRestaurantLanguage } from '../../restaurant/utils/restaurantLanguage'
+import { sendOwnerActivityEvent } from '../../../analytics/ownerActivity'
+import {
+  createCandidateActivityGuard,
+  recordCandidateCardOpened,
+  recordCandidateContactInitiated,
+  type OwnerCandidateReference,
+} from '../../../analytics/ownerActivityActions'
 import {
   deleteOwnerApplication,
   deleteOwnerLead,
@@ -60,6 +67,8 @@ function OwnerApplicationsPage() {
   const [error, setError] = useState<string | null>(null)
   const pendingApplicationIds = useRef(new Set<string>())
   const pendingLeadIds = useRef(new Set<string>())
+  const expandedCandidateIdRef = useRef<string | null>(null)
+  const candidateActivityGuard = useRef(createCandidateActivityGuard())
 
   const text = {
     title: language === 'he' ? 'מועמדים' : 'Applications',
@@ -370,6 +379,38 @@ function OwnerApplicationsPage() {
     void handleLeadStatusChange(lead, 'contacted')
   }
 
+  function openCandidate(
+    candidateId: string,
+    candidateReference: OwnerCandidateReference,
+  ) {
+    if (expandedCandidateIdRef.current === candidateId) return
+
+    expandedCandidateIdRef.current = candidateId
+    setExpandedCandidateId(candidateId)
+    recordCandidateCardOpened(
+      candidateReference,
+      candidateActivityGuard.current,
+      sendOwnerActivityEvent,
+    )
+  }
+
+  function closeCandidate() {
+    expandedCandidateIdRef.current = null
+    setExpandedCandidateId(null)
+  }
+
+  function recordCandidateContact(
+    candidateReference: OwnerCandidateReference,
+    channel: 'phone' | 'whatsapp',
+  ) {
+    recordCandidateContactInitiated(
+      candidateReference,
+      channel,
+      candidateActivityGuard.current,
+      sendOwnerActivityEvent,
+    )
+  }
+
   function getExperiencePreview(experienceText: string | null | undefined) {
     const firstLine = experienceText?.split('\n')[0]?.trim()
 
@@ -486,7 +527,10 @@ function OwnerApplicationsPage() {
                             aria-expanded={isExpanded}
                             onClick={() => {
                               if (!isExpanded) {
-                                setExpandedCandidateId(candidateId)
+                                openCandidate(candidateId, {
+                                  kind: 'externalLead',
+                                  id: lead.id,
+                                })
                               }
                             }}
                           >
@@ -543,7 +587,7 @@ function OwnerApplicationsPage() {
                                 aria-label={text.collapseCandidate}
                                 onClick={(event) => {
                                   event.stopPropagation()
-                                  setExpandedCandidateId(null)
+                                  closeCandidate()
                                 }}
                               >
                                 ×
@@ -595,7 +639,13 @@ function OwnerApplicationsPage() {
                           <div className="owner-applicant-contact">
                             <a
                               href={`tel:${lead.phoneNumber}`}
-                              onClick={() => handleLeadContactClick(lead)}
+                              onClick={() => {
+                                recordCandidateContact(
+                                  { kind: 'externalLead', id: lead.id },
+                                  'phone',
+                                )
+                                handleLeadContactClick(lead)
+                              }}
                             >
                               {text.call}
                             </a>
@@ -604,7 +654,13 @@ function OwnerApplicationsPage() {
                                 href={`https://wa.me/${whatsappNumber}`}
                                 target="_blank"
                                 rel="noreferrer"
-                                onClick={() => handleLeadContactClick(lead)}
+                                onClick={() => {
+                                  recordCandidateContact(
+                                    { kind: 'externalLead', id: lead.id },
+                                    'whatsapp',
+                                  )
+                                  handleLeadContactClick(lead)
+                                }}
                               >
                                 {text.whatsapp}
                               </a>
@@ -673,7 +729,10 @@ function OwnerApplicationsPage() {
                             aria-expanded={isExpanded}
                             onClick={() => {
                               if (!isExpanded) {
-                                setExpandedCandidateId(candidateId)
+                                openCandidate(candidateId, {
+                                  kind: 'jobApplication',
+                                  id: application.id,
+                                })
                               }
                             }}
                           >
@@ -745,7 +804,7 @@ function OwnerApplicationsPage() {
                                 aria-label={text.collapseCandidate}
                                 onClick={(event) => {
                                   event.stopPropagation()
-                                  setExpandedCandidateId(null)
+                                  closeCandidate()
                                 }}
                               >
                                 ×
@@ -812,7 +871,18 @@ function OwnerApplicationsPage() {
 
                         {application.worker.phoneNumber && (
                           <div className="owner-applicant-contact">
-                            <a href={`tel:${application.worker.phoneNumber}`}>
+                            <a
+                              href={`tel:${application.worker.phoneNumber}`}
+                              onClick={() =>
+                                recordCandidateContact(
+                                  {
+                                    kind: 'jobApplication',
+                                    id: application.id,
+                                  },
+                                  'phone',
+                                )
+                              }
+                            >
                               {text.call}
                             </a>
                             {whatsappNumber && (
@@ -820,6 +890,15 @@ function OwnerApplicationsPage() {
                                 href={`https://wa.me/${whatsappNumber}`}
                                 target="_blank"
                                 rel="noreferrer"
+                                onClick={() =>
+                                  recordCandidateContact(
+                                    {
+                                      kind: 'jobApplication',
+                                      id: application.id,
+                                    },
+                                    'whatsapp',
+                                  )
+                                }
                               >
                                 {text.whatsapp}
                               </a>

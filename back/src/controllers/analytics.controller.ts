@@ -8,6 +8,7 @@ import {
   recordOwnerOtpVerified,
   recordAnalyticsEvent,
   registerAnalyticsAcquisition,
+  resolveCandidateSourceForRestaurant,
 } from '../services/analytics.service.js'
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js'
 import { getRestaurantAccessForUser } from '../services/restaurantAccess.service.js'
@@ -128,9 +129,31 @@ export async function createOwnerActivityEvent(
       return res.status(403).json({ message: 'restaurant access required' })
     }
 
+    const { candidateReference, ...ownerEvent } = result.data
+    let eventProperties = ownerEvent.properties
+
+    if (candidateReference) {
+      const candidateSource = await resolveCandidateSourceForRestaurant(
+        access.restaurant.id,
+        candidateReference,
+      )
+
+      if (!candidateSource) {
+        return res.status(404).json({ message: 'candidate not found' })
+      }
+
+      eventProperties = {
+        ...eventProperties,
+        candidateSource,
+      }
+    }
+
     const stored = await recordAuthenticatedOwnerActivity(
       userId,
-      result.data,
+      {
+        ...ownerEvent,
+        properties: eventProperties,
+      },
     )
     if (stored.status === 'acquisition_not_found') {
       return res.status(404).json({

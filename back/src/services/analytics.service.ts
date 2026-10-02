@@ -1,8 +1,10 @@
+import { createHash } from 'node:crypto'
 import type { Prisma } from '../generated/prisma/client.js'
 import {
   ANALYTICS_ACQUISITION_RETENTION_DAYS,
   ANALYTICS_EVENT_RETENTION_DAYS,
   RECRUITMENT_ASSET_EVENT_NAMES,
+  type ApprovedAnalyticsEventName,
   type OwnerAcquisitionFlow,
   retentionDateFrom,
 } from '../config/analytics.js'
@@ -90,8 +92,15 @@ export type EventResult =
   | { status: 'created' | 'duplicate'; eventId: string }
   | { status: 'acquisition_not_found' | 'conflict' }
 
+type PersistableAnalyticsEventInput = Omit<
+  AnalyticsEventInput,
+  'eventName'
+> & {
+  eventName: ApprovedAnalyticsEventName
+}
+
 export async function recordAnalyticsEvent(
-  input: AnalyticsEventInput,
+  input: PersistableAnalyticsEventInput,
 ): Promise<EventResult> {
   const acquisition = await prisma.analyticsAcquisition.findUnique({
     where: {
@@ -171,6 +180,114 @@ async function findDurableOwnerAcquisition(userId: string) {
   })
 }
 
+function deterministicAnalyticsEventId(value: string) {
+  const bytes = createHash('sha256').update(value).digest().subarray(0, 16)
+  bytes[6] = (bytes[6]! & 0x0f) | 0x50
+  bytes[8] = (bytes[8]! & 0x3f) | 0x80
+  const hex = bytes.toString('hex')
+
+  return [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    hex.slice(12, 16),
+    hex.slice(16, 20),
+    hex.slice(20),
+  ].join('-')
+}
+
+export async function resolveRestaurantAnalyticsOwnerUserId(
+  restaurantId: string,
+) {
+  const restaurant = await prisma.restaurantOwnerProfile.findUnique({
+    where: { id: restaurantId },
+    select: {
+      userId: true,
+      members: {
+        where: {
+          status: 'active',
+          userId: { not: null },
+        },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          userId: true,
+          role: true,
+        },
+      },
+    },
+  })
+
+  if (!restaurant) return null
+
+  const preferredMember =
+    restaurant.members.find((member) => member.role === 'owner') ??
+    restaurant.members[0]
+
+  return preferredMember?.userId ?? restaurant.userId
+}
+
+export type CandidateReceivedInput = {
+  restaurantId: string
+  candidateSource: CandidateSource
+  candidateRecordId: string
+  occurredAt: Date
+}
+
+export async function recordCandidateReceived(
+  input: CandidateReceivedInput,
+): Promise<EventResult> {
+  const ownerUserId = await resolveRestaurantAnalyticsOwnerUserId(
+    input.restaurantId,
+  )
+  if (!ownerUserId) return { status: 'acquisition_not_found' }
+
+  const acquisition = await findDurableOwnerAcquisition(ownerUserId)
+  if (!acquisition) return { status: 'acquisition_not_found' }
+
+  return recordAnalyticsEvent({
+    anonymousAcquisitionId: acquisition.anonymousAcquisitionId,
+    clientEventId: deterministicAnalyticsEventId(
+      `candidate_received:${input.candidateSource}:${input.candidateRecordId}`,
+    ),
+    eventName: 'candidate_received',
+    occurredAt: input.occurredAt.toISOString(),
+    properties: { candidateSource: input.candidateSource },
+  })
+}
+
+type CandidateReceivedRecorder = (
+  input: CandidateReceivedInput,
+) => Promise<EventResult>
+
+export async function recordCandidateReceivedBestEffort(
+  input: CandidateReceivedInput,
+  dependencies: {
+    record?: CandidateReceivedRecorder
+    logError?: (message: string, error?: unknown) => void
+  } = {},
+) {
+  const record = dependencies.record ?? recordCandidateReceived
+  const logError = dependencies.logError ?? console.error
+
+  try {
+    const result = await record(input)
+    if (result.status === 'conflict') {
+      try {
+        logError(`Candidate receipt analytics was not recorded: ${result.status}`)
+      } catch {
+        // Analytics logging is never product-critical.
+      }
+    }
+    return result
+  } catch (error) {
+    try {
+      logError('Failed to record candidate receipt analytics', error)
+    } catch {
+      // Analytics logging is never product-critical.
+    }
+    return { status: 'failed' as const }
+  }
+}
+
 export async function recordAuthenticatedOwnerActivity(
   userId: string,
   input: OwnerActivityEventInput,
@@ -234,7 +351,15 @@ export async function isRestaurantHiringReady(restaurantId: string) {
     select: { qrEnabledRoles: true },
   })
 
-  return Boolean(restaurant && restaurant.qrEnabledRoles.length > 0)
+  return Boolean(
+    restaurant && isRestaurantHiringReadyFromRoles(restaurant.qrEnabledRoles),
+  )
+}
+
+export function isRestaurantHiringReadyFromRoles(
+  qrEnabledRoles: readonly unknown[],
+) {
+  return qrEnabledRoles.length > 0
 }
 
 export async function hasRecruitmentAssetBeenUsed(
@@ -251,6 +376,66 @@ export async function hasRecruitmentAssetBeenUsed(
       select: { id: true },
     }),
   )
+}
+
+export type CandidateSource = 'external' | 'jobBoard'
+export type OwnerCandidateReference = {
+  kind: 'externalLead' | 'jobApplication'
+  id: string
+}
+
+export async function hasCandidateReceived(restaurantId: string) {
+  const [externalCandidateCount, jobBoardApplicationCount] = await Promise.all([
+    prisma.restaurantCandidateLead.count({
+      where: { ownerProfileId: restaurantId },
+    }),
+    prisma.restaurantApplication.count({
+      where: {
+        restaurantJob: { ownerProfileId: restaurantId },
+      },
+    }),
+  ])
+
+  return hasCandidateReceivedFromCounts({
+    externalCandidateCount,
+    jobBoardApplicationCount,
+  })
+}
+
+export function hasCandidateReceivedFromCounts(input: {
+  externalCandidateCount: number
+  jobBoardApplicationCount: number
+}) {
+  return (
+    input.externalCandidateCount > 0 || input.jobBoardApplicationCount > 0
+  )
+}
+
+export async function resolveCandidateSourceForRestaurant(
+  restaurantId: string,
+  reference: OwnerCandidateReference,
+): Promise<CandidateSource | null> {
+  if (reference.kind === 'externalLead') {
+    const candidate = await prisma.restaurantCandidateLead.findFirst({
+      where: {
+        id: reference.id,
+        ownerProfileId: restaurantId,
+      },
+      select: { id: true },
+    })
+
+    return candidate ? 'external' : null
+  }
+
+  const application = await prisma.restaurantApplication.findFirst({
+    where: {
+      id: reference.id,
+      restaurantJob: { ownerProfileId: restaurantId },
+    },
+    select: { id: true },
+  })
+
+  return application ? 'jobBoard' : null
 }
 
 export async function resolveOwnerAcquisitionFlow(input: {
@@ -511,54 +696,69 @@ export async function isRestaurantEstablishedForAcquisition(
     return false
   }
 
-  const commonMembershipWhere = {
-    userId: acquisition.userId,
-    role: 'owner' as const,
-    status: 'active' as const,
+  const memberships = await prisma.restaurantMember.findMany({
+    where: {
+      userId: acquisition.userId,
+      role: 'owner',
+      status: 'active',
+    },
+    select: {
+      role: true,
+      status: true,
+      restaurant: {
+        select: {
+          userId: true,
+          claim: {
+            select: { claimedAt: true },
+          },
+        },
+      },
+    },
+  })
+
+  return isRestaurantEstablishedFromMemberships(
+    acquisition.userId,
+    flow,
+    memberships,
+  )
+}
+
+export type RestaurantEstablishmentMembership = {
+  role: 'owner' | 'hiringManager'
+  status: 'active' | 'pending' | 'removed'
+  restaurant: {
+    userId: string
+    claim: { claimedAt: Date | null } | null
   }
+}
+
+export function isRestaurantEstablishedFromMemberships(
+  userId: string,
+  flow: OwnerAcquisitionFlow,
+  memberships: readonly RestaurantEstablishmentMembership[],
+) {
+  const activeOwnerMemberships = memberships.filter(
+    (membership) =>
+      membership.role === 'owner' && membership.status === 'active',
+  )
 
   // Reporting derives establishment from product-owned durable facts:
   // - selfServe: the linked user owns the profile and has an active owner membership.
   // - claim: the linked user has an active owner membership and the claim is consumed.
   // - pendingPhone: the phone-created owner membership has become active for the user.
   if (flow === 'selfServe') {
-    return Boolean(
-      await prisma.restaurantMember.findFirst({
-        where: {
-          ...commonMembershipWhere,
-          restaurant: {
-            userId: acquisition.userId,
-          },
-        },
-        select: { id: true },
-      }),
+    return activeOwnerMemberships.some(
+      (membership) => membership.restaurant.userId === userId,
     )
   }
 
   if (flow === 'claim') {
-    return Boolean(
-      await prisma.restaurantMember.findFirst({
-        where: {
-          ...commonMembershipWhere,
-          restaurant: {
-            claim: {
-              claimedAt: {
-                not: null,
-              },
-            },
-          },
-        },
-        select: { id: true },
-      }),
+    return activeOwnerMemberships.some(
+      (membership) => Boolean(membership.restaurant.claim?.claimedAt),
     )
   }
 
-  return Boolean(
-    await prisma.restaurantMember.findFirst({
-      where: commonMembershipWhere,
-      select: { id: true },
-    }),
-  )
+  return activeOwnerMemberships.length > 0
 }
 
 export async function cleanupExpiredAnalytics(now = new Date()) {

@@ -1,3 +1,8 @@
+export type OwnerCandidateReference = {
+  kind: 'externalLead' | 'jobApplication'
+  id: string
+}
+
 export type OwnerActivityEvent =
   | {
       eventName: 'recruitment_kit_opened'
@@ -14,6 +19,16 @@ export type OwnerActivityEvent =
   | {
       eventName: 'instagram_assist_opened'
       properties: { context: 'story_assist' }
+    }
+  | {
+      eventName: 'candidate_card_opened'
+      candidateReference: OwnerCandidateReference
+      properties?: Record<string, never>
+    }
+  | {
+      eventName: 'candidate_contact_initiated'
+      candidateReference: OwnerCandidateReference
+      properties: { channel: 'phone' | 'whatsapp' }
     }
 
 export type OwnerActivityRecorder = (
@@ -79,4 +94,69 @@ export function recordInstagramAssistOpened(
     eventName: 'instagram_assist_opened',
     properties: { context: 'story_assist' },
   })
+}
+
+const CANDIDATE_ACTION_DEDUPE_MS = 750
+
+export type CandidateActivityGuard = Map<string, number>
+
+export function createCandidateActivityGuard(): CandidateActivityGuard {
+  return new Map()
+}
+
+function recordCandidateAction(
+  actionKey: string,
+  event: OwnerActivityEvent,
+  guard: CandidateActivityGuard,
+  record: OwnerActivityRecorder,
+  now: number,
+) {
+  const previousAttemptAt = guard.get(actionKey)
+  if (
+    previousAttemptAt !== undefined &&
+    now - previousAttemptAt < CANDIDATE_ACTION_DEDUPE_MS
+  ) {
+    return
+  }
+
+  guard.set(actionKey, now)
+  recordWithoutBlocking(record, event)
+}
+
+export function recordCandidateCardOpened(
+  candidateReference: OwnerCandidateReference,
+  guard: CandidateActivityGuard,
+  record: OwnerActivityRecorder,
+  now = Date.now(),
+) {
+  recordCandidateAction(
+    `open:${candidateReference.kind}:${candidateReference.id}`,
+    {
+      eventName: 'candidate_card_opened',
+      candidateReference,
+    },
+    guard,
+    record,
+    now,
+  )
+}
+
+export function recordCandidateContactInitiated(
+  candidateReference: OwnerCandidateReference,
+  channel: 'phone' | 'whatsapp',
+  guard: CandidateActivityGuard,
+  record: OwnerActivityRecorder,
+  now = Date.now(),
+) {
+  recordCandidateAction(
+    `contact:${channel}:${candidateReference.kind}:${candidateReference.id}`,
+    {
+      eventName: 'candidate_contact_initiated',
+      candidateReference,
+      properties: { channel },
+    },
+    guard,
+    record,
+    now,
+  )
 }

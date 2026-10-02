@@ -1,6 +1,19 @@
-export const ANALYTICS_EVENT_RETENTION_DAYS = 180
-export const ANALYTICS_ACQUISITION_RETENTION_DAYS = 365
+export const ANALYTICS_RETENTION_DAYS = 365
+export const ANALYTICS_EVENT_RETENTION_DAYS = ANALYTICS_RETENTION_DAYS
+export const ANALYTICS_ACQUISITION_RETENTION_DAYS = ANALYTICS_RETENTION_DAYS
 export const ANALYTICS_MAX_REQUEST_BYTES = 8 * 1024
+
+export const ACQUISITION_FUNNEL_STAGE_KEYS = [
+  'ownerSignupStarted',
+  'otpVerified',
+  'restaurantEstablished',
+  'hiringReady',
+  'recruitmentKitOpened',
+  'recruitmentAssetUsed',
+  'candidateReceived',
+  'candidateCardOpened',
+  'contactInitiated',
+] as const
 
 export const APPROVED_ANALYTICS_EVENT_NAMES = [
   'owner_signup_started',
@@ -11,12 +24,28 @@ export const APPROVED_ANALYTICS_EVENT_NAMES = [
   'poster_download_started',
   'qr_download_started',
   'instagram_assist_opened',
+  'candidate_received',
   'candidate_card_opened',
   'candidate_contact_initiated',
 ] as const
 
 export type ApprovedAnalyticsEventName =
   (typeof APPROVED_ANALYTICS_EVENT_NAMES)[number]
+
+// candidate_received is deliberately absent. It is a server-owned milestone
+// recorded only after a durable candidate/application row has been created.
+export const CLIENT_ANALYTICS_EVENT_NAMES = [
+  'owner_signup_started',
+  'owner_otp_verified',
+  'hiring_roles_updated',
+  'recruitment_kit_opened',
+  'hiring_link_copied',
+  'poster_download_started',
+  'qr_download_started',
+  'instagram_assist_opened',
+  'candidate_card_opened',
+  'candidate_contact_initiated',
+] as const satisfies readonly ApprovedAnalyticsEventName[]
 
 export const OWNER_ACTIVITY_EVENT_NAMES = [
   'hiring_roles_updated',
@@ -25,6 +54,8 @@ export const OWNER_ACTIVITY_EVENT_NAMES = [
   'poster_download_started',
   'qr_download_started',
   'instagram_assist_opened',
+  'candidate_card_opened',
+  'candidate_contact_initiated',
 ] as const satisfies readonly ApprovedAnalyticsEventName[]
 
 export type OwnerActivityEventName =
@@ -58,6 +89,7 @@ export const ANALYTICS_EVENT_PROPERTY_ALLOWLIST: Record<
   poster_download_started: ['format'],
   qr_download_started: ['format'],
   instagram_assist_opened: ['context'],
+  candidate_received: ['candidateSource'],
   candidate_card_opened: ['candidateSource'],
   candidate_contact_initiated: ['candidateSource', 'channel'],
 }

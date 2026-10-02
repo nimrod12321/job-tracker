@@ -73,11 +73,20 @@ test(
     process.env.DATABASE_URL = process.env.TEST_DATABASE_URL
     process.env.JWT_SECRET = process.env.JWT_SECRET || 'analytics-test-secret'
 
-    const [{ app }, { prisma }, { cleanupExpiredAnalytics }] =
+    const [
+      { app },
+      { prisma },
+      { cleanupExpiredAnalytics },
+      {
+        ANALYTICS_ACQUISITION_RETENTION_DAYS,
+        ANALYTICS_EVENT_RETENTION_DAYS,
+      },
+    ] =
       await Promise.all([
         import('../server.js') as Promise<{ app: Express }>,
         import('../lib/prisma.js'),
         import('../services/analytics.service.js'),
+        import('../config/analytics.js'),
       ])
 
     const server = createServer(app)
@@ -90,6 +99,9 @@ test(
     const runId = randomUUID()
     const acquisitionId = randomUUID()
     const clientEventId = randomUUID()
+    const historicalClientEventId = randomUUID()
+    const expiredClientEventId = randomUUID()
+    const activeClientEventId = randomUUID()
     const expiredAcquisitionId = randomUUID()
     const activeAcquisitionId = randomUUID()
     const metaAcquisitionId = randomUUID()
@@ -151,6 +163,14 @@ test(
       assert.equal(persistedAcquisition.firstSource, 'Instagram Ads')
       assert.equal(persistedAcquisition.firstMedium, 'paid social')
       assert.equal(persistedAcquisition.firstCampaign, 'test/one')
+      const retentionMs = 365 * 24 * 60 * 60 * 1000
+      assert.equal(ANALYTICS_ACQUISITION_RETENTION_DAYS, 365)
+      assert.equal(ANALYTICS_EVENT_RETENTION_DAYS, 365)
+      assert.equal(
+        persistedAcquisition.expiresAt.getTime() -
+          persistedAcquisition.firstTouchedAt.getTime(),
+        retentionMs,
+      )
 
       const acceptedHumanReadableValues = [
         {
@@ -304,6 +324,36 @@ test(
         await prisma.analyticsEvent.count({ where: { clientEventId } }),
         1,
       )
+      const persistedEvent = await prisma.analyticsEvent.findUniqueOrThrow({
+        where: { clientEventId },
+      })
+      assert.equal(
+        persistedEvent.expiresAt.getTime() -
+          persistedEvent.occurredAt.getTime(),
+        retentionMs,
+      )
+
+      const historicalOccurredAt = new Date(
+        Date.now() - 200 * 24 * 60 * 60 * 1000,
+      ).toISOString()
+      const historicalEvent = await post<{ created: boolean }>(
+        '/analytics/events',
+        {
+          ...eventPayload,
+          clientEventId: historicalClientEventId,
+          occurredAt: historicalOccurredAt,
+        },
+      )
+      assert.equal(historicalEvent.status, 201)
+      const persistedHistoricalEvent =
+        await prisma.analyticsEvent.findUniqueOrThrow({
+          where: { clientEventId: historicalClientEventId },
+        })
+      assert.equal(
+        persistedHistoricalEvent.expiresAt.getTime() -
+          persistedHistoricalEvent.occurredAt.getTime(),
+        retentionMs,
+      )
 
       const conflictingRetry = await post('/analytics/events', {
         ...eventPayload,
@@ -383,7 +433,7 @@ test(
         prisma.analyticsEvent.create({
           data: {
             acquisitionId: expiredAcquisition.id,
-            clientEventId: randomUUID(),
+            clientEventId: expiredClientEventId,
             eventName: 'recruitment_kit_opened',
             occurredAt: new Date(),
             properties: {},
@@ -393,7 +443,7 @@ test(
         prisma.analyticsEvent.create({
           data: {
             acquisitionId: activeAcquisition.id,
-            clientEventId: randomUUID(),
+            clientEventId: activeClientEventId,
             eventName: 'recruitment_kit_opened',
             occurredAt: new Date(),
             properties: {},
@@ -424,6 +474,25 @@ test(
           where: { anonymousAcquisitionId: activeAcquisitionId },
         }),
         1,
+      )
+      assert.equal(
+        await prisma.analyticsEvent.count({
+          where: { clientEventId: expiredClientEventId },
+        }),
+        0,
+      )
+      assert.equal(
+        await prisma.analyticsEvent.count({
+          where: { clientEventId: activeClientEventId },
+        }),
+        1,
+      )
+      assert.equal(
+        await prisma.analyticsEvent.count({
+          where: { clientEventId: historicalClientEventId },
+        }),
+        1,
+        'an event younger than the 365-day window must survive cleanup',
       )
       assert.equal(
         await prisma.otpVerification.count({

@@ -35,6 +35,9 @@ export const sendOwnerActivityEvent: OwnerActivityRecorder = async (
     eventName: event.eventName,
     occurredAt: new Date().toISOString(),
     route: window.location.pathname,
+    ...('candidateReference' in event
+      ? { candidateReference: event.candidateReference }
+      : {}),
     properties: event.properties ?? {},
   }
 

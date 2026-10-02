@@ -14,10 +14,19 @@ import {
 } from '../controllers/admin.controller.js'
 import { requireAdmin } from '../middleware/admin.middleware.js'
 import { requireAuth } from '../middleware/auth.middleware.js'
+import {
+  getAdminAcquisitionFunnel,
+  getAdminAcquisitionFunnelStage,
+} from '../controllers/adminAnalytics.controller.js'
 
 const adminRouter = Router()
 
 adminRouter.use(requireAuth, requireAdmin)
+adminRouter.get('/analytics/acquisition-funnel', getAdminAcquisitionFunnel)
+adminRouter.get(
+  '/analytics/acquisition-funnel/stage/:stage',
+  getAdminAcquisitionFunnelStage,
+)
 adminRouter.get('/restaurants', getAdminRestaurants)
 adminRouter.get('/candidates', getAdminCandidates)
 adminRouter.post('/restaurants', createAdminRestaurant)

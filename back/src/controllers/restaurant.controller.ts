@@ -10,6 +10,7 @@ import {
   GooglePlacesError,
   verifyWorkerStreetPlaceId,
 } from '../services/googlePlaces.service.js'
+import { recordCandidateReceivedBestEffort } from '../services/analytics.service.js'
 import {
   restaurantApplicationSchema,
   restaurantExploreSchema,
@@ -524,6 +525,7 @@ export async function createRestaurantApplication(
       },
       select: {
         id: true,
+        ownerProfileId: true,
       },
     })
 
@@ -533,19 +535,30 @@ export async function createRestaurantApplication(
       })
     }
 
-    const application = await prisma.restaurantApplication.upsert({
+    const created = await prisma.restaurantApplication.createMany({
+      data: {
+        userId,
+        restaurantJobId: restaurantJob.id,
+      },
+      skipDuplicates: true,
+    })
+    const application = await prisma.restaurantApplication.findUniqueOrThrow({
       where: {
         userId_restaurantJobId: {
           userId,
           restaurantJobId: restaurantJob.id,
         },
       },
-      create: {
-        userId,
-        restaurantJobId: restaurantJob.id,
-      },
-      update: {},
     })
+
+    if (created.count === 1 && restaurantJob.ownerProfileId) {
+      await recordCandidateReceivedBestEffort({
+        restaurantId: restaurantJob.ownerProfileId,
+        candidateSource: 'jobBoard',
+        candidateRecordId: application.id,
+        occurredAt: application.createdAt,
+      })
+    }
 
     return res.status(201).json({
       application: {

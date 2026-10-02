@@ -6,6 +6,96 @@ import type {
 
 export type { CandidateLeadStatus }
 
+export type AdminAcquisitionFunnelStageKey =
+  | 'ownerSignupStarted'
+  | 'otpVerified'
+  | 'restaurantEstablished'
+  | 'hiringReady'
+  | 'recruitmentKitOpened'
+  | 'recruitmentAssetUsed'
+  | 'candidateReceived'
+  | 'candidateCardOpened'
+  | 'contactInitiated'
+
+export type AdminAcquisitionStageCounts = Record<
+  AdminAcquisitionFunnelStageKey,
+  number
+>
+
+export type AdminAcquisitionFunnelReport = {
+  cohort: {
+    basis: 'owner_signup_started'
+    count: number
+  }
+  filters: {
+    source: string | null
+    medium: string | null
+    campaign: string | null
+  }
+  filterOptions: {
+    sources: string[]
+    mediums: string[]
+    campaigns: string[]
+  }
+  funnel: Array<{
+    key: AdminAcquisitionFunnelStageKey
+    count: number
+    conversionFromPrevious: number | null
+  }>
+  currentStageCounts: AdminAcquisitionStageCounts
+  byAttribution: Array<{
+    source: string
+    medium: string
+    campaign: string | null
+    stages: AdminAcquisitionStageCounts
+  }>
+  signupFlows: {
+    selfServe: number
+    claim: number
+    pendingPhone: number
+    unknown: number
+  }
+  candidateSources: {
+    external: number
+    jobBoard: number
+  }
+}
+
+export type AdminAcquisitionStageDetail = {
+  acquisitionId: string
+  ownerName: string | null
+  phoneNumber: string | null
+  phoneVerified: boolean
+  source: string
+  medium: string
+  campaign: string | null
+  flow: 'selfServe' | 'claim' | 'pendingPhone' | 'unknown'
+  restaurant: {
+    id: string
+    restaurantName: string
+  } | null
+  currentStage: AdminAcquisitionFunnelStageKey
+  currentStageReachedAt: string | null
+  firstTouchedAt: string
+  signupStartedAt: string
+}
+
+export type AdminAcquisitionStageDetailsReport = {
+  stage: AdminAcquisitionFunnelStageKey
+  filters: {
+    source: string | null
+    medium: string | null
+    campaign: string | null
+  }
+  pagination: {
+    page: number
+    pageSize: number
+    total: number
+    totalPages: number
+  }
+  rows: AdminAcquisitionStageDetail[]
+}
+
 export type AdminOwnerUser = {
   id: string
   email: string | null

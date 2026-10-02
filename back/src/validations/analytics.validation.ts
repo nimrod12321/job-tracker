@@ -4,6 +4,7 @@ import {
   ANALYTICS_EVENT_PROPERTY_ALLOWLIST,
   ANALYTICS_EVENT_RETENTION_DAYS,
   APPROVED_ANALYTICS_EVENT_NAMES,
+  CLIENT_ANALYTICS_EVENT_NAMES,
   OWNER_ACTIVITY_EVENT_NAMES,
   OWNER_ACQUISITION_FLOWS,
   type ApprovedAnalyticsEventName,
@@ -165,7 +166,7 @@ export const analyticsEventSchema = z
   .strictObject({
     anonymousAcquisitionId: anonymousAcquisitionIdSchema,
     clientEventId: z.uuid(),
-    eventName: z.enum(APPROVED_ANALYTICS_EVENT_NAMES),
+    eventName: z.enum(CLIENT_ANALYTICS_EVENT_NAMES),
     occurredAt: timestampSchema,
     route: privatePathSchema.nullish(),
     properties: z
@@ -184,12 +185,18 @@ export type AnalyticsAcquisitionInput = z.infer<
 >
 export type AnalyticsEventInput = z.infer<typeof analyticsEventSchema>
 
+const ownerCandidateReferenceSchema = z.strictObject({
+  kind: z.enum(['externalLead', 'jobApplication']),
+  id: z.uuid(),
+})
+
 export const ownerActivityEventSchema = z
   .strictObject({
     clientEventId: z.uuid(),
     eventName: z.enum(OWNER_ACTIVITY_EVENT_NAMES),
     occurredAt: timestampSchema,
     route: privatePathSchema.nullish(),
+    candidateReference: ownerCandidateReferenceSchema.optional(),
     properties: z
       .record(
         z.string().min(1).max(40).regex(/^[a-z][a-zA-Z0-9]*$/),
@@ -199,6 +206,59 @@ export const ownerActivityEventSchema = z
   })
   .superRefine((value, context) => {
     validateEventDetails(value, context)
+
+    const isCandidateEvent =
+      value.eventName === 'candidate_card_opened' ||
+      value.eventName === 'candidate_contact_initiated'
+
+    if (isCandidateEvent && !value.candidateReference) {
+      context.addIssue({
+        code: 'custom',
+        path: ['candidateReference'],
+        message: 'candidate reference is required for candidate activity',
+      })
+    }
+
+    if (!isCandidateEvent && value.candidateReference) {
+      context.addIssue({
+        code: 'custom',
+        path: ['candidateReference'],
+        message: 'candidate reference is only allowed for candidate activity',
+      })
+    }
+
+    if (isCandidateEvent && 'candidateSource' in value.properties) {
+      context.addIssue({
+        code: 'custom',
+        path: ['properties', 'candidateSource'],
+        message: 'candidate source is derived by the server',
+      })
+    }
+
+    if (
+      value.eventName === 'candidate_card_opened' &&
+      Object.keys(value.properties).length > 0
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['properties'],
+        message: 'candidate card open properties are derived by the server',
+      })
+    }
+
+    if (value.eventName === 'candidate_contact_initiated') {
+      if (
+        Object.keys(value.properties).length !== 1 ||
+        (value.properties.channel !== 'phone' &&
+          value.properties.channel !== 'whatsapp')
+      ) {
+        context.addIssue({
+          code: 'custom',
+          path: ['properties', 'channel'],
+          message: 'candidate contact channel must be phone or whatsapp',
+        })
+      }
+    }
   })
 
 export type OwnerActivityEventInput = z.infer<

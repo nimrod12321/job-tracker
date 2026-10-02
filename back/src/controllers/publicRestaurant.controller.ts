@@ -10,6 +10,7 @@ import {
   verifiedPublicRestaurantLeadSchema,
 } from '../validations/publicRestaurant.validation.js'
 import { verifyRestaurantClaimToken } from '../services/restaurantClaim.service.js'
+import { recordCandidateReceivedBestEffort } from '../services/analytics.service.js'
 
 const DUPLICATE_WINDOW_MS = 24 * 60 * 60 * 1000
 
@@ -372,7 +373,7 @@ export async function createVerifiedPublicRestaurantLead(
       })
     }
 
-    await prisma.restaurantCandidateLead.create({
+    const lead = await prisma.restaurantCandidateLead.create({
       data: {
         ownerProfileId: profile.id,
         fullName: user.fullName,
@@ -383,6 +384,13 @@ export async function createVerifiedPublicRestaurantLead(
         age: bodyResult.data.age,
         source: 'qr',
       },
+    })
+
+    await recordCandidateReceivedBestEffort({
+      restaurantId: profile.id,
+      candidateSource: 'external',
+      candidateRecordId: lead.id,
+      occurredAt: lead.createdAt,
     })
 
     return res.status(201).json({
