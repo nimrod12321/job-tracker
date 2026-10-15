@@ -99,6 +99,8 @@ const twilioMessagingServiceSid = getOptionalEnvironmentVariable(
 const googleMapsApiKey = getOptionalEnvironmentVariable(
   'GOOGLE_MAPS_API_KEY',
 )
+const candidateNotificationsEnabled =
+  process.env.CANDIDATE_NOTIFICATIONS_ENABLED === 'true'
 
 if (nodeEnv === 'production' && !configuredFrontendUrl) {
   throw new Error('FRONTEND_URL is not set')
@@ -158,6 +160,28 @@ if (otpProvider === 'twilio' && nodeEnv !== 'test') {
   }
 }
 
+if (candidateNotificationsEnabled) {
+  const missingCandidateNotificationVariables = [
+    { name: 'TWILIO_ACCOUNT_SID', value: twilioAccountSid },
+    { name: 'TWILIO_API_KEY_SID', value: twilioApiKeySid },
+    { name: 'TWILIO_API_KEY_SECRET', value: twilioApiKeySecret },
+    {
+      name: 'TWILIO_MESSAGING_SERVICE_SID',
+      value: twilioMessagingServiceSid,
+    },
+  ]
+    .filter(({ value }) => !value)
+    .map(({ name }) => name)
+
+  if (missingCandidateNotificationVariables.length > 0) {
+    throw new Error(
+      `Missing candidate notification SMS environment variables: ${missingCandidateNotificationVariables.join(
+        ', ',
+      )}`,
+    )
+  }
+}
+
 export const env = {
   databaseUrl,
   databaseTarget,
@@ -206,4 +230,5 @@ export const env = {
   twilioWhatsappAuthContentSid,
   twilioMessagingServiceSid,
   googleMapsApiKey,
+  candidateNotificationsEnabled,
 }

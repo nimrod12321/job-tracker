@@ -37,7 +37,7 @@ type TwilioWhatsAppMessage =
       contentVariables: string
     }
 
-type TwilioSmsMessage = {
+export type TwilioSmsMessage = {
   messagingServiceSid: string
   to: string
   body: string
@@ -141,7 +141,7 @@ export function formatTwilioWhatsAppRecipient(phoneNumber: string) {
   return `whatsapp:${phoneNumber}`
 }
 
-function createTwilioClient(config: TwilioBaseConfig) {
+export function createTwilioMessagesClient(config: TwilioBaseConfig) {
   return twilio(config.apiKeySid, config.apiKeySecret, {
     accountSid: config.accountSid,
   }) as TwilioMessagesClient
@@ -217,13 +217,37 @@ function getSafeTwilioErrorDetails(error: unknown) {
   }
 }
 
+export function getSafeTwilioErrorIdentifier(error: unknown) {
+  if (!(error instanceof Error)) {
+    return 'twilio_send_failed'
+  }
+
+  const details = error as Error & {
+    code?: unknown
+    status?: unknown
+  }
+  const code = String(details.code ?? '').replace(/[^a-zA-Z0-9_-]/g, '')
+
+  if (code) {
+    return `twilio_${code}`
+  }
+
+  const status = String(details.status ?? '').replace(/[^0-9]/g, '')
+
+  if (status) {
+    return `twilio_http_${status}`
+  }
+
+  return 'twilio_send_failed'
+}
+
 export function createTwilioWhatsAppOtpProvider(
   config: TwilioWhatsAppConfig,
   client?: TwilioMessagesClient,
 ) {
   validateTwilioWhatsAppConfig(config)
   logTwilioWhatsAppProviderConfig(config)
-  const twilioClient = client ?? createTwilioClient(config)
+  const twilioClient = client ?? createTwilioMessagesClient(config)
 
   return {
     async sendOtpCode(
@@ -261,7 +285,7 @@ export function createTwilioSmsOtpProvider(
 ) {
   validateTwilioSmsConfig(config)
   logTwilioSmsProviderConfig(config)
-  const twilioClient = client ?? createTwilioClient(config)
+  const twilioClient = client ?? createTwilioMessagesClient(config)
 
   return {
     async sendOtpCode(
