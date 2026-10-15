@@ -11,6 +11,10 @@ import {
 } from '../validations/publicRestaurant.validation.js'
 import { verifyRestaurantClaimToken } from '../services/restaurantClaim.service.js'
 import { recordCandidateReceivedBestEffort } from '../services/analytics.service.js'
+import {
+  createLeadWithPendingNewCandidateDeliveries,
+  selectNewCandidateNotificationRecipients,
+} from '../services/restaurantCandidateNotification.service.js'
 
 const DUPLICATE_WINDOW_MS = 24 * 60 * 60 * 1000
 
@@ -318,6 +322,8 @@ export async function createVerifiedPublicRestaurantLead(
       })
     }
 
+    const verifiedPhoneNumber = user.phoneNumber
+
     const enabledRoles = new Set(profile.qrEnabledRoles)
     const hasDisabledRole = bodyResult.data.wantedRoles.some(
       (role) => !enabledRoles.has(role),
@@ -333,7 +339,7 @@ export async function createVerifiedPublicRestaurantLead(
     const existingLead = await prisma.restaurantCandidateLead.findFirst({
       where: {
         ownerProfileId: profile.id,
-        phoneNumber: user.phoneNumber,
+        phoneNumber: verifiedPhoneNumber,
         createdAt: {
           gte: duplicateSince,
         },
@@ -349,7 +355,7 @@ export async function createVerifiedPublicRestaurantLead(
       },
       update: {
         fullName: user.fullName,
-        phoneNumber: user.phoneNumber,
+        phoneNumber: verifiedPhoneNumber,
         wantedRoles: bodyResult.data.wantedRoles,
         experienceText: bodyResult.data.experienceText,
         availability: bodyResult.data.availability,
@@ -358,7 +364,7 @@ export async function createVerifiedPublicRestaurantLead(
       create: {
         userId,
         fullName: user.fullName,
-        phoneNumber: user.phoneNumber,
+        phoneNumber: verifiedPhoneNumber,
         wantedRoles: bodyResult.data.wantedRoles,
         experienceText: bodyResult.data.experienceText,
         availability: bodyResult.data.availability,
@@ -373,17 +379,57 @@ export async function createVerifiedPublicRestaurantLead(
       })
     }
 
-    const lead = await prisma.restaurantCandidateLead.create({
-      data: {
-        ownerProfileId: profile.id,
-        fullName: user.fullName,
-        phoneNumber: user.phoneNumber,
-        wantedRoles: bodyResult.data.wantedRoles,
-        experienceText: bodyResult.data.experienceText,
-        availability: bodyResult.data.availability,
-        age: bodyResult.data.age,
-        source: 'qr',
-      },
+    const lead = await prisma.$transaction(async (transaction) => {
+      const members = await transaction.restaurantMember.findMany({
+        where: {
+          restaurantId: profile.id,
+          status: 'active',
+          role: {
+            in: ['owner', 'hiringManager'],
+          },
+          userId: {
+            not: null,
+          },
+        },
+        orderBy: {
+          createdAt: 'asc',
+        },
+        select: {
+          id: true,
+          restaurantId: true,
+          userId: true,
+          phoneNumber: true,
+          role: true,
+          status: true,
+        },
+      })
+      const recipients = selectNewCandidateNotificationRecipients(
+        profile.id,
+        members,
+      )
+
+      return createLeadWithPendingNewCandidateDeliveries(recipients, {
+        createLead: () =>
+          transaction.restaurantCandidateLead.create({
+            data: {
+              ownerProfileId: profile.id,
+              fullName: user.fullName,
+              phoneNumber: verifiedPhoneNumber,
+              wantedRoles: bodyResult.data.wantedRoles,
+              experienceText: bodyResult.data.experienceText,
+              availability: bodyResult.data.availability,
+              age: bodyResult.data.age,
+              source: 'qr',
+            },
+          }),
+        createDeliveries: async (deliveries) => {
+          await transaction.restaurantCandidateNotificationDelivery.createMany(
+            {
+              data: deliveries,
+            },
+          )
+        },
+      })
     })
 
     await recordCandidateReceivedBestEffort({
