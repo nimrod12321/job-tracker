@@ -15,6 +15,7 @@ import {
   createLeadWithPendingNewCandidateDeliveries,
   selectNewCandidateNotificationRecipients,
 } from '../services/restaurantCandidateNotification.service.js'
+import { processNewCandidateNotificationsBestEffort } from '../services/candidateNotificationDelivery.service.js'
 
 const DUPLICATE_WINDOW_MS = 24 * 60 * 60 * 1000
 
@@ -438,6 +439,7 @@ export async function createVerifiedPublicRestaurantLead(
       candidateRecordId: lead.id,
       occurredAt: lead.createdAt,
     })
+    await processNewCandidateNotificationsBestEffort(lead.id)
 
     return res.status(201).json({
       ok: true,
