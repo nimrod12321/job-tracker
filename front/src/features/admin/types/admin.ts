@@ -160,6 +160,19 @@ export type AdminCandidateStatus =
   | 'applied'
   | 'selected'
 
+export type AdminCandidateNotificationDelivery = {
+  id: string
+  kind: 'newCandidate' | 'reminder24h'
+  status: 'pending' | 'accepted' | 'failed'
+  recipientPhone: string
+  recipientMemberId: string | null
+  attemptCount: number
+  createdAt: string
+  lastAttemptAt: string | null
+  acceptedAt: string | null
+  safeErrorCode: string | null
+}
+
 export type AdminCandidate = {
   id: string
   source: AdminCandidateSource
@@ -185,6 +198,7 @@ export type AdminCandidate = {
     id: string
     role: RestaurantRole
   } | null
+  notificationDeliveries: AdminCandidateNotificationDelivery[]
 }
 
 export type AdminRestaurantClaim = {

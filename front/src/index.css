@@ -6874,6 +6874,105 @@ textarea:focus-visible {
   text-align: end;
 }
 
+.admin-notification-delivery {
+  display: grid;
+  gap: 0.75rem;
+  border-top: 1px solid rgb(226 203 185 / 72%);
+  padding-top: 0.85rem;
+}
+
+.admin-notification-delivery-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.admin-notification-delivery-heading h3 {
+  margin: 0;
+  color: #1f1d1e;
+  font-size: 0.95rem;
+}
+
+.admin-notification-delivery-heading small,
+.admin-notification-empty {
+  margin: 0;
+  color: #806f66;
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.admin-notification-delivery-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.admin-notification-delivery-row {
+  display: grid;
+  gap: 0.65rem;
+  border: 1px solid rgb(226 203 185 / 72%);
+  border-radius: 14px;
+  padding: 0.75rem;
+  background: #fffdf8;
+}
+
+.admin-notification-delivery-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.admin-notification-delivery-summary strong {
+  color: #1f1d1e;
+  font-size: 0.85rem;
+}
+
+.admin-notification-status {
+  border-radius: 999px;
+  padding: 0.3rem 0.55rem;
+  font-size: 0.68rem;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.admin-notification-status.pending {
+  background: #fff7ed;
+  color: #9a5b11;
+}
+
+.admin-notification-status.accepted {
+  background: #eef6f5;
+  color: #245c5a;
+}
+
+.admin-notification-status.failed {
+  background: #fff1f2;
+  color: #b42318;
+}
+
+.admin-notification-delivery-details {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin: 0;
+}
+
+.admin-notification-delivery-details dt {
+  color: #7a5142;
+  font-size: 0.68rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.admin-notification-delivery-details dd {
+  margin: 0.16rem 0 0;
+  color: #1f1d1e;
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+
 .admin-funnel-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -7785,6 +7884,7 @@ textarea:focus-visible {
   .admin-hiring-distribution-grid,
   .admin-candidate-source-grid,
   .admin-candidate-notes,
+  .admin-notification-delivery-details,
   .admin-compact-list article {
     grid-template-columns: 1fr;
   }
@@ -7809,6 +7909,7 @@ textarea:focus-visible {
   }
 
   .admin-section-heading,
+  .admin-notification-delivery-heading,
   .admin-candidate-card-footer,
   .admin-restaurant-card-footer {
     align-items: stretch;
