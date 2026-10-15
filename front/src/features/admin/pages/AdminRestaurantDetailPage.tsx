@@ -751,6 +751,14 @@ function AdminRestaurantDetailPage() {
                         </span>
                       </div>
                       <span>{new Date(lead.createdAt).toLocaleString()}</span>
+                      {lead.firstContactInitiatedAt && (
+                        <small>
+                          First contact{' '}
+                          {new Date(
+                            lead.firstContactInitiatedAt,
+                          ).toLocaleString()}
+                        </small>
+                      )}
                     </article>
                   ))}
                 </div>

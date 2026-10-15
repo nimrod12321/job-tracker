@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { restaurantRoles } from './restaurant.validation.js'
+import { candidateLeadStatusSchema } from './publicRestaurant.validation.js'
 
 const optionalText = (field: string, maxLength: number) =>
   z
@@ -80,6 +81,13 @@ export const ownerApplicationStatusSchema = z
 export const ownerApplicationIdSchema = z
   .string()
   .uuid('application id must be valid')
+
+export const ownerCandidateLeadStatusSchema = z
+  .object({
+    status: candidateLeadStatusSchema,
+    contactChannel: z.enum(['phone', 'whatsapp']).optional(),
+  })
+  .strict()
 
 export const ownerTeamMemberSchema = z
   .object({

@@ -24,7 +24,6 @@ import {
 } from '../services/googlePlaces.service.js'
 import { recordAuthenticatedOwnerActivityBestEffort } from '../services/analytics.service.js'
 import {
-  candidateLeadStatusBodySchema,
   leadIdSchema,
   restaurantClaimCompleteSchema,
   restaurantSlugSchema,
@@ -83,6 +82,7 @@ export async function completeOwnerRestaurantClaim(
 import {
   ownerApplicationIdSchema,
   ownerApplicationStatusSchema,
+  ownerCandidateLeadStatusSchema,
   ownerJobActiveSchema,
   ownerJobIdSchema,
   ownerJobSchema,
@@ -298,6 +298,7 @@ function mapCandidateLead(
     source: string
     status: 'new' | 'contacted' | 'relevant' | 'rejected'
     ownerViewedAt: Date | null
+    firstContactInitiatedAt: Date | null
     createdAt: Date
     updatedAt: Date
   },
@@ -313,6 +314,8 @@ function mapCandidateLead(
     source: lead.source,
     status: lead.status,
     ownerViewedAt: lead.ownerViewedAt?.toISOString() ?? null,
+    firstContactInitiatedAt:
+      lead.firstContactInitiatedAt?.toISOString() ?? null,
     createdAt: lead.createdAt.toISOString(),
     updatedAt: lead.updatedAt.toISOString(),
   }
@@ -1239,7 +1242,7 @@ export async function updateOwnerLeadStatus(req: Request, res: Response) {
     }
 
     const idResult = leadIdSchema.safeParse(req.params.id)
-    const bodyResult = candidateLeadStatusBodySchema.safeParse(req.body)
+    const bodyResult = ownerCandidateLeadStatusSchema.safeParse(req.body)
 
     if (!idResult.success) {
       return res.status(400).json({
@@ -1254,29 +1257,70 @@ export async function updateOwnerLeadStatus(req: Request, res: Response) {
     }
 
     const profile = await findOwnerProfile(userId)
-    const lead = profile
-      ? await prisma.restaurantCandidateLead.findFirst({
-          where: {
-            id: idResult.data,
-            ownerProfileId: profile.id,
-          },
-        })
-      : null
 
-    if (!lead) {
+    if (!profile) {
       return res.status(404).json({
         message: 'candidate lead not found',
       })
     }
 
-    const updatedLead = await prisma.restaurantCandidateLead.update({
-      where: {
-        id: lead.id,
-      },
-      data: {
-        status: bodyResult.data.status,
-      },
+    const updatedLead = await prisma.$transaction(async (transaction) => {
+      const lead = await transaction.restaurantCandidateLead.findFirst({
+        where: {
+          id: idResult.data,
+          ownerProfileId: profile.id,
+        },
+      })
+
+      if (!lead) {
+        return null
+      }
+
+      const isContactAction = Boolean(bodyResult.data.contactChannel)
+      const shouldRecordFirstContact =
+        isContactAction || bodyResult.data.status === 'contacted'
+      const nextStatus = isContactAction
+        ? lead.status === 'new'
+          ? 'contacted'
+          : lead.status
+        : bodyResult.data.status
+
+      if (shouldRecordFirstContact) {
+        await transaction.restaurantCandidateLead.updateMany({
+          where: {
+            id: lead.id,
+            ownerProfileId: profile.id,
+            firstContactInitiatedAt: null,
+          },
+          data: {
+            firstContactInitiatedAt: new Date(),
+          },
+        })
+      }
+
+      if (nextStatus !== lead.status) {
+        await transaction.restaurantCandidateLead.update({
+          where: {
+            id: lead.id,
+          },
+          data: {
+            status: nextStatus,
+          },
+        })
+      }
+
+      return transaction.restaurantCandidateLead.findUniqueOrThrow({
+        where: {
+          id: lead.id,
+        },
+      })
     })
+
+    if (!updatedLead) {
+      return res.status(404).json({
+        message: 'candidate lead not found',
+      })
+    }
 
     return res.json(mapCandidateLead(updatedLead))
   } catch (error) {

@@ -181,6 +181,7 @@ type AdminCandidateResponse = {
     | 'applied'
     | 'selected'
   ownerViewState: 'viewed' | 'unviewed' | 'notTracked'
+  firstContactInitiatedAt: string | null
   restaurant: {
     id: string
     restaurantName: string
@@ -2998,6 +2999,175 @@ test(
       assert.equal(ownerVisibleWorker.homeAreaFormatted, undefined)
       assert.equal(ownerVisibleWorker.homeLatitude, undefined)
       assert.equal(ownerVisibleWorker.homeLongitude, undefined)
+
+      const phoneContactLead =
+        await prisma.restaurantCandidateLead.create({
+          data: {
+            ownerProfileId: ownerA.profile.id,
+            fullName: 'Phone Contact Lead',
+            phoneNumber: '0505550001',
+            wantedRoles: ['waiter'],
+            source: 'security-test',
+            status: 'new',
+          },
+        })
+      const firstPhoneContact = await request<{
+        status: string
+        firstContactInitiatedAt: string | null
+      }>(`/owner/leads/${phoneContactLead.id}/status`, {
+        method: 'PATCH',
+        headers: jsonHeaders(ownerA.token),
+        body: JSON.stringify({
+          status: 'contacted',
+          contactChannel: 'phone',
+        }),
+      })
+      assert.equal(firstPhoneContact.status, 200)
+      assert.equal(firstPhoneContact.body.status, 'contacted')
+      assert.ok(firstPhoneContact.body.firstContactInitiatedAt)
+
+      const originalFirstContactAt =
+        firstPhoneContact.body.firstContactInitiatedAt
+      const repeatedPhoneContact = await request<{
+        status: string
+        firstContactInitiatedAt: string | null
+      }>(`/owner/leads/${phoneContactLead.id}/status`, {
+        method: 'PATCH',
+        headers: jsonHeaders(ownerA.token),
+        body: JSON.stringify({
+          status: 'contacted',
+          contactChannel: 'phone',
+        }),
+      })
+      assert.equal(repeatedPhoneContact.status, 200)
+      assert.equal(
+        repeatedPhoneContact.body.firstContactInitiatedAt,
+        originalFirstContactAt,
+      )
+
+      const whatsappContactLead =
+        await prisma.restaurantCandidateLead.create({
+          data: {
+            ownerProfileId: ownerA.profile.id,
+            fullName: 'WhatsApp Contact Lead',
+            phoneNumber: '0505550002',
+            wantedRoles: ['host'],
+            source: 'security-test',
+            status: 'new',
+          },
+        })
+      const firstWhatsappContact = await request<{
+        status: string
+        firstContactInitiatedAt: string | null
+      }>(`/owner/leads/${whatsappContactLead.id}/status`, {
+        method: 'PATCH',
+        headers: jsonHeaders(ownerA.token),
+        body: JSON.stringify({
+          status: 'contacted',
+          contactChannel: 'whatsapp',
+        }),
+      })
+      assert.equal(firstWhatsappContact.status, 200)
+      assert.equal(firstWhatsappContact.body.status, 'contacted')
+      assert.ok(firstWhatsappContact.body.firstContactInitiatedAt)
+
+      const explicitContactedLead =
+        await prisma.restaurantCandidateLead.create({
+          data: {
+            ownerProfileId: ownerA.profile.id,
+            fullName: 'Explicit Contacted Lead',
+            phoneNumber: '0505550006',
+            wantedRoles: ['barista'],
+            source: 'security-test',
+            status: 'new',
+          },
+        })
+      const explicitContactedStatus = await request<{
+        status: string
+        firstContactInitiatedAt: string | null
+      }>(`/owner/leads/${explicitContactedLead.id}/status`, {
+        method: 'PATCH',
+        headers: jsonHeaders(ownerA.token),
+        body: JSON.stringify({ status: 'contacted' }),
+      })
+      assert.equal(explicitContactedStatus.status, 200)
+      assert.equal(explicitContactedStatus.body.status, 'contacted')
+      assert.ok(explicitContactedStatus.body.firstContactInitiatedAt)
+
+      for (const status of ['relevant', 'rejected'] as const) {
+        const lead = await prisma.restaurantCandidateLead.create({
+          data: {
+            ownerProfileId: ownerA.profile.id,
+            fullName: `${status} Contact Lead`,
+            phoneNumber:
+              status === 'relevant' ? '0505550003' : '0505550004',
+            wantedRoles: ['cook'],
+            source: 'security-test',
+            status,
+          },
+        })
+        const contact = await request<{
+          status: string
+          firstContactInitiatedAt: string | null
+        }>(`/owner/leads/${lead.id}/status`, {
+          method: 'PATCH',
+          headers: jsonHeaders(ownerA.token),
+          body: JSON.stringify({
+            status,
+            contactChannel: 'whatsapp',
+          }),
+        })
+
+        assert.equal(contact.status, 200)
+        assert.equal(contact.body.status, status)
+        assert.ok(contact.body.firstContactInitiatedAt)
+      }
+
+      const crossRestaurantContactLead =
+        await prisma.restaurantCandidateLead.create({
+          data: {
+            ownerProfileId: ownerA.profile.id,
+            fullName: 'Cross Restaurant Contact Lead',
+            phoneNumber: '0505550005',
+            wantedRoles: ['bartender'],
+            source: 'security-test',
+            status: 'new',
+          },
+        })
+      const crossRestaurantContact = await request(
+        `/owner/leads/${crossRestaurantContactLead.id}/status`,
+        {
+          method: 'PATCH',
+          headers: jsonHeaders(ownerB.token),
+          body: JSON.stringify({
+            status: 'contacted',
+            contactChannel: 'phone',
+          }),
+        },
+      )
+      assert.equal(crossRestaurantContact.status, 404)
+      const crossRestaurantLeadAfterAttempt =
+        await prisma.restaurantCandidateLead.findUniqueOrThrow({
+          where: { id: crossRestaurantContactLead.id },
+        })
+      assert.equal(crossRestaurantLeadAfterAttempt.status, 'new')
+      assert.equal(
+        crossRestaurantLeadAfterAttempt.firstContactInitiatedAt,
+        null,
+      )
+
+      const adminCandidatesAfterFirstContact = await request<
+        AdminCandidateResponse[]
+      >('/admin/candidates', {
+        headers: jsonHeaders(adminToken),
+      })
+      assert.equal(adminCandidatesAfterFirstContact.status, 200)
+      assert.equal(
+        adminCandidatesAfterFirstContact.body.find(
+          (candidate) => candidate.id === phoneContactLead.id,
+        )?.firstContactInitiatedAt,
+        originalFirstContactAt,
+      )
     } finally {
       clearGooglePlaceDetailsForTest()
       await prisma.restaurantCandidateLead.deleteMany({

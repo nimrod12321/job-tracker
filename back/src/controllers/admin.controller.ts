@@ -528,6 +528,7 @@ function mapAdminLead(lead: {
   source: string
   status: 'new' | 'contacted' | 'relevant' | 'rejected'
   ownerViewedAt: Date | null
+  firstContactInitiatedAt: Date | null
   createdAt: Date
   updatedAt: Date
   ownerProfile: {
@@ -549,6 +550,8 @@ function mapAdminLead(lead: {
     source: lead.source,
     status: lead.status,
     ownerViewedAt: lead.ownerViewedAt?.toISOString() ?? null,
+    firstContactInitiatedAt:
+      lead.firstContactInitiatedAt?.toISOString() ?? null,
     createdAt: lead.createdAt.toISOString(),
     updatedAt: lead.updatedAt.toISOString(),
     restaurant: {
@@ -578,6 +581,7 @@ function mapAdminQrCandidate(lead: Parameters<typeof mapAdminLead>[0]) {
       ? ('viewed' as const)
       : ('unviewed' as const),
     ownerViewedAt: mappedLead.ownerViewedAt,
+    firstContactInitiatedAt: mappedLead.firstContactInitiatedAt,
     createdAt: mappedLead.createdAt,
     updatedAt: mappedLead.updatedAt,
     restaurant: mappedLead.restaurant,
@@ -631,6 +635,7 @@ function mapAdminJobCandidate(application: {
     status: application.status,
     ownerViewState: 'notTracked' as const,
     ownerViewedAt: null,
+    firstContactInitiatedAt: null,
     createdAt: application.createdAt.toISOString(),
     updatedAt: application.updatedAt.toISOString(),
     restaurant: restaurant

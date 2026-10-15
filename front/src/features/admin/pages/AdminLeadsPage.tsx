@@ -401,6 +401,16 @@ function CandidateCard({
           <dt>Applied</dt>
           <dd>{new Date(candidate.createdAt).toLocaleString()}</dd>
         </div>
+        {candidate.firstContactInitiatedAt && (
+          <div>
+            <dt>First contact</dt>
+            <dd>
+              {new Date(
+                candidate.firstContactInitiatedAt,
+              ).toLocaleString()}
+            </dd>
+          </div>
+        )}
         <div>
           <dt>Location</dt>
           <dd>{restaurantLocation}</dd>
