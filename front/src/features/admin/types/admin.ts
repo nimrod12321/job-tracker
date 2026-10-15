@@ -172,6 +172,7 @@ export type AdminCandidate = {
   status: AdminCandidateStatus
   ownerViewState: 'viewed' | 'unviewed' | 'notTracked'
   ownerViewedAt: string | null
+  firstContactInitiatedAt: string | null
   createdAt: string
   updatedAt: string
   restaurant: {
@@ -225,6 +226,7 @@ export type AdminRestaurantJob = {
 
 export type AdminRestaurantQrLead = RestaurantCandidateLead & {
   ownerViewedAt: string | null
+  firstContactInitiatedAt: string | null
   restaurant: {
     id: string
     restaurantName: string
@@ -264,6 +266,7 @@ export type AdminRestaurantDetail = {
 export type AdminRestaurantCandidateLead = RestaurantCandidateLead & {
   status: CandidateLeadStatus
   ownerViewedAt: string | null
+  firstContactInitiatedAt: string | null
   restaurant: {
     id: string
     restaurantName: string

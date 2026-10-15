@@ -4,6 +4,7 @@ import {
   copyHiringLinkAndRecord,
   createCandidateActivityGuard,
   recordCandidateCardOpened,
+  recordCandidateContactAndContinue,
   recordCandidateContactInitiated,
   recordInstagramAssistOpened,
   recordQrAssetDownloadStarted,
@@ -195,6 +196,7 @@ test('candidate analytics failure does not block open, phone, or WhatsApp action
   const failingRecorder = () => {
     throw new Error('analytics unavailable')
   }
+  let durableContactActionRan = false
 
   assert.doesNotThrow(() => {
     recordCandidateCardOpened(
@@ -217,5 +219,16 @@ test('candidate analytics failure does not block open, phone, or WhatsApp action
       failingRecorder,
       1_000,
     )
+    recordCandidateContactAndContinue(
+      candidateReference,
+      'phone',
+      guard,
+      failingRecorder,
+      () => {
+        durableContactActionRan = true
+      },
+      2_000,
+    )
   })
+  assert.equal(durableContactActionRan, true)
 })
