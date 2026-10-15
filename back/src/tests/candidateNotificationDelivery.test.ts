@@ -2,11 +2,15 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   CandidateNotificationSmsError,
-  NEW_CANDIDATE_SMS_BODY,
+  buildOwnerApplicationsUrl,
   createTwilioCandidateNotificationSmsProvider,
+  getCandidateContactReminderSmsBody,
+  getNewCandidateSmsBody,
+  type CandidateNotificationKind,
   type CandidateNotificationSmsProvider,
 } from '../services/candidateNotificationSmsProvider.js'
 import {
+  processPendingCandidateContactReminderDeliveries,
   processNewCandidateNotificationDeliveries,
   type CandidateNotificationDeliveryRepository,
 } from '../services/candidateNotificationDelivery.service.js'
@@ -18,6 +22,7 @@ type FakeDelivery = {
   id: string
   candidateLeadId: string
   recipientPhone: string
+  kind: CandidateNotificationKind
   status: DeliveryStatus
   attemptCount: number
   lastAttemptAt: Date | null
@@ -34,6 +39,7 @@ function delivery(
     id,
     candidateLeadId: 'candidate-lead',
     recipientPhone: `+9725000000${id}`,
+    kind: 'newCandidate',
     status: 'pending',
     attemptCount: 0,
     lastAttemptAt: null,
@@ -46,17 +52,20 @@ function delivery(
 
 function createFakeRepository(deliveries: FakeDelivery[]) {
   const repository: CandidateNotificationDeliveryRepository = {
-    async findPendingNewCandidateDeliveries(candidateLeadId) {
+    async findPendingDeliveries(kind, candidateLeadId) {
       return deliveries
         .filter(
           (item) =>
-            item.candidateLeadId === candidateLeadId &&
+            (!candidateLeadId ||
+              item.candidateLeadId === candidateLeadId) &&
+            item.kind === kind &&
             item.status === 'pending',
         )
-        .map(({ id, recipientPhone, attemptCount }) => ({
+        .map(({ id, recipientPhone, attemptCount, kind }) => ({
           id,
           recipientPhone,
           attemptCount,
+          kind,
         }))
     },
 
@@ -65,6 +74,7 @@ function createFakeRepository(deliveries: FakeDelivery[]) {
 
       if (
         !stored ||
+        stored.kind !== item.kind ||
         stored.status !== 'pending' ||
         stored.attemptCount !== 0 ||
         stored.lastAttemptAt !== null
@@ -102,7 +112,7 @@ function createFakeRepository(deliveries: FakeDelivery[]) {
 function createFakeProvider(options?: { failPhones?: Set<string> }) {
   const calls: string[] = []
   const provider: CandidateNotificationSmsProvider = {
-    async sendNewCandidateNotification(recipientPhone) {
+    async sendCandidateNotification(recipientPhone) {
       calls.push(recipientPhone)
 
       if (options?.failPhones?.has(recipientPhone)) {
@@ -320,22 +330,102 @@ test('Twilio notification provider uses SMS Messaging Service and centralized no
       apiKeySid: 'SK-test',
       apiKeySecret: 'test-secret',
       messagingServiceSid: 'MG-test',
+      frontendUrl: 'https://staging.peepss.com/',
     },
     client,
   )
 
-  const result = await provider.sendNewCandidateNotification(
+  const result = await provider.sendCandidateNotification(
     '+972501234567',
+    'newCandidate',
+  )
+
+  const applicationsUrl = buildOwnerApplicationsUrl(
+    'https://staging.peepss.com/',
   )
 
   assert.deepEqual(messages, [
     {
       messagingServiceSid: 'MG-test',
       to: '+972501234567',
-      body: NEW_CANDIDATE_SMS_BODY,
+      body: getNewCandidateSmsBody(applicationsUrl),
     },
   ])
   assert.deepEqual(result, {
     providerMessageSid: 'SM-provider-result',
   })
+})
+
+test('Twilio reminder uses centralized Hebrew content and the direct Applications URL', async () => {
+  const messages: unknown[] = []
+  const client: TwilioMessagesClient = {
+    messages: {
+      async create(message) {
+        messages.push(message)
+        return { sid: 'SM-reminder-result' }
+      },
+    },
+  }
+  const frontendUrl = 'https://staging.peepss.com'
+  const provider = createTwilioCandidateNotificationSmsProvider(
+    {
+      accountSid: 'AC-test',
+      apiKeySid: 'SK-test',
+      apiKeySecret: 'test-secret',
+      messagingServiceSid: 'MG-test',
+      frontendUrl,
+    },
+    client,
+  )
+
+  await provider.sendCandidateNotification(
+    '+972501234567',
+    'reminder24h',
+  )
+
+  const applicationsUrl = buildOwnerApplicationsUrl(frontendUrl)
+  assert.deepEqual(messages, [
+    {
+      messagingServiceSid: 'MG-test',
+      to: '+972501234567',
+      body: getCandidateContactReminderSmsBody(applicationsUrl),
+    },
+  ])
+  assert.equal(
+    getCandidateContactReminderSmsBody(applicationsUrl),
+    'תזכורת קטנה מ-Peepss 👋\nיש לך מועמדות שעדיין לא יצרת איתה קשר.\nאפשר לראות את הפרטים כאן: https://staging.peepss.com/owner/applications',
+  )
+  assert.equal(
+    getNewCandidateSmsBody(applicationsUrl),
+    'התקבלה אצלך מועמדות חדשה דרך Peepss 👋\nאפשר לראות את הפרטים כאן: https://staging.peepss.com/owner/applications',
+  )
+})
+
+test('pending reminder delivery is claimed and accepted once', async () => {
+  const deliveries = [
+    delivery('reminder', {
+      kind: 'reminder24h',
+      recipientPhone: '+972501234567',
+    }),
+  ]
+  const { provider, calls } = createFakeProvider()
+
+  const result = await processPendingCandidateContactReminderDeliveries(
+    { enabled: true },
+    {
+      repository: createFakeRepository(deliveries),
+      provider,
+      now: createClock(),
+    },
+  )
+
+  assert.deepEqual(calls, ['+972501234567'])
+  assert.deepEqual(result, {
+    pendingFound: 1,
+    attempted: 1,
+    accepted: 1,
+    failed: 0,
+  })
+  assert.equal(deliveries[0]?.status, 'accepted')
+  assert.equal(deliveries[0]?.attemptCount, 1)
 })

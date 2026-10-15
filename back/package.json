@@ -12,7 +12,8 @@
     "start": "node dist/server.js",
     "seed:restaurant": "tsx src/scripts/seedRestaurantJobs.ts",
     "repair:owner-drafts": "tsx src/scripts/repairOwnerStarterDrafts.ts",
-    "analytics:cleanup": "tsx src/scripts/cleanupAnalytics.ts"
+    "analytics:cleanup": "tsx src/scripts/cleanupAnalytics.ts",
+    "notifications:dispatch-reminders": "node dist/scripts/dispatchCandidateContactReminders.js"
   },
   "keywords": [],
   "author": "",

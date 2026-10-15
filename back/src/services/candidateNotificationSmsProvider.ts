@@ -6,13 +6,36 @@ import {
   validateTwilioSmsConfig,
 } from './twilioOtpProvider.js'
 
-export const NEW_CANDIDATE_SMS_BODY =
-  'A new candidate applied to your restaurant on Peepss. Open Applications to review and contact them.'
+export const OWNER_APPLICATIONS_ROUTE = '/owner/applications'
+
+export type CandidateNotificationKind = 'newCandidate' | 'reminder24h'
+
+export function buildOwnerApplicationsUrl(frontendUrl: string) {
+  return new URL(
+    OWNER_APPLICATIONS_ROUTE,
+    `${frontendUrl.replace(/\/+$/, '')}/`,
+  ).toString()
+}
+
+export function getNewCandidateSmsBody(applicationsUrl: string) {
+  return `התקבלה אצלך מועמדות חדשה דרך Peepss 👋\nאפשר לראות את הפרטים כאן: ${applicationsUrl}`
+}
+
+export function getCandidateContactReminderSmsBody(
+  applicationsUrl: string,
+) {
+  return `תזכורת קטנה מ-Peepss 👋\nיש לך מועמדות שעדיין לא יצרת איתה קשר.\nאפשר לראות את הפרטים כאן: ${applicationsUrl}`
+}
 
 export type CandidateNotificationSmsProvider = {
-  sendNewCandidateNotification: (
+  sendCandidateNotification: (
     recipientPhone: string,
+    kind: CandidateNotificationKind,
   ) => Promise<{ providerMessageSid: string }>
+}
+
+type CandidateNotificationSmsConfig = TwilioSmsConfig & {
+  frontendUrl: string
 }
 
 export class CandidateNotificationSmsError extends Error {
@@ -34,19 +57,23 @@ export function getCandidateNotificationSafeErrorCode(error: unknown) {
 }
 
 export function createTwilioCandidateNotificationSmsProvider(
-  config: TwilioSmsConfig,
+  config: CandidateNotificationSmsConfig,
   client?: TwilioMessagesClient,
 ): CandidateNotificationSmsProvider {
   validateTwilioSmsConfig(config)
   const twilioClient = client ?? createTwilioMessagesClient(config)
+  const applicationsUrl = buildOwnerApplicationsUrl(config.frontendUrl)
 
   return {
-    async sendNewCandidateNotification(recipientPhone) {
+    async sendCandidateNotification(recipientPhone, kind) {
       try {
         const result = await twilioClient.messages.create({
           messagingServiceSid: config.messagingServiceSid,
           to: recipientPhone,
-          body: NEW_CANDIDATE_SMS_BODY,
+          body:
+            kind === 'reminder24h'
+              ? getCandidateContactReminderSmsBody(applicationsUrl)
+              : getNewCandidateSmsBody(applicationsUrl),
         })
         const providerMessageSid =
           typeof result === 'object' &&
