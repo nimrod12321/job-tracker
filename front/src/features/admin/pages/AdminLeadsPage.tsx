@@ -12,6 +12,7 @@ import {
 } from '../services/adminApi'
 import type {
   AdminCandidate,
+  AdminCandidateNotificationDelivery,
   AdminCandidateSource,
   AdminCandidateStatus,
   CandidateLeadStatus,
@@ -446,6 +447,12 @@ function CandidateCard({
         </div>
       )}
 
+      {candidate.source === 'qr' && (
+        <NotificationDeliverySection
+          deliveries={candidate.notificationDeliveries}
+        />
+      )}
+
       <div className="admin-candidate-card-footer">
         <div className="admin-actions">
           {candidate.phoneNumber && <a href={`tel:${candidate.phoneNumber}`}>Call</a>}
@@ -491,6 +498,87 @@ function CandidateCard({
         )}
       </div>
     </article>
+  )
+}
+
+function NotificationDeliverySection({
+  deliveries,
+}: {
+  deliveries: AdminCandidateNotificationDelivery[]
+}) {
+  return (
+    <section
+      className="admin-notification-delivery"
+      aria-label="Notification delivery"
+    >
+      <div className="admin-notification-delivery-heading">
+        <h3>Notification delivery</h3>
+        <small>
+          Accepted means accepted by the messaging provider, not confirmed
+          handset delivery.
+        </small>
+      </div>
+
+      {deliveries.length === 0 ? (
+        <p className="admin-notification-empty">No notification record</p>
+      ) : (
+        <div className="admin-notification-delivery-list">
+          {deliveries.map((delivery) => (
+            <article
+              className="admin-notification-delivery-row"
+              key={delivery.id}
+            >
+              <div className="admin-notification-delivery-summary">
+                <strong>
+                  {delivery.kind === 'newCandidate'
+                    ? 'New candidate'
+                    : '24-hour reminder'}
+                </strong>
+                <span
+                  className={`admin-notification-status ${delivery.status}`}
+                >
+                  {delivery.status}
+                </span>
+              </div>
+              <dl className="admin-notification-delivery-details">
+                <div>
+                  <dt>Recipient</dt>
+                  <dd>{delivery.recipientPhone}</dd>
+                </div>
+                <div>
+                  <dt>Attempts</dt>
+                  <dd>{delivery.attemptCount}</dd>
+                </div>
+                <div>
+                  <dt>Created</dt>
+                  <dd>{new Date(delivery.createdAt).toLocaleString()}</dd>
+                </div>
+                {delivery.lastAttemptAt && (
+                  <div>
+                    <dt>Last attempt</dt>
+                    <dd>
+                      {new Date(delivery.lastAttemptAt).toLocaleString()}
+                    </dd>
+                  </div>
+                )}
+                {delivery.acceptedAt && (
+                  <div>
+                    <dt>Accepted</dt>
+                    <dd>{new Date(delivery.acceptedAt).toLocaleString()}</dd>
+                  </div>
+                )}
+                {delivery.safeErrorCode && (
+                  <div>
+                    <dt>Error code</dt>
+                    <dd>{delivery.safeErrorCode}</dd>
+                  </div>
+                )}
+              </dl>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
   )
 }
 
