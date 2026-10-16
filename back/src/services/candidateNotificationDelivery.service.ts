@@ -1,5 +1,6 @@
 import { env } from '../config/env.js'
 import { prisma } from '../lib/prisma.js'
+import { normalizeIsraeliPhoneNumber } from '../utils/phone.js'
 import {
   createTwilioCandidateNotificationSmsProvider,
   getCandidateNotificationSafeErrorCode,
@@ -23,6 +24,10 @@ export type CandidateNotificationDeliveryRepository = {
     delivery: PendingCandidateNotificationDelivery,
     attemptedAt: Date,
   ) => Promise<boolean>
+  claimPendingReminderBatch: (
+    deliveries: PendingCandidateNotificationDelivery[],
+    attemptedAt: Date,
+  ) => Promise<string[]>
   markAccepted: (
     deliveryId: string,
     acceptedAt: Date,
@@ -30,6 +35,15 @@ export type CandidateNotificationDeliveryRepository = {
   ) => Promise<void>
   markFailed: (
     deliveryId: string,
+    safeErrorCode: string,
+  ) => Promise<void>
+  markReminderBatchAccepted: (
+    deliveryIds: string[],
+    acceptedAt: Date,
+    providerMessageSid: string,
+  ) => Promise<void>
+  markReminderBatchFailed: (
+    deliveryIds: string[],
     safeErrorCode: string,
   ) => Promise<void>
 }
@@ -107,6 +121,41 @@ export const prismaCandidateNotificationRepository: CandidateNotificationDeliver
       return result.count === 1
     },
 
+    async claimPendingReminderBatch(deliveries, attemptedAt) {
+      const claimed =
+        await prisma.restaurantCandidateNotificationDelivery.updateManyAndReturn(
+          {
+            where: {
+              id: {
+                in: deliveries.map(({ id }) => id),
+              },
+              kind: 'reminder24h',
+              status: 'pending',
+              attemptCount: 0,
+              lastAttemptAt: null,
+              candidateLead: {
+                source: 'qr',
+                firstContactInitiatedAt: null,
+                status: {
+                  notIn: ['rejected', 'contacted'],
+                },
+              },
+            },
+            data: {
+              attemptCount: {
+                increment: 1,
+              },
+              lastAttemptAt: attemptedAt,
+            },
+            select: {
+              id: true,
+            },
+          },
+        )
+
+      return claimed.map(({ id }) => id)
+    },
+
     async markAccepted(deliveryId, acceptedAt, providerMessageSid) {
       await prisma.restaurantCandidateNotificationDelivery.update({
         where: {
@@ -125,6 +174,44 @@ export const prismaCandidateNotificationRepository: CandidateNotificationDeliver
       await prisma.restaurantCandidateNotificationDelivery.update({
         where: {
           id: deliveryId,
+        },
+        data: {
+          status: 'failed',
+          acceptedAt: null,
+          providerMessageSid: null,
+          safeErrorCode,
+        },
+      })
+    },
+
+    async markReminderBatchAccepted(
+      deliveryIds,
+      acceptedAt,
+      providerMessageSid,
+    ) {
+      await prisma.restaurantCandidateNotificationDelivery.updateMany({
+        where: {
+          id: {
+            in: deliveryIds,
+          },
+          kind: 'reminder24h',
+        },
+        data: {
+          status: 'accepted',
+          acceptedAt,
+          providerMessageSid,
+          safeErrorCode: null,
+        },
+      })
+    },
+
+    async markReminderBatchFailed(deliveryIds, safeErrorCode) {
+      await prisma.restaurantCandidateNotificationDelivery.updateMany({
+        where: {
+          id: {
+            in: deliveryIds,
+          },
+          kind: 'reminder24h',
         },
         data: {
           status: 'failed',
@@ -170,10 +257,91 @@ export async function processPendingCandidateContactReminderDeliveries(
     'reminder24h',
   )
 
-  return processCandidateNotificationDeliveryAttempts(
+  return processGroupedCandidateContactReminderDeliveries(
     deliveries,
     dependencies,
   )
+}
+
+async function processGroupedCandidateContactReminderDeliveries(
+  deliveries: PendingCandidateNotificationDelivery[],
+  dependencies: CandidateNotificationProcessorDependencies,
+) {
+  const now = dependencies.now ?? (() => new Date())
+  const logError = dependencies.logError ?? console.error
+  const result = {
+    ...emptyProcessingResult(),
+    pendingFound: deliveries.length,
+  }
+  const deliveriesByPhone = new Map<
+    string,
+    PendingCandidateNotificationDelivery[]
+  >()
+
+  for (const delivery of deliveries) {
+    try {
+      const normalizedPhone = normalizeIsraeliPhoneNumber(
+        delivery.recipientPhone,
+      )
+      const phoneDeliveries = deliveriesByPhone.get(normalizedPhone) ?? []
+      phoneDeliveries.push(delivery)
+      deliveriesByPhone.set(normalizedPhone, phoneDeliveries)
+    } catch {
+      logError('Skipped invalid candidate reminder recipient phone', {
+        safeErrorCode: 'candidate_notification_invalid_recipient',
+      })
+    }
+  }
+
+  for (const [recipientPhone, phoneDeliveries] of deliveriesByPhone) {
+    try {
+      const claimedIds =
+        await dependencies.repository.claimPendingReminderBatch(
+          phoneDeliveries,
+          now(),
+        )
+
+      if (claimedIds.length === 0) {
+        continue
+      }
+
+      result.attempted += claimedIds.length
+
+      let providerResult: { providerMessageSid: string }
+
+      try {
+        providerResult =
+          await dependencies.provider.sendCandidateNotification(
+            recipientPhone,
+            'reminder24h',
+            claimedIds.length,
+          )
+      } catch (error) {
+        const safeErrorCode =
+          getCandidateNotificationSafeErrorCode(error)
+
+        await dependencies.repository.markReminderBatchFailed(
+          claimedIds,
+          safeErrorCode,
+        )
+        result.failed += claimedIds.length
+        continue
+      }
+
+      await dependencies.repository.markReminderBatchAccepted(
+        claimedIds,
+        now(),
+        providerResult.providerMessageSid,
+      )
+      result.accepted += claimedIds.length
+    } catch {
+      logError('Failed to persist candidate notification delivery result', {
+        safeErrorCode: 'candidate_notification_persistence_failed',
+      })
+    }
+  }
+
+  return result
 }
 
 function emptyProcessingResult() {
