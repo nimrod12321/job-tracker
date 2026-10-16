@@ -78,6 +78,17 @@ enum RestaurantMemberStatus {
   removed
 }
 
+enum RestaurantCandidateNotificationKind {
+  newCandidate
+  reminder24h
+}
+
+enum RestaurantCandidateNotificationStatus {
+  pending
+  accepted
+  failed
+}
+
 enum RestaurantLocationStatus {
   unverified
   verified
@@ -120,16 +131,16 @@ model User {
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 
-  jobs                    Job[]
-  resumeProfile           ResumeProfile?
-  discoveryDecisions      JobDiscoveryDecision[]
-  restaurantWorkerProfile RestaurantWorkerProfile?
-  restaurantOwnerProfile  RestaurantOwnerProfile?
-  restaurantApplications  RestaurantApplication[]
-  restaurantMemberships   RestaurantMember[] @relation("RestaurantMemberUser")
-  restaurantInvitesSent   RestaurantMember[] @relation("RestaurantMemberInviter")
+  jobs                      Job[]
+  resumeProfile             ResumeProfile?
+  discoveryDecisions        JobDiscoveryDecision[]
+  restaurantWorkerProfile   RestaurantWorkerProfile?
+  restaurantOwnerProfile    RestaurantOwnerProfile?
+  restaurantApplications    RestaurantApplication[]
+  restaurantMemberships     RestaurantMember[]         @relation("RestaurantMemberUser")
+  restaurantInvitesSent     RestaurantMember[]         @relation("RestaurantMemberInviter")
   adminRestaurantReadStates AdminRestaurantReadState[]
-  analyticsAcquisitions   AnalyticsAcquisition[]
+  analyticsAcquisitions     AnalyticsAcquisition[]
 }
 
 model OtpVerification {
@@ -246,14 +257,14 @@ model RestaurantJob {
   restaurantName  String
   role            RestaurantRole
   location        String
-  area            String         @default("")
-  description     String         @default("")
-  requirements    String         @default("")
-  shiftInfo       String         @default("")
-  contactPhone    String         @default("")
-  contactWhatsapp String         @default("")
+  area            String            @default("")
+  description     String            @default("")
+  requirements    String            @default("")
+  shiftInfo       String            @default("")
+  contactPhone    String            @default("")
+  contactWhatsapp String            @default("")
   kind            RestaurantJobKind @default(draft)
-  isActive        Boolean        @default(true)
+  isActive        Boolean           @default(true)
 
   // Set on a posted job to the id of the draft it was published from.
   // Unique so a draft can produce at most one posted job (publish is idempotent).
@@ -267,12 +278,12 @@ model RestaurantJob {
 
   applications RestaurantApplication[]
 
+  @@unique([ownerProfileId, role])
   @@index([role])
   @@index([location])
   @@index([kind])
   @@index([isActive])
   @@index([ownerProfileId])
-  @@unique([ownerProfileId, role])
 }
 
 model RestaurantOwnerProfile {
@@ -281,14 +292,14 @@ model RestaurantOwnerProfile {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  restaurantName String @default("")
-  contactPerson  String @default("")
-  phoneNumber    String @default("")
-  whatsappNumber String @default("")
-  city           String @default("")
-  street         String @default("")
-  description    String @default("")
-  slug           String? @unique
+  restaurantName String           @default("")
+  contactPerson  String           @default("")
+  phoneNumber    String           @default("")
+  whatsappNumber String           @default("")
+  city           String           @default("")
+  street         String           @default("")
+  description    String           @default("")
+  slug           String?          @unique
   qrEnabledRoles RestaurantRole[] @default([waiter, bartender, host, cook, floorManager])
 
   // Legacy city/street fields above remain for compatibility. Map visibility
@@ -303,12 +314,12 @@ model RestaurantOwnerProfile {
   longitude            Float?
   locationVerifiedAt   DateTime?
 
-  jobs  RestaurantJob[]
-  leads RestaurantCandidateLead[]
-  qrEvents RestaurantQrEvent[]
-  members RestaurantMember[]
+  jobs            RestaurantJob[]
+  leads           RestaurantCandidateLead[]
+  qrEvents        RestaurantQrEvent[]
+  members         RestaurantMember[]
   adminReadStates AdminRestaurantReadState[]
-  claim RestaurantClaim?
+  claim           RestaurantClaim?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -317,10 +328,10 @@ model RestaurantOwnerProfile {
 model RestaurantClaim {
   id String @id @default(uuid())
 
-  restaurantOwnerProfileId String @unique
-  restaurantOwnerProfile RestaurantOwnerProfile @relation(fields: [restaurantOwnerProfileId], references: [id], onDelete: Cascade)
+  restaurantOwnerProfileId String                 @unique
+  restaurantOwnerProfile   RestaurantOwnerProfile @relation(fields: [restaurantOwnerProfileId], references: [id], onDelete: Cascade)
 
-  tokenHash String @unique
+  tokenHash String    @unique
   claimedAt DateTime?
 
   createdAt DateTime @default(now())
@@ -360,12 +371,14 @@ model RestaurantMember {
   user   User?   @relation("RestaurantMemberUser", fields: [userId], references: [id], onDelete: SetNull)
 
   phoneNumber String
-  displayName String @default("")
+  displayName String                 @default("")
   role        RestaurantMemberRole
   status      RestaurantMemberStatus @default(pending)
 
   invitedByUserId String?
   invitedByUser   User?   @relation("RestaurantMemberInviter", fields: [invitedByUserId], references: [id], onDelete: SetNull)
+
+  candidateNotificationDeliveries RestaurantCandidateNotificationDelivery[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -384,15 +397,18 @@ model RestaurantCandidateLead {
   ownerProfileId String
   ownerProfile   RestaurantOwnerProfile @relation(fields: [ownerProfileId], references: [id], onDelete: Cascade)
 
-  fullName       String
-  phoneNumber    String
-  wantedRoles    RestaurantRole[]
-  experienceText String           @default("")
-  availability   String           @default("")
-  age            Int?
-  source         String           @default("qr")
-  status         CandidateLeadStatus @default(new)
-  ownerViewedAt DateTime?
+  fullName                String
+  phoneNumber             String
+  wantedRoles             RestaurantRole[]
+  experienceText          String              @default("")
+  availability            String              @default("")
+  age                     Int?
+  source                  String              @default("qr")
+  status                  CandidateLeadStatus @default(new)
+  ownerViewedAt           DateTime?
+  firstContactInitiatedAt DateTime?
+
+  notificationDeliveries RestaurantCandidateNotificationDelivery[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -402,6 +418,33 @@ model RestaurantCandidateLead {
   @@index([status])
   @@index([ownerViewedAt])
   @@index([createdAt])
+}
+
+model RestaurantCandidateNotificationDelivery {
+  id String @id @default(uuid())
+
+  candidateLeadId String
+  candidateLead   RestaurantCandidateLead @relation(fields: [candidateLeadId], references: [id], onDelete: Cascade)
+
+  recipientMemberId String?
+  recipientMember   RestaurantMember? @relation(fields: [recipientMemberId], references: [id], onDelete: SetNull)
+
+  recipientPhone     String
+  kind               RestaurantCandidateNotificationKind
+  status             RestaurantCandidateNotificationStatus @default(pending)
+  attemptCount       Int                                   @default(0)
+  lastAttemptAt      DateTime?
+  acceptedAt         DateTime?
+  providerMessageSid String?
+  safeErrorCode      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([candidateLeadId, recipientPhone, kind])
+  @@index([candidateLeadId])
+  @@index([recipientMemberId])
+  @@index([status])
 }
 
 model RestaurantQrEvent {
@@ -472,7 +515,7 @@ model AnalyticsEvent {
   acquisitionId String
   acquisition   AnalyticsAcquisition @relation(fields: [acquisitionId], references: [id], onDelete: Cascade)
 
-  clientEventId String @unique
+  clientEventId String   @unique
   eventName     String
   occurredAt    DateTime
   receivedAt    DateTime @default(now())

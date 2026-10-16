@@ -121,6 +121,7 @@ export type RestaurantCandidateLead = {
   source: string
   status: CandidateLeadStatus
   ownerViewedAt: string | null
+  firstContactInitiatedAt: string | null
   createdAt: string
   updatedAt: string
 }

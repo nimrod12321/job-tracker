@@ -8,6 +8,7 @@ import { sendOwnerActivityEvent } from '../../../analytics/ownerActivity'
 import {
   createCandidateActivityGuard,
   recordCandidateCardOpened,
+  recordCandidateContactAndContinue,
   recordCandidateContactInitiated,
   type OwnerCandidateReference,
 } from '../../../analytics/ownerActivityActions'
@@ -222,8 +223,12 @@ function OwnerApplicationsPage() {
   async function handleLeadStatusChange(
     lead: RestaurantCandidateLead,
     status: CandidateLeadStatus,
+    contactChannel?: 'phone' | 'whatsapp',
   ) {
-    if (pendingLeadIds.current.has(lead.id) || lead.status === status) {
+    if (
+      pendingLeadIds.current.has(lead.id) ||
+      (!contactChannel && lead.status === status)
+    ) {
       return
     }
 
@@ -237,7 +242,11 @@ function OwnerApplicationsPage() {
     )
 
     try {
-      const updatedLead = await updateOwnerLeadStatus(lead.id, status)
+      const updatedLead = await updateOwnerLeadStatus(
+        lead.id,
+        status,
+        contactChannel,
+      )
 
       setLeads((currentLeads) =>
         currentLeads.map((currentLead) =>
@@ -371,12 +380,19 @@ function OwnerApplicationsPage() {
     return labels[status]
   }
 
-  function handleLeadContactClick(lead: RestaurantCandidateLead) {
-    if (lead.status !== 'new' || pendingLeadIds.current.has(lead.id)) {
+  function handleLeadContactClick(
+    lead: RestaurantCandidateLead,
+    channel: 'phone' | 'whatsapp',
+  ) {
+    if (pendingLeadIds.current.has(lead.id)) {
       return
     }
 
-    void handleLeadStatusChange(lead, 'contacted')
+    void handleLeadStatusChange(
+      lead,
+      lead.status === 'new' ? 'contacted' : lead.status,
+      channel,
+    )
   }
 
   function openCandidate(
@@ -640,11 +656,13 @@ function OwnerApplicationsPage() {
                             <a
                               href={`tel:${lead.phoneNumber}`}
                               onClick={() => {
-                                recordCandidateContact(
+                                recordCandidateContactAndContinue(
                                   { kind: 'externalLead', id: lead.id },
                                   'phone',
+                                  candidateActivityGuard.current,
+                                  sendOwnerActivityEvent,
+                                  () => handleLeadContactClick(lead, 'phone'),
                                 )
-                                handleLeadContactClick(lead)
                               }}
                             >
                               {text.call}
@@ -655,11 +673,17 @@ function OwnerApplicationsPage() {
                                 target="_blank"
                                 rel="noreferrer"
                                 onClick={() => {
-                                  recordCandidateContact(
+                                  recordCandidateContactAndContinue(
                                     { kind: 'externalLead', id: lead.id },
                                     'whatsapp',
+                                    candidateActivityGuard.current,
+                                    sendOwnerActivityEvent,
+                                    () =>
+                                      handleLeadContactClick(
+                                        lead,
+                                        'whatsapp',
+                                      ),
                                   )
-                                  handleLeadContactClick(lead)
                                 }}
                               >
                                 {text.whatsapp}

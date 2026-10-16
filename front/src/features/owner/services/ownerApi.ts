@@ -235,12 +235,15 @@ export async function getOwnerLeads(): Promise<RestaurantCandidateLead[]> {
 export async function updateOwnerLeadStatus(
   id: string,
   status: RestaurantCandidateLead['status'],
+  contactChannel?: 'phone' | 'whatsapp',
 ): Promise<RestaurantCandidateLead> {
   const response = await fetch(`${API_BASE_URL}/owner/leads/${id}/status`, {
     method: 'PATCH',
+    keepalive: Boolean(contactChannel),
     headers: getHeaders(),
     body: JSON.stringify({
       status,
+      ...(contactChannel ? { contactChannel } : {}),
     }),
   })
 

@@ -160,3 +160,22 @@ export function recordCandidateContactInitiated(
     now,
   )
 }
+
+export function recordCandidateContactAndContinue<T>(
+  candidateReference: OwnerCandidateReference,
+  channel: 'phone' | 'whatsapp',
+  guard: CandidateActivityGuard,
+  record: OwnerActivityRecorder,
+  continueContact: () => T,
+  now = Date.now(),
+) {
+  recordCandidateContactInitiated(
+    candidateReference,
+    channel,
+    guard,
+    record,
+    now,
+  )
+
+  return continueContact()
+}

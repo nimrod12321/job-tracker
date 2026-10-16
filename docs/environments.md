@@ -163,6 +163,7 @@ TWILIO_ACCOUNT_SID="AC..."
 TWILIO_API_KEY_SID="SK..."
 TWILIO_API_KEY_SECRET="..."
 TWILIO_MESSAGING_SERVICE_SID="MG..."
+CANDIDATE_NOTIFICATIONS_ENABLED=false
 
 ADMIN_PHONES="+972..."
 ADMIN_EMAILS=""
@@ -184,6 +185,10 @@ Production must not use:
 - `OTP_PROVIDER=console`
 - `TEST_DATABASE_URL`
 - sandbox-only Twilio values unless deliberately testing a non-production service
+
+Candidate SMS notifications are default-off. Only the exact value
+`CANDIDATE_NOTIFICATIONS_ENABLED=true` enables them. When enabled, they use the
+same Twilio account/API-key credentials and Messaging Service SID listed above.
 
 Run production migrations only against the production database from a controlled environment:
 
