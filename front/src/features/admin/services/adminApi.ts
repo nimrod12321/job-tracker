@@ -16,6 +16,7 @@ import type {
   AdminRestaurantInput,
   CandidateLeadStatus,
 } from '../types/admin'
+import type { RestaurantRole } from '../../restaurant/types/restaurant'
 
 function getHeaders(): Headers {
   const headers = new Headers({
@@ -228,6 +229,48 @@ export async function updateAdminRestaurantLocation(
 
   if (!response.ok) {
     await handleApiError(response, 'Failed to update restaurant location')
+  }
+
+  return response.json()
+}
+
+export async function updateAdminRestaurantQrRoles(
+  id: string,
+  qrEnabledRoles: RestaurantRole[],
+): Promise<{ qrEnabledRoles: RestaurantRole[] }> {
+  const response = await fetch(
+    `${API_BASE_URL}/admin/restaurants/${encodeURIComponent(id)}/qr-roles`,
+    {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify({ qrEnabledRoles }),
+    },
+  )
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to update QR hiring roles')
+  }
+
+  return response.json()
+}
+
+export async function updateAdminRestaurantJobBoardRoles(
+  id: string,
+  jobBoardRoles: RestaurantRole[],
+): Promise<
+  Pick<AdminRestaurantDetail, 'jobBoardRoles' | 'jobs'>
+> {
+  const response = await fetch(
+    `${API_BASE_URL}/admin/restaurants/${encodeURIComponent(id)}/job-board-roles`,
+    {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify({ jobBoardRoles }),
+    },
+  )
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to update Job Board roles')
   }
 
   return response.json()

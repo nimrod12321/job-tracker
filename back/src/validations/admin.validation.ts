@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { restaurantRoles } from './restaurant.validation.js'
 
 const optionalText = (field: string, maxLength: number) =>
   z
@@ -62,5 +63,22 @@ export const adminRestaurantLocationSchema = z
       .trim()
       .min(1, 'place id is required')
       .max(300, 'place id is too long'),
+  })
+  .strict()
+
+const adminRestaurantRolesSchema = z
+  .array(z.enum(restaurantRoles, { error: 'role is invalid' }))
+  .max(restaurantRoles.length, 'too many roles')
+  .transform((roles) => [...new Set(roles)])
+
+export const adminRestaurantQrRolesSchema = z
+  .object({
+    qrEnabledRoles: adminRestaurantRolesSchema,
+  })
+  .strict()
+
+export const adminRestaurantJobBoardRolesSchema = z
+  .object({
+    jobBoardRoles: adminRestaurantRolesSchema,
   })
   .strict()

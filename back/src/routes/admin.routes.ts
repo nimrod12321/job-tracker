@@ -9,8 +9,10 @@ import {
   markAdminRestaurantSeen,
   regenerateAdminRestaurantClaim,
   updateAdminRestaurant,
+  updateAdminRestaurantJobBoardRoles,
   updateAdminRestaurantLocation,
   updateAdminRestaurantLeadStatus,
+  updateAdminRestaurantQrRoles,
 } from '../controllers/admin.controller.js'
 import { requireAdmin } from '../middleware/admin.middleware.js'
 import { requireAuth } from '../middleware/auth.middleware.js'
@@ -33,6 +35,14 @@ adminRouter.post('/restaurants', createAdminRestaurant)
 adminRouter.post('/restaurants/:id/mark-seen', markAdminRestaurantSeen)
 adminRouter.get('/restaurants/:id', getAdminRestaurantDetail)
 adminRouter.patch('/restaurants/:id', updateAdminRestaurant)
+adminRouter.patch(
+  '/restaurants/:id/qr-roles',
+  updateAdminRestaurantQrRoles,
+)
+adminRouter.patch(
+  '/restaurants/:id/job-board-roles',
+  updateAdminRestaurantJobBoardRoles,
+)
 adminRouter.patch(
   '/restaurants/:id/location',
   updateAdminRestaurantLocation,
