@@ -25,6 +25,7 @@ import {
   GooglePlacesError,
   verifyRestaurantPlaceId,
 } from '../services/googlePlaces.service.js'
+import { mapAdminCandidateNotificationDeliveries } from '../services/adminCandidateNotification.service.js'
 
 const adminOwnerMembersInclude = {
   where: {
@@ -564,7 +565,13 @@ function mapAdminLead(lead: {
   }
 }
 
-function mapAdminQrCandidate(lead: Parameters<typeof mapAdminLead>[0]) {
+function mapAdminQrCandidate(
+  lead: Parameters<typeof mapAdminLead>[0] & {
+    notificationDeliveries: Parameters<
+      typeof mapAdminCandidateNotificationDeliveries
+    >[1]
+  },
+) {
   const mappedLead = mapAdminLead(lead)
 
   return {
@@ -586,6 +593,10 @@ function mapAdminQrCandidate(lead: Parameters<typeof mapAdminLead>[0]) {
     updatedAt: mappedLead.updatedAt,
     restaurant: mappedLead.restaurant,
     job: null,
+    notificationDeliveries: mapAdminCandidateNotificationDeliveries(
+      lead.id,
+      lead.notificationDeliveries,
+    ),
   }
 }
 
@@ -657,6 +668,7 @@ function mapAdminJobCandidate(application: {
       id: application.restaurantJob.id,
       role: application.restaurantJob.role,
     },
+    notificationDeliveries: [],
   }
 }
 
@@ -1694,6 +1706,24 @@ export async function getAdminCandidates(_req: Request, res: Response) {
       prisma.restaurantCandidateLead.findMany({
         include: {
           ownerProfile: true,
+          notificationDeliveries: {
+            select: {
+              id: true,
+              candidateLeadId: true,
+              kind: true,
+              status: true,
+              recipientPhone: true,
+              recipientMemberId: true,
+              attemptCount: true,
+              createdAt: true,
+              lastAttemptAt: true,
+              acceptedAt: true,
+              safeErrorCode: true,
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
+          },
         },
         orderBy: {
           createdAt: 'desc',
