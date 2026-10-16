@@ -19,6 +19,7 @@ import { requireAuth } from '../middleware/auth.middleware.js'
 import {
   getAdminAcquisitionFunnel,
   getAdminAcquisitionFunnelStage,
+  getAdminWantedRoleDrilldown,
 } from '../controllers/adminAnalytics.controller.js'
 
 const adminRouter = Router()
@@ -28,6 +29,10 @@ adminRouter.get('/analytics/acquisition-funnel', getAdminAcquisitionFunnel)
 adminRouter.get(
   '/analytics/acquisition-funnel/stage/:stage',
   getAdminAcquisitionFunnelStage,
+)
+adminRouter.get(
+  '/analytics/user-insights/wanted-roles/:role',
+  getAdminWantedRoleDrilldown,
 )
 adminRouter.get('/restaurants', getAdminRestaurants)
 adminRouter.get('/candidates', getAdminCandidates)

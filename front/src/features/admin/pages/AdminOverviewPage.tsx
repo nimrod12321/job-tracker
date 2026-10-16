@@ -2,18 +2,24 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import PeepssModal from '../../../components/common/PeepssModal'
 import AdminShell from '../components/AdminShell'
-import { getRestaurantRoleLabel } from '../../restaurant/types/restaurant'
+import {
+  getRestaurantRoleLabel,
+  type RestaurantRole,
+} from '../../restaurant/types/restaurant'
 import {
   getAdminAcquisitionFunnel,
   getAdminAcquisitionFunnelStage,
   getAdminRestaurants,
+  getAdminWantedRoleUsers,
 } from '../services/adminApi'
 import type {
   AdminAcquisitionFunnelReport,
   AdminAcquisitionFunnelStageKey,
   AdminAcquisitionStageDetailsReport,
   AdminRestaurant,
+  AdminWantedRoleUsersReport,
 } from '../types/admin'
+import { formatIsraeliPhoneForDisplay } from '../../../utils/phoneDisplay'
 
 const acquisitionStageLabels: Record<
   AdminAcquisitionFunnelStageKey,
@@ -51,6 +57,12 @@ function AdminOverviewPage() {
   const [acquisitionStageError, setAcquisitionStageError] = useState<
     string | null
   >(null)
+  const [selectedWantedRole, setSelectedWantedRole] =
+    useState<RestaurantRole | null>(null)
+  const [wantedRoleUsers, setWantedRoleUsers] =
+    useState<AdminWantedRoleUsersReport | null>(null)
+  const [isWantedRoleLoading, setIsWantedRoleLoading] = useState(false)
+  const [wantedRoleError, setWantedRoleError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [acquisitionError, setAcquisitionError] = useState<string | null>(null)
   const isForbidden = error?.toLowerCase().includes('admin access required')
@@ -178,12 +190,66 @@ function AdminOverviewPage() {
     }
   }, [acquisitionFilters, acquisitionStagePage, selectedAcquisitionStage])
 
+  useEffect(() => {
+    if (!selectedWantedRole) {
+      return
+    }
+
+    let isActive = true
+
+    async function loadWantedRoleUsers() {
+      setIsWantedRoleLoading(true)
+      setWantedRoleError(null)
+
+      try {
+        const report = await getAdminWantedRoleUsers(selectedWantedRole!)
+        if (isActive) setWantedRoleUsers(report)
+      } catch (loadError) {
+        if (isActive) {
+          setWantedRoleError(
+            loadError instanceof Error
+              ? loadError.message
+              : 'Failed to load users for this role',
+          )
+        }
+      } finally {
+        if (isActive) setIsWantedRoleLoading(false)
+      }
+    }
+
+    void loadWantedRoleUsers()
+
+    return () => {
+      isActive = false
+    }
+  }, [selectedWantedRole])
+
   const closeAcquisitionStageDetails = useCallback(() => {
     setSelectedAcquisitionStage(null)
     setAcquisitionStageDetails(null)
     setAcquisitionStageError(null)
     setAcquisitionStagePage(1)
   }, [])
+
+  const closeWantedRoleDrilldown = useCallback(() => {
+    setSelectedWantedRole(null)
+    setWantedRoleUsers(null)
+    setWantedRoleError(null)
+  }, [])
+
+  const toggleWantedRoleDrilldown = useCallback(
+    (role: RestaurantRole) => {
+      if (selectedWantedRole === role) {
+        closeWantedRoleDrilldown()
+        return
+      }
+
+      setWantedRoleUsers(null)
+      setWantedRoleError(null)
+      setSelectedWantedRole(role)
+    },
+    [closeWantedRoleDrilldown, selectedWantedRole],
+  )
 
   const overview = useMemo(() => {
     const totalCandidates = restaurants.reduce(
@@ -368,16 +434,94 @@ function AdminOverviewPage() {
               </article>
               <article className="admin-restaurant-panel admin-wanted-role-insights">
                 <h3>Roles users are looking for</h3>
-                <dl>
+                <div className="admin-wanted-role-counts">
                   {acquisitionReport.userInsights.wantedRoles.map(
                     ({ role, count }) => (
-                      <div key={role}>
-                        <dt>{getRestaurantRoleLabel(role)}</dt>
-                        <dd>{count}</dd>
-                      </div>
+                      <button
+                        key={role}
+                        type="button"
+                        className={
+                          selectedWantedRole === role ? 'is-selected' : ''
+                        }
+                        aria-expanded={selectedWantedRole === role}
+                        onClick={() => toggleWantedRoleDrilldown(role)}
+                      >
+                        <span>{getRestaurantRoleLabel(role)}</span>
+                        <strong>{count}</strong>
+                      </button>
                     ),
                   )}
-                </dl>
+                </div>
+
+                {selectedWantedRole && (
+                  <div className="admin-wanted-role-drilldown">
+                    <div className="admin-wanted-role-drilldown-heading">
+                      <h4>
+                        People looking for{' '}
+                        {getRestaurantRoleLabel(selectedWantedRole)} work
+                      </h4>
+                      <button
+                        type="button"
+                        className="peepss-close-button"
+                        aria-label="Close role details"
+                        onClick={closeWantedRoleDrilldown}
+                      >
+                        ×
+                      </button>
+                    </div>
+
+                    {isWantedRoleLoading ? (
+                      <p className="status-message">Loading people...</p>
+                    ) : wantedRoleError ? (
+                      <p className="message message-error" role="alert">
+                        {wantedRoleError}
+                      </p>
+                    ) : wantedRoleUsers?.users.length ? (
+                      <div className="admin-wanted-role-user-list">
+                        {wantedRoleUsers.users.map((user) => (
+                          <article key={user.userId}>
+                            <div>
+                              <h5>{user.fullName || 'Name not provided'}</h5>
+                              <a href={`tel:${user.phoneNumber}`}>
+                                {formatIsraeliPhoneForDisplay(user.phoneNumber)}
+                              </a>
+                            </div>
+                            <dl>
+                              <div>
+                                <dt>Wanted roles</dt>
+                                <dd>
+                                  {user.wantedRoles
+                                    .map((role) => getRestaurantRoleLabel(role))
+                                    .join(', ')}
+                                </dd>
+                              </div>
+                              <div>
+                                <dt>Experience</dt>
+                                <dd>{user.experienceText || 'Not provided'}</dd>
+                              </div>
+                              <div>
+                                <dt>Availability</dt>
+                                <dd>{user.availability || 'Not provided'}</dd>
+                              </div>
+                              <div>
+                                <dt>Age</dt>
+                                <dd>{user.age || 'Not provided'}</dd>
+                              </div>
+                              <div>
+                                <dt>Area</dt>
+                                <dd>{user.location || 'Not provided'}</dd>
+                              </div>
+                            </dl>
+                          </article>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="status-message">
+                        No users are currently looking for this role.
+                      </p>
+                    )}
+                  </div>
+                )}
               </article>
             </div>
           ) : (

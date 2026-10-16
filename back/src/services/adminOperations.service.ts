@@ -4,38 +4,16 @@ import type {
 } from '../generated/prisma/client.js'
 import { env } from '../config/env.js'
 import { prisma } from '../lib/prisma.js'
-import { normalizeIsraeliPhoneNumber } from '../utils/phone.js'
 import { restaurantRoles } from '../validations/restaurant.validation.js'
+import { isAnalyticsExcludedUser } from './analyticsExclusion.service.js'
 import { getDefaultRestaurantJobBoardJob } from './restaurantJobTemplates.js'
 
 type UserInsightSource = {
   phoneNumber: string | null
   restaurantWorkerProfile: {
+    phoneNumber?: string
     wantedRoles: RestaurantRole[]
   } | null
-}
-
-function normalizePhoneForComparison(phoneNumber: string | null) {
-  if (!phoneNumber) return null
-
-  try {
-    return normalizeIsraeliPhoneNumber(phoneNumber)
-  } catch {
-    return phoneNumber.trim()
-  }
-}
-
-export function isAnalyticsExcludedPhone(
-  phoneNumber: string | null,
-  excludedPhones: readonly string[] = env.analyticsExcludedPhones,
-) {
-  const normalizedPhoneNumber = normalizePhoneForComparison(phoneNumber)
-  if (!normalizedPhoneNumber) return false
-
-  return excludedPhones.some(
-    (excludedPhone) =>
-      normalizePhoneForComparison(excludedPhone) === normalizedPhoneNumber,
-  )
 }
 
 export function buildAdminUserInsights(
@@ -43,7 +21,7 @@ export function buildAdminUserInsights(
   excludedPhones: readonly string[],
 ) {
   const includedUsers = users.filter(
-    (user) => !isAnalyticsExcludedPhone(user.phoneNumber, excludedPhones),
+    (user) => !isAnalyticsExcludedUser(user, excludedPhones),
   )
   const wantedRoleCounts = Object.fromEntries(
     restaurantRoles.map((role) => [role, 0]),
@@ -74,6 +52,7 @@ export async function getAdminUserInsights() {
       phoneNumber: true,
       restaurantWorkerProfile: {
         select: {
+          phoneNumber: true,
           wantedRoles: true,
         },
       },
@@ -81,6 +60,61 @@ export async function getAdminUserInsights() {
   })
 
   return buildAdminUserInsights(users, env.analyticsExcludedPhones)
+}
+
+export async function getAdminWantedRoleUsers(role: RestaurantRole) {
+  const profiles = await prisma.restaurantWorkerProfile.findMany({
+    where: {
+      wantedRoles: {
+        has: role,
+      },
+    },
+    orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
+    select: {
+      id: true,
+      fullName: true,
+      phoneNumber: true,
+      location: true,
+      wantedRoles: true,
+      experienceText: true,
+      availability: true,
+      age: true,
+      updatedAt: true,
+      user: {
+        select: {
+          id: true,
+          fullName: true,
+          phoneNumber: true,
+        },
+      },
+    },
+  })
+
+  return profiles
+    .filter(
+      (profile) =>
+        !isAnalyticsExcludedUser(
+          {
+            phoneNumber: profile.user.phoneNumber,
+            restaurantWorkerProfile: {
+              phoneNumber: profile.phoneNumber,
+            },
+          },
+          env.analyticsExcludedPhones,
+        ),
+    )
+    .map((profile) => ({
+      userId: profile.user.id,
+      profileId: profile.id,
+      fullName: profile.fullName.trim() || profile.user.fullName.trim(),
+      phoneNumber: profile.user.phoneNumber ?? profile.phoneNumber,
+      wantedRoles: [...new Set(profile.wantedRoles)],
+      experienceText: profile.experienceText,
+      availability: profile.availability,
+      age: profile.age,
+      location: profile.location,
+      profileUpdatedAt: profile.updatedAt.toISOString(),
+    }))
 }
 
 export async function setRestaurantJobBoardRoles(

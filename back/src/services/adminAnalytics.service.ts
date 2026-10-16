@@ -20,10 +20,8 @@ import {
   type AcquisitionFunnelStageKey,
   type AcquisitionStageEvidence,
 } from './adminAnalyticsStages.js'
-import {
-  getAdminUserInsights,
-  isAnalyticsExcludedPhone,
-} from './adminOperations.service.js'
+import { isAnalyticsExcludedUser } from './analyticsExclusion.service.js'
+import { getAdminUserInsights } from './adminOperations.service.js'
 
 export { ACQUISITION_FUNNEL_STAGE_KEYS }
 export { getCurrentAcquisitionStage }
@@ -410,18 +408,28 @@ async function loadAcquisitionEvaluations(
   const linkedUserIds = anchors.flatMap((anchor) =>
     anchor.userId ? [anchor.userId] : [],
   )
-  const ownerUsers = linkedUserIds.length
+  const linkedUsers = linkedUserIds.length
     ? await prisma.user.findMany({
         where: {
           id: { in: linkedUserIds },
-          track: 'restaurantOwner',
         },
-        select: { id: true, phoneNumber: true },
+        select: {
+          id: true,
+          track: true,
+          phoneNumber: true,
+          restaurantWorkerProfile: {
+            select: { phoneNumber: true },
+          },
+        },
       })
     : []
   const ownerUserIds = new Set(
-    ownerUsers
-      .filter((user) => !isAnalyticsExcludedPhone(user.phoneNumber))
+    linkedUsers
+      .filter(
+        (user) =>
+          user.track === 'restaurantOwner' &&
+          !isAnalyticsExcludedUser(user),
+      )
       .map((user) => user.id),
   )
   const eligibleAnchors = anchors.filter(
