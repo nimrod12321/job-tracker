@@ -69,6 +69,10 @@ type FunnelReport = {
     unknown: number
   }
   candidateSources: { external: number; jobBoard: number }
+  userInsights: {
+    totalUsers: number
+    wantedRoles: Array<{ role: string; count: number }>
+  }
 }
 
 type StageDetailsReport = {
@@ -124,7 +128,10 @@ test(
 
     const runId = randomUUID()
     const adminEmail = `stage-5-admin-${runId}@example.test`
+    const excludedPhone = `+97258${runId.replace(/\D/g, '').padEnd(7, '0').slice(0, 7)}`
+    const excludedCampaign = `excluded_${runId}`
     process.env.ADMIN_EMAILS = adminEmail
+    process.env.ANALYTICS_EXCLUDED_PHONES = `058-${excludedPhone.slice(-7)},invalid-phone`
 
     const [{ app }, { prisma }, { signAuthToken }] = await Promise.all([
       import('../server.js') as Promise<{ app: Express }>,
@@ -282,6 +289,41 @@ test(
         },
       })
       createdAcquisitionIds.push(workerAcquisition.id)
+
+      const excludedOwner = await prisma.user.create({
+        data: {
+          phoneNumber: excludedPhone,
+          phoneVerifiedAt: now,
+          fullName: 'Internal Test Owner',
+          track: 'restaurantOwner',
+        },
+      })
+      createdUserIds.push(excludedOwner.id)
+      const excludedAcquisition = await prisma.analyticsAcquisition.create({
+        data: {
+          anonymousAcquisitionId: randomUUID(),
+          userId: excludedOwner.id,
+          firstSource: 'internal',
+          firstMedium: 'test',
+          firstCampaign: excludedCampaign,
+          firstReferrer: null,
+          direct: false,
+          firstLandingPath: '/register',
+          firstTouchedAt: now,
+          expiresAt,
+          events: {
+            create: [
+              analyticsEvent('owner_signup_started', { flow: 'selfServe' }),
+              analyticsEvent('owner_otp_verified', {
+                flow: 'selfServe',
+                purpose: 'register',
+                newAccount: true,
+              }),
+            ],
+          },
+        },
+      })
+      createdAcquisitionIds.push(excludedAcquisition.id)
 
       const selfServeEvents = [
         analyticsEvent('owner_signup_started', { flow: 'selfServe' }),
@@ -496,6 +538,8 @@ test(
         campaign,
       })
       assert.equal(instagram.status, 200)
+      assert.ok(instagram.body.userInsights.totalUsers > 0)
+      assert.equal(instagram.body.userInsights.wantedRoles.length, 8)
       assert.equal(instagram.body.cohort.basis, 'owner_signup_started')
       assert.equal(instagram.body.cohort.count, 1)
       for (const key of [
@@ -662,6 +706,19 @@ test(
       )
       assert.equal(workerDetails.status, 200)
       assert.equal(workerDetails.body.pagination.total, 0)
+
+      const excludedReport = await getReport(adminToken, {
+        campaign: excludedCampaign,
+      })
+      assert.equal(excludedReport.status, 200)
+      assert.equal(excludedReport.body.cohort.count, 0)
+      const excludedDetails = await getStageDetails(
+        adminToken,
+        'otpVerified',
+        { campaign: excludedCampaign },
+      )
+      assert.equal(excludedDetails.status, 200)
+      assert.equal(excludedDetails.body.pagination.total, 0)
 
       const empty = await getReport(adminToken, {
         campaign: `missing-${runId}`,

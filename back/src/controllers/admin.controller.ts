@@ -6,7 +6,9 @@ import { getValidationErrorMessage } from '../utils/validation.js'
 import {
   adminRestaurantCreateSchema,
   adminRestaurantIdSchema,
+  adminRestaurantJobBoardRolesSchema,
   adminRestaurantLocationSchema,
+  adminRestaurantQrRolesSchema,
   adminRestaurantUpdateSchema,
 } from '../validations/admin.validation.js'
 import {
@@ -26,6 +28,7 @@ import {
   verifyRestaurantPlaceId,
 } from '../services/googlePlaces.service.js'
 import { mapAdminCandidateNotificationDeliveries } from '../services/adminCandidateNotification.service.js'
+import { setRestaurantJobBoardRoles } from '../services/adminOperations.service.js'
 
 const adminOwnerMembersInclude = {
   where: {
@@ -1095,6 +1098,9 @@ export async function getAdminRestaurantDetail(req: Request, res: Response) {
       ownerAccountPhone: restaurantSummary.ownerLoginPhone,
       restaurantContactPhone: restaurant.phoneNumber,
       jobs: restaurant.jobs.map(mapAdminRestaurantJob),
+      jobBoardRoles: restaurant.jobs
+        .filter((job) => job.kind === 'posted' && job.isActive)
+        .map((job) => job.role),
       qrLeads: restaurant.leads.map(mapAdminLead),
       applications: applications.map(mapAdminRestaurantApplication),
     })
@@ -1103,6 +1109,127 @@ export async function getAdminRestaurantDetail(req: Request, res: Response) {
 
     return res.status(500).json({
       message: 'failed to fetch restaurant',
+    })
+  }
+}
+
+export async function updateAdminRestaurantQrRoles(
+  req: Request,
+  res: Response,
+) {
+  try {
+    const idResult = adminRestaurantIdSchema.safeParse(req.params.id)
+    const bodyResult = adminRestaurantQrRolesSchema.safeParse(req.body)
+
+    if (!idResult.success) {
+      return res.status(400).json({
+        message: getValidationErrorMessage(idResult.error),
+      })
+    }
+
+    if (!bodyResult.success) {
+      return res.status(400).json({
+        message: getValidationErrorMessage(bodyResult.error),
+      })
+    }
+
+    const restaurant = await prisma.restaurantOwnerProfile.findUnique({
+      where: {
+        id: idResult.data,
+      },
+      select: {
+        id: true,
+      },
+    })
+
+    if (!restaurant) {
+      return res.status(404).json({
+        message: 'restaurant not found',
+      })
+    }
+
+    const updatedRestaurant = await prisma.restaurantOwnerProfile.update({
+      where: {
+        id: restaurant.id,
+      },
+      data: {
+        qrEnabledRoles: bodyResult.data.qrEnabledRoles,
+      },
+      select: {
+        qrEnabledRoles: true,
+      },
+    })
+
+    return res.json(updatedRestaurant)
+  } catch (error) {
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to update restaurant QR roles',
+    })
+  }
+}
+
+export async function updateAdminRestaurantJobBoardRoles(
+  req: Request,
+  res: Response,
+) {
+  try {
+    const idResult = adminRestaurantIdSchema.safeParse(req.params.id)
+    const bodyResult = adminRestaurantJobBoardRolesSchema.safeParse(req.body)
+
+    if (!idResult.success) {
+      return res.status(400).json({
+        message: getValidationErrorMessage(idResult.error),
+      })
+    }
+
+    if (!bodyResult.success) {
+      return res.status(400).json({
+        message: getValidationErrorMessage(bodyResult.error),
+      })
+    }
+
+    const restaurant = await prisma.restaurantOwnerProfile.findUnique({
+      where: {
+        id: idResult.data,
+      },
+    })
+
+    if (!restaurant) {
+      return res.status(404).json({
+        message: 'restaurant not found',
+      })
+    }
+
+    if (
+      bodyResult.data.jobBoardRoles.length > 0 &&
+      (!restaurant.restaurantName.trim() ||
+        !restaurant.city.trim() ||
+        !restaurant.street.trim())
+    ) {
+      return res.status(400).json({
+        message:
+          'complete the restaurant name, city, and street before activating Job Board roles',
+      })
+    }
+
+    const jobs = await setRestaurantJobBoardRoles(
+      restaurant,
+      bodyResult.data.jobBoardRoles,
+    )
+
+    return res.json({
+      jobBoardRoles: jobs
+        .filter((job) => job.isActive)
+        .map((job) => job.role),
+      jobs: jobs.map(mapAdminRestaurantJob),
+    })
+  } catch (error) {
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to update restaurant Job Board roles',
     })
   }
 }

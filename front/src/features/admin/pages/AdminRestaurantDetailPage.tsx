@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import PeepssModal from '../../../components/common/PeepssModal'
-import { getRestaurantRoleLabel } from '../../restaurant/types/restaurant'
+import {
+  getRestaurantRoleLabel,
+  RESTAURANT_ROLES,
+  type RestaurantRole,
+} from '../../restaurant/types/restaurant'
 import {
   createQrAssetDataUrl,
   createQrOnlyDataUrl,
@@ -15,7 +19,9 @@ import {
   markAdminRestaurantSeen,
   regenerateAdminRestaurantClaim,
   updateAdminRestaurant,
+  updateAdminRestaurantJobBoardRoles,
   updateAdminRestaurantLocation,
+  updateAdminRestaurantQrRoles,
 } from '../services/adminApi'
 import type {
   AdminRestaurantDetail,
@@ -77,6 +83,9 @@ function AdminRestaurantDetailPage() {
   const [locationInput, setLocationInput] = useState('')
   const [locationPlaceId, setLocationPlaceId] = useState('')
   const [isSavingLocation, setIsSavingLocation] = useState(false)
+  const [savingRoleSection, setSavingRoleSection] = useState<
+    'qr' | 'jobBoard' | null
+  >(null)
   const restaurant = detail?.restaurant ?? null
   const publicQrLink = useMemo(
     () => getPublicQrLink(restaurant?.slug ?? null),
@@ -371,6 +380,90 @@ function AdminRestaurantDetailPage() {
       )
     } finally {
       setIsSavingLocation(false)
+    }
+  }
+
+  async function handleToggleQrRole(role: RestaurantRole) {
+    if (!restaurant || savingRoleSection) return
+
+    const nextRoles = restaurant.qrEnabledRoles.includes(role)
+      ? restaurant.qrEnabledRoles.filter((currentRole) => currentRole !== role)
+      : [...restaurant.qrEnabledRoles, role]
+
+    setSavingRoleSection('qr')
+    setError(null)
+    setMessage(null)
+
+    try {
+      const updated = await updateAdminRestaurantQrRoles(
+        restaurant.id,
+        nextRoles,
+      )
+
+      setDetail((currentDetail) =>
+        currentDetail
+          ? {
+              ...currentDetail,
+              restaurant: {
+                ...currentDetail.restaurant,
+                qrEnabledRoles: updated.qrEnabledRoles,
+                enabledHiringRolesCount: updated.qrEnabledRoles.length,
+              },
+            }
+          : currentDetail,
+      )
+      setMessage('QR hiring roles updated.')
+    } catch (updateError) {
+      setError(
+        updateError instanceof Error
+          ? updateError.message
+          : 'Failed to update QR hiring roles',
+      )
+    } finally {
+      setSavingRoleSection(null)
+    }
+  }
+
+  async function handleToggleJobBoardRole(role: RestaurantRole) {
+    if (!restaurant || savingRoleSection) return
+
+    const currentRoles = detail?.jobBoardRoles ?? []
+    const nextRoles = currentRoles.includes(role)
+      ? currentRoles.filter((currentRole) => currentRole !== role)
+      : [...currentRoles, role]
+
+    setSavingRoleSection('jobBoard')
+    setError(null)
+    setMessage(null)
+
+    try {
+      const updated = await updateAdminRestaurantJobBoardRoles(
+        restaurant.id,
+        nextRoles,
+      )
+
+      setDetail((currentDetail) =>
+        currentDetail
+          ? {
+              ...currentDetail,
+              jobBoardRoles: updated.jobBoardRoles,
+              jobs: updated.jobs,
+              restaurant: {
+                ...currentDetail.restaurant,
+                activeJobsCount: updated.jobBoardRoles.length,
+              },
+            }
+          : currentDetail,
+      )
+      setMessage('Job Board roles updated.')
+    } catch (updateError) {
+      setError(
+        updateError instanceof Error
+          ? updateError.message
+          : 'Failed to update Job Board roles',
+      )
+    } finally {
+      setSavingRoleSection(null)
     }
   }
 
@@ -683,6 +776,63 @@ function AdminRestaurantDetailPage() {
               </button>
             </div>
             </div>
+          </div>
+          <div className="admin-role-management-grid">
+            <section className="admin-role-management-card">
+              <div>
+                <h3>QR hiring roles</h3>
+                <p>Roles available on this restaurant’s public QR application.</p>
+              </div>
+              <div className="admin-role-toggle-list">
+                {RESTAURANT_ROLES.map((role) => {
+                  const isEnabled = restaurant.qrEnabledRoles.includes(
+                    role.value,
+                  )
+
+                  return (
+                    <button
+                      type="button"
+                      key={role.value}
+                      className={isEnabled ? 'is-enabled' : 'is-disabled'}
+                      aria-pressed={isEnabled}
+                      disabled={savingRoleSection !== null}
+                      onClick={() => void handleToggleQrRole(role.value)}
+                    >
+                      <span>{getRestaurantRoleLabel(role.value)}</span>
+                      <small>{isEnabled ? 'Active' : 'Off'}</small>
+                    </button>
+                  )
+                })}
+              </div>
+            </section>
+            <section className="admin-role-management-card">
+              <div>
+                <h3>Job Board roles</h3>
+                <p>
+                  Separate roles published to the worker Job Board. QR roles are
+                  not changed here.
+                </p>
+              </div>
+              <div className="admin-role-toggle-list">
+                {RESTAURANT_ROLES.map((role) => {
+                  const isEnabled = detail.jobBoardRoles.includes(role.value)
+
+                  return (
+                    <button
+                      type="button"
+                      key={role.value}
+                      className={isEnabled ? 'is-enabled' : 'is-disabled'}
+                      aria-pressed={isEnabled}
+                      disabled={savingRoleSection !== null}
+                      onClick={() => void handleToggleJobBoardRole(role.value)}
+                    >
+                      <span>{getRestaurantRoleLabel(role.value)}</span>
+                      <small>{isEnabled ? 'Active' : 'Off'}</small>
+                    </button>
+                  )
+                })}
+              </div>
+            </section>
           </div>
         </section>
 
