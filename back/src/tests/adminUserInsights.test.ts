@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { buildAdminUserInsights } from '../services/adminOperations.service.js'
-import { isAnalyticsExcludedPhone } from '../services/analyticsExclusion.service.js'
+import {
+  isAnalyticsExcludedCandidatePhone,
+  isAnalyticsExcludedPhone,
+} from '../services/analyticsExclusion.service.js'
 
 test('unset analytics exclusion counts users and each wanted role once per user', () => {
   const insights = buildAdminUserInsights(
@@ -124,5 +127,12 @@ test('a matching durable worker-profile phone is excluded from aggregates', () =
   assert.equal(
     insights.wantedRoles.find(({ role }) => role === 'waiter')?.count,
     1,
+  )
+})
+
+test('unset analytics exclusion leaves candidate phones visible', () => {
+  assert.equal(
+    isAnalyticsExcludedCandidatePhone('+972541234567', []),
+    false,
   )
 })

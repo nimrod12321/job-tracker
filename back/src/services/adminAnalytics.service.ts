@@ -6,6 +6,7 @@ import {
 } from '../config/analytics.js'
 import { prisma } from '../lib/prisma.js'
 import {
+  getCandidateReceivedAnalyticsEventId,
   hasCandidateReceivedFromCounts,
   isRestaurantEstablishedFromMemberships,
   isRestaurantHiringReadyFromRoles,
@@ -20,7 +21,12 @@ import {
   type AcquisitionFunnelStageKey,
   type AcquisitionStageEvidence,
 } from './adminAnalyticsStages.js'
-import { isAnalyticsExcludedUser } from './analyticsExclusion.service.js'
+import {
+  getAnalyticsExcludedPhones,
+  getAnalyticsExcludedUserIds,
+  isAnalyticsExcludedCandidatePhone,
+  isAnalyticsExcludedUser,
+} from './analyticsExclusion.service.js'
 import { getAdminUserInsights } from './adminOperations.service.js'
 
 export { ACQUISITION_FUNNEL_STAGE_KEYS }
@@ -45,6 +51,7 @@ const FUNNEL_EVENT_NAMES = [
 type SignupFlow = OwnerAcquisitionFlow | 'unknown'
 
 type FunnelEvent = {
+  clientEventId: string
   eventName: string
   occurredAt: Date
   properties: Prisma.JsonValue
@@ -58,8 +65,10 @@ type RestaurantSnapshot = {
   updatedAt: Date
   qrEnabledRoles: readonly unknown[]
   claim: { claimedAt: Date | null } | null
-  leads: Array<{ createdAt: Date }>
-  jobs: Array<{ applications: Array<{ createdAt: Date }> }>
+  leads: Array<{ id: string; phoneNumber: string; createdAt: Date }>
+  jobs: Array<{
+    applications: Array<{ id: string; userId: string; createdAt: Date }>
+  }>
 }
 
 type MembershipSnapshot = {
@@ -211,17 +220,25 @@ function evaluateAcquisition(
   anchor: AcquisitionAnchor,
   memberships: readonly MembershipSnapshot[],
   legacyRestaurant: RestaurantSnapshot | null,
+  excludedUserIds: ReadonlySet<string>,
 ): AcquisitionEvaluation {
   const primaryMembership =
     memberships.find((membership) => membership.role === 'owner') ??
     memberships[0]
   const primaryRestaurant = primaryMembership?.restaurant ?? legacyRestaurant
-  const externalCandidateCount = primaryRestaurant?.leads.length ?? 0
+  const includedLeads =
+    primaryRestaurant?.leads.filter(
+      (lead) => !isAnalyticsExcludedCandidatePhone(lead.phoneNumber),
+    ) ?? []
+  const includedApplications =
+    primaryRestaurant?.jobs.flatMap((job) =>
+      job.applications.filter(
+        (application) => !excludedUserIds.has(application.userId),
+      ),
+    ) ?? []
+  const externalCandidateCount = includedLeads.length
   const jobBoardApplicationCount =
-    primaryRestaurant?.jobs.reduce(
-      (total, job) => total + job.applications.length,
-      0,
-    ) ?? 0
+    includedApplications.length
   const eventNames = new Set(anchor.events.map((event) => event.eventName))
   const historicalHiringReadyAt = earliestEventAt(
     anchor.events,
@@ -233,10 +250,8 @@ function evaluateAcquisition(
   ])
   const durableCandidateAt = primaryRestaurant
     ? earliestDate([
-        primaryRestaurant.leads[0]?.createdAt,
-        ...primaryRestaurant.jobs.map(
-          (job) => job.applications[0]?.createdAt,
-        ),
+        includedLeads[0]?.createdAt,
+        includedApplications[0]?.createdAt,
       ])
     : null
   const restaurantEstablished = Boolean(
@@ -323,15 +338,13 @@ const restaurantSnapshotSelect = {
   claim: { select: { claimedAt: true } },
   leads: {
     orderBy: { createdAt: 'asc' as const },
-    take: 1,
-    select: { createdAt: true },
+    select: { id: true, phoneNumber: true, createdAt: true },
   },
   jobs: {
     select: {
       applications: {
         orderBy: { createdAt: 'asc' as const },
-        take: 1,
-        select: { createdAt: true },
+        select: { id: true, userId: true, createdAt: true },
       },
     },
   },
@@ -340,31 +353,61 @@ const restaurantSnapshotSelect = {
 async function loadAcquisitionEvaluations(
   filters: AdminAcquisitionFunnelQuery,
 ) {
-  const acquisitions = await prisma.analyticsAcquisition.findMany({
-    where: {
-      events: {
-        some: { eventName: 'owner_signup_started' },
-      },
-    },
-    orderBy: [{ firstTouchedAt: 'asc' }, { createdAt: 'asc' }],
-    select: {
-      id: true,
-      anonymousAcquisitionId: true,
-      userId: true,
-      firstSource: true,
-      firstMedium: true,
-      firstCampaign: true,
-      firstTouchedAt: true,
-      events: {
-        where: { eventName: { in: [...FUNNEL_EVENT_NAMES] } },
-        select: {
-          eventName: true,
-          occurredAt: true,
-          properties: true,
+  const excludedPhones = getAnalyticsExcludedPhones()
+  const excludedUserIds = await getAnalyticsExcludedUserIds()
+  const [acquisitions, excludedLeads, excludedApplications] =
+    await Promise.all([
+      prisma.analyticsAcquisition.findMany({
+        where: {
+          events: {
+            some: { eventName: 'owner_signup_started' },
+          },
         },
-      },
-    },
-  })
+        orderBy: [{ firstTouchedAt: 'asc' }, { createdAt: 'asc' }],
+        select: {
+          id: true,
+          anonymousAcquisitionId: true,
+          userId: true,
+          firstSource: true,
+          firstMedium: true,
+          firstCampaign: true,
+          firstTouchedAt: true,
+          events: {
+            where: { eventName: { in: [...FUNNEL_EVENT_NAMES] } },
+            select: {
+              clientEventId: true,
+              eventName: true,
+              occurredAt: true,
+              properties: true,
+            },
+          },
+        },
+      }),
+      excludedPhones.size
+        ? prisma.restaurantCandidateLead.findMany({
+            where: { phoneNumber: { in: [...excludedPhones] } },
+            select: { id: true },
+          })
+        : [],
+      excludedUserIds.size
+        ? prisma.restaurantApplication.findMany({
+            where: { userId: { in: [...excludedUserIds] } },
+            select: { id: true },
+          })
+        : [],
+    ])
+  const excludedCandidateReceivedEventIds = new Set([
+    ...excludedLeads.map(({ id }) =>
+      getCandidateReceivedAnalyticsEventId('external', id),
+    ),
+    ...excludedApplications.map(({ id }) =>
+      getCandidateReceivedAnalyticsEventId('jobBoard', id),
+    ),
+  ])
+  const excludedCandidateReferences = new Set([
+    ...excludedLeads.map(({ id }) => `external:${id}`),
+    ...excludedApplications.map(({ id }) => `jobBoard:${id}`),
+  ])
 
   const anchors: AcquisitionAnchor[] = []
   const anchoredUserIds = new Set<string>()
@@ -374,7 +417,33 @@ async function loadAcquisitionEvaluations(
       continue
     }
 
-    const signupEvents = acquisition.events
+    const includedEvents = acquisition.events.filter(
+      (event) => {
+        if (excludedCandidateReceivedEventIds.has(event.clientEventId)) {
+          return false
+        }
+
+        if (
+          event.eventName !== 'candidate_card_opened' &&
+          event.eventName !== 'candidate_contact_initiated'
+        ) {
+          return true
+        }
+
+        const properties = eventProperties(event.properties)
+        const candidateSource = properties.candidateSource
+        const candidateRecordId = properties.candidateRecordId
+
+        return !(
+          typeof candidateSource === 'string' &&
+          typeof candidateRecordId === 'string' &&
+          excludedCandidateReferences.has(
+            `${candidateSource}:${candidateRecordId}`,
+          )
+        )
+      },
+    )
+    const signupEvents = includedEvents
       .filter((event) => event.eventName === 'owner_signup_started')
       .sort(
         (left, right) =>
@@ -385,7 +454,7 @@ async function loadAcquisitionEvaluations(
 
     if (acquisition.userId) anchoredUserIds.add(acquisition.userId)
     const historicalCandidateSources = new Set<CandidateSource>()
-    for (const event of acquisition.events) {
+    for (const event of includedEvents) {
       const candidateSource = getHistoricalCandidateSource(event)
       if (candidateSource) historicalCandidateSources.add(candidateSource)
     }
@@ -400,7 +469,7 @@ async function loadAcquisitionEvaluations(
       firstTouchedAt: acquisition.firstTouchedAt,
       signupAt: firstSignup.occurredAt,
       flow: getSignupFlow(firstSignup.properties),
-      events: acquisition.events,
+      events: includedEvents,
       historicalCandidateSources,
     })
   }
@@ -486,6 +555,7 @@ async function loadAcquisitionEvaluations(
         anchor.userId
           ? (legacyProfileByUser.get(anchor.userId) as RestaurantSnapshot | undefined) ?? null
           : null,
+        excludedUserIds,
       ),
     ),
   }

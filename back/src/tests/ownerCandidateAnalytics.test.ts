@@ -367,7 +367,10 @@ test(
       assert.deepEqual(
         events.find((event) => event.eventName === 'candidate_card_opened')
           ?.properties,
-        { candidateSource: 'external' },
+        {
+          candidateSource: 'external',
+          candidateRecordId: restoredExternalCandidate.id,
+        },
       )
       assert.deepEqual(
         events.find(
@@ -375,7 +378,11 @@ test(
             event.eventName === 'candidate_contact_initiated' &&
             (event.properties as Record<string, unknown>).channel === 'phone',
         )?.properties,
-        { channel: 'phone', candidateSource: 'jobBoard' },
+        {
+          channel: 'phone',
+          candidateSource: 'jobBoard',
+          candidateRecordId: jobApplication.id,
+        },
       )
       assert.deepEqual(
         events.find(
@@ -384,7 +391,11 @@ test(
             (event.properties as Record<string, unknown>).channel ===
               'whatsapp',
         )?.properties,
-        { channel: 'whatsapp', candidateSource: 'external' },
+        {
+          channel: 'whatsapp',
+          candidateSource: 'external',
+          candidateRecordId: restoredExternalCandidate.id,
+        },
       )
       assert.equal(JSON.stringify(events).includes('phoneNumber'), false)
       assert.equal(JSON.stringify(events).includes('fullName'), false)

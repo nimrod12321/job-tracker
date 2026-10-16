@@ -1,4 +1,5 @@
 import { env } from '../config/env.js'
+import { prisma } from '../lib/prisma.js'
 import { normalizeIsraeliPhoneNumber } from '../utils/phone.js'
 
 function normalizePhoneForComparison(phoneNumber: string | null) {
@@ -37,5 +38,54 @@ export function isAnalyticsExcludedUser(
       user.restaurantWorkerProfile?.phoneNumber ?? null,
       excludedPhones,
     )
+  )
+}
+
+export function isAnalyticsExcludedCandidatePhone(
+  phoneNumber: string | null,
+  excludedPhones: readonly string[] = env.analyticsExcludedPhones,
+) {
+  return isAnalyticsExcludedPhone(phoneNumber, excludedPhones)
+}
+
+export function getAnalyticsExcludedPhones() {
+  return new Set(env.analyticsExcludedPhones)
+}
+
+export async function getAnalyticsExcludedUserIds() {
+  if (env.analyticsExcludedPhones.length === 0) {
+    return new Set<string>()
+  }
+
+  const users = await prisma.user.findMany({
+    where: {
+      OR: [
+        {
+          phoneNumber: {
+            not: null,
+          },
+        },
+        {
+          restaurantWorkerProfile: {
+            isNot: null,
+          },
+        },
+      ],
+    },
+    select: {
+      id: true,
+      phoneNumber: true,
+      restaurantWorkerProfile: {
+        select: {
+          phoneNumber: true,
+        },
+      },
+    },
+  })
+
+  return new Set(
+    users
+      .filter((user) => isAnalyticsExcludedUser(user))
+      .map((user) => user.id),
   )
 }

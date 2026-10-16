@@ -194,6 +194,11 @@ export async function setRestaurantJobBoardRoles(
         kind: 'posted',
       },
       include: {
+        applications: {
+          select: {
+            userId: true,
+          },
+        },
         _count: {
           select: {
             applications: true,

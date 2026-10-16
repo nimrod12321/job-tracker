@@ -145,6 +145,7 @@ export async function createOwnerActivityEvent(
       eventProperties = {
         ...eventProperties,
         candidateSource,
+        candidateRecordId: candidateReference.id,
       }
     }
 
