@@ -20,6 +20,10 @@ import {
   type AcquisitionFunnelStageKey,
   type AcquisitionStageEvidence,
 } from './adminAnalyticsStages.js'
+import {
+  getAdminUserInsights,
+  isAnalyticsExcludedPhone,
+} from './adminOperations.service.js'
 
 export { ACQUISITION_FUNNEL_STAGE_KEYS }
 export { getCurrentAcquisitionStage }
@@ -412,10 +416,14 @@ async function loadAcquisitionEvaluations(
           id: { in: linkedUserIds },
           track: 'restaurantOwner',
         },
-        select: { id: true },
+        select: { id: true, phoneNumber: true },
       })
     : []
-  const ownerUserIds = new Set(ownerUsers.map((user) => user.id))
+  const ownerUserIds = new Set(
+    ownerUsers
+      .filter((user) => !isAnalyticsExcludedPhone(user.phoneNumber))
+      .map((user) => user.id),
+  )
   const eligibleAnchors = anchors.filter(
     (anchor) => !anchor.userId || ownerUserIds.has(anchor.userId),
   )
@@ -478,8 +486,10 @@ async function loadAcquisitionEvaluations(
 export async function getAdminAcquisitionFunnelReport(
   filters: AdminAcquisitionFunnelQuery = {},
 ) {
-  const { eligibleAnchors, evaluations } =
-    await loadAcquisitionEvaluations(filters)
+  const [{ eligibleAnchors, evaluations }, userInsights] = await Promise.all([
+    loadAcquisitionEvaluations(filters),
+    getAdminUserInsights(),
+  ])
   const totals = emptyStageCounts()
   const currentStageCounts = emptyStageCounts()
   const signupFlows: Record<SignupFlow, number> = {
@@ -572,6 +582,7 @@ export async function getAdminAcquisitionFunnelReport(
     ),
     signupFlows,
     candidateSources,
+    userInsights,
   }
 }
 

@@ -59,6 +59,13 @@ export type AdminAcquisitionFunnelReport = {
     external: number
     jobBoard: number
   }
+  userInsights: {
+    totalUsers: number
+    wantedRoles: Array<{
+      role: RestaurantRole
+      count: number
+    }>
+  }
 }
 
 export type AdminAcquisitionStageDetail = {
@@ -273,6 +280,7 @@ export type AdminRestaurantDetail = {
   ownerAccountPhone: string | null
   restaurantContactPhone: string
   jobs: AdminRestaurantJob[]
+  jobBoardRoles: RestaurantRole[]
   qrLeads: AdminRestaurantQrLead[]
   applications: AdminRestaurantApplication[]
 }

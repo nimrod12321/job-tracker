@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import PeepssModal from '../../../components/common/PeepssModal'
 import AdminShell from '../components/AdminShell'
+import { getRestaurantRoleLabel } from '../../restaurant/types/restaurant'
 import {
   getAdminAcquisitionFunnel,
   getAdminAcquisitionFunnelStage,
@@ -347,6 +348,41 @@ function AdminOverviewPage() {
               tone={overview.ownerUnviewed > 0 ? 'attention' : 'default'}
             />
           </div>
+        </section>
+
+        <section aria-labelledby="user-insights-heading">
+          <div className="admin-section-heading">
+            <div>
+              <h2 id="user-insights-heading">User insights</h2>
+              <p>Durable users and worker role preferences.</p>
+            </div>
+          </div>
+          {isAcquisitionLoading && !acquisitionReport ? (
+            <p className="status-message">Loading user insights...</p>
+          ) : acquisitionReport ? (
+            <div className="admin-user-insights">
+              <article className="admin-stat-card">
+                <span>Total Peepss users</span>
+                <strong>{acquisitionReport.userInsights.totalUsers}</strong>
+                <p>Configured internal/test phones are excluded.</p>
+              </article>
+              <article className="admin-restaurant-panel admin-wanted-role-insights">
+                <h3>Roles users are looking for</h3>
+                <dl>
+                  {acquisitionReport.userInsights.wantedRoles.map(
+                    ({ role, count }) => (
+                      <div key={role}>
+                        <dt>{getRestaurantRoleLabel(role)}</dt>
+                        <dd>{count}</dd>
+                      </div>
+                    ),
+                  )}
+                </dl>
+              </article>
+            </div>
+          ) : (
+            <p className="status-message">User insights are unavailable.</p>
+          )}
         </section>
 
         <section aria-labelledby="acquisition-funnel-heading">

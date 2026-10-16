@@ -46,6 +46,20 @@ function getOptionalEnvironmentVariable(name: string) {
   return value || ''
 }
 
+function getNormalizedPhoneList(name: string) {
+  return (process.env[name] ?? '')
+    .split(',')
+    .map((phoneNumber) => phoneNumber.trim())
+    .filter(Boolean)
+    .flatMap((phoneNumber) => {
+      try {
+        return [normalizeIsraeliPhoneNumber(phoneNumber)]
+      } catch {
+        return []
+      }
+    })
+}
+
 function getDatabaseTarget(databaseUrl: string) {
   try {
     const host = new URL(databaseUrl).hostname.toLowerCase()
@@ -195,17 +209,10 @@ export const env = {
     .split(',')
     .map((email) => email.trim().toLowerCase())
     .filter(Boolean),
-  adminPhones: (process.env.ADMIN_PHONES ?? '')
-    .split(',')
-    .map((phoneNumber) => phoneNumber.trim())
-    .filter(Boolean)
-    .flatMap((phoneNumber) => {
-      try {
-        return [normalizeIsraeliPhoneNumber(phoneNumber)]
-      } catch {
-        return []
-      }
-    }),
+  adminPhones: getNormalizedPhoneList('ADMIN_PHONES'),
+  analyticsExcludedPhones: getNormalizedPhoneList(
+    'ANALYTICS_EXCLUDED_PHONES',
+  ),
   otpCodeLength: getPositiveIntegerEnvironmentVariable(
     'OTP_CODE_LENGTH',
     4,

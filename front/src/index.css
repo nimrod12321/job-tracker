@@ -6298,6 +6298,121 @@ textarea:focus-visible {
   gap: 1rem !important;
 }
 
+.admin-user-insights {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.35fr) minmax(0, 1.65fr);
+  gap: 0.75rem;
+}
+
+.admin-wanted-role-insights {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.admin-wanted-role-insights h3 {
+  margin: 0;
+}
+
+.admin-wanted-role-insights dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.admin-wanted-role-insights dl > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border: 1px solid rgb(226 203 185 / 72%);
+  border-radius: 12px;
+  padding: 0.55rem 0.65rem;
+  background: #fffdf8;
+}
+
+.admin-wanted-role-insights dt {
+  color: #7a5142;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.admin-wanted-role-insights dd {
+  margin: 0;
+  color: #1f1d1e;
+  font-weight: 900;
+}
+
+.admin-role-management-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin-top: 0.9rem;
+}
+
+.admin-role-management-card {
+  display: grid;
+  align-content: start;
+  gap: 0.75rem;
+  border: 1px solid rgb(226 203 185 / 78%);
+  border-radius: 18px;
+  padding: 0.85rem;
+  background: #fffdf8;
+}
+
+.admin-role-management-card h3,
+.admin-role-management-card p {
+  margin: 0;
+}
+
+.admin-role-management-card p {
+  margin-top: 0.2rem;
+  color: #7a5142;
+  font-size: 0.78rem;
+}
+
+.admin-role-toggle-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.admin-role-toggle-list button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
+  border: 1px solid rgb(226 203 185 / 85%);
+  border-radius: 12px;
+  padding: 0.58rem 0.65rem;
+  background: #fffaf3;
+  color: #5f463c;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-align: start;
+  cursor: pointer;
+}
+
+.admin-role-toggle-list button.is-enabled {
+  border-color: rgb(36 92 90 / 30%);
+  background: #eef6f5;
+  color: #245c5a;
+}
+
+.admin-role-toggle-list button:disabled {
+  cursor: progress;
+  opacity: 0.65;
+}
+
+.admin-role-toggle-list small {
+  flex: 0 0 auto;
+  color: inherit;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+
 .admin-overview-funnel,
 .admin-candidate-summary {
   align-content: start;
@@ -7878,15 +7993,21 @@ textarea:focus-visible {
   .admin-funnel-timestamps,
   .admin-overview-metrics,
   .admin-overview-grid,
+  .admin-user-insights,
   .admin-funnel-flow,
   .admin-command-metrics,
   .admin-identity-meta,
   .admin-hiring-distribution-grid,
+  .admin-role-management-grid,
   .admin-candidate-source-grid,
   .admin-candidate-notes,
   .admin-notification-delivery-details,
   .admin-compact-list article {
     grid-template-columns: 1fr;
+  }
+
+  .admin-wanted-role-insights dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .admin-overview-metrics {
