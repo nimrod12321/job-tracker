@@ -6313,14 +6313,13 @@ textarea:focus-visible {
   margin: 0;
 }
 
-.admin-wanted-role-insights dl {
+.admin-wanted-role-counts {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.5rem;
-  margin: 0;
 }
 
-.admin-wanted-role-insights dl > div {
+.admin-wanted-role-counts > button {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -6329,18 +6328,101 @@ textarea:focus-visible {
   border-radius: 12px;
   padding: 0.55rem 0.65rem;
   background: #fffdf8;
+  color: #7a5142;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-align: start;
+  cursor: pointer;
 }
 
-.admin-wanted-role-insights dt {
-  color: #7a5142;
+.admin-wanted-role-counts > button:hover,
+.admin-wanted-role-counts > button.is-selected {
+  border-color: rgb(220 86 52 / 46%);
+  background: #fff4ea;
+}
+
+.admin-wanted-role-counts strong {
+  color: #1f1d1e;
+  font-weight: 900;
+}
+
+.admin-wanted-role-drilldown {
+  display: grid;
+  gap: 0.65rem;
+  border-top: 1px solid rgb(226 203 185 / 72%);
+  padding-top: 0.75rem;
+}
+
+.admin-wanted-role-drilldown-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.admin-wanted-role-drilldown-heading h4 {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.admin-wanted-role-user-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.admin-wanted-role-user-list > article {
+  display: grid;
+  gap: 0.55rem;
+  border: 1px solid rgb(226 203 185 / 72%);
+  border-radius: 14px;
+  padding: 0.7rem;
+  background: #fffdf8;
+}
+
+.admin-wanted-role-user-list > article > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.admin-wanted-role-user-list h5 {
+  margin: 0;
+  font-size: 0.86rem;
+}
+
+.admin-wanted-role-user-list a,
+.admin-wanted-role-user-list a:visited {
+  color: var(--peepss-text, #201d1d);
   font-size: 0.76rem;
   font-weight: 800;
 }
 
-.admin-wanted-role-insights dd {
+.admin-wanted-role-user-list dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem 0.85rem;
   margin: 0;
-  color: #1f1d1e;
-  font-weight: 900;
+}
+
+.admin-wanted-role-user-list dl > div {
+  min-width: 0;
+}
+
+.admin-wanted-role-user-list dt {
+  color: #7a5142;
+  font-size: 0.68rem;
+  font-weight: 850;
+}
+
+.admin-wanted-role-user-list dd {
+  margin: 0.12rem 0 0;
+  color: #342824;
+  font-size: 0.74rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
 }
 
 .admin-role-management-grid {
@@ -8006,8 +8088,12 @@ textarea:focus-visible {
     grid-template-columns: 1fr;
   }
 
-  .admin-wanted-role-insights dl {
+  .admin-wanted-role-counts {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-wanted-role-user-list dl {
+    grid-template-columns: 1fr;
   }
 
   .admin-overview-metrics {

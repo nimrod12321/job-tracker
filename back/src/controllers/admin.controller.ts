@@ -29,6 +29,11 @@ import {
 } from '../services/googlePlaces.service.js'
 import { mapAdminCandidateNotificationDeliveries } from '../services/adminCandidateNotification.service.js'
 import { setRestaurantJobBoardRoles } from '../services/adminOperations.service.js'
+import {
+  getAnalyticsExcludedUserIds,
+  isAnalyticsExcludedCandidatePhone,
+  isAnalyticsExcludedUser,
+} from '../services/analyticsExclusion.service.js'
 
 const adminOwnerMembersInclude = {
   where: {
@@ -50,6 +55,68 @@ const adminOwnerMembersInclude = {
   orderBy: {
     createdAt: 'asc' as const,
   },
+}
+
+function getAdminRestaurantSummaryInclude(adminUserId: string) {
+  return {
+    user: {
+      select: {
+        id: true,
+        email: true,
+        phoneNumber: true,
+        fullName: true,
+      },
+    },
+    members: adminOwnerMembersInclude,
+    claim: true,
+    jobs: {
+      select: {
+        isActive: true,
+        kind: true,
+        applications: {
+          select: {
+            userId: true,
+            createdAt: true,
+          },
+        },
+        _count: {
+          select: {
+            applications: true,
+          },
+        },
+      },
+    },
+    leads: {
+      select: {
+        phoneNumber: true,
+        createdAt: true,
+        updatedAt: true,
+        source: true,
+        status: true,
+        ownerViewedAt: true,
+      },
+    },
+    qrEvents: {
+      select: {
+        type: true,
+        sessionId: true,
+        createdAt: true,
+      },
+    },
+    adminReadStates: {
+      where: {
+        adminUserId,
+      },
+      select: {
+        lastViewedCandidatesAt: true,
+      },
+    },
+    _count: {
+      select: {
+        leads: true,
+      },
+    },
+  }
 }
 
 function slugify(value: string) {
@@ -146,6 +213,7 @@ function mapAdminRestaurantSummary(restaurant: {
     leads: number
   }
   leads?: Array<{
+    phoneNumber: string
     createdAt: Date
     updatedAt: Date
     source?: string
@@ -167,31 +235,46 @@ function mapAdminRestaurantSummary(restaurant: {
       applications: number
     }
     applications?: Array<{
+      userId: string
       createdAt: Date
     }>
   }>
-}) {
+}, excludedUserIds: ReadonlySet<string> = new Set()) {
+  const includedLeads =
+    restaurant.leads?.filter(
+      (lead) => !isAnalyticsExcludedCandidatePhone(lead.phoneNumber),
+    ) ?? []
   const activeJobsCount =
     restaurant.jobs?.filter((job) => job.kind === 'posted' && job.isActive)
       .length ?? 0
   const applicationsCount =
     restaurant.jobs?.reduce(
-      (total, job) => total + (job._count?.applications ?? 0),
+      (total, job) =>
+        total +
+        (job.applications
+          ? job.applications.filter(
+              (application) => !excludedUserIds.has(application.userId),
+            ).length
+          : (job._count?.applications ?? 0)),
       0,
     ) ?? 0
   const lastViewedCandidatesAt =
     restaurant.adminReadStates?.[0]?.lastViewedCandidatesAt ?? null
   const candidateActivityDates = [
-    ...(restaurant.leads?.map((lead) => lead.createdAt) ?? []),
+    ...includedLeads.map((lead) => lead.createdAt),
     ...(restaurant.jobs?.flatMap((job) =>
-      job.applications?.map((application) => application.createdAt) ?? [],
+      job.applications
+        ?.filter(
+          (application) => !excludedUserIds.has(application.userId),
+        )
+        .map((application) => application.createdAt) ?? [],
     ) ?? []),
   ]
   const qrPageViewEvents =
     restaurant.qrEvents?.filter((event) => event.type === 'qrPageView') ?? []
   const qrFormStartedEvents =
     restaurant.qrEvents?.filter((event) => event.type === 'qrFormStarted') ?? []
-  const qrLeads = restaurant.leads?.filter((lead) => lead.source === 'qr') ?? []
+  const qrLeads = includedLeads.filter((lead) => lead.source === 'qr')
   const ownerViewedLeads = qrLeads.filter((lead) => lead.ownerViewedAt)
   const ownerUnviewedQrCandidates = qrLeads.filter(
     (lead) => !lead.ownerViewedAt,
@@ -244,7 +327,7 @@ function mapAdminRestaurantSummary(restaurant: {
     restaurant.updatedAt,
     ...candidateActivityDates,
     ...qrEventDates,
-    ...(restaurant.leads?.map((lead) => lead.updatedAt) ?? []),
+    ...includedLeads.map((lead) => lead.updatedAt),
     ...ownerViewDates,
   ]
   const latestActivityAt = new Date(
@@ -284,9 +367,9 @@ function mapAdminRestaurantSummary(restaurant: {
       : mappedClaim,
     activeJobsCount,
     enabledHiringRolesCount: restaurant.qrEnabledRoles.length,
-    qrLeadsCount: restaurant._count.leads,
+    qrLeadsCount: includedLeads.length,
     applicationsCount,
-    totalCandidatesCount: restaurant._count.leads + applicationsCount,
+    totalCandidatesCount: includedLeads.length + applicationsCount,
     ownerUnviewedQrCandidates,
     qrCandidateStatusCounts,
     latestActivityAt,
@@ -460,7 +543,10 @@ function mapAdminRestaurantJob(job: {
   _count: {
     applications: number
   }
-}) {
+  applications?: Array<{
+    userId: string
+  }>
+}, excludedUserIds: ReadonlySet<string> = new Set()) {
   return {
     id: job.id,
     restaurantName: job.restaurantName,
@@ -472,7 +558,11 @@ function mapAdminRestaurantJob(job: {
     shiftInfo: job.shiftInfo,
     kind: job.kind,
     isActive: job.isActive,
-    applicationsCount: job._count.applications,
+    applicationsCount: job.applications
+      ? job.applications.filter(
+          (application) => !excludedUserIds.has(application.userId),
+        ).length
+      : job._count.applications,
     createdAt: job.createdAt.toISOString(),
     updatedAt: job.updatedAt.toISOString(),
   }
@@ -685,70 +775,21 @@ export async function getAdminRestaurants(req: Request, res: Response) {
       })
     }
 
-    const restaurants = await prisma.restaurantOwnerProfile.findMany({
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            phoneNumber: true,
-            fullName: true,
-          },
+    const [restaurants, excludedUserIds] = await Promise.all([
+      prisma.restaurantOwnerProfile.findMany({
+        include: getAdminRestaurantSummaryInclude(adminUserId),
+        orderBy: {
+          createdAt: 'desc',
         },
-        members: adminOwnerMembersInclude,
-        claim: true,
-        jobs: {
-          select: {
-            isActive: true,
-            kind: true,
-            applications: {
-              select: {
-                createdAt: true,
-              },
-            },
-            _count: {
-              select: {
-                applications: true,
-              },
-            },
-          },
-        },
-        leads: {
-          select: {
-            createdAt: true,
-            updatedAt: true,
-            source: true,
-            status: true,
-            ownerViewedAt: true,
-          },
-        },
-        qrEvents: {
-          select: {
-            type: true,
-            sessionId: true,
-            createdAt: true,
-          },
-        },
-        adminReadStates: {
-          where: {
-            adminUserId,
-          },
-          select: {
-            lastViewedCandidatesAt: true,
-          },
-        },
-        _count: {
-          select: {
-            leads: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    })
+      }),
+      getAnalyticsExcludedUserIds(),
+    ])
 
-    return res.json(restaurants.map(mapAdminRestaurantSummary))
+    return res.json(
+      restaurants.map((restaurant) =>
+        mapAdminRestaurantSummary(restaurant, excludedUserIds),
+      ),
+    )
   } catch (error) {
     console.error(error)
 
@@ -818,63 +859,7 @@ export async function createAdminRestaurant(req: Request, res: Response) {
           slug,
           userId: placeholderUser.id,
         },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              phoneNumber: true,
-              fullName: true,
-            },
-          },
-          members: adminOwnerMembersInclude,
-          claim: true,
-          jobs: {
-            select: {
-              isActive: true,
-              kind: true,
-              applications: {
-                select: {
-                  createdAt: true,
-                },
-              },
-              _count: {
-                select: {
-                  applications: true,
-                },
-              },
-            },
-          },
-          leads: {
-            select: {
-              createdAt: true,
-              updatedAt: true,
-              source: true,
-              status: true,
-              ownerViewedAt: true,
-            },
-          },
-          qrEvents: {
-            select: {
-              type: true,
-              sessionId: true,
-              createdAt: true,
-            },
-          },
-          adminReadStates: {
-            where: {
-              adminUserId,
-            },
-            select: {
-              lastViewedCandidatesAt: true,
-            },
-          },
-          _count: {
-            select: {
-              leads: true,
-            },
-          },
-        },
+        include: getAdminRestaurantSummaryInclude(adminUserId),
       })
 
       if (ownerLoginPhoneResult.ownerLoginPhone) {
@@ -891,63 +876,7 @@ export async function createAdminRestaurant(req: Request, res: Response) {
         where: {
           id: createdRestaurant.id,
         },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              phoneNumber: true,
-              fullName: true,
-            },
-          },
-          members: adminOwnerMembersInclude,
-          claim: true,
-          jobs: {
-            select: {
-              isActive: true,
-              kind: true,
-              applications: {
-                select: {
-                  createdAt: true,
-                },
-              },
-              _count: {
-                select: {
-                  applications: true,
-                },
-              },
-            },
-          },
-          leads: {
-            select: {
-              createdAt: true,
-              updatedAt: true,
-              source: true,
-              status: true,
-              ownerViewedAt: true,
-            },
-          },
-          qrEvents: {
-            select: {
-              type: true,
-              sessionId: true,
-              createdAt: true,
-            },
-          },
-          adminReadStates: {
-            where: {
-              adminUserId,
-            },
-            select: {
-              lastViewedCandidatesAt: true,
-            },
-          },
-          _count: {
-            select: {
-              leads: true,
-            },
-          },
-        },
+        include: getAdminRestaurantSummaryInclude(adminUserId),
       })
     })
 
@@ -985,7 +914,8 @@ export async function getAdminRestaurantDetail(req: Request, res: Response) {
       })
     }
 
-    const restaurant = await prisma.restaurantOwnerProfile.findUnique({
+    const [restaurant, excludedUserIds] = await Promise.all([
+      prisma.restaurantOwnerProfile.findUnique({
       where: {
         id: idResult.data,
       },
@@ -1007,6 +937,7 @@ export async function getAdminRestaurantDetail(req: Request, res: Response) {
           include: {
             applications: {
               select: {
+                userId: true,
                 createdAt: true,
               },
             },
@@ -1048,8 +979,10 @@ export async function getAdminRestaurantDetail(req: Request, res: Response) {
             lastViewedCandidatesAt: true,
           },
         },
-      },
-    })
+        },
+      }),
+      getAnalyticsExcludedUserIds(),
+    ])
 
     if (!restaurant) {
       return res.status(404).json({
@@ -1057,7 +990,10 @@ export async function getAdminRestaurantDetail(req: Request, res: Response) {
       })
     }
 
-    const restaurantSummary = mapAdminRestaurantSummary(restaurant)
+    const restaurantSummary = mapAdminRestaurantSummary(
+      restaurant,
+      excludedUserIds,
+    )
 
     const applications = await prisma.restaurantApplication.findMany({
       where: {
@@ -1097,12 +1033,20 @@ export async function getAdminRestaurantDetail(req: Request, res: Response) {
       ownerUser: restaurantSummary.ownerUser,
       ownerAccountPhone: restaurantSummary.ownerLoginPhone,
       restaurantContactPhone: restaurant.phoneNumber,
-      jobs: restaurant.jobs.map(mapAdminRestaurantJob),
+      jobs: restaurant.jobs.map((job) =>
+        mapAdminRestaurantJob(job, excludedUserIds),
+      ),
       jobBoardRoles: restaurant.jobs
         .filter((job) => job.kind === 'posted' && job.isActive)
         .map((job) => job.role),
-      qrLeads: restaurant.leads.map(mapAdminLead),
-      applications: applications.map(mapAdminRestaurantApplication),
+      qrLeads: restaurant.leads
+        .filter(
+          (lead) => !isAnalyticsExcludedCandidatePhone(lead.phoneNumber),
+        )
+        .map(mapAdminLead),
+      applications: applications
+        .filter((application) => !isAnalyticsExcludedUser(application.user))
+        .map(mapAdminRestaurantApplication),
     })
   } catch (error) {
     console.error(error)
@@ -1218,12 +1162,15 @@ export async function updateAdminRestaurantJobBoardRoles(
       restaurant,
       bodyResult.data.jobBoardRoles,
     )
+    const excludedUserIds = await getAnalyticsExcludedUserIds()
 
     return res.json({
       jobBoardRoles: jobs
         .filter((job) => job.isActive)
         .map((job) => job.role),
-      jobs: jobs.map(mapAdminRestaurantJob),
+      jobs: jobs.map((job) =>
+        mapAdminRestaurantJob(job, excludedUserIds),
+      ),
     })
   } catch (error) {
     console.error(error)
@@ -1379,66 +1326,14 @@ export async function updateAdminRestaurant(req: Request, res: Response) {
         where: {
           id: restaurant.id,
         },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              phoneNumber: true,
-              fullName: true,
-            },
-          },
-          members: adminOwnerMembersInclude,
-          claim: true,
-          jobs: {
-            select: {
-              isActive: true,
-              kind: true,
-              applications: {
-                select: {
-                  createdAt: true,
-                },
-              },
-              _count: {
-                select: {
-                  applications: true,
-                },
-              },
-            },
-          },
-          leads: {
-            select: {
-              createdAt: true,
-              updatedAt: true,
-              source: true,
-              status: true,
-              ownerViewedAt: true,
-            },
-          },
-          qrEvents: {
-            select: {
-              type: true,
-              sessionId: true,
-              createdAt: true,
-            },
-          },
-          adminReadStates: {
-            where: {
-              adminUserId,
-            },
-            select: {
-              lastViewedCandidatesAt: true,
-            },
-          },
-          _count: {
-            select: {
-              leads: true,
-            },
-          },
-        },
+        include: getAdminRestaurantSummaryInclude(adminUserId),
       })
 
-    return res.json(mapAdminRestaurantSummary(updatedRestaurant))
+    const excludedUserIds = await getAnalyticsExcludedUserIds()
+
+    return res.json(
+      mapAdminRestaurantSummary(updatedRestaurant, excludedUserIds),
+    )
   } catch (error) {
     console.error(error)
 
@@ -1520,66 +1415,14 @@ export async function updateAdminRestaurantLocation(
         where: {
           id: existing.id,
         },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              phoneNumber: true,
-              fullName: true,
-            },
-          },
-          members: adminOwnerMembersInclude,
-          claim: true,
-          jobs: {
-            select: {
-              isActive: true,
-              kind: true,
-              applications: {
-                select: {
-                  createdAt: true,
-                },
-              },
-              _count: {
-                select: {
-                  applications: true,
-                },
-              },
-            },
-          },
-          leads: {
-            select: {
-              createdAt: true,
-              updatedAt: true,
-              source: true,
-              status: true,
-              ownerViewedAt: true,
-            },
-          },
-          qrEvents: {
-            select: {
-              type: true,
-              sessionId: true,
-              createdAt: true,
-            },
-          },
-          adminReadStates: {
-            where: {
-              adminUserId,
-            },
-            select: {
-              lastViewedCandidatesAt: true,
-            },
-          },
-          _count: {
-            select: {
-              leads: true,
-            },
-          },
-        },
+        include: getAdminRestaurantSummaryInclude(adminUserId),
       })
 
-    return res.json(mapAdminRestaurantSummary(updatedRestaurant))
+    const excludedUserIds = await getAnalyticsExcludedUserIds()
+
+    return res.json(
+      mapAdminRestaurantSummary(updatedRestaurant, excludedUserIds),
+    )
   } catch (error) {
     if (error instanceof GooglePlacesError) {
       return res.status(error.status).json({
@@ -1817,7 +1660,13 @@ export async function getAdminRestaurantLeads(
       },
     })
 
-    return res.json(leads.map(mapAdminLead))
+    return res.json(
+      leads
+        .filter(
+          (lead) => !isAnalyticsExcludedCandidatePhone(lead.phoneNumber),
+        )
+        .map(mapAdminLead),
+    )
   } catch (error) {
     console.error(error)
 
@@ -1899,8 +1748,15 @@ export async function getAdminCandidates(_req: Request, res: Response) {
     ])
 
     const candidates = [
-      ...qrCandidates.map(mapAdminQrCandidate),
-      ...jobApplications.map(mapAdminJobCandidate),
+      ...qrCandidates
+        .filter(
+          (candidate) =>
+            !isAnalyticsExcludedCandidatePhone(candidate.phoneNumber),
+        )
+        .map(mapAdminQrCandidate),
+      ...jobApplications
+        .filter((application) => !isAnalyticsExcludedUser(application.user))
+        .map(mapAdminJobCandidate),
     ].sort(
       (first, second) =>
         new Date(second.createdAt).getTime() -

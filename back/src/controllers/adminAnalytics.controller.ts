@@ -3,11 +3,13 @@ import {
   getAdminAcquisitionFunnelReport,
   getAdminAcquisitionStageDetails,
 } from '../services/adminAnalytics.service.js'
+import { getAdminWantedRoleUsers } from '../services/adminOperations.service.js'
 import { getValidationErrorMessage } from '../utils/validation.js'
 import {
   adminAcquisitionFunnelQuerySchema,
   adminAcquisitionStageParamsSchema,
   adminAcquisitionStageQuerySchema,
+  adminWantedRoleParamsSchema,
 } from '../validations/adminAnalytics.validation.js'
 
 export async function getAdminAcquisitionFunnel(
@@ -61,6 +63,34 @@ export async function getAdminAcquisitionFunnelStage(
     console.error('Failed to build Admin acquisition stage details:', error)
     return res.status(500).json({
       message: 'failed to load acquisition stage details',
+    })
+  }
+}
+
+export async function getAdminWantedRoleDrilldown(
+  req: Request,
+  res: Response,
+) {
+  try {
+    const paramsResult = adminWantedRoleParamsSchema.safeParse(req.params)
+
+    if (!paramsResult.success) {
+      return res.status(400).json({
+        message: getValidationErrorMessage(paramsResult.error),
+      })
+    }
+
+    const users = await getAdminWantedRoleUsers(paramsResult.data.role)
+
+    return res.json({
+      role: paramsResult.data.role,
+      count: users.length,
+      users,
+    })
+  } catch (error) {
+    console.error('Failed to load Admin wanted-role users:', error)
+    return res.status(500).json({
+      message: 'failed to load wanted-role users',
     })
   }
 }

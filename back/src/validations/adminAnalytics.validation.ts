@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { ACQUISITION_FUNNEL_STAGE_KEYS } from '../config/analytics.js'
+import { restaurantRoles } from './restaurant.validation.js'
 
 const optionalAttributionFilter = z.preprocess(
   (value) => {
@@ -18,6 +19,10 @@ export const adminAcquisitionFunnelQuerySchema = z.strictObject({
 
 export const adminAcquisitionStageParamsSchema = z.strictObject({
   stage: z.enum(ACQUISITION_FUNNEL_STAGE_KEYS),
+})
+
+export const adminWantedRoleParamsSchema = z.strictObject({
+  role: z.enum(restaurantRoles),
 })
 
 export const adminAcquisitionStageQuerySchema = z.strictObject({
