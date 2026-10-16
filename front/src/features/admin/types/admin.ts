@@ -103,6 +103,25 @@ export type AdminAcquisitionStageDetailsReport = {
   rows: AdminAcquisitionStageDetail[]
 }
 
+export type AdminWantedRoleUser = {
+  userId: string
+  profileId: string
+  fullName: string
+  phoneNumber: string
+  wantedRoles: RestaurantRole[]
+  experienceText: string
+  availability: string
+  age: number
+  location: string
+  profileUpdatedAt: string
+}
+
+export type AdminWantedRoleUsersReport = {
+  role: RestaurantRole
+  count: number
+  users: AdminWantedRoleUser[]
+}
+
 export type AdminOwnerUser = {
   id: string
   email: string | null

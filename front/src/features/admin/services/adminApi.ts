@@ -14,6 +14,7 @@ import type {
   AdminRestaurantCandidateLead,
   AdminRestaurantDetail,
   AdminRestaurantInput,
+  AdminWantedRoleUsersReport,
   CandidateLeadStatus,
 } from '../types/admin'
 import type { RestaurantRole } from '../../restaurant/types/restaurant'
@@ -56,6 +57,21 @@ export async function getAdminAcquisitionFunnelStage(
 
   if (!response.ok) {
     await handleApiError(response, 'Failed to load acquisition stage details')
+  }
+
+  return response.json()
+}
+
+export async function getAdminWantedRoleUsers(
+  role: RestaurantRole,
+): Promise<AdminWantedRoleUsersReport> {
+  const response = await fetch(
+    `${API_BASE_URL}/admin/analytics/user-insights/wanted-roles/${encodeURIComponent(role)}`,
+    { headers: getHeaders() },
+  )
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to load users for this role')
   }
 
   return response.json()

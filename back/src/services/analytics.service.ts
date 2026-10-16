@@ -195,6 +195,15 @@ function deterministicAnalyticsEventId(value: string) {
   ].join('-')
 }
 
+export function getCandidateReceivedAnalyticsEventId(
+  candidateSource: CandidateSource,
+  candidateRecordId: string,
+) {
+  return deterministicAnalyticsEventId(
+    `candidate_received:${candidateSource}:${candidateRecordId}`,
+  )
+}
+
 export async function resolveRestaurantAnalyticsOwnerUserId(
   restaurantId: string,
 ) {
@@ -245,8 +254,9 @@ export async function recordCandidateReceived(
 
   return recordAnalyticsEvent({
     anonymousAcquisitionId: acquisition.anonymousAcquisitionId,
-    clientEventId: deterministicAnalyticsEventId(
-      `candidate_received:${input.candidateSource}:${input.candidateRecordId}`,
+    clientEventId: getCandidateReceivedAnalyticsEventId(
+      input.candidateSource,
+      input.candidateRecordId,
     ),
     eventName: 'candidate_received',
     occurredAt: input.occurredAt.toISOString(),

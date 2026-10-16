@@ -105,6 +105,23 @@ type StageDetailsReport = {
   }>
 }
 
+type WantedRoleUsersReport = {
+  role: string
+  count: number
+  users: Array<{
+    userId: string
+    profileId: string
+    fullName: string
+    phoneNumber: string
+    wantedRoles: string[]
+    experienceText: string
+    availability: string
+    age: number
+    location: string
+    profileUpdatedAt: string
+  }>
+}
+
 async function readJson<T>(response: Response) {
   const value = await response.text()
   return {
@@ -202,6 +219,15 @@ test(
       )
     }
 
+    async function getWantedRoleUsers(token: string, role: string) {
+      return readJson<WantedRoleUsersReport>(
+        await fetch(
+          `${baseUrl}/admin/analytics/user-insights/wanted-roles/${encodeURIComponent(role)}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        ),
+      )
+    }
+
     function stage(report: FunnelReport, key: string) {
       return report.funnel.find((item) => item.key === key)
     }
@@ -258,7 +284,11 @@ test(
             create: {
               fullName: 'Stage 5 Worker',
               phoneNumber: `+97254${runId.replaceAll('-', '').slice(0, 7)}`,
-              wantedRoles: ['waiter'],
+              location: 'Tel Aviv',
+              wantedRoles: ['waiter', 'bartender', 'waiter'],
+              experienceText: '2 years\n\nCafe and table service',
+              availability: 'Morning, Weekends',
+              age: 24,
             },
           },
         },
@@ -296,6 +326,16 @@ test(
           phoneVerifiedAt: now,
           fullName: 'Internal Test Owner',
           track: 'restaurantOwner',
+          restaurantWorkerProfile: {
+            create: {
+              fullName: 'Excluded Test Worker',
+              phoneNumber: excludedPhone,
+              wantedRoles: ['waiter'],
+              experienceText: 'More than 3 years',
+              availability: 'Flexible',
+              age: 30,
+            },
+          },
         },
       })
       createdUserIds.push(excludedOwner.id)
@@ -531,6 +571,44 @@ test(
 
       const adminToken = signAuthToken(admin.id)
       const nonAdminToken = signAuthToken(nonAdmin.id)
+
+      const waiterUsers = await getWantedRoleUsers(adminToken, 'waiter')
+      assert.equal(waiterUsers.status, 200)
+      assert.equal(waiterUsers.body.role, 'waiter')
+      assert.equal(
+        waiterUsers.body.users.filter(({ userId }) => userId === worker.id)
+          .length,
+        1,
+        'duplicate wantedRoles must not duplicate a worker',
+      )
+      assert.ok(
+        !waiterUsers.body.users.some(
+          ({ userId }) => userId === excludedOwner.id,
+        ),
+        'excluded worker must not appear in role drill-down',
+      )
+      const workerRow = waiterUsers.body.users.find(
+        ({ userId }) => userId === worker.id,
+      )
+      assert.equal(workerRow?.experienceText, '2 years\n\nCafe and table service')
+      assert.equal(workerRow?.availability, 'Morning, Weekends')
+      assert.equal(workerRow?.age, 24)
+      assert.equal(workerRow?.location, 'Tel Aviv')
+
+      const bartenderUsers = await getWantedRoleUsers(
+        adminToken,
+        'bartender',
+      )
+      assert.equal(bartenderUsers.status, 200)
+      assert.ok(
+        bartenderUsers.body.users.some(({ userId }) => userId === worker.id),
+        'a multi-role worker must appear in each selected role',
+      )
+
+      const invalidRole = await getWantedRoleUsers(adminToken, 'astronaut')
+      assert.equal(invalidRole.status, 400)
+      const forbiddenRole = await getWantedRoleUsers(nonAdminToken, 'waiter')
+      assert.equal(forbiddenRole.status, 403)
 
       const instagram = await getReport(adminToken, {
         source: 'instagram',
