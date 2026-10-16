@@ -87,6 +87,30 @@ function createFakeRepository(deliveries: FakeDelivery[]) {
       return true
     },
 
+    async claimPendingReminderBatch(items, attemptedAt) {
+      const claimedIds: string[] = []
+
+      for (const item of items) {
+        const stored = deliveries.find(({ id }) => id === item.id)
+
+        if (
+          !stored ||
+          stored.kind !== 'reminder24h' ||
+          stored.status !== 'pending' ||
+          stored.attemptCount !== 0 ||
+          stored.lastAttemptAt !== null
+        ) {
+          continue
+        }
+
+        stored.attemptCount += 1
+        stored.lastAttemptAt = attemptedAt
+        claimedIds.push(stored.id)
+      }
+
+      return claimedIds
+    },
+
     async markAccepted(id, acceptedAt, providerMessageSid) {
       const stored = deliveries.find((item) => item.id === id)
       assert.ok(stored)
@@ -104,6 +128,32 @@ function createFakeRepository(deliveries: FakeDelivery[]) {
       stored.providerMessageSid = null
       stored.safeErrorCode = safeErrorCode
     },
+
+    async markReminderBatchAccepted(
+      ids,
+      acceptedAt,
+      providerMessageSid,
+    ) {
+      for (const id of ids) {
+        const stored = deliveries.find((item) => item.id === id)
+        assert.ok(stored)
+        stored.status = 'accepted'
+        stored.acceptedAt = acceptedAt
+        stored.providerMessageSid = providerMessageSid
+        stored.safeErrorCode = null
+      }
+    },
+
+    async markReminderBatchFailed(ids, safeErrorCode) {
+      for (const id of ids) {
+        const stored = deliveries.find((item) => item.id === id)
+        assert.ok(stored)
+        stored.status = 'failed'
+        stored.acceptedAt = null
+        stored.providerMessageSid = null
+        stored.safeErrorCode = safeErrorCode
+      }
+    },
   }
 
   return repository
@@ -111,9 +161,15 @@ function createFakeRepository(deliveries: FakeDelivery[]) {
 
 function createFakeProvider(options?: { failPhones?: Set<string> }) {
   const calls: string[] = []
+  const candidateCounts: Array<number | undefined> = []
   const provider: CandidateNotificationSmsProvider = {
-    async sendCandidateNotification(recipientPhone) {
+    async sendCandidateNotification(
+      recipientPhone,
+      _kind,
+      candidateCount,
+    ) {
       calls.push(recipientPhone)
+      candidateCounts.push(candidateCount)
 
       if (options?.failPhones?.has(recipientPhone)) {
         throw new CandidateNotificationSmsError('twilio_30001')
@@ -125,7 +181,7 @@ function createFakeProvider(options?: { failPhones?: Set<string> }) {
     },
   }
 
-  return { provider, calls }
+  return { provider, calls, candidateCounts }
 }
 
 const attemptedAt = new Date('2026-10-15T10:00:00.000Z')
@@ -381,6 +437,7 @@ test('Twilio reminder uses centralized Hebrew content and the direct Application
   await provider.sendCandidateNotification(
     '+972501234567',
     'reminder24h',
+    3,
   )
 
   const applicationsUrl = buildOwnerApplicationsUrl(frontendUrl)
@@ -388,12 +445,16 @@ test('Twilio reminder uses centralized Hebrew content and the direct Application
     {
       messagingServiceSid: 'MG-test',
       to: '+972501234567',
-      body: getCandidateContactReminderSmsBody(applicationsUrl),
+      body: getCandidateContactReminderSmsBody(applicationsUrl, 3),
     },
   ])
   assert.equal(
-    getCandidateContactReminderSmsBody(applicationsUrl),
-    'תזכורת קטנה מ-Peepss 👋\nיש לך מועמדות שעדיין לא יצרת איתה קשר.\nאפשר לראות את הפרטים כאן: https://staging.peepss.com/owner/applications',
+    getCandidateContactReminderSmsBody(applicationsUrl, 1),
+    'תזכורת קטנה מ-Peepss 👋\nיש לך מועמדות שמחכה לטיפול.\nאפשר לראות אותה כאן: https://staging.peepss.com/owner/applications',
+  )
+  assert.equal(
+    getCandidateContactReminderSmsBody(applicationsUrl, 3),
+    'תזכורת קטנה מ-Peepss 👋\nיש לך 3 מועמדויות שמחכות לטיפול.\nאפשר לראות אותן כאן: https://staging.peepss.com/owner/applications',
   )
   assert.equal(
     getNewCandidateSmsBody(applicationsUrl),
@@ -408,7 +469,7 @@ test('pending reminder delivery is claimed and accepted once', async () => {
       recipientPhone: '+972501234567',
     }),
   ]
-  const { provider, calls } = createFakeProvider()
+  const { provider, calls, candidateCounts } = createFakeProvider()
 
   const result = await processPendingCandidateContactReminderDeliveries(
     { enabled: true },
@@ -420,6 +481,7 @@ test('pending reminder delivery is claimed and accepted once', async () => {
   )
 
   assert.deepEqual(calls, ['+972501234567'])
+  assert.deepEqual(candidateCounts, [1])
   assert.deepEqual(result, {
     pendingFound: 1,
     attempted: 1,
@@ -428,4 +490,36 @@ test('pending reminder delivery is claimed and accepted once', async () => {
   })
   assert.equal(deliveries[0]?.status, 'accepted')
   assert.equal(deliveries[0]?.attemptCount, 1)
+})
+
+test('immediate new-candidate notifications remain one send per candidate', async () => {
+  const deliveries = [
+    delivery('candidate-a', {
+      candidateLeadId: 'candidate-a',
+      recipientPhone: '+972501234567',
+    }),
+    delivery('candidate-b', {
+      candidateLeadId: 'candidate-b',
+      recipientPhone: '+972501234567',
+    }),
+  ]
+  const { provider, calls, candidateCounts } = createFakeProvider()
+  const repository = createFakeRepository(deliveries)
+
+  await processNewCandidateNotificationDeliveries(
+    { candidateLeadId: 'candidate-a', enabled: true },
+    { repository, provider, now: createClock() },
+  )
+  await processNewCandidateNotificationDeliveries(
+    { candidateLeadId: 'candidate-b', enabled: true },
+    { repository, provider, now: createClock() },
+  )
+
+  assert.deepEqual(calls, ['+972501234567', '+972501234567'])
+  assert.deepEqual(candidateCounts, [undefined, undefined])
+  assert.ok(
+    deliveries.every(
+      (item) => item.status === 'accepted' && item.attemptCount === 1,
+    ),
+  )
 })

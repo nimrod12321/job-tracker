@@ -23,14 +23,20 @@ export function getNewCandidateSmsBody(applicationsUrl: string) {
 
 export function getCandidateContactReminderSmsBody(
   applicationsUrl: string,
+  candidateCount: number,
 ) {
-  return `תזכורת קטנה מ-Peepss 👋\nיש לך מועמדות שעדיין לא יצרת איתה קשר.\nאפשר לראות את הפרטים כאן: ${applicationsUrl}`
+  if (candidateCount === 1) {
+    return `תזכורת קטנה מ-Peepss 👋\nיש לך מועמדות שמחכה לטיפול.\nאפשר לראות אותה כאן: ${applicationsUrl}`
+  }
+
+  return `תזכורת קטנה מ-Peepss 👋\nיש לך ${candidateCount} מועמדויות שמחכות לטיפול.\nאפשר לראות אותן כאן: ${applicationsUrl}`
 }
 
 export type CandidateNotificationSmsProvider = {
   sendCandidateNotification: (
     recipientPhone: string,
     kind: CandidateNotificationKind,
+    candidateCount?: number,
   ) => Promise<{ providerMessageSid: string }>
 }
 
@@ -65,14 +71,21 @@ export function createTwilioCandidateNotificationSmsProvider(
   const applicationsUrl = buildOwnerApplicationsUrl(config.frontendUrl)
 
   return {
-    async sendCandidateNotification(recipientPhone, kind) {
+    async sendCandidateNotification(
+      recipientPhone,
+      kind,
+      candidateCount = 1,
+    ) {
       try {
         const result = await twilioClient.messages.create({
           messagingServiceSid: config.messagingServiceSid,
           to: recipientPhone,
           body:
             kind === 'reminder24h'
-              ? getCandidateContactReminderSmsBody(applicationsUrl)
+              ? getCandidateContactReminderSmsBody(
+                  applicationsUrl,
+                  candidateCount,
+                )
               : getNewCandidateSmsBody(applicationsUrl),
         })
         const providerMessageSid =

@@ -18,7 +18,7 @@ const OLDER_THAN_24_HOURS = new Date('2026-10-14T11:59:59.000Z')
 
 type StoredDelivery = Omit<
   PendingCandidateContactReminderDelivery,
-  'status'
+  'status' | 'attemptCount'
 > & {
   id: string
   lastAttemptAt: Date | null
@@ -26,6 +26,7 @@ type StoredDelivery = Omit<
   providerMessageSid: string | null
   safeErrorCode: string | null
   status: 'pending' | 'accepted' | 'failed'
+  attemptCount: number
 }
 
 function lead(
@@ -128,6 +129,32 @@ function createRepositories(leads: CandidateContactReminderLead[]) {
       stored.lastAttemptAt = attemptedAt
       return true
     },
+
+    async claimPendingReminderBatch(items, attemptedAt) {
+      const claimedIds: string[] = []
+
+      for (const item of items) {
+        const stored = deliveries.find(
+          (delivery) => delivery.id === item.id,
+        )
+
+        if (
+          !stored ||
+          stored.kind !== 'reminder24h' ||
+          stored.status !== 'pending' ||
+          stored.attemptCount !== 0 ||
+          stored.lastAttemptAt !== null
+        ) {
+          continue
+        }
+
+        stored.attemptCount += 1
+        stored.lastAttemptAt = attemptedAt
+        claimedIds.push(stored.id)
+      }
+
+      return claimedIds
+    },
     async markAccepted(id, acceptedAt, providerMessageSid) {
       const stored = deliveries.find((delivery) => delivery.id === id)
       assert.ok(stored)
@@ -144,6 +171,36 @@ function createRepositories(leads: CandidateContactReminderLead[]) {
       stored.acceptedAt = null
       stored.providerMessageSid = null
     },
+
+    async markReminderBatchAccepted(
+      ids,
+      acceptedAt,
+      providerMessageSid,
+    ) {
+      for (const id of ids) {
+        const stored = deliveries.find(
+          (delivery) => delivery.id === id,
+        )
+        assert.ok(stored)
+        stored.status = 'accepted'
+        stored.acceptedAt = acceptedAt
+        stored.providerMessageSid = providerMessageSid
+        stored.safeErrorCode = null
+      }
+    },
+
+    async markReminderBatchFailed(ids, safeErrorCode) {
+      for (const id of ids) {
+        const stored = deliveries.find(
+          (delivery) => delivery.id === id,
+        )
+        assert.ok(stored)
+        stored.status = 'failed'
+        stored.acceptedAt = null
+        stored.providerMessageSid = null
+        stored.safeErrorCode = safeErrorCode
+      }
+    },
   }
 
   return { repository, deliveryRepository, deliveries }
@@ -153,10 +210,11 @@ function createProvider(fail = false) {
   const calls: Array<{
     phone: string
     kind: CandidateNotificationKind
+    candidateCount: number | undefined
   }> = []
   const provider: CandidateNotificationSmsProvider = {
-    async sendCandidateNotification(phone, kind) {
-      calls.push({ phone, kind })
+    async sendCandidateNotification(phone, kind, candidateCount) {
+      calls.push({ phone, kind, candidateCount })
 
       if (fail) {
         throw new CandidateNotificationSmsError('twilio_30001')
@@ -301,7 +359,11 @@ test('successful reminder send is accepted with one attempt', async () => {
   const state = await dispatch([lead()], { enabled: true })
 
   assert.deepEqual(state.calls, [
-    { phone: '+972501234567', kind: 'reminder24h' },
+    {
+      phone: '+972501234567',
+      kind: 'reminder24h',
+      candidateCount: 1,
+    },
   ])
   assert.equal(state.deliveries[0]?.status, 'accepted')
   assert.equal(state.deliveries[0]?.attemptCount, 1)
@@ -311,16 +373,155 @@ test('successful reminder send is accepted with one attempt', async () => {
   )
 })
 
-test('provider failure marks reminder failed without changing candidate', async () => {
-  const candidate = lead()
-  const originalCandidate = structuredClone(candidate)
-  const state = await dispatch([candidate], {
+test('three candidates for one phone send one grouped reminder and accept every delivery', async () => {
+  const state = await dispatch(
+    [
+      lead({ id: 'lead-a' }),
+      lead({ id: 'lead-b' }),
+      lead({ id: 'lead-c' }),
+    ],
+    { enabled: true },
+  )
+
+  assert.deepEqual(state.calls, [
+    {
+      phone: '+972501234567',
+      kind: 'reminder24h',
+      candidateCount: 3,
+    },
+  ])
+  assert.equal(state.deliveries.length, 3)
+  assert.ok(
+    state.deliveries.every(
+      (item) =>
+        item.status === 'accepted' &&
+        item.attemptCount === 1 &&
+        item.providerMessageSid === 'SM-+972501234567',
+    ),
+  )
+})
+
+test('three candidates for two manager phones send two grouped reminders', async () => {
+  const members = [
+    ...lead().members,
+    {
+      id: 'member-manager',
+      restaurantId: 'restaurant-a',
+      userId: 'user-manager',
+      phoneNumber: '0521234567',
+      role: 'hiringManager',
+      status: 'active',
+    },
+  ]
+  const state = await dispatch(
+    [
+      lead({ id: 'lead-a', members }),
+      lead({ id: 'lead-b', members }),
+      lead({ id: 'lead-c', members }),
+    ],
+    { enabled: true },
+  )
+
+  assert.deepEqual(state.calls, [
+    {
+      phone: '+972501234567',
+      kind: 'reminder24h',
+      candidateCount: 3,
+    },
+    {
+      phone: '+972521234567',
+      kind: 'reminder24h',
+      candidateCount: 3,
+    },
+  ])
+  assert.equal(state.deliveries.length, 6)
+  assert.ok(
+    state.deliveries.every(
+      (item) => item.status === 'accepted' && item.attemptCount === 1,
+    ),
+  )
+})
+
+test('grouped provider failure marks every included delivery failed', async () => {
+  const candidates = [
+    lead({ id: 'lead-a' }),
+    lead({ id: 'lead-b' }),
+    lead({ id: 'lead-c' }),
+  ]
+  const originalCandidates = structuredClone(candidates)
+  const state = await dispatch(candidates, {
     enabled: true,
     fail: true,
   })
 
-  assert.equal(state.deliveries[0]?.status, 'failed')
-  assert.equal(state.deliveries[0]?.attemptCount, 1)
-  assert.equal(state.deliveries[0]?.safeErrorCode, 'twilio_30001')
-  assert.deepEqual(candidate, originalCandidate)
+  assert.equal(state.calls.length, 1)
+  assert.ok(
+    state.deliveries.every(
+      (item) =>
+        item.status === 'failed' &&
+        item.attemptCount === 1 &&
+        item.acceptedAt === null &&
+        item.providerMessageSid === null &&
+        item.safeErrorCode === 'twilio_30001',
+    ),
+  )
+  assert.deepEqual(candidates, originalCandidates)
+})
+
+test('repeated enabled dispatcher run does not resend attempted deliveries', async () => {
+  const stores = createRepositories([
+    lead({ id: 'lead-a' }),
+    lead({ id: 'lead-b' }),
+  ])
+  const providerState = createProvider()
+  const dependencies = {
+    repository: stores.repository,
+    deliveryRepository: stores.deliveryRepository,
+    enabled: true,
+    provider: providerState.provider,
+    now: () => NOW,
+  }
+
+  await dispatchCandidateContactReminders(dependencies)
+  await dispatchCandidateContactReminders(dependencies)
+
+  assert.deepEqual(providerState.calls, [
+    {
+      phone: '+972501234567',
+      kind: 'reminder24h',
+      candidateCount: 2,
+    },
+  ])
+  assert.equal(stores.deliveries.length, 2)
+})
+
+test('a later eligible candidate creates a new singular reminder batch', async () => {
+  const candidates = [lead({ id: 'lead-a' }), lead({ id: 'lead-b' })]
+  const stores = createRepositories(candidates)
+  const providerState = createProvider()
+  const dependencies = {
+    repository: stores.repository,
+    deliveryRepository: stores.deliveryRepository,
+    enabled: true,
+    provider: providerState.provider,
+    now: () => NOW,
+  }
+
+  await dispatchCandidateContactReminders(dependencies)
+  candidates.push(lead({ id: 'lead-c' }))
+  await dispatchCandidateContactReminders(dependencies)
+
+  assert.deepEqual(providerState.calls, [
+    {
+      phone: '+972501234567',
+      kind: 'reminder24h',
+      candidateCount: 2,
+    },
+    {
+      phone: '+972501234567',
+      kind: 'reminder24h',
+      candidateCount: 1,
+    },
+  ])
+  assert.equal(stores.deliveries.length, 3)
 })
