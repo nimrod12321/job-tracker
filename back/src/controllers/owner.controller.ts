@@ -9,6 +9,7 @@ import { prisma } from '../lib/prisma.js'
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js'
 import {
   ensureOwnerMembershipForUser,
+  getAccessibleRestaurantsForUser,
   getRestaurantAccessForUser,
 } from '../services/restaurantAccess.service.js'
 import { normalizeIsraeliPhoneNumber } from '../utils/phone.js'
@@ -101,6 +102,35 @@ const DUPLICATE_OWNER_JOB_ROLE_MESSAGE =
 
 function getUserId(req: Request) {
   return (req as AuthenticatedRequest).userId
+}
+
+export async function getOwnerRestaurants(req: Request, res: Response) {
+  try {
+    const userId = getUserId(req)
+
+    if (!userId) {
+      return res.status(401).json({
+        message: 'unauthorized',
+      })
+    }
+
+    const accesses = await getAccessibleRestaurantsForUser(userId)
+
+    return res.json({
+      restaurants: accesses.map((access) => ({
+        restaurantId: access.restaurant.id,
+        restaurantName: access.restaurant.restaurantName,
+        slug: access.restaurant.slug,
+        membershipRole: access.role,
+      })),
+    })
+  } catch (error) {
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to fetch accessible restaurants',
+    })
+  }
 }
 
 function isUniqueConstraintViolation(error: unknown): boolean {

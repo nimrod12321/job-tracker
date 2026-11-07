@@ -10,6 +10,7 @@ import {
   getOwnerJobs,
   getOwnerLeads,
   getOwnerProfile,
+  getOwnerRestaurants,
   getOwnerTeam,
   publishOwnerJob,
   removeOwnerTeamMember,
@@ -71,6 +72,7 @@ const requireRestaurantOwner: RequestHandler = async (req, res, next) => {
 }
 
 ownerRouter.use(requireAuth, requireRestaurantOwner)
+ownerRouter.get('/restaurants', getOwnerRestaurants)
 ownerRouter.get('/profile', getOwnerProfile)
 ownerRouter.put('/profile', updateOwnerProfile)
 ownerRouter.patch('/qr-roles', updateOwnerQrRoles)
