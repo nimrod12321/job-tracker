@@ -6,6 +6,7 @@ import {
 } from '../../auth/utils/authStorage'
 import type {
   OwnerApplication,
+  OwnerAccessibleRestaurant,
   OwnerJob,
   OwnerJobInput,
   OwnerProfile,
@@ -15,8 +16,9 @@ import type {
   RestaurantCandidateLead,
 } from '../types/owner'
 import type { RestaurantRole } from '../../restaurant/types/restaurant'
+import { getStoredOwnerRestaurantId } from '../utils/ownerRestaurantSelection'
 
-function getHeaders(): Headers {
+function getHeaders(restaurantId?: string | null): Headers {
   const headers = new Headers({
     'Content-Type': 'application/json',
   })
@@ -24,6 +26,15 @@ function getHeaders(): Headers {
 
   if (token) {
     headers.set('Authorization', `Bearer ${token}`)
+  }
+
+  const resolvedRestaurantId =
+    restaurantId === null
+      ? null
+      : restaurantId ?? getStoredOwnerRestaurantId()
+
+  if (resolvedRestaurantId) {
+    headers.set('X-Restaurant-Id', resolvedRestaurantId)
   }
 
   return headers
@@ -54,9 +65,29 @@ async function handleApiError(
   throw new Error(message)
 }
 
-export async function getOwnerProfile(): Promise<OwnerProfile | null> {
+export async function getOwnerRestaurants(): Promise<
+  OwnerAccessibleRestaurant[]
+> {
+  const response = await fetch(`${API_BASE_URL}/owner/restaurants`, {
+    headers: getHeaders(null),
+  })
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to load accessible restaurants')
+  }
+
+  const body = (await response.json()) as {
+    restaurants: OwnerAccessibleRestaurant[]
+  }
+
+  return body.restaurants
+}
+
+export async function getOwnerProfile(
+  restaurantId?: string,
+): Promise<OwnerProfile | null> {
   const response = await fetch(`${API_BASE_URL}/owner/profile`, {
-    headers: getHeaders(),
+    headers: getHeaders(restaurantId),
   })
 
   if (!response.ok) {
@@ -68,10 +99,11 @@ export async function getOwnerProfile(): Promise<OwnerProfile | null> {
 
 export async function saveOwnerProfile(
   input: OwnerProfileInput,
+  restaurantId?: string,
 ): Promise<OwnerProfile> {
   const response = await fetch(`${API_BASE_URL}/owner/profile`, {
     method: 'PUT',
-    headers: getHeaders(),
+    headers: getHeaders(restaurantId),
     body: JSON.stringify(input),
   })
 
@@ -84,10 +116,11 @@ export async function saveOwnerProfile(
 
 export async function updateOwnerQrRoles(
   qrEnabledRoles: RestaurantRole[],
+  restaurantId?: string,
 ): Promise<OwnerProfile> {
   const response = await fetch(`${API_BASE_URL}/owner/qr-roles`, {
     method: 'PATCH',
-    headers: getHeaders(),
+    headers: getHeaders(restaurantId),
     body: JSON.stringify({
       qrEnabledRoles,
     }),
@@ -100,9 +133,9 @@ export async function updateOwnerQrRoles(
   return response.json()
 }
 
-export async function getOwnerJobs(): Promise<OwnerJob[]> {
+export async function getOwnerJobs(restaurantId?: string): Promise<OwnerJob[]> {
   const response = await fetch(`${API_BASE_URL}/owner/jobs`, {
-    headers: getHeaders(),
+    headers: getHeaders(restaurantId),
   })
 
   if (!response.ok) {
@@ -114,10 +147,11 @@ export async function getOwnerJobs(): Promise<OwnerJob[]> {
 
 export async function createOwnerJob(
   input: OwnerJobInput,
+  restaurantId?: string,
 ): Promise<OwnerJob> {
   const response = await fetch(`${API_BASE_URL}/owner/jobs`, {
     method: 'POST',
-    headers: getHeaders(),
+    headers: getHeaders(restaurantId),
     body: JSON.stringify(input),
   })
 
@@ -131,10 +165,11 @@ export async function createOwnerJob(
 export async function updateOwnerJob(
   id: string,
   input: OwnerJobInput,
+  restaurantId?: string,
 ): Promise<OwnerJob> {
   const response = await fetch(`${API_BASE_URL}/owner/jobs/${id}`, {
     method: 'PUT',
-    headers: getHeaders(),
+    headers: getHeaders(restaurantId),
     body: JSON.stringify(input),
   })
 
@@ -148,10 +183,11 @@ export async function updateOwnerJob(
 export async function setOwnerJobActive(
   id: string,
   isActive: boolean,
+  restaurantId?: string,
 ): Promise<OwnerJob> {
   const response = await fetch(`${API_BASE_URL}/owner/jobs/${id}/active`, {
     method: 'PATCH',
-    headers: getHeaders(),
+    headers: getHeaders(restaurantId),
     body: JSON.stringify({
       isActive,
     }),
@@ -164,10 +200,13 @@ export async function setOwnerJobActive(
   return response.json()
 }
 
-export async function deleteOwnerJob(id: string): Promise<void> {
+export async function deleteOwnerJob(
+  id: string,
+  restaurantId?: string,
+): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/owner/jobs/${id}`, {
     method: 'DELETE',
-    headers: getHeaders(),
+    headers: getHeaders(restaurantId),
   })
 
   if (!response.ok) {
@@ -175,9 +214,23 @@ export async function deleteOwnerJob(id: string): Promise<void> {
   }
 }
 
-export async function getOwnerApplications(): Promise<OwnerApplication[]> {
+export async function getOwnerApplications(
+  restaurantId?: string,
+): Promise<OwnerApplication[]> {
   const response = await fetch(`${API_BASE_URL}/owner/applications`, {
-    headers: getHeaders(),
+    headers: getHeaders(restaurantId),
+  })
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to load applications')
+  }
+
+  return response.json()
+}
+
+export async function getAllOwnerApplications(): Promise<OwnerApplication[]> {
+  const response = await fetch(`${API_BASE_URL}/owner/applications/all`, {
+    headers: getHeaders(null),
   })
 
   if (!response.ok) {
@@ -190,12 +243,13 @@ export async function getOwnerApplications(): Promise<OwnerApplication[]> {
 export async function updateOwnerApplicationStatus(
   id: string,
   status: 'selected' | 'rejected',
+  restaurantId?: string,
 ): Promise<Pick<OwnerApplication, 'id' | 'status' | 'createdAt'>> {
   const response = await fetch(
     `${API_BASE_URL}/owner/applications/${id}/status`,
     {
       method: 'PATCH',
-      headers: getHeaders(),
+      headers: getHeaders(restaurantId),
       body: JSON.stringify({
         status,
       }),
@@ -209,10 +263,13 @@ export async function updateOwnerApplicationStatus(
   return response.json()
 }
 
-export async function deleteOwnerApplication(id: string): Promise<void> {
+export async function deleteOwnerApplication(
+  id: string,
+  restaurantId?: string,
+): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/owner/applications/${id}`, {
     method: 'DELETE',
-    headers: getHeaders(),
+    headers: getHeaders(restaurantId),
   })
 
   if (!response.ok) {
@@ -220,9 +277,23 @@ export async function deleteOwnerApplication(id: string): Promise<void> {
   }
 }
 
-export async function getOwnerLeads(): Promise<RestaurantCandidateLead[]> {
+export async function getOwnerLeads(
+  restaurantId?: string,
+): Promise<RestaurantCandidateLead[]> {
   const response = await fetch(`${API_BASE_URL}/owner/leads`, {
-    headers: getHeaders(),
+    headers: getHeaders(restaurantId),
+  })
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to load QR candidates')
+  }
+
+  return response.json()
+}
+
+export async function getAllOwnerLeads(): Promise<RestaurantCandidateLead[]> {
+  const response = await fetch(`${API_BASE_URL}/owner/leads/all`, {
+    headers: getHeaders(null),
   })
 
   if (!response.ok) {
@@ -236,11 +307,12 @@ export async function updateOwnerLeadStatus(
   id: string,
   status: RestaurantCandidateLead['status'],
   contactChannel?: 'phone' | 'whatsapp',
+  restaurantId?: string,
 ): Promise<RestaurantCandidateLead> {
   const response = await fetch(`${API_BASE_URL}/owner/leads/${id}/status`, {
     method: 'PATCH',
     keepalive: Boolean(contactChannel),
-    headers: getHeaders(),
+    headers: getHeaders(restaurantId),
     body: JSON.stringify({
       status,
       ...(contactChannel ? { contactChannel } : {}),
@@ -254,10 +326,13 @@ export async function updateOwnerLeadStatus(
   return response.json()
 }
 
-export async function deleteOwnerLead(id: string): Promise<void> {
+export async function deleteOwnerLead(
+  id: string,
+  restaurantId?: string,
+): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/owner/leads/${id}`, {
     method: 'DELETE',
-    headers: getHeaders(),
+    headers: getHeaders(restaurantId),
   })
 
   if (!response.ok) {
@@ -265,9 +340,9 @@ export async function deleteOwnerLead(id: string): Promise<void> {
   }
 }
 
-export async function getOwnerTeam(): Promise<OwnerTeam> {
+export async function getOwnerTeam(restaurantId?: string): Promise<OwnerTeam> {
   const response = await fetch(`${API_BASE_URL}/owner/team`, {
-    headers: getHeaders(),
+    headers: getHeaders(restaurantId),
   })
 
   if (!response.ok) {
@@ -280,10 +355,10 @@ export async function getOwnerTeam(): Promise<OwnerTeam> {
 export async function addOwnerTeamMember(input: {
   displayName: string
   phoneNumber: string
-}): Promise<OwnerTeamMember> {
+}, restaurantId?: string): Promise<OwnerTeamMember> {
   const response = await fetch(`${API_BASE_URL}/owner/team/members`, {
     method: 'POST',
-    headers: getHeaders(),
+    headers: getHeaders(restaurantId),
     body: JSON.stringify(input),
   })
 
@@ -294,10 +369,13 @@ export async function addOwnerTeamMember(input: {
   return response.json()
 }
 
-export async function removeOwnerTeamMember(id: string): Promise<void> {
+export async function removeOwnerTeamMember(
+  id: string,
+  restaurantId?: string,
+): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/owner/team/members/${id}`, {
     method: 'DELETE',
-    headers: getHeaders(),
+    headers: getHeaders(restaurantId),
   })
 
   if (!response.ok) {

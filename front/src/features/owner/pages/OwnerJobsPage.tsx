@@ -34,6 +34,7 @@ import type {
   OwnerJobInput,
   OwnerProfile,
 } from '../types/owner'
+import { useOwnerRestaurant } from '../context/ownerRestaurantState'
 
 const emptyJobForm: OwnerJobInput = {
   role: 'waiter',
@@ -120,6 +121,7 @@ function getJobInputFromJob(job: OwnerJob): OwnerJobInput {
 
 function OwnerJobsPage() {
   const navigate = useNavigate()
+  const { selectedRestaurantId } = useOwnerRestaurant()
   const { direction, language } = useRestaurantLanguage()
   const [profile, setProfile] = useState<OwnerProfile | null>(null)
   const [jobs, setJobs] = useState<OwnerJob[]>([])
@@ -389,8 +391,17 @@ function OwnerJobsPage() {
     let isActive = true
 
     async function loadOwnerData() {
+      setIsLoading(true)
+      setError(null)
+      setProfile(null)
+      setJobs([])
+      setEditingJobId(null)
+      setIsCreating(false)
+
       try {
-        const ownerProfile = await getOwnerProfile()
+        const ownerProfile = await getOwnerProfile(
+          selectedRestaurantId ?? undefined,
+        )
 
         if (isActive) {
           setProfile(ownerProfile)
@@ -404,7 +415,9 @@ function OwnerJobsPage() {
           }
         }
 
-        const ownerJobs = await getOwnerJobs()
+        const ownerJobs = await getOwnerJobs(
+          selectedRestaurantId ?? undefined,
+        )
 
         if (isActive) {
           setJobs(ownerJobs)
@@ -430,7 +443,7 @@ function OwnerJobsPage() {
     return () => {
       isActive = false
     }
-  }, [])
+  }, [selectedRestaurantId])
 
   useEffect(() => {
     return () => {
@@ -581,11 +594,18 @@ function OwnerJobsPage() {
       }
 
       if (editingJobId) {
-        const updatedJob = await updateOwnerJob(editingJobId, jobInput)
+        const updatedJob = await updateOwnerJob(
+          editingJobId,
+          jobInput,
+          selectedRestaurantId ?? undefined,
+        )
         replaceJob(updatedJob)
         setSuccess(text.updated)
       } else {
-        const createdJob = await createOwnerJob(jobInput)
+        const createdJob = await createOwnerJob(
+          jobInput,
+          selectedRestaurantId ?? undefined,
+        )
         setJobs((currentJobs) => [createdJob, ...currentJobs])
         setSuccess(text.created)
       }
@@ -623,7 +643,11 @@ function OwnerJobsPage() {
     replaceJob({ ...job, isActive: nextIsActive })
 
     try {
-      const updatedJob = await setOwnerJobActive(job.id, nextIsActive)
+      const updatedJob = await setOwnerJobActive(
+        job.id,
+        nextIsActive,
+        selectedRestaurantId ?? undefined,
+      )
       replaceJob(updatedJob)
       setIsJobStatusSaved(true)
     } catch (error) {
@@ -667,7 +691,7 @@ function OwnerJobsPage() {
     )
 
     try {
-      await deleteOwnerJob(job.id)
+      await deleteOwnerJob(job.id, selectedRestaurantId ?? undefined)
 
       if (editingJobId === job.id) {
         resetForm()
@@ -887,7 +911,10 @@ function OwnerJobsPage() {
         setQrRolesSaveStatus('saving')
 
         try {
-          const updatedProfile = await updateOwnerQrRoles(rolesToSave)
+          const updatedProfile = await updateOwnerQrRoles(
+            rolesToSave,
+            selectedRestaurantId ?? undefined,
+          )
 
           confirmedQrRolesRef.current = updatedProfile.qrEnabledRoles ?? []
           setProfile((currentProfile) =>

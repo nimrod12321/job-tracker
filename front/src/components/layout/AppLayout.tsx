@@ -5,6 +5,7 @@ import LegalFooter from '../legal/LegalFooter'
 import type { UserTrack } from '../../features/auth/services/authApi'
 import RestaurantLanguageToggle from '../../features/restaurant/components/RestaurantLanguageToggle'
 import { useRestaurantLanguage } from '../../features/restaurant/utils/restaurantLanguage'
+import { useOptionalOwnerRestaurant } from '../../features/owner/context/ownerRestaurantState'
 
 type AppLayoutProps = {
   userEmail?: string
@@ -27,9 +28,13 @@ function AppLayout({
   const [isOptionsOpen, setIsOptionsOpen] = useState(false)
   const optionsRef = useRef<HTMLDivElement | null>(null)
   const { direction, language } = useRestaurantLanguage()
+  const ownerRestaurantContext = useOptionalOwnerRestaurant()
   const isRestaurantSide = isRestaurantUser || isRestaurantOwner
+  const selectedRestaurantRole =
+    ownerRestaurantContext?.selectedRestaurant?.membershipRole ??
+    restaurantMemberRole
   const canManageOwnerTeam =
-    isRestaurantOwner && restaurantMemberRole !== 'hiringManager'
+    isRestaurantOwner && selectedRestaurantRole !== 'hiringManager'
   const layoutClassName = [
     'app-layout',
     isRestaurantSide ? 'restaurant-shell' : '',
@@ -203,6 +208,34 @@ function AppLayout({
           )}
         </nav>
 
+        {isRestaurantOwner &&
+          ownerRestaurantContext &&
+          ownerRestaurantContext.restaurants.length > 1 && (
+            <label className="owner-restaurant-selector">
+              <span className="sr-only">
+                {language === 'he' ? 'בחירת מסעדה' : 'Select restaurant'}
+              </span>
+              <select
+                aria-label={
+                  language === 'he' ? 'בחירת מסעדה' : 'Select restaurant'
+                }
+                value={ownerRestaurantContext.selectedRestaurantId ?? ''}
+                onChange={(event) =>
+                  ownerRestaurantContext.selectRestaurant(event.target.value)
+                }
+              >
+                {ownerRestaurantContext.restaurants.map((restaurant) => (
+                  <option
+                    key={restaurant.restaurantId}
+                    value={restaurant.restaurantId}
+                  >
+                    {restaurant.restaurantName}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
         {isRestaurantSide ? (
           <div className="restaurant-options" ref={optionsRef} dir="ltr">
             <button
@@ -271,7 +304,14 @@ function AppLayout({
         )}
       </header>
 
-      <main className="app-content">
+      <main
+        className="app-content"
+        key={
+          isRestaurantOwner
+            ? ownerRestaurantContext?.selectedRestaurantId ?? 'new-restaurant'
+            : undefined
+        }
+      >
         <Outlet />
       </main>
       {layoutMode === 'standard' && (

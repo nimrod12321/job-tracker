@@ -7,10 +7,10 @@ import type {
 } from '../generated/prisma/client.js'
 import { prisma } from '../lib/prisma.js'
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js'
+import { getRequestRestaurantAccess } from '../middleware/restaurantAccess.middleware.js'
 import {
   ensureOwnerMembershipForUser,
   getAccessibleRestaurantsForUser,
-  getRestaurantAccessForUser,
 } from '../services/restaurantAccess.service.js'
 import { normalizeIsraeliPhoneNumber } from '../utils/phone.js'
 import { getValidationErrorMessage } from '../utils/validation.js'
@@ -188,12 +188,6 @@ function mapOwnerJob(job: RestaurantJob) {
   }
 }
 
-async function findOwnerProfile(userId: string) {
-  const access = await getRestaurantAccessForUser(userId)
-
-  return access?.restaurant ?? null
-}
-
 function hasCompleteOwnerProfile(
   profile: RestaurantOwnerProfile | null,
 ): profile is RestaurantOwnerProfile {
@@ -257,6 +251,10 @@ function mapCandidateLead(
     createdAt: Date
     updatedAt: Date
   },
+  restaurant: {
+    id: string
+    restaurantName: string
+  },
 ) {
   return {
     id: lead.id,
@@ -273,6 +271,69 @@ function mapCandidateLead(
       lead.firstContactInitiatedAt?.toISOString() ?? null,
     createdAt: lead.createdAt.toISOString(),
     updatedAt: lead.updatedAt.toISOString(),
+    restaurantId: restaurant.id,
+    restaurantName: restaurant.restaurantName,
+  }
+}
+
+function mapOwnerApplication(
+  application: {
+    id: string
+    status: 'applied' | 'selected' | 'rejected'
+    createdAt: Date
+    restaurantJob: {
+      id: string
+      role: RestaurantRole
+      description: string
+      shiftInfo: string
+      isActive: boolean
+    }
+    user: {
+      id: string
+      restaurantWorkerProfile: {
+        fullName: string
+        phoneNumber: string
+        location: string
+        wantedRoles: RestaurantRole[]
+        experienceText: string
+        availability: string
+        age: number
+      } | null
+    }
+  },
+  restaurant: {
+    id: string
+    restaurantName: string
+  },
+) {
+  const workerProfile = application.user.restaurantWorkerProfile
+
+  return {
+    id: application.id,
+    status: application.status,
+    createdAt: application.createdAt.toISOString(),
+    restaurantId: restaurant.id,
+    restaurantName: restaurant.restaurantName,
+    job: {
+      id: application.restaurantJob.id,
+      role: application.restaurantJob.role,
+      description: application.restaurantJob.description,
+      shiftInfo: application.restaurantJob.shiftInfo,
+      isActive: application.restaurantJob.isActive,
+    },
+    worker: {
+      id: application.user.id,
+      fullName: workerProfile?.fullName ?? '',
+      phoneNumber: workerProfile?.phoneNumber ?? '',
+      location: workerProfile?.location ?? '',
+      wantedRoles: workerProfile?.wantedRoles ?? [],
+      experienceText: workerProfile?.experienceText ?? '',
+      availability: workerProfile?.availability ?? '',
+      age:
+        workerProfile && workerProfile.age > 0
+          ? workerProfile.age
+          : null,
+    },
   }
 }
 
@@ -366,7 +427,7 @@ export async function getOwnerProfile(req: Request, res: Response) {
       })
     }
 
-    const profile = await findOwnerProfile(userId)
+    const profile = getRequestRestaurantAccess(req)?.restaurant ?? null
 
     return res.json(profile ? mapOwnerProfile(profile) : null)
   } catch (error) {
@@ -388,7 +449,7 @@ export async function updateOwnerProfile(req: Request, res: Response) {
       })
     }
 
-    const access = await getRestaurantAccessForUser(userId)
+    const access = getRequestRestaurantAccess(req)
 
     if (access && access.role !== 'owner') {
       return res.status(403).json({
@@ -518,7 +579,7 @@ export async function updateOwnerQrRoles(req: Request, res: Response) {
       })
     }
 
-    const access = await getRestaurantAccessForUser(userId)
+    const access = getRequestRestaurantAccess(req)
 
     if (!access) {
       return res.status(403).json({
@@ -573,7 +634,7 @@ export async function getOwnerJobs(req: Request, res: Response) {
       })
     }
 
-    const profile = await findOwnerProfile(userId)
+    const profile = getRequestRestaurantAccess(req)?.restaurant ?? null
 
     if (!profile) {
       return res.json([])
@@ -616,7 +677,7 @@ export async function createOwnerJob(req: Request, res: Response) {
       })
     }
 
-    const profile = await findOwnerProfile(userId)
+    const profile = getRequestRestaurantAccess(req)?.restaurant ?? null
 
     if (!hasCompleteOwnerProfile(profile)) {
       return res.status(400).json({
@@ -689,7 +750,7 @@ export async function publishOwnerJob(req: Request, res: Response) {
       })
     }
 
-    const profile = await findOwnerProfile(userId)
+    const profile = getRequestRestaurantAccess(req)?.restaurant ?? null
 
     if (!hasCompleteOwnerProfile(profile)) {
       return res.status(400).json({
@@ -751,7 +812,7 @@ export async function updateOwnerJob(req: Request, res: Response) {
       })
     }
 
-    const profile = await findOwnerProfile(userId)
+    const profile = getRequestRestaurantAccess(req)?.restaurant ?? null
 
     if (!hasCompleteOwnerProfile(profile)) {
       return res.status(400).json({
@@ -850,7 +911,7 @@ export async function setOwnerJobActive(req: Request, res: Response) {
       })
     }
 
-    const profile = await findOwnerProfile(userId)
+    const profile = getRequestRestaurantAccess(req)?.restaurant ?? null
 
     if (
       bodyResult.data.isActive &&
@@ -902,7 +963,7 @@ export async function deleteOwnerJob(req: Request, res: Response) {
       })
     }
 
-    const access = await getRestaurantAccessForUser(userId)
+    const access = getRequestRestaurantAccess(req)
 
     if (access?.role !== 'owner') {
       return res.status(403).json({
@@ -918,7 +979,7 @@ export async function deleteOwnerJob(req: Request, res: Response) {
       })
     }
 
-    const profile = await findOwnerProfile(userId)
+    const profile = getRequestRestaurantAccess(req)?.restaurant ?? null
     const existingJob = profile
       ? await findOwnedJob(idResult.data, profile.id)
       : null
@@ -955,7 +1016,7 @@ export async function getOwnerApplications(req: Request, res: Response) {
       })
     }
 
-    const profile = await findOwnerProfile(userId)
+    const profile = getRequestRestaurantAccess(req)?.restaurant ?? null
 
     if (!profile) {
       return res.json([])
@@ -981,34 +1042,75 @@ export async function getOwnerApplications(req: Request, res: Response) {
     })
 
     return res.json(
-      applications.map((application) => {
-        const workerProfile = application.user.restaurantWorkerProfile
+      applications.map((application) =>
+        mapOwnerApplication(application, {
+          id: profile.id,
+          restaurantName: profile.restaurantName,
+        }),
+      ),
+    )
+  } catch (error) {
+    console.error(error)
 
-        return {
-          id: application.id,
-          status: application.status,
-          createdAt: application.createdAt.toISOString(),
-          job: {
-            id: application.restaurantJob.id,
-            role: application.restaurantJob.role,
-            description: application.restaurantJob.description,
-            shiftInfo: application.restaurantJob.shiftInfo,
-            isActive: application.restaurantJob.isActive,
+    return res.status(500).json({
+      message: 'failed to fetch restaurant applications',
+    })
+  }
+}
+
+export async function getAllOwnerApplications(
+  req: Request,
+  res: Response,
+) {
+  try {
+    const userId = getUserId(req)
+
+    if (!userId) {
+      return res.status(401).json({ message: 'unauthorized' })
+    }
+
+    const accesses = await getAccessibleRestaurantsForUser(userId)
+    const restaurantIds = accesses.map((access) => access.restaurant.id)
+
+    if (restaurantIds.length === 0) {
+      return res.json([])
+    }
+
+    const applications = await prisma.restaurantApplication.findMany({
+      where: {
+        restaurantJob: {
+          ownerProfileId: { in: restaurantIds },
+        },
+      },
+      include: {
+        restaurantJob: {
+          include: {
+            ownerProfile: {
+              select: {
+                id: true,
+                restaurantName: true,
+              },
+            },
           },
-          worker: {
-            id: application.user.id,
-            fullName: workerProfile?.fullName ?? '',
-            phoneNumber: workerProfile?.phoneNumber ?? '',
-            location: workerProfile?.location ?? '',
-            wantedRoles: workerProfile?.wantedRoles ?? [],
-            experienceText: workerProfile?.experienceText ?? '',
-            availability: workerProfile?.availability ?? '',
-            age:
-              workerProfile && workerProfile.age > 0
-                ? workerProfile.age
-                : null,
+        },
+        user: {
+          include: {
+            restaurantWorkerProfile: true,
           },
-        }
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    })
+
+    return res.json(
+      applications.flatMap((application) => {
+        const restaurant = application.restaurantJob.ownerProfile
+
+        return restaurant
+          ? [mapOwnerApplication(application, restaurant)]
+          : []
       }),
     )
   } catch (error) {
@@ -1048,7 +1150,7 @@ export async function updateOwnerApplicationStatus(
       })
     }
 
-    const profile = await findOwnerProfile(userId)
+    const profile = getRequestRestaurantAccess(req)?.restaurant ?? null
     const application = profile
       ? await prisma.restaurantApplication.findFirst({
           where: {
@@ -1107,7 +1209,7 @@ export async function deleteOwnerApplication(req: Request, res: Response) {
       })
     }
 
-    const profile = await findOwnerProfile(userId)
+    const profile = getRequestRestaurantAccess(req)?.restaurant ?? null
     const application = profile
       ? await prisma.restaurantApplication.findFirst({
           where: {
@@ -1151,7 +1253,7 @@ export async function getOwnerLeads(req: Request, res: Response) {
       })
     }
 
-    const profile = await findOwnerProfile(userId)
+    const profile = getRequestRestaurantAccess(req)?.restaurant ?? null
 
     if (!profile) {
       return res.json([])
@@ -1176,7 +1278,68 @@ export async function getOwnerLeads(req: Request, res: Response) {
       },
     })
 
-    return res.json(leads.map(mapCandidateLead))
+    return res.json(
+      leads.map((lead) =>
+        mapCandidateLead(lead, {
+          id: profile.id,
+          restaurantName: profile.restaurantName,
+        }),
+      ),
+    )
+  } catch (error) {
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to fetch QR candidate leads',
+    })
+  }
+}
+
+export async function getAllOwnerLeads(req: Request, res: Response) {
+  try {
+    const userId = getUserId(req)
+
+    if (!userId) {
+      return res.status(401).json({ message: 'unauthorized' })
+    }
+
+    const accesses = await getAccessibleRestaurantsForUser(userId)
+    const restaurantIds = accesses.map((access) => access.restaurant.id)
+
+    if (restaurantIds.length === 0) {
+      return res.json([])
+    }
+
+    await prisma.restaurantCandidateLead.updateMany({
+      where: {
+        ownerProfileId: { in: restaurantIds },
+        ownerViewedAt: null,
+      },
+      data: {
+        ownerViewedAt: new Date(),
+      },
+    })
+
+    const leads = await prisma.restaurantCandidateLead.findMany({
+      where: {
+        ownerProfileId: { in: restaurantIds },
+      },
+      include: {
+        ownerProfile: {
+          select: {
+            id: true,
+            restaurantName: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    })
+
+    return res.json(
+      leads.map((lead) => mapCandidateLead(lead, lead.ownerProfile)),
+    )
   } catch (error) {
     console.error(error)
 
@@ -1211,7 +1374,7 @@ export async function updateOwnerLeadStatus(req: Request, res: Response) {
       })
     }
 
-    const profile = await findOwnerProfile(userId)
+    const profile = getRequestRestaurantAccess(req)?.restaurant ?? null
 
     if (!profile) {
       return res.status(404).json({
@@ -1277,7 +1440,12 @@ export async function updateOwnerLeadStatus(req: Request, res: Response) {
       })
     }
 
-    return res.json(mapCandidateLead(updatedLead))
+    return res.json(
+      mapCandidateLead(updatedLead, {
+        id: profile.id,
+        restaurantName: profile.restaurantName,
+      }),
+    )
   } catch (error) {
     console.error(error)
 
@@ -1305,7 +1473,7 @@ export async function deleteOwnerLead(req: Request, res: Response) {
       })
     }
 
-    const profile = await findOwnerProfile(userId)
+    const profile = getRequestRestaurantAccess(req)?.restaurant ?? null
     const lead = profile
       ? await prisma.restaurantCandidateLead.findFirst({
           where: {
@@ -1347,7 +1515,7 @@ export async function getOwnerTeam(req: Request, res: Response) {
       })
     }
 
-    const access = await getRestaurantAccessForUser(userId)
+    const access = getRequestRestaurantAccess(req)
 
     if (!access) {
       return res.status(403).json({
@@ -1406,7 +1574,7 @@ export async function addOwnerTeamMember(req: Request, res: Response) {
       })
     }
 
-    const access = await getRestaurantAccessForUser(userId)
+    const access = getRequestRestaurantAccess(req)
 
     if (!access) {
       return res.status(403).json({
@@ -1519,7 +1687,7 @@ export async function removeOwnerTeamMember(req: Request, res: Response) {
       })
     }
 
-    const access = await getRestaurantAccessForUser(userId)
+    const access = getRequestRestaurantAccess(req)
 
     if (!access) {
       return res.status(403).json({

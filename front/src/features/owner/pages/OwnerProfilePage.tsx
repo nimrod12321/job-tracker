@@ -7,6 +7,7 @@ import {
 } from '../services/ownerApi'
 import type { OwnerProfileInput } from '../types/owner'
 import VerifiedAddressAutocomplete from '../../../components/location/VerifiedAddressAutocomplete'
+import { useOwnerRestaurant } from '../context/ownerRestaurantState'
 
 const emptyProfile: OwnerProfileInput = {
   restaurantName: '',
@@ -22,6 +23,7 @@ type ProfileField = Exclude<keyof OwnerProfileInput, 'locationPlaceId'>
 
 function OwnerProfilePage() {
   const navigate = useNavigate()
+  const { selectedRestaurantId, refreshRestaurants } = useOwnerRestaurant()
   const { direction, language } = useRestaurantLanguage()
   const [form, setForm] = useState<OwnerProfileInput>(emptyProfile)
   const [isLoading, setIsLoading] = useState(true)
@@ -93,8 +95,19 @@ function OwnerProfilePage() {
     let isActive = true
 
     async function loadProfile() {
+      setIsLoading(true)
+      setError(null)
+      setSuccess(null)
+      setForm(emptyProfile)
+      setIsNewProfile(true)
+      setLocationStatus('unverified')
+      setLocationInput('')
+      setLocationPlaceId('')
+
       try {
-        const profile = await getOwnerProfile()
+        const profile = await getOwnerProfile(
+          selectedRestaurantId ?? undefined,
+        )
 
         if (isActive && profile) {
           setIsNewProfile(false)
@@ -130,7 +143,7 @@ function OwnerProfilePage() {
     return () => {
       isActive = false
     }
-  }, [])
+  }, [selectedRestaurantId])
 
   function updateField(field: keyof OwnerProfileInput, value: string) {
     setForm((currentForm) => ({
@@ -190,7 +203,10 @@ function OwnerProfilePage() {
         whatsappNumber: form.phoneNumber,
         ...(locationPlaceId ? { locationPlaceId } : {}),
       }
-      const savedProfile = await saveOwnerProfile(profileInput)
+      const savedProfile = await saveOwnerProfile(
+        profileInput,
+        selectedRestaurantId ?? undefined,
+      )
 
       setForm({
         restaurantName: savedProfile.restaurantName,
@@ -206,6 +222,7 @@ function OwnerProfilePage() {
       setLocationStatus(savedProfile.locationStatus)
       setLocationInput(savedProfile.formattedAddress || savedProfile.street)
       setLocationPlaceId('')
+      await refreshRestaurants()
       navigate('/owner/jobs')
     } catch (error) {
       setError(

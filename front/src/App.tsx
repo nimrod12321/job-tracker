@@ -34,8 +34,19 @@ import OwnerApplicationsPage from './features/owner/pages/OwnerApplicationsPage'
 import OwnerJobsPage from './features/owner/pages/OwnerJobsPage'
 import OwnerProfilePage from './features/owner/pages/OwnerProfilePage'
 import OwnerTeamPage from './features/owner/pages/OwnerTeamPage'
-import { getOwnerProfile } from './features/owner/services/ownerApi'
+import {
+  getOwnerProfile,
+  getOwnerRestaurants,
+} from './features/owner/services/ownerApi'
 import type { OwnerProfile } from './features/owner/types/owner'
+import {
+  OwnerOnlyRestaurantRoute,
+  OwnerRestaurantProvider,
+} from './features/owner/context/OwnerRestaurantContext'
+import {
+  clearStoredOwnerRestaurantId,
+  resolveValidOwnerRestaurantId,
+} from './features/owner/utils/ownerRestaurantSelection'
 import ProfilePage from './features/profile/pages/ProfilePage'
 import RestaurantPublicApplyPage from './features/public/pages/RestaurantPublicApplyPage'
 import RestaurantClaimPage from './features/public/pages/RestaurantClaimPage'
@@ -129,7 +140,9 @@ async function getPostAuthPath(user: AuthUser | null) {
   }
 
   try {
-    const profile = await getOwnerProfile()
+    const restaurants = await getOwnerRestaurants()
+    const restaurantId = resolveValidOwnerRestaurantId(restaurants)
+    const profile = await getOwnerProfile(restaurantId ?? undefined)
 
     return isOwnerProfileComplete(profile) ? '/owner/jobs' : '/owner/profile'
   } catch {
@@ -280,6 +293,7 @@ function App() {
 
   function handleLogout() {
     clearAuthToken()
+    clearStoredOwnerRestaurantId()
     setCurrentUser(null)
     setToken(null)
     navigate('/login', { replace: true })
@@ -521,12 +535,14 @@ function App() {
         <Route
           element={
             isRestaurantOwnerAreaUser ? (
-              <AppLayout
-                userEmail={getUserDisplayName(currentUser)}
-                userTrack="restaurantOwner"
-                restaurantMemberRole={currentUser?.restaurantMemberRole}
-                onLogout={handleLogout}
-              />
+              <OwnerRestaurantProvider>
+                <AppLayout
+                  userEmail={getUserDisplayName(currentUser)}
+                  userTrack="restaurantOwner"
+                  restaurantMemberRole={currentUser?.restaurantMemberRole}
+                  onLogout={handleLogout}
+                />
+              </OwnerRestaurantProvider>
             ) : (
               <Navigate to={homePath} replace />
             )
@@ -540,21 +556,17 @@ function App() {
           <Route
             path="/owner/profile"
             element={
-              currentUser?.restaurantMemberRole === 'hiringManager' ? (
-                <Navigate to="/owner/jobs" replace />
-              ) : (
+              <OwnerOnlyRestaurantRoute>
                 <OwnerProfilePage />
-              )
+              </OwnerOnlyRestaurantRoute>
             }
           />
           <Route
             path="/owner/team"
             element={
-              currentUser?.restaurantMemberRole === 'hiringManager' ? (
-                <Navigate to="/owner/jobs" replace />
-              ) : (
+              <OwnerOnlyRestaurantRoute>
                 <OwnerTeamPage />
-              )
+              </OwnerOnlyRestaurantRoute>
             }
           />
         </Route>

@@ -6123,6 +6123,87 @@ textarea:focus-visible {
   }
 }
 
+.owner-restaurant-selector {
+  display: inline-flex;
+  min-width: 0;
+}
+
+.owner-restaurant-selector select {
+  width: min(220px, 24vw);
+  min-height: 38px;
+  border: 1px solid var(--restaurant-border, var(--peepss-border));
+  border-radius: 999px;
+  padding: 0.45rem 2rem 0.45rem 0.8rem;
+  background: var(--peepss-surface-strong);
+  color: var(--peepss-text);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+}
+
+.owner-candidate-scope {
+  display: inline-flex;
+  justify-self: start;
+  gap: 0.25rem;
+  border: 1px solid var(--restaurant-border, var(--peepss-border));
+  border-radius: 999px;
+  padding: 0.25rem;
+  background: var(--peepss-surface-soft);
+}
+
+.owner-candidate-scope button {
+  min-height: 36px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.42rem 0.85rem;
+  background: transparent;
+  color: var(--peepss-text-muted);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.owner-candidate-scope button.active {
+  background: var(--peepss-surface-strong);
+  color: var(--peepss-text);
+  box-shadow: 0 2px 8px rgb(35 31 32 / 8%);
+}
+
+.owner-candidate-restaurant-name {
+  color: var(--peepss-text-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+@media (max-width: 720px) {
+  .restaurant-owner-shell .app-header .owner-restaurant-selector {
+    grid-row: 2;
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: min(100%, 260px);
+  }
+
+  .restaurant-owner-shell .app-header .owner-restaurant-selector select {
+    width: 100%;
+    max-width: none;
+  }
+
+  .restaurant-owner-shell .app-header .owner-main-nav {
+    grid-row: 3;
+  }
+
+  .owner-candidate-scope {
+    width: 100%;
+  }
+
+  .owner-candidate-scope button {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
+
 .admin-restaurant-funnel-mini {
   display: flex;
   flex-wrap: wrap;

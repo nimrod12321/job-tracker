@@ -27,6 +27,13 @@ export type OwnerProfile = {
 export type RestaurantMemberRole = 'owner' | 'hiringManager'
 export type RestaurantMemberStatus = 'active' | 'pending' | 'removed'
 
+export type OwnerAccessibleRestaurant = {
+  restaurantId: string
+  restaurantName: string
+  slug: string | null
+  membershipRole: RestaurantMemberRole
+}
+
 export type OwnerTeamMember = {
   id: string
   phoneNumber: string
@@ -85,6 +92,8 @@ export type OwnerApplication = {
   id: string
   status: OwnerApplicationStatus
   createdAt: string
+  restaurantId: string
+  restaurantName: string
   job: {
     id: string
     role: RestaurantRole
@@ -112,6 +121,8 @@ export type CandidateLeadStatus =
 
 export type RestaurantCandidateLead = {
   id: string
+  restaurantId: string
+  restaurantName: string
   fullName: string
   phoneNumber: string
   wantedRoles: RestaurantRole[]

@@ -70,6 +70,23 @@ export async function getAccessibleRestaurantsForUser(
   return accesses
 }
 
+export async function hasExistingRestaurantAssociationForUser(
+  userId: string,
+) {
+  const [ownedProfile, membership] = await Promise.all([
+    prisma.restaurantOwnerProfile.findUnique({
+      where: { userId },
+      select: { id: true },
+    }),
+    prisma.restaurantMember.findFirst({
+      where: { userId },
+      select: { id: true },
+    }),
+  ])
+
+  return Boolean(ownedProfile || membership)
+}
+
 export async function resolveRestaurantAccessForUser(
   userId: string,
   requestedRestaurantId?: string | null,
@@ -197,28 +214,4 @@ export async function getPrimaryRestaurantMembershipRole(userId: string) {
   }
 
   return null
-}
-
-export async function getRestaurantAccessForUser(
-  userId: string,
-): Promise<RestaurantAccess | null> {
-  // Stage 1 compatibility path for controllers that have not yet adopted
-  // X-Restaurant-Id. Stage 2 must move the restaurant-scoped controller set
-  // to resolveRestaurantAccessForUser together rather than mixing modes.
-  const accesses = await getAccessibleRestaurantsForUser(userId)
-  const preferredAccess =
-    accesses.find((access) => access.role === 'owner') ?? accesses[0]
-
-  if (!preferredAccess) {
-    return null
-  }
-
-  if (preferredAccess.isLegacyOwner) {
-    await ensureOwnerMembershipForUser(
-      preferredAccess.restaurant,
-      userId,
-    )
-  }
-
-  return preferredAccess
 }

@@ -15,6 +15,8 @@ import {
 import {
   deleteOwnerApplication,
   deleteOwnerLead,
+  getAllOwnerApplications,
+  getAllOwnerLeads,
   getOwnerApplications,
   getOwnerLeads,
   updateOwnerApplicationStatus,
@@ -26,6 +28,7 @@ import type {
   OwnerApplicationStatus,
   RestaurantCandidateLead,
 } from '../types/owner'
+import { useOwnerRestaurant } from '../context/ownerRestaurantState'
 
 const leadStatuses: CandidateLeadStatus[] = [
   'new',
@@ -53,6 +56,8 @@ function getWorkerInitial(name: string) {
 
 function OwnerApplicationsPage() {
   const { direction, language } = useRestaurantLanguage()
+  const { restaurants, selectedRestaurant, selectedRestaurantId } =
+    useOwnerRestaurant()
   const [applications, setApplications] = useState<OwnerApplication[]>([])
   const [leads, setLeads] = useState<RestaurantCandidateLead[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -66,6 +71,11 @@ function OwnerApplicationsPage() {
     null,
   )
   const [error, setError] = useState<string | null>(null)
+  const [candidateScope, setCandidateScope] = useState<'selected' | 'all'>(
+    'selected',
+  )
+  const effectiveCandidateScope =
+    restaurants.length > 1 ? candidateScope : 'selected'
   const pendingApplicationIds = useRef(new Set<string>())
   const pendingLeadIds = useRef(new Set<string>())
   const expandedCandidateIdRef = useRef<string | null>(null)
@@ -120,16 +130,32 @@ function OwnerApplicationsPage() {
     qrApplication: language === 'he' ? 'מועמדות QR' : 'QR application',
     collapseCandidate:
       language === 'he' ? 'סגירת מועמד' : 'Collapse candidate',
+    allRestaurants:
+      language === 'he' ? 'כל המסעדות' : 'All restaurants',
+    restaurant: language === 'he' ? 'מסעדה' : 'Restaurant',
   }
 
   useEffect(() => {
     let isActive = true
 
     async function loadApplications() {
+      setIsLoading(true)
+      setError(null)
+      setApplications([])
+      setLeads([])
+      expandedCandidateIdRef.current = null
+      setExpandedCandidateId(null)
+
       try {
+        const isAllRestaurants =
+          effectiveCandidateScope === 'all'
         const [ownerApplications, ownerLeads] = await Promise.all([
-          getOwnerApplications(),
-          getOwnerLeads(),
+          isAllRestaurants
+            ? getAllOwnerApplications()
+            : getOwnerApplications(selectedRestaurantId ?? undefined),
+          isAllRestaurants
+            ? getAllOwnerLeads()
+            : getOwnerLeads(selectedRestaurantId ?? undefined),
         ])
 
         if (isActive) {
@@ -158,7 +184,7 @@ function OwnerApplicationsPage() {
     return () => {
       isActive = false
     }
-  }, [])
+  }, [effectiveCandidateScope, restaurants.length, selectedRestaurantId])
 
   async function handleStatusChange(
     application: OwnerApplication,
@@ -189,6 +215,7 @@ function OwnerApplicationsPage() {
       const updatedApplication = await updateOwnerApplicationStatus(
         application.id,
         status,
+        application.restaurantId,
       )
 
       setApplications((currentApplications) =>
@@ -246,6 +273,7 @@ function OwnerApplicationsPage() {
         lead.id,
         status,
         contactChannel,
+        lead.restaurantId,
       )
 
       setLeads((currentLeads) =>
@@ -289,7 +317,7 @@ function OwnerApplicationsPage() {
     )
 
     try {
-      await deleteOwnerLead(lead.id)
+      await deleteOwnerLead(lead.id, lead.restaurantId)
     } catch (error) {
       setLeads((currentLeads) => {
         if (currentLeads.some((currentLead) => currentLead.id === lead.id)) {
@@ -338,7 +366,10 @@ function OwnerApplicationsPage() {
     )
 
     try {
-      await deleteOwnerApplication(application.id)
+      await deleteOwnerApplication(
+        application.id,
+        application.restaurantId,
+      )
     } catch (error) {
       setApplications((currentApplications) => {
         if (
@@ -494,6 +525,31 @@ function OwnerApplicationsPage() {
         </div>
       </div>
 
+      {restaurants.length > 1 && (
+        <div
+          className="owner-candidate-scope"
+          role="group"
+          aria-label={text.restaurant}
+        >
+          <button
+            type="button"
+            className={candidateScope === 'selected' ? 'active' : ''}
+            aria-pressed={candidateScope === 'selected'}
+            onClick={() => setCandidateScope('selected')}
+          >
+            {selectedRestaurant?.restaurantName ?? text.restaurant}
+          </button>
+          <button
+            type="button"
+            className={candidateScope === 'all' ? 'active' : ''}
+            aria-pressed={candidateScope === 'all'}
+            onClick={() => setCandidateScope('all')}
+          >
+            {text.allRestaurants}
+          </button>
+        </div>
+      )}
+
       {error && (
         <p className="message message-error" role="alert">
           {error}
@@ -546,6 +602,7 @@ function OwnerApplicationsPage() {
                                 openCandidate(candidateId, {
                                   kind: 'externalLead',
                                   id: lead.id,
+                                  restaurantId: lead.restaurantId,
                                 })
                               }
                             }}
@@ -560,6 +617,11 @@ function OwnerApplicationsPage() {
                               <strong className="owner-worker-name">
                                 {candidateName}
                               </strong>
+                              {effectiveCandidateScope === 'all' && (
+                                <span className="owner-candidate-restaurant-name">
+                                  {lead.restaurantName}
+                                </span>
+                              )}
                               <span>
                                 {text.appliedTo}: {rolePreview}
                               </span>
@@ -657,7 +719,11 @@ function OwnerApplicationsPage() {
                               href={`tel:${lead.phoneNumber}`}
                               onClick={() => {
                                 recordCandidateContactAndContinue(
-                                  { kind: 'externalLead', id: lead.id },
+                                  {
+                                    kind: 'externalLead',
+                                    id: lead.id,
+                                    restaurantId: lead.restaurantId,
+                                  },
                                   'phone',
                                   candidateActivityGuard.current,
                                   sendOwnerActivityEvent,
@@ -674,7 +740,11 @@ function OwnerApplicationsPage() {
                                 rel="noreferrer"
                                 onClick={() => {
                                   recordCandidateContactAndContinue(
-                                    { kind: 'externalLead', id: lead.id },
+                                    {
+                                      kind: 'externalLead',
+                                      id: lead.id,
+                                      restaurantId: lead.restaurantId,
+                                    },
                                     'whatsapp',
                                     candidateActivityGuard.current,
                                     sendOwnerActivityEvent,
@@ -756,6 +826,7 @@ function OwnerApplicationsPage() {
                                 openCandidate(candidateId, {
                                   kind: 'jobApplication',
                                   id: application.id,
+                                  restaurantId: application.restaurantId,
                                 })
                               }
                             }}
@@ -770,6 +841,11 @@ function OwnerApplicationsPage() {
                               <strong className="owner-worker-name">
                                 {workerName}
                               </strong>
+                              {effectiveCandidateScope === 'all' && (
+                                <span className="owner-candidate-restaurant-name">
+                                  {application.restaurantName}
+                                </span>
+                              )}
                               <span>
                                 {text.appliedTo}: {rolePreview}
                               </span>
@@ -902,6 +978,7 @@ function OwnerApplicationsPage() {
                                   {
                                     kind: 'jobApplication',
                                     id: application.id,
+                                    restaurantId: application.restaurantId,
                                   },
                                   'phone',
                                 )
@@ -919,6 +996,8 @@ function OwnerApplicationsPage() {
                                     {
                                       kind: 'jobApplication',
                                       id: application.id,
+                                      restaurantId:
+                                        application.restaurantId,
                                     },
                                     'whatsapp',
                                   )
