@@ -114,6 +114,23 @@ export async function saveOwnerProfile(
   return response.json()
 }
 
+export async function createAdditionalOwnerRestaurant(
+  input: OwnerProfileInput,
+  authorizingRestaurantId: string,
+): Promise<OwnerProfile> {
+  const response = await fetch(`${API_BASE_URL}/owner/restaurants`, {
+    method: 'POST',
+    headers: getHeaders(authorizingRestaurantId),
+    body: JSON.stringify(input),
+  })
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to create restaurant')
+  }
+
+  return response.json()
+}
+
 export async function updateOwnerQrRoles(
   qrEnabledRoles: RestaurantRole[],
   restaurantId?: string,

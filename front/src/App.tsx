@@ -592,6 +592,14 @@ function App() {
             }
           />
           <Route
+            path="/owner/restaurants/new"
+            element={
+              <OwnerOnlyRestaurantRoute>
+                <OwnerProfilePage mode="createAdditional" />
+              </OwnerOnlyRestaurantRoute>
+            }
+          />
+          <Route
             path="/owner/team"
             element={
               <OwnerOnlyRestaurantRoute>

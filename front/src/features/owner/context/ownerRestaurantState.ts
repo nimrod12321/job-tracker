@@ -7,7 +7,9 @@ export type OwnerRestaurantContextValue = {
   selectedRestaurantId: string | null
   isLoading: boolean
   selectRestaurant: (restaurantId: string) => void
-  refreshRestaurants: () => Promise<void>
+  refreshRestaurants: (
+    preferredRestaurantId?: string,
+  ) => Promise<OwnerAccessibleRestaurant[]>
 }
 
 export const OwnerRestaurantContext =

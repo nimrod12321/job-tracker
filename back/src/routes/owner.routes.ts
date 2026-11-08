@@ -1,5 +1,6 @@
 import { Router, type RequestHandler } from 'express'
 import {
+  createAdditionalOwnerRestaurant,
   createOwnerJob,
   completeOwnerRestaurantClaim,
   deleteOwnerApplication,
@@ -90,6 +91,11 @@ ownerRouter.put(
   '/profile',
   resolveOwnerProfileRestaurantAccess,
   updateOwnerProfile,
+)
+ownerRouter.post(
+  '/restaurants',
+  requireRestaurantAccess,
+  createAdditionalOwnerRestaurant,
 )
 ownerRouter.use(requireRestaurantAccess)
 ownerRouter.patch('/qr-roles', updateOwnerQrRoles)
