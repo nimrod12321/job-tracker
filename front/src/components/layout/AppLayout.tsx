@@ -49,6 +49,8 @@ function AppLayout({
     ownerApplications: language === 'he' ? 'מועמדים' : 'Applications',
     ownerTeam: language === 'he' ? 'צוות' : 'Team',
     ownerProfile: language === 'he' ? 'פרופיל' : 'Profile',
+    ownerAddRestaurant:
+      language === 'he' ? 'הוספת מסעדה' : 'Add restaurant',
     workerExplore: language === 'he' ? 'משמרות' : 'Explore',
     workerMatches: language === 'he' ? 'התאמות' : 'Matches',
     workerProfile: language === 'he' ? 'פרופיל' : 'Profile',
@@ -272,6 +274,14 @@ function AppLayout({
                     onClick={() => setIsOptionsOpen(false)}
                   >
                     {restaurantNavLabels.ownerTeam}
+                  </Link>
+                )}
+                {isRestaurantOwner && selectedRestaurantRole === 'owner' && (
+                  <Link
+                    to="/owner/restaurants/new"
+                    onClick={() => setIsOptionsOpen(false)}
+                  >
+                    {restaurantNavLabels.ownerAddRestaurant}
                   </Link>
                 )}
                 <RestaurantLanguageToggle

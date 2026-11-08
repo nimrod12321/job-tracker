@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express'
 import { randomUUID } from 'node:crypto'
 import type {
+  Prisma,
   RestaurantJob,
   RestaurantOwnerProfile,
   RestaurantRole,
@@ -15,6 +16,7 @@ import {
 import { normalizeIsraeliPhoneNumber } from '../utils/phone.js'
 import { getValidationErrorMessage } from '../utils/validation.js'
 import {
+  createRestaurantClaim,
   completeRestaurantClaim,
   RestaurantClaimError,
 } from '../services/restaurantClaim.service.js'
@@ -82,6 +84,7 @@ export async function completeOwnerRestaurantClaim(
 }
 
 import {
+  ownerAdditionalRestaurantSchema,
   ownerApplicationIdSchema,
   ownerApplicationStatusSchema,
   ownerCandidateLeadStatusSchema,
@@ -139,6 +142,15 @@ function isUniqueConstraintViolation(error: unknown): boolean {
     error !== null &&
     'code' in error &&
     (error as { code?: unknown }).code === 'P2002'
+  )
+}
+
+function isTransactionConflict(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { code?: unknown }).code === 'P2034'
   )
 }
 
@@ -213,13 +225,14 @@ function slugify(value: string) {
 async function generateUniqueRestaurantSlug(
   restaurantName: string,
   city: string,
+  db: Prisma.TransactionClient | typeof prisma = prisma,
 ) {
   const baseSlug = slugify(`${restaurantName} ${city}`)
   let candidateSlug = baseSlug
   let suffix = 2
 
   while (
-    await prisma.restaurantOwnerProfile.findUnique({
+    await db.restaurantOwnerProfile.findUnique({
       where: {
         slug: candidateSlug,
       },
@@ -383,8 +396,9 @@ async function findOwnedJob(
 
 async function createDefaultRestaurantJobsIfNeeded(
   profile: RestaurantOwnerProfile,
+  db: Prisma.TransactionClient | typeof prisma = prisma,
 ) {
-  const existingJobs = await prisma.restaurantJob.findMany({
+  const existingJobs = await db.restaurantJob.findMany({
     where: {
       ownerProfileId: profile.id,
     },
@@ -401,7 +415,7 @@ async function createDefaultRestaurantJobsIfNeeded(
     return
   }
 
-  await prisma.restaurantJob.createMany({
+  await db.restaurantJob.createMany({
     data: missingJobs.map((job) => ({
       ...job,
       restaurantName: profile.restaurantName,
@@ -415,6 +429,214 @@ async function createDefaultRestaurantJobsIfNeeded(
     })),
     skipDuplicates: true,
   })
+}
+
+class AdditionalRestaurantCreationError extends Error {
+  constructor(
+    public readonly status: number,
+    message: string,
+  ) {
+    super(message)
+    this.name = 'AdditionalRestaurantCreationError'
+  }
+}
+
+export async function createAdditionalOwnerRestaurant(
+  req: Request,
+  res: Response,
+) {
+  try {
+    const userId = getUserId(req)
+
+    if (!userId) {
+      return res.status(401).json({ message: 'unauthorized' })
+    }
+
+    const access = getRequestRestaurantAccess(req)
+
+    if (!access) {
+      return res.status(403).json({
+        message: 'restaurant access required',
+      })
+    }
+
+    if (access.role !== 'owner') {
+      return res.status(403).json({
+        message: 'owner access required',
+      })
+    }
+
+    const result = ownerAdditionalRestaurantSchema.safeParse(req.body)
+
+    if (!result.success) {
+      return res.status(400).json({
+        message: getValidationErrorMessage(result.error),
+      })
+    }
+
+    const { locationPlaceId, ...profileInput } = result.data
+    const verifiedLocation = await verifyRestaurantPlaceId({
+      placeId: locationPlaceId,
+    })
+    const verifiedLocationData =
+      getVerifiedRestaurantLocationData(verifiedLocation)
+
+    const profile = await prisma.$transaction(
+      async (tx) => {
+        const authenticatedUser = await tx.user.findUnique({
+          where: { id: userId },
+          select: {
+            phoneNumber: true,
+            fullName: true,
+          },
+        })
+        const selectedOwnerMembership =
+          await tx.restaurantMember.findFirst({
+            where: {
+              restaurantId: access.restaurant.id,
+              userId,
+              role: 'owner',
+              status: 'active',
+            },
+            select: {
+              phoneNumber: true,
+            },
+          })
+
+        if (!selectedOwnerMembership && !access.isLegacyOwner) {
+          throw new AdditionalRestaurantCreationError(
+            403,
+            'owner access required',
+          )
+        }
+
+        const ownerPhoneSource =
+          authenticatedUser?.phoneNumber ??
+          selectedOwnerMembership?.phoneNumber
+
+        if (!ownerPhoneSource) {
+          throw new AdditionalRestaurantCreationError(
+            403,
+            'verified owner phone is required',
+          )
+        }
+
+        let ownerPhone: string
+
+        try {
+          ownerPhone = normalizeIsraeliPhoneNumber(
+            ownerPhoneSource,
+          )
+        } catch {
+          throw new AdditionalRestaurantCreationError(
+            403,
+            'verified owner phone is required',
+          )
+        }
+
+        const existingRestaurantAtLocation =
+          await tx.restaurantOwnerProfile.findFirst({
+            where: {
+              googlePlaceId: verifiedLocation.googlePlaceId,
+              members: {
+                some: {
+                  userId,
+                  role: 'owner',
+                  status: 'active',
+                },
+              },
+            },
+            select: { id: true },
+          })
+
+        if (existingRestaurantAtLocation) {
+          throw new AdditionalRestaurantCreationError(
+            409,
+            'This restaurant is already connected to your account.',
+          )
+        }
+
+        const slug = await generateUniqueRestaurantSlug(
+          profileInput.restaurantName,
+          verifiedLocation.city,
+          tx,
+        )
+        const placeholderUser = await tx.user.create({
+          data: {
+            track: 'restaurantOwner',
+            fullName: profileInput.contactPerson,
+          },
+        })
+        const createdProfile =
+          await tx.restaurantOwnerProfile.create({
+            data: {
+              ...profileInput,
+              ...verifiedLocationData,
+              slug,
+              userId: placeholderUser.id,
+            },
+          })
+
+        await tx.restaurantMember.create({
+          data: {
+            restaurantId: createdProfile.id,
+            userId,
+            phoneNumber: ownerPhone,
+            displayName:
+              profileInput.contactPerson ||
+              authenticatedUser?.fullName || '',
+            role: 'owner',
+            status: 'active',
+          },
+        })
+
+        const { claim } = await createRestaurantClaim(
+          tx,
+          createdProfile.id,
+        )
+
+        await tx.restaurantClaim.update({
+          where: { id: claim.id },
+          data: { claimedAt: new Date() },
+        })
+        await createDefaultRestaurantJobsIfNeeded(createdProfile, tx)
+
+        return createdProfile
+      },
+      {
+        isolationLevel: 'Serializable',
+      },
+    )
+
+    return res.status(201).json(mapOwnerProfile(profile))
+  } catch (error) {
+    if (error instanceof GooglePlacesError) {
+      return res.status(error.status).json({
+        message: error.message,
+      })
+    }
+
+    if (error instanceof AdditionalRestaurantCreationError) {
+      return res.status(error.status).json({
+        message: error.message,
+      })
+    }
+
+    if (
+      isUniqueConstraintViolation(error) ||
+      isTransactionConflict(error)
+    ) {
+      return res.status(409).json({
+        message: 'A restaurant with these details already exists.',
+      })
+    }
+
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to create restaurant',
+    })
+  }
 }
 
 export async function getOwnerProfile(req: Request, res: Response) {

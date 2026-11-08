@@ -74,3 +74,26 @@ test('single-restaurant users keep the existing implicit selection', () => {
     '11111111-1111-4111-8111-111111111111',
   )
 })
+
+test('a newly created authorized restaurant is selected and persisted', () => {
+  clearStoredOwnerRestaurantId()
+
+  const newRestaurant = {
+    restaurantId: '33333333-3333-4333-8333-333333333333',
+    restaurantName: 'Cafe Three',
+    slug: 'cafe-three',
+    membershipRole: 'owner' as const,
+  }
+
+  assert.equal(
+    resolveValidOwnerRestaurantId(
+      [...restaurants, newRestaurant],
+      newRestaurant.restaurantId,
+    ),
+    newRestaurant.restaurantId,
+  )
+  assert.equal(
+    sessionStorage.getItem('peepss_selected_owner_restaurant_id'),
+    newRestaurant.restaurantId,
+  )
+})

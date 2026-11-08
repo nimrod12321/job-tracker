@@ -34,24 +34,28 @@ export function OwnerRestaurantProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const refreshRestaurants = useCallback(async () => {
+  const refreshRestaurants = useCallback(async (
+    preferredRestaurantId?: string,
+  ) => {
     try {
       const nextRestaurants = await getOwnerRestaurants()
       const nextRestaurantId =
         resolveValidOwnerRestaurantId(
           nextRestaurants,
-          requestedRestaurantId,
+          preferredRestaurantId ?? requestedRestaurantId,
         )
 
       setRestaurants(nextRestaurants)
       setSelectedRestaurantId(nextRestaurantId)
       setError(null)
+      return nextRestaurants
     } catch (loadError) {
       setError(
         loadError instanceof Error
           ? loadError.message
           : 'Failed to load restaurants',
       )
+      throw loadError
     } finally {
       setIsLoading(false)
     }

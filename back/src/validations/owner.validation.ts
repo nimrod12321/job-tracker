@@ -39,6 +39,30 @@ export const ownerProfileSchema = z
   })
   .strict()
 
+export const ownerAdditionalRestaurantSchema = ownerProfileSchema.superRefine(
+  (profile, context) => {
+    const requiredFields = [
+      ['restaurantName', profile.restaurantName],
+      ['contactPerson', profile.contactPerson],
+      ['phoneNumber', profile.phoneNumber],
+      ['city', profile.city],
+      ['street', profile.street],
+      ['description', profile.description],
+      ['locationPlaceId', profile.locationPlaceId],
+    ] as const
+
+    for (const [field, value] of requiredFields) {
+      if (!value.trim()) {
+        context.addIssue({
+          code: 'custom',
+          path: [field],
+          message: `${field} is required`,
+        })
+      }
+    }
+  },
+)
+
 export const ownerJobSchema = z
   .object({
     role: z.enum(restaurantRoles, {
