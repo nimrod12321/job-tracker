@@ -11,7 +11,7 @@ import {
   resolveCandidateSourceForRestaurant,
 } from '../services/analytics.service.js'
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js'
-import { getRestaurantAccessForUser } from '../services/restaurantAccess.service.js'
+import { getRequestRestaurantAccess } from '../middleware/restaurantAccess.middleware.js'
 import { getValidationErrorMessage } from '../utils/validation.js'
 import {
   analyticsAcquisitionSchema,
@@ -122,9 +122,7 @@ export async function createOwnerActivityEvent(
       })
     }
 
-    // Owner APIs consistently resolve the user's primary active restaurant.
-    // No client restaurant id is accepted or trusted by this endpoint.
-    const access = await getRestaurantAccessForUser(userId)
+    const access = getRequestRestaurantAccess(req)
     if (!access) {
       return res.status(403).json({ message: 'restaurant access required' })
     }

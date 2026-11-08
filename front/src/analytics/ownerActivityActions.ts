@@ -1,6 +1,7 @@
 export type OwnerCandidateReference = {
   kind: 'externalLead' | 'jobApplication'
   id: string
+  restaurantId?: string
 }
 
 export type OwnerActivityEvent =

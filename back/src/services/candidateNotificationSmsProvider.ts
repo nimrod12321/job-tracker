@@ -10,21 +10,95 @@ export const OWNER_APPLICATIONS_ROUTE = '/owner/applications'
 
 export type CandidateNotificationKind = 'newCandidate' | 'reminder24h'
 
-export function buildOwnerApplicationsUrl(frontendUrl: string) {
-  return new URL(
-    OWNER_APPLICATIONS_ROUTE,
-    `${frontendUrl.replace(/\/+$/, '')}/`,
-  ).toString()
+export type CandidateNotificationRestaurantContext = {
+  restaurantId: string
+  restaurantName: string
 }
 
-export function getNewCandidateSmsBody(applicationsUrl: string) {
-  return `התקבלה אצלך מועמדות חדשה דרך Peepss 👋\nאפשר לראות את הפרטים כאן: ${applicationsUrl}`
+export type CandidateNotificationSmsContext = {
+  candidateLeadId?: string
+  restaurants: CandidateNotificationRestaurantContext[]
+}
+
+type OwnerApplicationsUrlContext = {
+  candidateLeadId?: string
+  restaurantId?: string
+  scope?: 'all'
+}
+
+export function buildOwnerApplicationsUrl(
+  frontendUrl: string,
+  context: OwnerApplicationsUrlContext = {},
+) {
+  const applicationsUrl = new URL(
+    OWNER_APPLICATIONS_ROUTE,
+    `${frontendUrl.replace(/\/+$/, '')}/`,
+  )
+
+  if (context.scope === 'all') {
+    applicationsUrl.searchParams.set('scope', 'all')
+  } else if (context.restaurantId) {
+    applicationsUrl.searchParams.set(
+      'restaurantId',
+      context.restaurantId,
+    )
+  }
+
+  if (context.candidateLeadId) {
+    applicationsUrl.searchParams.set('candidateKind', 'externalLead')
+    applicationsUrl.searchParams.set(
+      'candidateId',
+      context.candidateLeadId,
+    )
+  }
+
+  return applicationsUrl.toString()
+}
+
+function normalizeRestaurantName(restaurantName: string | undefined) {
+  return restaurantName?.replace(/\s+/g, ' ').trim() || null
+}
+
+export function getNewCandidateSmsBody(
+  applicationsUrl: string,
+  restaurantName?: string,
+) {
+  const normalizedName = normalizeRestaurantName(restaurantName)
+
+  if (!normalizedName) {
+    return `התקבלה אצלך מועמדות חדשה דרך Peepss 👋\n\nלצפייה במועמדות:\n${applicationsUrl}`
+  }
+
+  return `התקבלה מועמדות חדשה ל"${normalizedName}" דרך Peepss 👋\n\nלצפייה במועמדות:\n${applicationsUrl}`
 }
 
 export function getCandidateContactReminderSmsBody(
   applicationsUrl: string,
   candidateCount: number,
+  restaurantNames: string[] = [],
 ) {
+  const normalizedNames = Array.from(
+    new Set(
+      restaurantNames
+        .map((restaurantName) => normalizeRestaurantName(restaurantName))
+        .filter((restaurantName): restaurantName is string => Boolean(restaurantName)),
+    ),
+  )
+
+  if (normalizedNames.length === 1) {
+    const restaurantName = normalizedNames[0]
+
+    if (candidateCount === 1) {
+      return `תזכורת קטנה מ-Peepss 👋\nיש מועמדות שמחכה לטיפול ב"${restaurantName}".\nלצפייה במועמדות:\n${applicationsUrl}`
+    }
+
+    return `תזכורת קטנה מ-Peepss 👋\nיש ${candidateCount} מועמדויות שמחכות לטיפול ב"${restaurantName}".\nלצפייה במועמדויות:\n${applicationsUrl}`
+  }
+
+  if (normalizedNames.length > 1) {
+    return `תזכורת קטנה מ-Peepss 👋\nיש ${candidateCount} מועמדויות שמחכות לטיפול בכמה מסעדות.\nלצפייה בכל המועמדויות:\n${applicationsUrl}`
+  }
+
   if (candidateCount === 1) {
     return `תזכורת קטנה מ-Peepss 👋\nיש לך מועמדות שמחכה לטיפול.\nאפשר לראות אותה כאן: ${applicationsUrl}`
   }
@@ -37,6 +111,7 @@ export type CandidateNotificationSmsProvider = {
     recipientPhone: string,
     kind: CandidateNotificationKind,
     candidateCount?: number,
+    context?: CandidateNotificationSmsContext,
   ) => Promise<{ providerMessageSid: string }>
 }
 
@@ -68,15 +143,40 @@ export function createTwilioCandidateNotificationSmsProvider(
 ): CandidateNotificationSmsProvider {
   validateTwilioSmsConfig(config)
   const twilioClient = client ?? createTwilioMessagesClient(config)
-  const applicationsUrl = buildOwnerApplicationsUrl(config.frontendUrl)
 
   return {
     async sendCandidateNotification(
       recipientPhone,
       kind,
       candidateCount = 1,
+      context,
     ) {
       try {
+        const restaurants = Array.from(
+          new Map(
+            (context?.restaurants ?? []).map((restaurant) => [
+              restaurant.restaurantId,
+              restaurant,
+            ]),
+          ).values(),
+        )
+        const isMultiRestaurantReminder =
+          kind === 'reminder24h' && restaurants.length > 1
+        const restaurant =
+          restaurants.length === 1 ? restaurants[0] : undefined
+        const applicationsUrl = buildOwnerApplicationsUrl(
+          config.frontendUrl,
+          {
+            ...(isMultiRestaurantReminder
+              ? { scope: 'all' as const }
+              : restaurant
+                ? { restaurantId: restaurant.restaurantId }
+                : {}),
+            ...(kind === 'newCandidate' && context?.candidateLeadId
+              ? { candidateLeadId: context.candidateLeadId }
+              : {}),
+          },
+        )
         const result = await twilioClient.messages.create({
           messagingServiceSid: config.messagingServiceSid,
           to: recipientPhone,
@@ -85,8 +185,12 @@ export function createTwilioCandidateNotificationSmsProvider(
               ? getCandidateContactReminderSmsBody(
                   applicationsUrl,
                   candidateCount,
+                  restaurants.map(({ restaurantName }) => restaurantName),
                 )
-              : getNewCandidateSmsBody(applicationsUrl),
+              : getNewCandidateSmsBody(
+                  applicationsUrl,
+                  restaurant?.restaurantName,
+                ),
         })
         const providerMessageSid =
           typeof result === 'object' &&

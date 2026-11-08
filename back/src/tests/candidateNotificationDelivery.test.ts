@@ -7,6 +7,7 @@ import {
   getCandidateContactReminderSmsBody,
   getNewCandidateSmsBody,
   type CandidateNotificationKind,
+  type CandidateNotificationSmsContext,
   type CandidateNotificationSmsProvider,
 } from '../services/candidateNotificationSmsProvider.js'
 import {
@@ -21,6 +22,8 @@ type DeliveryStatus = 'pending' | 'accepted' | 'failed'
 type FakeDelivery = {
   id: string
   candidateLeadId: string
+  restaurantId: string
+  restaurantName: string
   recipientPhone: string
   kind: CandidateNotificationKind
   status: DeliveryStatus
@@ -38,6 +41,8 @@ function delivery(
   return {
     id,
     candidateLeadId: 'candidate-lead',
+    restaurantId: '11111111-1111-4111-8111-111111111111',
+    restaurantName: 'קפה רוטשילד',
     recipientPhone: `+9725000000${id}`,
     kind: 'newCandidate',
     status: 'pending',
@@ -61,8 +66,19 @@ function createFakeRepository(deliveries: FakeDelivery[]) {
             item.kind === kind &&
             item.status === 'pending',
         )
-        .map(({ id, recipientPhone, attemptCount, kind }) => ({
+        .map(({
           id,
+          candidateLeadId: leadId,
+          restaurantId,
+          restaurantName,
+          recipientPhone,
+          attemptCount,
+          kind,
+        }) => ({
+          id,
+          candidateLeadId: leadId,
+          restaurantId,
+          restaurantName,
           recipientPhone,
           attemptCount,
           kind,
@@ -162,14 +178,17 @@ function createFakeRepository(deliveries: FakeDelivery[]) {
 function createFakeProvider(options?: { failPhones?: Set<string> }) {
   const calls: string[] = []
   const candidateCounts: Array<number | undefined> = []
+  const contexts: Array<CandidateNotificationSmsContext | undefined> = []
   const provider: CandidateNotificationSmsProvider = {
     async sendCandidateNotification(
       recipientPhone,
       _kind,
       candidateCount,
+      context,
     ) {
       calls.push(recipientPhone)
       candidateCounts.push(candidateCount)
+      contexts.push(context)
 
       if (options?.failPhones?.has(recipientPhone)) {
         throw new CandidateNotificationSmsError('twilio_30001')
@@ -181,7 +200,7 @@ function createFakeProvider(options?: { failPhones?: Set<string> }) {
     },
   }
 
-  return { provider, calls, candidateCounts }
+  return { provider, calls, candidateCounts, contexts }
 }
 
 const attemptedAt = new Date('2026-10-15T10:00:00.000Z')
@@ -212,7 +231,7 @@ test('disabled flag leaves pending delivery untouched and does not call provider
 
 test('successful send persists its complete accepted attempt result', async () => {
   const deliveries = [delivery('1', { safeErrorCode: 'old_error' })]
-  const { provider, calls } = createFakeProvider()
+  const { provider, calls, contexts } = createFakeProvider()
 
   await processNewCandidateNotificationDeliveries(
     { candidateLeadId: 'candidate-lead', enabled: true },
@@ -224,6 +243,17 @@ test('successful send persists its complete accepted attempt result', async () =
   )
 
   assert.deepEqual(calls, [deliveries[0]?.recipientPhone])
+  assert.deepEqual(contexts, [
+    {
+      candidateLeadId: 'candidate-lead',
+      restaurants: [
+        {
+          restaurantId: '11111111-1111-4111-8111-111111111111',
+          restaurantName: 'קפה רוטשילד',
+        },
+      ],
+    },
+  ])
   assert.equal(deliveries[0]?.attemptCount, 1)
   assert.equal(deliveries[0]?.lastAttemptAt, attemptedAt)
   assert.equal(deliveries[0]?.status, 'accepted')
@@ -394,17 +424,31 @@ test('Twilio notification provider uses SMS Messaging Service and centralized no
   const result = await provider.sendCandidateNotification(
     '+972501234567',
     'newCandidate',
+    undefined,
+    {
+      candidateLeadId: '22222222-2222-4222-8222-222222222222',
+      restaurants: [
+        {
+          restaurantId: '11111111-1111-4111-8111-111111111111',
+          restaurantName: 'קפה רוטשילד',
+        },
+      ],
+    },
   )
 
   const applicationsUrl = buildOwnerApplicationsUrl(
     'https://staging.peepss.com/',
+    {
+      restaurantId: '11111111-1111-4111-8111-111111111111',
+      candidateLeadId: '22222222-2222-4222-8222-222222222222',
+    },
   )
 
   assert.deepEqual(messages, [
     {
       messagingServiceSid: 'MG-test',
       to: '+972501234567',
-      body: getNewCandidateSmsBody(applicationsUrl),
+      body: getNewCandidateSmsBody(applicationsUrl, 'קפה רוטשילד'),
     },
   ])
   assert.deepEqual(result, {
@@ -438,27 +482,117 @@ test('Twilio reminder uses centralized Hebrew content and the direct Application
     '+972501234567',
     'reminder24h',
     3,
+    {
+      restaurants: [
+        {
+          restaurantId: '11111111-1111-4111-8111-111111111111',
+          restaurantName: 'קפה רוטשילד',
+        },
+      ],
+    },
   )
 
-  const applicationsUrl = buildOwnerApplicationsUrl(frontendUrl)
+  const applicationsUrl = buildOwnerApplicationsUrl(frontendUrl, {
+    restaurantId: '11111111-1111-4111-8111-111111111111',
+  })
   assert.deepEqual(messages, [
     {
       messagingServiceSid: 'MG-test',
       to: '+972501234567',
-      body: getCandidateContactReminderSmsBody(applicationsUrl, 3),
+      body: getCandidateContactReminderSmsBody(
+        applicationsUrl,
+        3,
+        ['קפה רוטשילד'],
+      ),
     },
   ])
   assert.equal(
-    getCandidateContactReminderSmsBody(applicationsUrl, 1),
-    'תזכורת קטנה מ-Peepss 👋\nיש לך מועמדות שמחכה לטיפול.\nאפשר לראות אותה כאן: https://staging.peepss.com/owner/applications',
+    getCandidateContactReminderSmsBody(
+      applicationsUrl,
+      1,
+      ['קפה רוטשילד'],
+    ),
+    'תזכורת קטנה מ-Peepss 👋\nיש מועמדות שמחכה לטיפול ב"קפה רוטשילד".\nלצפייה במועמדות:\nhttps://staging.peepss.com/owner/applications?restaurantId=11111111-1111-4111-8111-111111111111',
   )
   assert.equal(
-    getCandidateContactReminderSmsBody(applicationsUrl, 3),
-    'תזכורת קטנה מ-Peepss 👋\nיש לך 3 מועמדויות שמחכות לטיפול.\nאפשר לראות אותן כאן: https://staging.peepss.com/owner/applications',
+    getCandidateContactReminderSmsBody(
+      applicationsUrl,
+      3,
+      ['קפה רוטשילד'],
+    ),
+    'תזכורת קטנה מ-Peepss 👋\nיש 3 מועמדויות שמחכות לטיפול ב"קפה רוטשילד".\nלצפייה במועמדויות:\nhttps://staging.peepss.com/owner/applications?restaurantId=11111111-1111-4111-8111-111111111111',
   )
   assert.equal(
-    getNewCandidateSmsBody(applicationsUrl),
-    'התקבלה אצלך מועמדות חדשה דרך Peepss 👋\nאפשר לראות את הפרטים כאן: https://staging.peepss.com/owner/applications',
+    getNewCandidateSmsBody(applicationsUrl, 'קפה רוטשילד'),
+    'התקבלה מועמדות חדשה ל"קפה רוטשילד" דרך Peepss 👋\n\nלצפייה במועמדות:\nhttps://staging.peepss.com/owner/applications?restaurantId=11111111-1111-4111-8111-111111111111',
+  )
+})
+
+test('Twilio grouped reminder across restaurants links to the all-restaurants view', async () => {
+  const messages: unknown[] = []
+  const client: TwilioMessagesClient = {
+    messages: {
+      async create(message) {
+        messages.push(message)
+        return { sid: 'SM-multi-reminder-result' }
+      },
+    },
+  }
+  const frontendUrl = 'https://staging.peepss.com'
+  const provider = createTwilioCandidateNotificationSmsProvider(
+    {
+      accountSid: 'AC-test',
+      apiKeySid: 'SK-test',
+      apiKeySecret: 'test-secret',
+      messagingServiceSid: 'MG-test',
+      frontendUrl,
+    },
+    client,
+  )
+
+  await provider.sendCandidateNotification(
+    '+972501234567',
+    'reminder24h',
+    3,
+    {
+      restaurants: [
+        {
+          restaurantId: '11111111-1111-4111-8111-111111111111',
+          restaurantName: 'קפה רוטשילד',
+        },
+        {
+          restaurantId: '22222222-2222-4222-8222-222222222222',
+          restaurantName: 'קפה דיזנגוף',
+        },
+        {
+          restaurantId: '33333333-3333-4333-8333-333333333333',
+          restaurantName: 'קפה פלורנטין',
+        },
+      ],
+    },
+  )
+
+  const applicationsUrl = buildOwnerApplicationsUrl(frontendUrl, {
+    scope: 'all',
+  })
+  assert.deepEqual(messages, [
+    {
+      messagingServiceSid: 'MG-test',
+      to: '+972501234567',
+      body: getCandidateContactReminderSmsBody(
+        applicationsUrl,
+        3,
+        ['קפה רוטשילד', 'קפה דיזנגוף', 'קפה פלורנטין'],
+      ),
+    },
+  ])
+  assert.match(
+    String((messages[0] as { body: string }).body),
+    /בכמה מסעדות/,
+  )
+  assert.match(
+    String((messages[0] as { body: string }).body),
+    /\/owner\/applications\?scope=all/,
   )
 })
 
@@ -469,7 +603,7 @@ test('pending reminder delivery is claimed and accepted once', async () => {
       recipientPhone: '+972501234567',
     }),
   ]
-  const { provider, calls, candidateCounts } = createFakeProvider()
+  const { provider, calls, candidateCounts, contexts } = createFakeProvider()
 
   const result = await processPendingCandidateContactReminderDeliveries(
     { enabled: true },
@@ -482,6 +616,16 @@ test('pending reminder delivery is claimed and accepted once', async () => {
 
   assert.deepEqual(calls, ['+972501234567'])
   assert.deepEqual(candidateCounts, [1])
+  assert.deepEqual(contexts, [
+    {
+      restaurants: [
+        {
+          restaurantId: '11111111-1111-4111-8111-111111111111',
+          restaurantName: 'קפה רוטשילד',
+        },
+      ],
+    },
+  ])
   assert.deepEqual(result, {
     pendingFound: 1,
     attempted: 1,
