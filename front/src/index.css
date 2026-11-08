@@ -6123,23 +6123,94 @@ textarea:focus-visible {
   }
 }
 
-.owner-restaurant-selector {
-  display: inline-flex;
+.restaurant-header-actions {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.55rem;
   min-width: 0;
 }
 
-.owner-restaurant-selector select {
-  width: min(220px, 24vw);
-  min-height: 38px;
+.owner-restaurant-selector {
+  display: inline-grid;
+  grid-template-columns: 1rem minmax(0, 1fr) 0.8rem;
+  align-items: center;
+  gap: 0.42rem;
+  width: clamp(8.75rem, 16vw, 11.25rem);
+  min-width: 0;
+  min-height: 36px;
   border: 1px solid var(--restaurant-border, var(--peepss-border));
   border-radius: 999px;
-  padding: 0.45rem 2rem 0.45rem 0.8rem;
-  background: var(--peepss-surface-strong);
+  padding: 0.38rem 0.62rem;
+  background: #fffdf8;
+  color: var(--peepss-text);
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.owner-restaurant-selector:hover {
+  border-color: var(--peepss-border-strong, #d7b2a5);
+  background: #fff8ed;
+}
+
+.owner-restaurant-selector:focus-within {
+  border-color: var(--peepss-primary, #dc5634);
+  outline: 2px solid rgb(220 86 52 / 22%);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgb(220 86 52 / 10%);
+}
+
+.owner-restaurant-selector select {
+  width: 100%;
+  min-width: 0;
+  min-height: auto;
+  border: 0;
+  padding: 0;
+  overflow: hidden;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
   color: var(--peepss-text);
   font: inherit;
-  font-size: 0.82rem;
-  font-weight: 800;
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: nowrap;
   text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.owner-restaurant-selector select:focus,
+.owner-restaurant-selector select:focus-visible {
+  border: 0;
+  outline: 0;
+  box-shadow: none;
+}
+
+.owner-restaurant-selector-store,
+.owner-restaurant-selector-chevron {
+  display: block;
+  width: 100%;
+  height: auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.owner-restaurant-selector-store {
+  color: var(--peepss-primary, #dc5634);
+}
+
+.owner-restaurant-selector-chevron {
+  color: var(--peepss-text-muted, #765a56);
+  stroke-width: 2;
 }
 
 .owner-candidate-scope {
@@ -6182,7 +6253,7 @@ textarea:focus-visible {
     grid-row: 2;
     grid-column: 1 / -1;
     justify-self: center;
-    width: min(100%, 260px);
+    width: min(100%, 13.75rem);
   }
 
   .restaurant-owner-shell .app-header .owner-restaurant-selector select {
@@ -10705,5 +10776,23 @@ button.peepss-close-button:focus-visible,
   .restaurant-jobs-map-wrap,
   .restaurant-jobs-map {
     min-height: 360px;
+  }
+}
+
+@media (max-width: 760px) {
+  .restaurant-owner-shell .restaurant-header-actions {
+    display: contents;
+  }
+
+  .restaurant-owner-shell .app-header .owner-restaurant-selector {
+    grid-row: 2;
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: min(100%, 13.75rem);
+    max-width: calc(100vw - 1.5rem);
+  }
+
+  .restaurant-owner-shell .app-header .owner-main-nav {
+    grid-row: 3;
   }
 }
