@@ -210,95 +210,127 @@ function AppLayout({
           )}
         </nav>
 
-        {isRestaurantOwner &&
-          ownerRestaurantContext &&
-          ownerRestaurantContext.restaurants.length > 1 && (
-            <label className="owner-restaurant-selector">
-              <span className="sr-only">
-                {language === 'he' ? 'בחירת מסעדה' : 'Select restaurant'}
-              </span>
-              <select
-                aria-label={
-                  language === 'he' ? 'בחירת מסעדה' : 'Select restaurant'
-                }
-                value={ownerRestaurantContext.selectedRestaurantId ?? ''}
-                onChange={(event) =>
-                  ownerRestaurantContext.selectRestaurant(event.target.value)
+        {isRestaurantSide ? (
+          <div className="restaurant-header-actions">
+            {isRestaurantOwner &&
+              ownerRestaurantContext &&
+              ownerRestaurantContext.restaurants.length > 1 && (
+                <label
+                  className="owner-restaurant-selector"
+                  dir={direction}
+                >
+                  <span className="sr-only">
+                    {language === 'he'
+                      ? 'בחירת מסעדה'
+                      : 'Select restaurant'}
+                  </span>
+                  <svg
+                    className="owner-restaurant-selector-store"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path d="M4 10v9h16v-9M3 5h18l-1.5 5a3 3 0 0 1-5 1 3 3 0 0 1-5 0 3 3 0 0 1-5-1L3 5Zm5 14v-5h4v5" />
+                  </svg>
+                  <select
+                    aria-label={
+                      language === 'he'
+                        ? 'בחירת מסעדה'
+                        : 'Select restaurant'
+                    }
+                    dir={direction}
+                    value={
+                      ownerRestaurantContext.selectedRestaurantId ?? ''
+                    }
+                    onChange={(event) =>
+                      ownerRestaurantContext.selectRestaurant(
+                        event.target.value,
+                      )
+                    }
+                  >
+                    {ownerRestaurantContext.restaurants.map(
+                      (restaurant) => (
+                        <option
+                          key={restaurant.restaurantId}
+                          value={restaurant.restaurantId}
+                        >
+                          {restaurant.restaurantName}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                  <svg
+                    className="owner-restaurant-selector-chevron"
+                    viewBox="0 0 16 16"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path d="m3 6 5 5 5-5" />
+                  </svg>
+                </label>
+              )}
+
+            <div className="restaurant-options" ref={optionsRef} dir="ltr">
+              <button
+                type="button"
+                className="restaurant-options-trigger ui-icon-button"
+                aria-label={language === 'he' ? 'אפשרויות' : 'Options'}
+                aria-expanded={isOptionsOpen}
+                onClick={() =>
+                  setIsOptionsOpen((currentIsOpen) => !currentIsOpen)
                 }
               >
-                {ownerRestaurantContext.restaurants.map((restaurant) => (
-                  <option
-                    key={restaurant.restaurantId}
-                    value={restaurant.restaurantId}
-                  >
-                    {restaurant.restaurantName}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
+                ⋯
+              </button>
 
-        {isRestaurantSide ? (
-          <div className="restaurant-options" ref={optionsRef} dir="ltr">
-            <button
-              type="button"
-              className="restaurant-options-trigger ui-icon-button"
-              aria-label={language === 'he' ? 'אפשרויות' : 'Options'}
-              aria-expanded={isOptionsOpen}
-              onClick={() =>
-                setIsOptionsOpen((currentIsOpen) => !currentIsOpen)
-              }
-            >
-              ⋯
-            </button>
-
-            {isOptionsOpen && (
-              <div className="restaurant-options-menu" dir={direction}>
-                {(!isRestaurantOwner || canManageOwnerTeam) && (
-                  <Link
-                    to={
-                      isRestaurantOwner
-                        ? '/owner/profile'
-                        : '/restaurant/profile'
-                    }
-                    onClick={() => setIsOptionsOpen(false)}
+              {isOptionsOpen && (
+                <div className="restaurant-options-menu" dir={direction}>
+                  {(!isRestaurantOwner || canManageOwnerTeam) && (
+                    <Link
+                      to={
+                        isRestaurantOwner
+                          ? '/owner/profile'
+                          : '/restaurant/profile'
+                      }
+                      onClick={() => setIsOptionsOpen(false)}
+                    >
+                      {isRestaurantOwner
+                        ? restaurantNavLabels.ownerProfile
+                        : restaurantNavLabels.workerProfile}
+                    </Link>
+                  )}
+                  {isRestaurantOwner && canManageOwnerTeam && (
+                    <Link
+                      to="/owner/team"
+                      onClick={() => setIsOptionsOpen(false)}
+                    >
+                      {restaurantNavLabels.ownerTeam}
+                    </Link>
+                  )}
+                  {isRestaurantOwner && selectedRestaurantRole === 'owner' && (
+                    <Link
+                      to="/owner/restaurants/new"
+                      onClick={() => setIsOptionsOpen(false)}
+                    >
+                      {restaurantNavLabels.ownerAddRestaurant}
+                    </Link>
+                  )}
+                  <RestaurantLanguageToggle
+                    onChange={() => setIsOptionsOpen(false)}
+                  />
+                  <button
+                    type="button"
+                    className="ui-button ui-button--tertiary"
+                    onClick={() => {
+                      setIsOptionsOpen(false)
+                      onLogout()
+                    }}
                   >
-                    {isRestaurantOwner
-                      ? restaurantNavLabels.ownerProfile
-                      : restaurantNavLabels.workerProfile}
-                  </Link>
-                )}
-                {isRestaurantOwner && canManageOwnerTeam && (
-                  <Link
-                    to="/owner/team"
-                    onClick={() => setIsOptionsOpen(false)}
-                  >
-                    {restaurantNavLabels.ownerTeam}
-                  </Link>
-                )}
-                {isRestaurantOwner && selectedRestaurantRole === 'owner' && (
-                  <Link
-                    to="/owner/restaurants/new"
-                    onClick={() => setIsOptionsOpen(false)}
-                  >
-                    {restaurantNavLabels.ownerAddRestaurant}
-                  </Link>
-                )}
-                <RestaurantLanguageToggle
-                  onChange={() => setIsOptionsOpen(false)}
-                />
-                <button
-                  type="button"
-                  className="ui-button ui-button--tertiary"
-                  onClick={() => {
-                    setIsOptionsOpen(false)
-                    onLogout()
-                  }}
-                >
-                  {restaurantNavLabels.logout}
-                </button>
-              </div>
-            )}
+                    {restaurantNavLabels.logout}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         ) : (
           <div className="header-user-actions">
