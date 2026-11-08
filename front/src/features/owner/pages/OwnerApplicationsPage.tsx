@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import {
   getRestaurantRoleLabel,
   type RestaurantRole,
@@ -29,6 +30,7 @@ import type {
   RestaurantCandidateLead,
 } from '../types/owner'
 import { useOwnerRestaurant } from '../context/ownerRestaurantState'
+import { parseOwnerApplicationsDeepLink } from '../utils/ownerApplicationsDeepLink'
 
 const leadStatuses: CandidateLeadStatus[] = [
   'new',
@@ -55,6 +57,7 @@ function getWorkerInitial(name: string) {
 }
 
 function OwnerApplicationsPage() {
+  const location = useLocation()
   const { direction, language } = useRestaurantLanguage()
   const { restaurants, selectedRestaurant, selectedRestaurantId } =
     useOwnerRestaurant()
@@ -71,8 +74,9 @@ function OwnerApplicationsPage() {
     null,
   )
   const [error, setError] = useState<string | null>(null)
-  const [candidateScope, setCandidateScope] = useState<'selected' | 'all'>(
-    'selected',
+  const deepLink = parseOwnerApplicationsDeepLink(location.search)
+  const [candidateScope, setCandidateScope] = useState<'selected' | 'all'>(() =>
+    deepLink.scope === 'all' ? 'all' : 'selected',
   )
   const effectiveCandidateScope =
     restaurants.length > 1 ? candidateScope : 'selected'
@@ -163,6 +167,27 @@ function OwnerApplicationsPage() {
           setLeads(ownerLeads)
           setIsQrSectionOpen(true)
           setIsJobSectionOpen(ownerLeads.length === 0)
+
+          if (deepLink.candidateKind === 'externalLead' && deepLink.candidateId) {
+            const requestedLead = ownerLeads.find(
+              (lead) => lead.id === deepLink.candidateId,
+            )
+
+            if (requestedLead) {
+              const candidateId = `lead:${requestedLead.id}`
+              expandedCandidateIdRef.current = candidateId
+              setExpandedCandidateId(candidateId)
+              recordCandidateCardOpened(
+                {
+                  kind: 'externalLead',
+                  id: requestedLead.id,
+                  restaurantId: requestedLead.restaurantId,
+                },
+                candidateActivityGuard.current,
+                sendOwnerActivityEvent,
+              )
+            }
+          }
         }
       } catch (error) {
         if (isActive) {
@@ -184,7 +209,13 @@ function OwnerApplicationsPage() {
     return () => {
       isActive = false
     }
-  }, [effectiveCandidateScope, restaurants.length, selectedRestaurantId])
+  }, [
+    deepLink.candidateId,
+    deepLink.candidateKind,
+    effectiveCandidateScope,
+    restaurants.length,
+    selectedRestaurantId,
+  ])
 
   async function handleStatusChange(
     application: OwnerApplication,

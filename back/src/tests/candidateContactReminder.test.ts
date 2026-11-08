@@ -9,6 +9,7 @@ import {
 import {
   CandidateNotificationSmsError,
   type CandidateNotificationKind,
+  type CandidateNotificationSmsContext,
   type CandidateNotificationSmsProvider,
 } from '../services/candidateNotificationSmsProvider.js'
 import type { CandidateNotificationDeliveryRepository } from '../services/candidateNotificationDelivery.service.js'
@@ -103,12 +104,22 @@ function createRepositories(leads: CandidateContactReminderLead[]) {
             (!candidateLeadId ||
               item.candidateLeadId === candidateLeadId),
         )
-        .map(({ id, recipientPhone, attemptCount, kind }) => ({
-          id,
-          recipientPhone,
-          attemptCount,
-          kind,
-        }))
+        .map(({ id, candidateLeadId: leadId, recipientPhone, attemptCount, kind }) => {
+          const candidate = leads.find(({ id: leadIdFromCandidate }) =>
+            leadIdFromCandidate === leadId,
+          )
+          assert.ok(candidate)
+
+          return {
+            id,
+            candidateLeadId: leadId,
+            restaurantId: candidate.ownerProfileId,
+            restaurantName: `Restaurant ${candidate.ownerProfileId}`,
+            recipientPhone,
+            attemptCount,
+            kind,
+          }
+        })
     },
     async claimPendingAttempt(item, attemptedAt) {
       const stored = deliveries.find(
@@ -212,9 +223,11 @@ function createProvider(fail = false) {
     kind: CandidateNotificationKind
     candidateCount: number | undefined
   }> = []
+  const contexts: Array<CandidateNotificationSmsContext | undefined> = []
   const provider: CandidateNotificationSmsProvider = {
-    async sendCandidateNotification(phone, kind, candidateCount) {
+    async sendCandidateNotification(phone, kind, candidateCount, context) {
       calls.push({ phone, kind, candidateCount })
+      contexts.push(context)
 
       if (fail) {
         throw new CandidateNotificationSmsError('twilio_30001')
@@ -224,7 +237,7 @@ function createProvider(fail = false) {
     },
   }
 
-  return { provider, calls }
+  return { provider, calls, contexts }
 }
 
 async function dispatch(
@@ -391,6 +404,24 @@ test('three candidates for one phone send one grouped reminder and accept every 
     },
   ])
   assert.equal(state.deliveries.length, 3)
+  assert.deepEqual(state.contexts, [
+    {
+      restaurants: [
+        {
+          restaurantId: 'restaurant-a',
+          restaurantName: 'Restaurant restaurant-a',
+        },
+        {
+          restaurantId: 'restaurant-a',
+          restaurantName: 'Restaurant restaurant-a',
+        },
+        {
+          restaurantId: 'restaurant-a',
+          restaurantName: 'Restaurant restaurant-a',
+        },
+      ],
+    },
+  ])
   assert.ok(
     state.deliveries.every(
       (item) =>
@@ -399,6 +430,40 @@ test('three candidates for one phone send one grouped reminder and accept every 
         item.providerMessageSid === 'SM-+972501234567',
     ),
   )
+})
+
+test('three cafes for one phone send one grouped reminder with all restaurant contexts', async () => {
+  const restaurantIds = ['restaurant-a', 'restaurant-b', 'restaurant-c']
+  const candidates = restaurantIds.map((restaurantId, index) =>
+    lead({
+      id: `lead-${index + 1}`,
+      ownerProfileId: restaurantId,
+      members: [
+        {
+          id: `member-${index + 1}`,
+          restaurantId,
+          userId: 'user-owner',
+          phoneNumber: '050-123-4567',
+          role: 'owner',
+          status: 'active',
+        },
+      ],
+    }),
+  )
+
+  const state = await dispatch(candidates, { enabled: true })
+
+  assert.equal(state.calls.length, 1)
+  assert.equal(state.calls[0]?.candidateCount, 3)
+  assert.deepEqual(state.contexts, [
+    {
+      restaurants: restaurantIds.map((restaurantId) => ({
+        restaurantId,
+        restaurantName: `Restaurant ${restaurantId}`,
+      })),
+    },
+  ])
+  assert.equal(state.deliveries.length, 3)
 })
 
 test('three candidates for two manager phones send two grouped reminders', async () => {

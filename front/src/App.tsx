@@ -47,6 +47,10 @@ import {
   clearStoredOwnerRestaurantId,
   resolveValidOwnerRestaurantId,
 } from './features/owner/utils/ownerRestaurantSelection'
+import {
+  getSafeOwnerApplicationsReturnTo,
+  parseOwnerApplicationsDeepLink,
+} from './features/owner/utils/ownerApplicationsDeepLink'
 import ProfilePage from './features/profile/pages/ProfilePage'
 import RestaurantPublicApplyPage from './features/public/pages/RestaurantPublicApplyPage'
 import RestaurantClaimPage from './features/public/pages/RestaurantClaimPage'
@@ -115,7 +119,10 @@ function isWorkerProfileComplete(
   )
 }
 
-async function getPostAuthPath(user: AuthUser | null) {
+async function getPostAuthPath(
+  user: AuthUser | null,
+  preferredRestaurantId?: string | null,
+) {
   if (user?.isAdmin) {
     return getHomePath(user)
   }
@@ -141,7 +148,10 @@ async function getPostAuthPath(user: AuthUser | null) {
 
   try {
     const restaurants = await getOwnerRestaurants()
-    const restaurantId = resolveValidOwnerRestaurantId(restaurants)
+    const restaurantId = resolveValidOwnerRestaurantId(
+      restaurants,
+      preferredRestaurantId,
+    )
     const profile = await getOwnerProfile(restaurantId ?? undefined)
 
     return isOwnerProfileComplete(profile) ? '/owner/jobs' : '/owner/profile'
@@ -168,6 +178,7 @@ function getUserDisplayName(user: AuthUser | null) {
 
 function App() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [token, setToken] = useState<string | null>(() => getAuthToken())
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null)
   const [isCheckingAuth, setIsCheckingAuth] = useState(() =>
@@ -234,10 +245,29 @@ function App() {
 
     try {
       const user = await getCurrentUser(newToken)
-      const nextPath = await getPostAuthPath(user)
+      const returnTo = getSafeOwnerApplicationsReturnTo(
+        (location.state as { returnTo?: unknown } | null)?.returnTo,
+      )
+      const preferredRestaurantId = returnTo
+        ? parseOwnerApplicationsDeepLink(
+            new URL(returnTo, window.location.origin).search,
+          ).restaurantId
+        : null
+      const nextPath = await getPostAuthPath(
+        user,
+        preferredRestaurantId,
+      )
+      const canReturnToOwnerApplications = Boolean(
+        returnTo &&
+          nextPath !== '/owner/profile' &&
+          (user.restaurantMemberRole || user.track === 'restaurantOwner'),
+      )
 
       setCurrentUser(user)
-      navigate(nextPath, { replace: true })
+      navigate(
+        canReturnToOwnerApplications && returnTo ? returnTo : nextPath,
+        { replace: true, state: null },
+      )
     } catch {
       clearAuthToken()
       setCurrentUser(null)
