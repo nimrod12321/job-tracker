@@ -10,6 +10,9 @@ import {
 
 export type PendingCandidateNotificationDelivery = {
   id: string
+  candidateLeadId: string
+  restaurantId: string
+  restaurantName: string
   recipientPhone: string
   attemptCount: number
   kind: CandidateNotificationKind
@@ -82,11 +85,28 @@ export const prismaCandidateNotificationRepository: CandidateNotificationDeliver
         },
         select: {
           id: true,
+          candidateLeadId: true,
           recipientPhone: true,
           attemptCount: true,
           kind: true,
+          candidateLead: {
+            select: {
+              ownerProfileId: true,
+              ownerProfile: {
+                select: {
+                  restaurantName: true,
+                },
+              },
+            },
+          },
         },
-      })
+      }).then((deliveries) =>
+        deliveries.map(({ candidateLead, ...delivery }) => ({
+          ...delivery,
+          restaurantId: candidateLead.ownerProfileId,
+          restaurantName: candidateLead.ownerProfile.restaurantName,
+        })),
+      )
     },
 
     async claimPendingAttempt(delivery, attemptedAt) {
@@ -307,6 +327,11 @@ async function processGroupedCandidateContactReminderDeliveries(
 
       result.attempted += claimedIds.length
 
+      const claimedIdSet = new Set(claimedIds)
+      const claimedDeliveries = phoneDeliveries.filter(({ id }) =>
+        claimedIdSet.has(id),
+      )
+
       let providerResult: { providerMessageSid: string }
 
       try {
@@ -315,6 +340,12 @@ async function processGroupedCandidateContactReminderDeliveries(
             recipientPhone,
             'reminder24h',
             claimedIds.length,
+            {
+              restaurants: claimedDeliveries.map((delivery) => ({
+                restaurantId: delivery.restaurantId,
+                restaurantName: delivery.restaurantName,
+              })),
+            },
           )
       } catch (error) {
         const safeErrorCode =
@@ -383,6 +414,16 @@ async function processCandidateNotificationDeliveryAttempts(
           await dependencies.provider.sendCandidateNotification(
             delivery.recipientPhone,
             delivery.kind,
+            undefined,
+            {
+              candidateLeadId: delivery.candidateLeadId,
+              restaurants: [
+                {
+                  restaurantId: delivery.restaurantId,
+                  restaurantName: delivery.restaurantName,
+                },
+              ],
+            },
           )
 
         await dependencies.repository.markAccepted(

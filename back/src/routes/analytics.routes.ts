@@ -7,6 +7,7 @@ import {
 } from '../controllers/analytics.controller.js'
 import { requireAuth } from '../middleware/auth.middleware.js'
 import { createInMemoryRateLimit } from '../middleware/rateLimit.middleware.js'
+import { requireRestaurantAccess } from '../middleware/restaurantAccess.middleware.js'
 
 const analyticsRouter = Router()
 const acquisitionRateLimit = createInMemoryRateLimit({
@@ -30,6 +31,7 @@ analyticsRouter.post(
   '/owner-events',
   eventRateLimit,
   requireAuth,
+  requireRestaurantAccess,
   createOwnerActivityEvent,
 )
 analyticsRouter.post('/link', eventRateLimit, requireAuth, linkOwnerAcquisition)

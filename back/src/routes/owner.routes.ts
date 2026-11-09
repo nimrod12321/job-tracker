@@ -1,15 +1,19 @@
 import { Router, type RequestHandler } from 'express'
 import {
+  createAdditionalOwnerRestaurant,
   createOwnerJob,
   completeOwnerRestaurantClaim,
   deleteOwnerApplication,
   deleteOwnerJob,
   deleteOwnerLead,
   addOwnerTeamMember,
+  getAllOwnerApplications,
+  getAllOwnerLeads,
   getOwnerApplications,
   getOwnerJobs,
   getOwnerLeads,
   getOwnerProfile,
+  getOwnerRestaurants,
   getOwnerTeam,
   publishOwnerJob,
   removeOwnerTeamMember,
@@ -25,7 +29,11 @@ import {
   requireAuth,
   type AuthenticatedRequest,
 } from '../middleware/auth.middleware.js'
-import { getRestaurantAccessForUser } from '../services/restaurantAccess.service.js'
+import {
+  requireRestaurantAccess,
+  resolveOwnerProfileRestaurantAccess,
+} from '../middleware/restaurantAccess.middleware.js'
+import { getAccessibleRestaurantsForUser } from '../services/restaurantAccess.service.js'
 
 const ownerRouter = Router()
 
@@ -55,9 +63,9 @@ const requireRestaurantOwner: RequestHandler = async (req, res, next) => {
       },
     })
 
-    const access = await getRestaurantAccessForUser(userId)
+    const accesses = await getAccessibleRestaurantsForUser(userId)
 
-    if (user?.track !== 'restaurantOwner' && !access) {
+    if (user?.track !== 'restaurantOwner' && accesses.length === 0) {
       res.status(403).json({
         message: 'restaurant access required',
       })
@@ -71,8 +79,25 @@ const requireRestaurantOwner: RequestHandler = async (req, res, next) => {
 }
 
 ownerRouter.use(requireAuth, requireRestaurantOwner)
-ownerRouter.get('/profile', getOwnerProfile)
-ownerRouter.put('/profile', updateOwnerProfile)
+ownerRouter.get('/restaurants', getOwnerRestaurants)
+ownerRouter.get('/applications/all', getAllOwnerApplications)
+ownerRouter.get('/leads/all', getAllOwnerLeads)
+ownerRouter.get(
+  '/profile',
+  resolveOwnerProfileRestaurantAccess,
+  getOwnerProfile,
+)
+ownerRouter.put(
+  '/profile',
+  resolveOwnerProfileRestaurantAccess,
+  updateOwnerProfile,
+)
+ownerRouter.post(
+  '/restaurants',
+  requireRestaurantAccess,
+  createAdditionalOwnerRestaurant,
+)
+ownerRouter.use(requireRestaurantAccess)
 ownerRouter.patch('/qr-roles', updateOwnerQrRoles)
 ownerRouter.get('/team', getOwnerTeam)
 ownerRouter.post('/team/members', addOwnerTeamMember)

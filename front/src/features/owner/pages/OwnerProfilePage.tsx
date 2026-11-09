@@ -2,11 +2,13 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useRestaurantLanguage } from '../../restaurant/utils/restaurantLanguage'
 import {
+  createAdditionalOwnerRestaurant,
   getOwnerProfile,
   saveOwnerProfile,
 } from '../services/ownerApi'
 import type { OwnerProfileInput } from '../types/owner'
 import VerifiedAddressAutocomplete from '../../../components/location/VerifiedAddressAutocomplete'
+import { useOwnerRestaurant } from '../context/ownerRestaurantState'
 
 const emptyProfile: OwnerProfileInput = {
   restaurantName: '',
@@ -20,11 +22,19 @@ const emptyProfile: OwnerProfileInput = {
 
 type ProfileField = Exclude<keyof OwnerProfileInput, 'locationPlaceId'>
 
-function OwnerProfilePage() {
+type OwnerProfilePageProps = {
+  mode?: 'profile' | 'createAdditional'
+}
+
+function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
+  const isCreatingAdditionalRestaurant = mode === 'createAdditional'
   const navigate = useNavigate()
+  const { selectedRestaurantId, refreshRestaurants } = useOwnerRestaurant()
   const { direction, language } = useRestaurantLanguage()
   const [form, setForm] = useState<OwnerProfileInput>(emptyProfile)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(
+    !isCreatingAdditionalRestaurant,
+  )
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [missingFields, setMissingFields] = useState<ProfileField[]>([])
@@ -36,21 +46,38 @@ function OwnerProfilePage() {
   const [locationPlaceId, setLocationPlaceId] = useState('')
 
   const text = {
-    title:
-      language === 'he' ? 'פרופיל המסעדה שלך' : 'Your restaurant profile',
+    title: isCreatingAdditionalRestaurant
+      ? language === 'he'
+        ? 'הוספת מסעדה'
+        : 'Add restaurant'
+      : language === 'he'
+        ? 'פרופיל המסעדה שלך'
+        : 'Your restaurant profile',
     subtitle:
-      language === 'he'
-        ? 'נשתמש בזה כדי לנהל משרות ברורות ומהירות.'
-        : 'We use this to manage clear, fast job posts.',
+      isCreatingAdditionalRestaurant
+        ? language === 'he'
+          ? 'השלימו את פרטי המסעדה החדשה.'
+          : 'Complete the details for the new restaurant.'
+        : language === 'he'
+          ? 'נשתמש בזה כדי לנהל משרות ברורות ומהירות.'
+          : 'We use this to manage clear, fast job posts.',
     loading:
       language === 'he'
         ? 'טוען פרופיל מסעדה...'
         : 'Loading restaurant profile...',
-    finish:
-      language === 'he' ? 'שמירה והמשך למשרות' : 'Save and continue to jobs',
+    finish: isCreatingAdditionalRestaurant
+      ? language === 'he'
+        ? 'הוספת המסעדה והמשך'
+        : 'Add restaurant and continue'
+      : language === 'he'
+        ? 'שמירה והמשך למשרות'
+        : 'Save and continue to jobs',
     saving: language === 'he' ? 'שומר...' : 'Saving...',
-    saved:
-      language === 'he'
+    saved: isCreatingAdditionalRestaurant
+      ? language === 'he'
+        ? 'המסעדה נוספה.'
+        : 'Restaurant added.'
+      : language === 'he'
         ? 'פרופיל המסעדה נשמר.'
         : 'Restaurant profile saved.',
     restaurantSection:
@@ -92,9 +119,26 @@ function OwnerProfilePage() {
   useEffect(() => {
     let isActive = true
 
+    if (isCreatingAdditionalRestaurant) {
+      return () => {
+        isActive = false
+      }
+    }
+
     async function loadProfile() {
+      setIsLoading(true)
+      setError(null)
+      setSuccess(null)
+      setForm(emptyProfile)
+      setIsNewProfile(true)
+      setLocationStatus('unverified')
+      setLocationInput('')
+      setLocationPlaceId('')
+
       try {
-        const profile = await getOwnerProfile()
+        const profile = await getOwnerProfile(
+          selectedRestaurantId ?? undefined,
+        )
 
         if (isActive && profile) {
           setIsNewProfile(false)
@@ -130,7 +174,7 @@ function OwnerProfilePage() {
     return () => {
       isActive = false
     }
-  }, [])
+  }, [isCreatingAdditionalRestaurant, selectedRestaurantId])
 
   function updateField(field: keyof OwnerProfileInput, value: string) {
     setForm((currentForm) => ({
@@ -190,7 +234,34 @@ function OwnerProfilePage() {
         whatsappNumber: form.phoneNumber,
         ...(locationPlaceId ? { locationPlaceId } : {}),
       }
-      const savedProfile = await saveOwnerProfile(profileInput)
+      const savedProfile = isCreatingAdditionalRestaurant
+        ? await createAdditionalOwnerRestaurant(
+            profileInput,
+            selectedRestaurantId!,
+          )
+        : await saveOwnerProfile(
+            profileInput,
+            selectedRestaurantId ?? undefined,
+          )
+
+      if (isCreatingAdditionalRestaurant) {
+        const nextRestaurants = await refreshRestaurants(savedProfile.id)
+
+        if (
+          !nextRestaurants.some(
+            (restaurant) => restaurant.restaurantId === savedProfile.id,
+          )
+        ) {
+          throw new Error(
+            language === 'he'
+              ? 'המסעדה נוצרה אך לא ניתן היה לבחור בה. נסו לרענן את העמוד.'
+              : 'The restaurant was created but could not be selected. Refresh and try again.',
+          )
+        }
+
+        navigate('/owner/jobs')
+        return
+      }
 
       setForm({
         restaurantName: savedProfile.restaurantName,
@@ -206,6 +277,7 @@ function OwnerProfilePage() {
       setLocationStatus(savedProfile.locationStatus)
       setLocationInput(savedProfile.formattedAddress || savedProfile.street)
       setLocationPlaceId('')
+      await refreshRestaurants(savedProfile.id)
       navigate('/owner/jobs')
     } catch (error) {
       setError(

@@ -7,6 +7,7 @@ import {
 import type { OwnerTeam, OwnerTeamMember } from '../types/owner'
 import { useRestaurantLanguage } from '../../restaurant/utils/restaurantLanguage'
 import { formatIsraeliPhoneForDisplay } from '../../../utils/phoneDisplay'
+import { useOwnerRestaurant } from '../context/ownerRestaurantState'
 
 const roleLabels = {
   he: {
@@ -34,6 +35,7 @@ const statusLabels = {
 
 function OwnerTeamPage() {
   const { language } = useRestaurantLanguage()
+  const { selectedRestaurantId } = useOwnerRestaurant()
   const [team, setTeam] = useState<OwnerTeam | null>(null)
   const [displayName, setDisplayName] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
@@ -75,8 +77,15 @@ function OwnerTeamPage() {
     let isActive = true
 
     async function loadTeam() {
+      setIsLoading(true)
+      setError(null)
+      setMessage(null)
+      setTeam(null)
+
       try {
-        const nextTeam = await getOwnerTeam()
+        const nextTeam = await getOwnerTeam(
+          selectedRestaurantId ?? undefined,
+        )
 
         if (isActive) {
           setTeam(nextTeam)
@@ -99,7 +108,7 @@ function OwnerTeamPage() {
     return () => {
       isActive = false
     }
-  }, [])
+  }, [selectedRestaurantId])
 
   async function handleAddMember(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -117,7 +126,7 @@ function OwnerTeamPage() {
       const member = await addOwnerTeamMember({
         displayName,
         phoneNumber,
-      })
+      }, selectedRestaurantId ?? undefined)
 
       setTeam((currentTeam) =>
         currentTeam
@@ -145,7 +154,10 @@ function OwnerTeamPage() {
     setBusyMemberId(member.id)
 
     try {
-      await removeOwnerTeamMember(member.id)
+      await removeOwnerTeamMember(
+        member.id,
+        selectedRestaurantId ?? undefined,
+      )
       setTeam((currentTeam) =>
         currentTeam
           ? {

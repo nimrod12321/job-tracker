@@ -113,6 +113,32 @@ export function isRestaurantProfileComplete(profile: {
   )
 }
 
+async function removeCompetingPendingOwnerMemberships(
+  tx: Prisma.TransactionClient,
+  restaurantId: string,
+  preservedMembershipId?: string,
+) {
+  // Keep the invitation row for history, but make it ineligible for the
+  // phone-based pending membership linker once another owner claims access.
+  await tx.restaurantMember.updateMany({
+    where: {
+      restaurantId,
+      role: 'owner',
+      status: 'pending',
+      ...(preservedMembershipId
+        ? {
+            id: {
+              not: preservedMembershipId,
+            },
+          }
+        : {}),
+    },
+    data: {
+      status: 'removed',
+    },
+  })
+}
+
 export async function completeRestaurantClaim(input: {
   restaurantSlug: string
   token: string
@@ -161,16 +187,27 @@ export async function completeRestaurantClaim(input: {
       )
     }
 
-    const existingOwner = restaurant.members[0]
+    const differentExistingOwner = restaurant.members.find(
+      (member) => member.userId !== input.userId,
+    )
+
+    if (differentExistingOwner) {
+      throw new RestaurantClaimError(
+        'ALREADY_ACTIVATED',
+        409,
+        'restaurant has already been activated',
+      )
+    }
+
+    const existingOwner = restaurant.members.find(
+      (member) => member.userId === input.userId,
+    )
 
     if (existingOwner) {
-      if (existingOwner.userId !== input.userId) {
-        throw new RestaurantClaimError(
-          'ALREADY_ACTIVATED',
-          409,
-          'restaurant has already been activated',
-        )
-      }
+      await removeCompetingPendingOwnerMemberships(
+        tx,
+        restaurant.id,
+      )
 
       if (!claim.claimedAt) {
         await tx.restaurantClaim.update({
@@ -264,6 +301,12 @@ export async function completeRestaurantClaim(input: {
         'restaurant has already been activated',
       )
     }
+
+    await removeCompetingPendingOwnerMemberships(
+      tx,
+      restaurant.id,
+      existingMembership?.id,
+    )
 
     if (existingMembership) {
       await tx.restaurantMember.update({

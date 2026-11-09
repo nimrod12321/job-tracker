@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import PeepssLogo from '../../../components/brand/PeepssLogo'
 import {
   requestAuthCode,
@@ -25,6 +25,7 @@ type AuthStep = 'details' | 'code'
 type PhoneAuthTrack = Extract<UserTrack, 'restaurant' | 'restaurantOwner'>
 
 function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
+  const location = useLocation()
   const { direction, language, setLanguage } = useRestaurantLanguage()
   const [step, setStep] = useState<AuthStep>('details')
   const [fullName, setFullName] = useState('')
@@ -279,12 +280,17 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
 
           {step === 'details' && (
             <nav className="auth-mode-tabs" aria-label={text.authModeLabel}>
-              <Link className={mode === 'login' ? 'active' : ''} to="/login">
+              <Link
+                className={mode === 'login' ? 'active' : ''}
+                to="/login"
+                state={location.state}
+              >
                 {text.loginTab}
               </Link>
               <Link
                 className={mode === 'register' ? 'active' : ''}
                 to="/register"
+                state={location.state}
               >
                 {text.registerTab}
               </Link>
@@ -416,7 +422,9 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
                       error === text.loginMissingAccount && (
                         <>
                           {' '}
-                          <Link to="/register">{text.switchToRegister}</Link>
+                          <Link to="/register" state={location.state}>
+                            {text.switchToRegister}
+                          </Link>
                         </>
                       )}
                   </p>
