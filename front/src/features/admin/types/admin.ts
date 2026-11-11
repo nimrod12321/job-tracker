@@ -304,6 +304,31 @@ export type AdminRestaurantDetail = {
   applications: AdminRestaurantApplication[]
 }
 
+export type AdminRestaurantTeamMember = {
+  id: string
+  phoneNumber: string
+  displayName: string
+  role: 'owner' | 'hiringManager'
+  status: 'active' | 'pending' | 'removed'
+  user: {
+    id: string
+    fullName: string
+    phoneNumber: string | null
+  } | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type AdminRestaurantTeam = {
+  restaurantId: string
+  members: AdminRestaurantTeamMember[]
+}
+
+export type AdminRestaurantTeamMemberInput = {
+  phoneNumber: string
+  displayName?: string
+}
+
 export type AdminRestaurantCandidateLead = RestaurantCandidateLead & {
   status: CandidateLeadStatus
   ownerViewedAt: string | null

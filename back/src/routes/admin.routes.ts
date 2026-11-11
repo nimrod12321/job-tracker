@@ -21,6 +21,12 @@ import {
   getAdminAcquisitionFunnelStage,
   getAdminWantedRoleDrilldown,
 } from '../controllers/adminAnalytics.controller.js'
+import {
+  addAdminRestaurantHiringManager,
+  getAdminRestaurantTeam,
+  removeAdminRestaurantHiringManager,
+  replaceAdminRestaurantOwner,
+} from '../controllers/adminRestaurantTeam.controller.js'
 
 const adminRouter = Router()
 
@@ -39,6 +45,19 @@ adminRouter.get('/candidates', getAdminCandidates)
 adminRouter.post('/restaurants', createAdminRestaurant)
 adminRouter.post('/restaurants/:id/mark-seen', markAdminRestaurantSeen)
 adminRouter.get('/restaurants/:id', getAdminRestaurantDetail)
+adminRouter.get('/restaurants/:id/team', getAdminRestaurantTeam)
+adminRouter.post(
+  '/restaurants/:id/team/hiring-managers',
+  addAdminRestaurantHiringManager,
+)
+adminRouter.delete(
+  '/restaurants/:id/team/members/:memberId',
+  removeAdminRestaurantHiringManager,
+)
+adminRouter.post(
+  '/restaurants/:id/team/owners/:memberId/replace',
+  replaceAdminRestaurantOwner,
+)
 adminRouter.patch('/restaurants/:id', updateAdminRestaurant)
 adminRouter.patch(
   '/restaurants/:id/qr-roles',

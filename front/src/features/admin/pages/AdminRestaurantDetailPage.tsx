@@ -14,10 +14,14 @@ import {
 } from '../../../utils/qrPoster'
 import AdminShell from '../components/AdminShell'
 import {
+  addAdminRestaurantHiringManager,
   deleteAdminRestaurant,
   getAdminRestaurantDetail,
+  getAdminRestaurantTeam,
   markAdminRestaurantSeen,
   regenerateAdminRestaurantClaim,
+  removeAdminRestaurantTeamMember,
+  replaceAdminRestaurantOwner,
   updateAdminRestaurant,
   updateAdminRestaurantJobBoardRoles,
   updateAdminRestaurantLocation,
@@ -26,8 +30,11 @@ import {
 import type {
   AdminRestaurantDetail,
   AdminRestaurantInput,
+  AdminRestaurantTeam,
+  AdminRestaurantTeamMember,
 } from '../types/admin'
 import VerifiedAddressAutocomplete from '../../../components/location/VerifiedAddressAutocomplete'
+import { formatIsraeliPhoneForDisplay } from '../../../utils/phoneDisplay'
 
 const emptyRestaurantForm: AdminRestaurantInput = {
   restaurantName: '',
@@ -86,7 +93,21 @@ function AdminRestaurantDetailPage() {
   const [savingRoleSection, setSavingRoleSection] = useState<
     'qr' | 'jobBoard' | null
   >(null)
+  const [team, setTeam] = useState<AdminRestaurantTeam | null>(null)
+  const [isTeamLoading, setIsTeamLoading] = useState(true)
+  const [teamBusyKey, setTeamBusyKey] = useState<string | null>(null)
+  const [teamError, setTeamError] = useState<string | null>(null)
+  const [teamMessage, setTeamMessage] = useState<string | null>(null)
+  const [managerName, setManagerName] = useState('')
+  const [managerPhone, setManagerPhone] = useState('')
+  const [replacementOwnerName, setReplacementOwnerName] = useState('')
+  const [replacementOwnerPhone, setReplacementOwnerPhone] = useState('')
   const restaurant = detail?.restaurant ?? null
+  const ownerMembers =
+    team?.members.filter((member) => member.role === 'owner') ?? []
+  const teamOwner = ownerMembers.length === 1 ? ownerMembers[0] : null
+  const displayedTeamOwner = ownerMembers[0] ?? null
+  const ownerPhoneManagedByTeam = team === null || ownerMembers.length > 0
   const publicQrLink = useMemo(
     () => getPublicQrLink(restaurant?.slug ?? null),
     [restaurant?.slug],
@@ -155,6 +176,43 @@ function AdminRestaurantDetailPage() {
   useEffect(() => {
     let isActive = true
 
+    async function loadRestaurantTeam() {
+      setIsTeamLoading(true)
+      setTeam(null)
+      setTeamError(null)
+      setTeamMessage(null)
+
+      try {
+        const nextTeam = await getAdminRestaurantTeam(restaurantId)
+
+        if (isActive) {
+          setTeam(nextTeam)
+        }
+      } catch (loadError) {
+        if (isActive) {
+          setTeamError(
+            loadError instanceof Error
+              ? loadError.message
+              : 'טעינת צוות המסעדה נכשלה.',
+          )
+        }
+      } finally {
+        if (isActive) {
+          setIsTeamLoading(false)
+        }
+      }
+    }
+
+    void loadRestaurantTeam()
+
+    return () => {
+      isActive = false
+    }
+  }, [restaurantId])
+
+  useEffect(() => {
+    let isActive = true
+
     async function generateQrCode() {
       if (!publicQrLink) {
         setQrCodeUrl('')
@@ -186,6 +244,142 @@ function AdminRestaurantDetailPage() {
       ...currentForm,
       [field]: value,
     }))
+  }
+
+  async function refreshRestaurantTeam() {
+    const nextTeam = await getAdminRestaurantTeam(restaurantId)
+    setTeam(nextTeam)
+    return nextTeam
+  }
+
+  async function handleAddHiringManager(
+    event: FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault()
+    setTeamError(null)
+    setTeamMessage(null)
+
+    if (!managerPhone.trim()) {
+      setTeamError('צריך להזין מספר טלפון.')
+      return
+    }
+
+    setTeamBusyKey('add-manager')
+
+    try {
+      await addAdminRestaurantHiringManager(restaurantId, {
+        phoneNumber: managerPhone,
+        ...(managerName.trim() ? { displayName: managerName.trim() } : {}),
+      })
+      await refreshRestaurantTeam()
+      setManagerName('')
+      setManagerPhone('')
+      setTeamMessage('מנהל/ת הגיוס נוסף/ה לצוות.')
+    } catch (addError) {
+      setTeamError(
+        addError instanceof Error
+          ? addError.message
+          : 'הוספת מנהל/ת הגיוס נכשלה.',
+      )
+    } finally {
+      setTeamBusyKey(null)
+    }
+  }
+
+  async function handleRemoveTeamMember(member: AdminRestaurantTeamMember) {
+    const memberLabel =
+      member.displayName ||
+      member.user?.fullName ||
+      formatIsraeliPhoneForDisplay(member.phoneNumber)
+
+    if (
+      !window.confirm(
+        `להסיר את ${memberLabel} מהצוות? הגישה למסעדה תבוטל.`,
+      )
+    ) {
+      return
+    }
+
+    setTeamError(null)
+    setTeamMessage(null)
+    setTeamBusyKey(`remove:${member.id}`)
+
+    try {
+      await removeAdminRestaurantTeamMember(restaurantId, member.id)
+      await refreshRestaurantTeam()
+      setTeamMessage('חבר/ת הצוות הוסר/ה והגישה בוטלה.')
+    } catch (removeError) {
+      setTeamError(
+        removeError instanceof Error
+          ? removeError.message
+          : 'הסרת חבר/ת הצוות נכשלה.',
+      )
+    } finally {
+      setTeamBusyKey(null)
+    }
+  }
+
+  async function handleReplaceOwner(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setTeamError(null)
+    setTeamMessage(null)
+
+    if (!teamOwner) {
+      setTeamError('נדרש בעלים יחיד בצוות כדי לבצע החלפה.')
+      return
+    }
+
+    if (!replacementOwnerPhone.trim()) {
+      setTeamError('צריך להזין את מספר הטלפון של הבעלים החדש/ה.')
+      return
+    }
+
+    const currentOwnerLabel =
+      teamOwner.displayName ||
+      teamOwner.user?.fullName ||
+      formatIsraeliPhoneForDisplay(teamOwner.phoneNumber)
+    const shouldReplace = window.confirm(
+      `להחליף את ${currentOwnerLabel} בבעלים עם הטלפון ${replacementOwnerPhone}? הגישה של הבעלים הנוכחי/ת תבוטל.`,
+    )
+
+    if (!shouldReplace) {
+      return
+    }
+
+    setTeamBusyKey('replace-owner')
+
+    try {
+      await replaceAdminRestaurantOwner(restaurantId, teamOwner.id, {
+        phoneNumber: replacementOwnerPhone,
+        ...(replacementOwnerName.trim()
+          ? { displayName: replacementOwnerName.trim() }
+          : {}),
+      })
+      const [nextTeam, nextDetail] = await Promise.all([
+        getAdminRestaurantTeam(restaurantId),
+        getAdminRestaurantDetail(restaurantId),
+      ])
+
+      setTeam(nextTeam)
+      setDetail(nextDetail)
+      setForm((currentForm) => ({
+        ...currentForm,
+        ownerLoginPhone: nextDetail.restaurant.ownerLoginPhone ?? '',
+      }))
+      setReplacementOwnerName('')
+      setReplacementOwnerPhone('')
+      setTeamMessage(
+        'הבעלים הוחלפו. אם מספר הטלפון עדיין לא מחובר לחשבון, הסטטוס יישאר בהמתנה עד להתחברות.',
+      )
+    } catch (replaceError) {
+      setTeamError(
+        replaceError instanceof Error
+          ? replaceError.message
+          : 'החלפת הבעלים נכשלה.',
+      )
+    } finally {
+      setTeamBusyKey(null)
+    }
   }
 
   async function handleCopyQrLink() {
@@ -313,7 +507,16 @@ function AdminRestaurantDetailPage() {
     setIsSubmitting(true)
 
     try {
-      const updatedRestaurant = await updateAdminRestaurant(restaurant.id, form)
+      const restaurantInput: Partial<AdminRestaurantInput> = { ...form }
+
+      if (ownerPhoneManagedByTeam) {
+        delete restaurantInput.ownerLoginPhone
+      }
+
+      const updatedRestaurant = await updateAdminRestaurant(
+        restaurant.id,
+        restaurantInput,
+      )
 
       setDetail((currentDetail) =>
         currentDetail
@@ -946,6 +1149,203 @@ function AdminRestaurantDetailPage() {
           </div>
         </section>
 
+        <section
+          className="admin-restaurant-panel admin-team-panel"
+          id="team"
+          dir="rtl"
+          lang="he"
+        >
+          <div className="admin-section-heading admin-team-heading">
+            <div>
+              <p className="admin-eyebrow">ניהול הרשאות</p>
+              <h2>צוות המסעדה</h2>
+              <p>
+                ניהול הבעלים ומנהלי הגיוס לפי מספר הטלפון שמשמש להתחברות.
+              </p>
+            </div>
+          </div>
+
+          {teamMessage && (
+            <p className="message message-success" role="status">
+              {teamMessage}
+            </p>
+          )}
+          {teamError && (
+            <p className="message message-error" role="alert">
+              {teamError}
+            </p>
+          )}
+
+          {isTeamLoading ? (
+            <p className="status-message">טוען את צוות המסעדה...</p>
+          ) : team ? (
+            <>
+              <div className="admin-team-member-list">
+                {team.members.length === 0 ? (
+                  <p className="admin-team-empty">עדיין אין חברי צוות.</p>
+                ) : (
+                  team.members.map((member) => {
+                    const memberName =
+                      member.displayName ||
+                      member.user?.fullName ||
+                      'ללא שם'
+                    const isRemoving =
+                      teamBusyKey === `remove:${member.id}`
+
+                    return (
+                      <article className="admin-team-member" key={member.id}>
+                        <div className="admin-team-member-main">
+                          <strong>{memberName}</strong>
+                          <span dir="ltr">
+                            {formatIsraeliPhoneForDisplay(member.phoneNumber)}
+                          </span>
+                          {member.status === 'pending' && (
+                            <small>
+                              ממתין/ה להתחברות ראשונה עם מספר הטלפון הזה.
+                            </small>
+                          )}
+                        </div>
+                        <div className="admin-team-member-badges">
+                          <span className={`admin-team-role ${member.role}`}>
+                            {member.role === 'owner'
+                              ? 'בעלים'
+                              : 'מנהל/ת גיוס'}
+                          </span>
+                          <span
+                            className={`admin-team-status ${member.status}`}
+                          >
+                            {member.status === 'active'
+                              ? 'פעיל/ה'
+                              : member.status === 'pending'
+                                ? 'בהמתנה'
+                                : 'הוסר/ה'}
+                          </span>
+                        </div>
+                        {member.role === 'hiringManager' && (
+                          <button
+                            className="ui-button ui-button--destructive"
+                            type="button"
+                            disabled={teamBusyKey !== null}
+                            onClick={() =>
+                              void handleRemoveTeamMember(member)
+                            }
+                          >
+                            {isRemoving ? 'מסיר/ה...' : 'הסרה'}
+                          </button>
+                        )}
+                      </article>
+                    )
+                  })
+                )}
+              </div>
+
+              <div className="admin-team-management-grid">
+                <section className="admin-team-management-card">
+                  <div>
+                    <h3>הוספת מנהל/ת גיוס</h3>
+                    <p>
+                      אם כבר קיים חשבון עם המספר, הגישה תהיה פעילה מיד. אחרת
+                      היא תמתין להתחברות הראשונה.
+                    </p>
+                  </div>
+                  <form
+                    className="admin-team-form"
+                    onSubmit={handleAddHiringManager}
+                  >
+                    <label>
+                      שם (לא חובה)
+                      <input
+                        value={managerName}
+                        onChange={(event) =>
+                          setManagerName(event.target.value)
+                        }
+                      />
+                    </label>
+                    <label>
+                      מספר טלפון
+                      <input
+                        dir="ltr"
+                        inputMode="tel"
+                        placeholder="050-123-4567"
+                        value={managerPhone}
+                        onChange={(event) =>
+                          setManagerPhone(event.target.value)
+                        }
+                        required
+                      />
+                    </label>
+                    <button
+                      className="ui-button ui-button--primary"
+                      type="submit"
+                      disabled={teamBusyKey !== null}
+                      aria-busy={teamBusyKey === 'add-manager'}
+                    >
+                      {teamBusyKey === 'add-manager'
+                        ? 'מוסיף/ה...'
+                        : 'הוספה לצוות'}
+                    </button>
+                  </form>
+                </section>
+
+                <section className="admin-team-management-card admin-team-owner-card">
+                  <div>
+                    <h3>החלפת בעלים</h3>
+                    <p>
+                      ההחלפה מבטלת את הגישה של הבעלים הנוכחי/ת. תידרש גם
+                      הודעת אישור לפני הביצוע.
+                    </p>
+                  </div>
+                  {teamOwner ? (
+                    <form
+                      className="admin-team-form"
+                      onSubmit={handleReplaceOwner}
+                    >
+                      <label>
+                        שם הבעלים החדש/ה (לא חובה)
+                        <input
+                          value={replacementOwnerName}
+                          onChange={(event) =>
+                            setReplacementOwnerName(event.target.value)
+                          }
+                        />
+                      </label>
+                      <label>
+                        מספר הטלפון החדש
+                        <input
+                          dir="ltr"
+                          inputMode="tel"
+                          placeholder="050-123-4567"
+                          value={replacementOwnerPhone}
+                          onChange={(event) =>
+                            setReplacementOwnerPhone(event.target.value)
+                          }
+                          required
+                        />
+                      </label>
+                      <button
+                        className="ui-button ui-button--secondary"
+                        type="submit"
+                        disabled={teamBusyKey !== null}
+                        aria-busy={teamBusyKey === 'replace-owner'}
+                      >
+                        {teamBusyKey === 'replace-owner'
+                          ? 'מחליף/ה...'
+                          : 'החלפת בעלים'}
+                      </button>
+                    </form>
+                  ) : (
+                    <p className="admin-team-owner-warning">
+                      {ownerMembers.length > 1
+                        ? 'נמצאו כמה רשומות בעלים. יש לתקן את המצב לפני החלפה.'
+                        : 'לא נמצאה רשומת בעלים פעילה או בהמתנה להחלפה.'}
+                    </p>
+                  )}
+                </section>
+              </div>
+            </>
+          ) : null}
+        </section>
+
         <section className="admin-administration-section" id="administration">
           <div className="admin-section-heading">
             <div>
@@ -1090,11 +1490,18 @@ function AdminRestaurantDetailPage() {
               <label>
                 Owner login phone
                 <input
-                  value={form.ownerLoginPhone}
+                  value={
+                    displayedTeamOwner?.phoneNumber ?? form.ownerLoginPhone
+                  }
                   onChange={(event) => updateForm('ownerLoginPhone', event.target.value)}
                   placeholder="0501234567"
+                  readOnly={ownerPhoneManagedByTeam}
                 />
-                <small>The owner uses this phone to log in and access this restaurant.</small>
+                <small>
+                  {ownerPhoneManagedByTeam
+                    ? 'Owner access is managed in the Restaurant team panel above. This value is excluded from profile updates.'
+                    : 'The owner uses this phone to log in and access this restaurant.'}
+                </small>
               </label>
               <label>
                 Restaurant contact phone

@@ -7,6 +7,7 @@ import {
 import type { Prisma } from '../generated/prisma/client.js'
 import { env } from '../config/env.js'
 import { prisma } from '../lib/prisma.js'
+import { lockRestaurantMembershipState } from './restaurantTeam.service.js'
 
 type ClaimDatabaseClient = Prisma.TransactionClient | typeof prisma
 
@@ -145,9 +146,29 @@ export async function completeRestaurantClaim(input: {
   userId: string
 }) {
   return prisma.$transaction(async (tx) => {
+    const restaurantIdentity =
+      await tx.restaurantOwnerProfile.findUnique({
+        where: {
+          slug: input.restaurantSlug,
+        },
+        select: { id: true },
+      })
+
+    if (!restaurantIdentity) {
+      throw new RestaurantClaimError(
+        'RESTAURANT_NOT_FOUND',
+        404,
+        'restaurant not found',
+      )
+    }
+
+    // Serialize claim, OTP membership activation and Admin team mutations on
+    // the restaurant row so none of those paths can commit stale ownership.
+    await lockRestaurantMembershipState(tx, restaurantIdentity.id)
+
     const restaurant = await tx.restaurantOwnerProfile.findUnique({
       where: {
-        slug: input.restaurantSlug,
+        id: restaurantIdentity.id,
       },
       include: {
         claim: true,
