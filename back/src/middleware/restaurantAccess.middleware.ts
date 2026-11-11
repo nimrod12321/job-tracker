@@ -45,6 +45,32 @@ export function createRestaurantAccessMiddleware(
             resolution.access.restaurant,
             userId,
           )
+
+          const refreshedResolution =
+            await resolveRestaurantAccessForUser(
+              userId,
+              requestedRestaurantId,
+            )
+
+          if (refreshedResolution.status === 'selectionRequired') {
+            res.status(409).json({
+              code: 'restaurant_selection_required',
+              message: 'restaurant selection required',
+            })
+            return
+          }
+
+          if (refreshedResolution.status !== 'resolved') {
+            res.status(403).json({
+              code: 'restaurant_access_denied',
+              message: 'restaurant access required',
+            })
+            return
+          }
+
+          scopedRequest.restaurantAccess = refreshedResolution.access
+          next()
+          return
         }
 
         scopedRequest.restaurantAccess = resolution.access

@@ -1,5 +1,6 @@
 import type { RestaurantOwnerProfile } from '../generated/prisma/client.js'
 import { prisma } from '../lib/prisma.js'
+import { lockRestaurantMembershipState } from './restaurantTeam.service.js'
 
 export type RestaurantAccessRole = 'owner' | 'hiringManager'
 
@@ -25,9 +26,18 @@ export type RestaurantAccessResolution =
 export async function getAccessibleRestaurantsForUser(
   userId: string,
 ): Promise<RestaurantAccess[]> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { phoneNumber: true },
+  })
   const memberships = await prisma.restaurantMember.findMany({
     where: {
-      userId,
+      OR: [
+        { userId },
+        ...(user?.phoneNumber
+          ? [{ phoneNumber: user.phoneNumber }]
+          : []),
+      ],
     },
     include: {
       restaurant: true,
@@ -37,14 +47,17 @@ export async function getAccessibleRestaurantsForUser(
     },
   })
   const accesses: RestaurantAccess[] = memberships
-    .filter((membership) => membership.status === 'active')
+    .filter(
+      (membership) =>
+        membership.status === 'active' && membership.userId === userId,
+    )
     .map((membership) => ({
       restaurant: membership.restaurant,
       role: membership.role,
       membershipId: membership.id,
       isLegacyOwner: false,
     }))
-  const restaurantIds = new Set(
+  const userMembershipRestaurantIds = new Set(
     memberships.map((membership) => membership.restaurantId),
   )
   const legacyRestaurant =
@@ -58,7 +71,23 @@ export async function getAccessibleRestaurantsForUser(
   // legitimate owner access path only when no membership record has ever
   // superseded it. A removed/pending membership must not be reactivated by
   // the legacy fallback.
-  if (legacyRestaurant && !restaurantIds.has(legacyRestaurant.id)) {
+  const ownerMembershipSupersedesLegacy = legacyRestaurant
+    ? Boolean(
+        await prisma.restaurantMember.findFirst({
+          where: {
+            restaurantId: legacyRestaurant.id,
+            role: 'owner',
+          },
+          select: { id: true },
+        }),
+      )
+    : false
+
+  if (
+    legacyRestaurant &&
+    !userMembershipRestaurantIds.has(legacyRestaurant.id) &&
+    !ownerMembershipSupersedesLegacy
+  ) {
     accesses.push({
       restaurant: legacyRestaurant,
       role: 'owner',
@@ -133,30 +162,45 @@ export async function ensureOwnerMembershipForUser(
   if (!user?.phoneNumber) {
     return
   }
+  const verifiedPhoneNumber = user.phoneNumber
 
-  await prisma.restaurantMember.upsert({
-    where: {
-      restaurantId_phoneNumber: {
+  await prisma.$transaction(async (tx) => {
+    await lockRestaurantMembershipState(tx, restaurant.id)
+
+    const currentProfile = await tx.restaurantOwnerProfile.findUnique({
+      where: { id: restaurant.id },
+      select: { userId: true },
+    })
+
+    if (currentProfile?.userId !== userId) {
+      return
+    }
+
+    // Any owner membership means the legacy direct-profile relation has
+    // already been superseded. Never use fallback repair to revive a removed
+    // owner or overtake a pending/active replacement owner.
+    const existingOwnerMembership = await tx.restaurantMember.findFirst({
+      where: {
         restaurantId: restaurant.id,
-        phoneNumber: user.phoneNumber,
+        role: 'owner',
       },
-    },
-    update: {
-      userId,
-      role: 'owner',
-      status: 'active',
-      displayName:
-        restaurant.contactPerson || user.fullName,
-    },
-    create: {
-      restaurantId: restaurant.id,
-      userId,
-      phoneNumber: user.phoneNumber,
-      displayName:
-        restaurant.contactPerson || user.fullName,
-      role: 'owner',
-      status: 'active',
-    },
+      select: { id: true },
+    })
+
+    if (existingOwnerMembership) {
+      return
+    }
+
+    await tx.restaurantMember.create({
+      data: {
+        restaurantId: restaurant.id,
+        userId,
+        phoneNumber: verifiedPhoneNumber,
+        displayName: restaurant.contactPerson || user.fullName,
+        role: 'owner',
+        status: 'active',
+      },
+    })
   })
 }
 
@@ -177,14 +221,74 @@ export async function linkPendingRestaurantMemberships(
   })
 
   for (const membership of memberships) {
-    await prisma.restaurantMember.update({
-      where: {
-        id: membership.id,
-      },
-      data: {
-        userId,
-        status: 'active',
-      },
+    await prisma.$transaction(async (tx) => {
+      await lockRestaurantMembershipState(tx, membership.restaurantId)
+
+      const currentMembership = await tx.restaurantMember.findFirst({
+        where: {
+          id: membership.id,
+          restaurantId: membership.restaurantId,
+          phoneNumber,
+          userId: null,
+          status: 'pending',
+        },
+      })
+
+      // The invitation may have been revoked or replaced while OTP was being
+      // verified. Only a row that is still pending may become active.
+      if (!currentMembership) {
+        return
+      }
+
+      const existingUserMembership = await tx.restaurantMember.findFirst({
+        where: {
+          restaurantId: membership.restaurantId,
+          userId,
+          id: { not: membership.id },
+        },
+      })
+
+      if (existingUserMembership) {
+        return
+      }
+
+      if (currentMembership.role === 'owner') {
+        const differentActiveOwner =
+          await tx.restaurantMember.findFirst({
+            where: {
+              restaurantId: membership.restaurantId,
+              role: 'owner',
+              status: 'active',
+              id: { not: membership.id },
+            },
+            select: { id: true },
+          })
+
+        if (differentActiveOwner) {
+          await tx.restaurantMember.updateMany({
+            where: {
+              id: membership.id,
+              status: 'pending',
+              userId: null,
+            },
+            data: { status: 'removed' },
+          })
+          return
+        }
+      }
+
+      await tx.restaurantMember.updateMany({
+        where: {
+          id: membership.id,
+          phoneNumber,
+          userId: null,
+          status: 'pending',
+        },
+        data: {
+          userId,
+          status: 'active',
+        },
+      })
     })
   }
 }
