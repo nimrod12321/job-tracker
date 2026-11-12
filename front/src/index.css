@@ -4086,14 +4086,11 @@ textarea:focus-visible {
 }
 
 .restaurant-job-description {
-  display: -webkit-box;
   margin: 1.2rem 0 0;
-  overflow: hidden;
+  overflow-wrap: anywhere;
   color: #374151;
   font-size: 1rem;
   line-height: 1.6;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
 }
 
 .restaurant-job-requirements,
@@ -4104,13 +4101,10 @@ textarea:focus-visible {
 }
 
 .restaurant-job-requirements p {
-  display: -webkit-box;
   margin: 0.35rem 0 0;
-  overflow: hidden;
+  overflow-wrap: anywhere;
   color: var(--muted);
   line-height: 1.5;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
 }
 
 .restaurant-job-contact > div {
@@ -8751,7 +8745,6 @@ textarea:focus-visible {
     margin-top: 0.25rem;
     font-size: 0.82rem;
     line-height: 1.35;
-    -webkit-line-clamp: 2;
   }
 
   .restaurant-shell .restaurant-job-requirements {
@@ -9422,10 +9415,9 @@ textarea:focus-visible {
   .restaurant-shell .restaurant-job-description,
   .restaurant-shell .restaurant-job-requirements p {
     margin-top: 0.2rem;
-    overflow: hidden;
+    overflow: visible;
     font-size: 0.8rem;
     line-height: 1.32;
-    -webkit-line-clamp: 2;
   }
 
   .restaurant-shell .restaurant-job-requirements {

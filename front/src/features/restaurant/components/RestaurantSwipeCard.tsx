@@ -69,65 +69,6 @@ function getRestaurantAvatar(job: RestaurantExploreJob) {
   }
 }
 
-function getPlaceIcon(job: RestaurantExploreJob) {
-  const searchableText =
-    `${job.restaurantName} ${job.description} ${job.requirements}`.toLowerCase()
-
-  if (searchableText.includes('cafe') || searchableText.includes('coffee')) {
-    return '☕'
-  }
-
-  if (searchableText.includes('bar') || searchableText.includes('drinks')) {
-    return '🍹'
-  }
-
-  if (searchableText.includes('pasta') || searchableText.includes('bistro')) {
-    return '🍝'
-  }
-
-  return roleIcons[job.role] ?? '🍝'
-}
-
-function getVibeBadges(job: RestaurantExploreJob, language: AppLanguage) {
-  const searchableText =
-    `${job.restaurantName} ${job.description} ${job.requirements} ${job.shiftInfo}`.toLowerCase()
-  const badges: string[] = []
-
-  if (
-    searchableText.includes('morning') ||
-    searchableText.includes('breakfast')
-  ) {
-    badges.push(language === 'he' ? 'בוקר' : 'Morning')
-  }
-
-  if (
-    searchableText.includes('night') ||
-    searchableText.includes('evening')
-  ) {
-    badges.push(language === 'he' ? 'ערב' : 'Evening')
-  }
-
-  if (
-    searchableText.includes('busy') ||
-    searchableText.includes('fast')
-  ) {
-    badges.push(language === 'he' ? 'קצב גבוה' : 'Fast pace')
-  }
-
-  if (
-    searchableText.includes('team') ||
-    searchableText.includes('friendly')
-  ) {
-    badges.push(language === 'he' ? 'צוותי' : 'Team vibe')
-  }
-
-  if (badges.length === 0) {
-    badges.push(language === 'he' ? 'מסעדה' : 'Restaurant')
-  }
-
-  return badges.slice(0, 2)
-}
-
 function getCleanDemoText(value: string) {
   return value
     .replace(DEMO_REAL_PLACE_MARKER, '')
@@ -172,14 +113,8 @@ function RestaurantSwipeCard({
     applying: language === 'he' ? 'שולח...' : 'Applying...',
   }
   const avatar = getRestaurantAvatar(job)
-  const placeIcon = getPlaceIcon(job)
+  const roleIcon = roleIcons[job.role]
   const isDemoRealPlace = job.description.includes(DEMO_REAL_PLACE_MARKER)
-  const vibeBadges = [
-    ...(isDemoRealPlace
-      ? [language === 'he' ? 'דמו' : 'Demo listing']
-      : []),
-    ...getVibeBadges(job, language),
-  ].slice(0, 2)
   const description = getCleanDemoText(job.description)
   const requirements = getCleanDemoText(job.requirements)
 
@@ -367,39 +302,43 @@ function RestaurantSwipeCard({
             <span>{avatar.initial}</span>
           </div>
           <div>
-            <p className="restaurant-job-name">{job.restaurantName}</p>
+            <p className="restaurant-job-name" dir="auto">
+              {job.restaurantName}
+            </p>
             <div className="restaurant-job-role-line">
               <h2>{getRestaurantRoleLabel(job.role, language)}</h2>
               <span className="restaurant-job-role-icon" aria-hidden="true">
-                {placeIcon}
+                {roleIcon}
               </span>
             </div>
           </div>
         </div>
-        <p className="restaurant-job-location">
+        <p className="restaurant-job-location" dir="auto">
           {[job.city, job.street].filter(Boolean).join(' · ')}
         </p>
-        <div className="restaurant-vibe-badges" aria-label="Restaurant vibe">
-          {vibeBadges.map((badge) => (
-            <span key={badge}>{badge}</span>
-          ))}
-        </div>
+        {isDemoRealPlace && (
+          <div className="restaurant-vibe-badges">
+            <span>{language === 'he' ? 'דמו' : 'Demo listing'}</span>
+          </div>
+        )}
 
         {job.shiftInfo && (
           <div className="restaurant-job-highlight">
             <span>{text.shift}</span>
-            <strong>{job.shiftInfo}</strong>
+            <strong dir="auto">{job.shiftInfo}</strong>
           </div>
         )}
 
         {description && (
-          <p className="restaurant-job-description">{description}</p>
+          <p className="restaurant-job-description" dir="auto">
+            {description}
+          </p>
         )}
 
         {requirements && (
           <div className="restaurant-job-requirements">
             <strong>{text.requirements}</strong>
-            <p>{requirements}</p>
+            <p dir="auto">{requirements}</p>
           </div>
         )}
       </div>

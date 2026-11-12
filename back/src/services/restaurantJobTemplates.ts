@@ -1,8 +1,87 @@
-import type { RestaurantJob, RestaurantRole } from '../generated/prisma/client.js'
+import type {
+  RestaurantJob,
+  RestaurantRole,
+} from '../generated/prisma/client.js'
 
-export const DEFAULT_RESTAURANT_JOB_BOARD_JOBS: Array<
-  Pick<RestaurantJob, 'role' | 'shiftInfo' | 'requirements' | 'description'>
-> = [
+type RestaurantJobTemplate = Pick<
+  RestaurantJob,
+  'role' | 'shiftInfo' | 'requirements' | 'description'
+>
+
+const NEUTRAL_SHIFT_INFO =
+  'פרטי המשמרות והיקף העבודה יימסרו בתהליך הגיוס.'
+
+export const DEFAULT_RESTAURANT_JOB_BOARD_JOBS: RestaurantJobTemplate[] = [
+  {
+    role: 'waiter',
+    shiftInfo: NEUTRAL_SHIFT_INFO,
+    requirements:
+      'שירותיות, אחריות, תקשורת טובה ויכולת עבודה בצוות.',
+    description:
+      'עבודה בצוות השירות, קבלת הזמנות, הגשה לאורחים ושמירה על חוויית אירוח נעימה ומקצועית.',
+  },
+  {
+    role: 'bartender',
+    shiftInfo: NEUTRAL_SHIFT_INFO,
+    requirements:
+      'שירותיות, אחריות, סדר ויכולת עבודה טובה בצוות.',
+    description:
+      'עבודה בצוות הבר הכוללת הכנת משקאות, שירות לאורחים ושמירה על עמדה מסודרת ונעימה.',
+  },
+  {
+    role: 'host',
+    shiftInfo: NEUTRAL_SHIFT_INFO,
+    requirements:
+      'תקשורת טובה, סדר, שירותיות ויחס נעים לאורחים.',
+    description:
+      'קבלת אורחים, ניהול סידורי הישיבה וסיוע ביצירת כניסה נעימה ומסודרת למסעדה.',
+  },
+  {
+    role: 'cook',
+    shiftInfo: NEUTRAL_SHIFT_INFO,
+    requirements:
+      'אחריות, סדר, עבודת צוות ויכולת עבודה בסביבה דינמית.',
+    description:
+      'עבודה בצוות המטבח, הכנות, תמיכה במהלך השירות ושמירה על סביבת עבודה נקייה ומסודרת.',
+  },
+  {
+    role: 'floorManager',
+    shiftInfo: NEUTRAL_SHIFT_INFO,
+    requirements:
+      'אחריות, תקשורת טובה, הובלת צוות וקבלת החלטות.',
+    description:
+      'ניהול מהלך המשמרת, תמיכה בצוות ומתן מענה שוטף כדי לשמור על שירות מסודר ונעים.',
+  },
+  {
+    role: 'barista',
+    shiftInfo: NEUTRAL_SHIFT_INFO,
+    requirements:
+      'שירותיות, דיוק, סדר ויכולת עבודה טובה בצוות.',
+    description:
+      'הכנת קפה ומשקאות, שירות לאורחים ושמירה על עמדה נקייה, מסודרת ומזמינה.',
+  },
+  {
+    role: 'socialManager',
+    shiftInfo: NEUTRAL_SHIFT_INFO,
+    requirements:
+      'יצירתיות, אחריות, עין טובה לתוכן והיכרות עם רשתות חברתיות.',
+    description:
+      'יצירת תוכן לרשתות החברתיות שמציג את האוכל, האווירה והסיפור של המסעדה בצורה אותנטית.',
+  },
+  {
+    role: 'counterWorker',
+    shiftInfo: NEUTRAL_SHIFT_INFO,
+    requirements:
+      'שירותיות, אחריות, סדר ויכולת עבודה בקצב משתנה.',
+    description:
+      'קבלת הזמנות, שירות ללקוחות, עבודה בעמדת הקופה ושמירה על עמדה מסודרת ונעימה.',
+  },
+]
+
+// These were generated automatically before the Hebrew template refresh.
+// Exact matching lets Admin safely refresh untouched system content without
+// guessing whether an owner customized a listing.
+const LEGACY_DEFAULT_RESTAURANT_JOB_BOARD_JOBS: RestaurantJobTemplate[] = [
   {
     role: 'waiter',
     shiftInfo:
@@ -86,4 +165,19 @@ export function getDefaultRestaurantJobBoardJob(role: RestaurantRole) {
   }
 
   return job
+}
+
+export function isLegacyDefaultRestaurantJobBoardJob(
+  job: RestaurantJobTemplate,
+) {
+  const legacyJob = LEGACY_DEFAULT_RESTAURANT_JOB_BOARD_JOBS.find(
+    (template) => template.role === job.role,
+  )
+
+  return Boolean(
+    legacyJob &&
+      job.shiftInfo === legacyJob.shiftInfo &&
+      job.requirements === legacyJob.requirements &&
+      job.description === legacyJob.description,
+  )
 }
