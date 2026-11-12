@@ -243,8 +243,8 @@ test(
         `/public/restaurants/${restaurant.slug}/verified-leads`,
         {
           wantedRoles: ['waiter'],
-          experienceText: 'One year',
-          availability: 'Evenings',
+          experienceText: '1 year',
+          availability: 'Evening',
           age: 24,
         },
         workerToken,
@@ -262,8 +262,8 @@ test(
         `/public/restaurants/${restaurant.slug}/verified-leads`,
         {
           wantedRoles: ['waiter'],
-          experienceText: 'Retry',
-          availability: 'Evenings',
+          experienceText: '1 year',
+          availability: 'Evening',
           age: 24,
         },
         workerToken,

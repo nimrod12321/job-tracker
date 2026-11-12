@@ -253,6 +253,9 @@ test(
     const runId = `security-${Date.now()}-${Math.random()
       .toString(36)
       .slice(2)}`
+    const uniquePhoneSuffix = Date.now().toString().slice(-7)
+    const unverifiedWorkerPhone = `+97250${uniquePhoneSuffix}`
+    const incompleteWorkerPhone = `+97252${uniquePhoneSuffix}`
     const adminEmail = `admin-${runId}@example.test`
     const secondAdminEmail = `admin-two-${runId}@example.test`
 
@@ -2871,16 +2874,214 @@ test(
           isActive: true,
         },
       })
-      await prisma.restaurantJob.create({
+      const inactiveAttachedJob =
+        await prisma.restaurantJob.findFirstOrThrow({
+          where: {
+            ownerProfileId: ownerB.profile.id,
+            role: 'waiter',
+          },
+        })
+      await prisma.restaurantJob.update({
+        where: {
+          id: inactiveAttachedJob.id,
+        },
         data: {
-          restaurantName: `${runId} Inactive Job`,
-          role: 'waiter',
-          location: 'Tel Aviv',
-          area: 'Test',
           kind: 'posted',
           isActive: false,
         },
       })
+      const draftAttachedJob =
+        await prisma.restaurantJob.findFirstOrThrow({
+          where: {
+            ownerProfileId: ownerB.profile.id,
+            role: 'host',
+          },
+        })
+      await prisma.restaurantJob.update({
+        where: {
+          id: draftAttachedJob.id,
+        },
+        data: {
+          kind: 'draft',
+          isActive: true,
+        },
+      })
+      const orphanActiveJob = await prisma.restaurantJob.create({
+        data: {
+          restaurantName: `${runId} Orphan Active Job`,
+          role: 'waiter',
+          location: 'Tel Aviv',
+          area: 'Test',
+          kind: 'posted',
+          isActive: true,
+        },
+      })
+
+      const unauthenticatedExplore =
+        await request<RestaurantExploreResponse>('/restaurant/explore', {
+          method: 'POST',
+          headers: jsonHeaders(),
+          body: JSON.stringify({
+            limit: 10,
+            excludeJobIds: [],
+          }),
+        })
+      assert.equal(unauthenticatedExplore.status, 401)
+      const unauthenticatedApplication = await request(
+        '/restaurant/applications',
+        {
+          method: 'POST',
+          headers: jsonHeaders(),
+          body: JSON.stringify({
+            restaurantJobId: activePostedJob.id,
+          }),
+        },
+      )
+      assert.equal(unauthenticatedApplication.status, 401)
+
+      const nonWorkerToken = await registerAndLogin(
+        `non-worker-${runId}@example.test`,
+        'highTech',
+      )
+
+      for (const [label, token] of [
+        ['owner', ownerA.token],
+        ['admin', adminToken],
+        ['non-worker', nonWorkerToken],
+      ] as const) {
+        const deniedExplore = await request<RestaurantExploreResponse>(
+          '/restaurant/explore',
+          {
+            method: 'POST',
+            headers: jsonHeaders(token),
+            body: JSON.stringify({
+              limit: 10,
+              excludeJobIds: [],
+            }),
+          },
+        )
+        assert.equal(deniedExplore.status, 403, `${label} explore access`)
+
+        const deniedMap = await request('/restaurant/jobs/map', {
+          headers: jsonHeaders(token),
+        })
+        assert.equal(deniedMap.status, 403, `${label} map access`)
+
+        const deniedApplication = await request(
+          '/restaurant/applications',
+          {
+            method: 'POST',
+            headers: jsonHeaders(token),
+            body: JSON.stringify({
+              restaurantJobId: activePostedJob.id,
+            }),
+          },
+        )
+        assert.equal(deniedApplication.status, 403, `${label} apply access`)
+      }
+
+      const unverifiedWorkerEmail = `unverified-worker-${runId}@example.test`
+      const unverifiedWorkerToken = await registerAndLogin(
+        unverifiedWorkerEmail,
+        'restaurant',
+      )
+      const unverifiedWorker = await prisma.user.update({
+        where: {
+          email: unverifiedWorkerEmail,
+        },
+        data: {
+          phoneNumber: unverifiedWorkerPhone,
+          phoneVerifiedAt: null,
+        },
+      })
+      await prisma.restaurantWorkerProfile.create({
+        data: {
+          userId: unverifiedWorker.id,
+          fullName: 'Unverified Worker',
+          phoneNumber: unverifiedWorkerPhone,
+          wantedRoles: ['waiter'],
+          experienceText: '1 year',
+          availability: 'Morning',
+          age: 24,
+          homeStreetName: 'Test Street',
+          homeAreaFormatted: 'Test Street, Tel Aviv–Yafo, Israel',
+          homeGooglePlaceId: `unverified-worker-place-${runId}`,
+        },
+      })
+      const unverifiedExplore = await request<RestaurantExploreResponse>(
+        '/restaurant/explore',
+        {
+          method: 'POST',
+          headers: jsonHeaders(unverifiedWorkerToken),
+          body: JSON.stringify({
+            limit: 10,
+            excludeJobIds: [],
+          }),
+        },
+      )
+      assert.equal(unverifiedExplore.status, 403)
+      const unverifiedMap = await request('/restaurant/jobs/map', {
+        headers: jsonHeaders(unverifiedWorkerToken),
+      })
+      assert.equal(unverifiedMap.status, 403)
+      const unverifiedApplication = await request(
+        '/restaurant/applications',
+        {
+          method: 'POST',
+          headers: jsonHeaders(unverifiedWorkerToken),
+          body: JSON.stringify({
+            restaurantJobId: activePostedJob.id,
+          }),
+        },
+      )
+      assert.equal(unverifiedApplication.status, 403)
+
+      const incompleteWorkerEmail = `incomplete-worker-${runId}@example.test`
+      const incompleteWorkerToken = await registerAndLogin(
+        incompleteWorkerEmail,
+        'restaurant',
+      )
+      const incompleteWorker = await prisma.user.update({
+        where: {
+          email: incompleteWorkerEmail,
+        },
+        data: {
+          phoneNumber: incompleteWorkerPhone,
+          phoneVerifiedAt: new Date(),
+        },
+      })
+      await prisma.restaurantWorkerProfile.create({
+        data: {
+          userId: incompleteWorker.id,
+        },
+      })
+      const incompleteExplore = await request<RestaurantExploreResponse>(
+        '/restaurant/explore',
+        {
+          method: 'POST',
+          headers: jsonHeaders(incompleteWorkerToken),
+          body: JSON.stringify({
+            limit: 10,
+            excludeJobIds: [],
+          }),
+        },
+      )
+      assert.equal(incompleteExplore.status, 400)
+      const incompleteMap = await request('/restaurant/jobs/map', {
+        headers: jsonHeaders(incompleteWorkerToken),
+      })
+      assert.equal(incompleteMap.status, 400)
+      const incompleteApplication = await request(
+        '/restaurant/applications',
+        {
+          method: 'POST',
+          headers: jsonHeaders(incompleteWorkerToken),
+          body: JSON.stringify({
+            restaurantJobId: activePostedJob.id,
+          }),
+        },
+      )
+      assert.equal(incompleteApplication.status, 400)
 
       await prisma.restaurantOwnerProfile.update({
         where: {
@@ -2969,21 +3170,64 @@ test(
       assert.ok(
         explore.body.jobs.every(
           (job) =>
-            !job.restaurantName.includes(`${runId} Inactive Job`),
+            job.id !== inactiveAttachedJob.id &&
+            job.id !== draftAttachedJob.id &&
+            job.id !== orphanActiveJob.id,
         ),
       )
 
-      const workerApplication = await request<{ id: string }>(
-        '/restaurant/applications',
-        {
-          method: 'POST',
-          headers: jsonHeaders(workerToken),
-          body: JSON.stringify({
-            restaurantJobId: activePostedJob.id,
-          }),
-        },
-      )
+      for (const jobId of [
+        inactiveAttachedJob.id,
+        draftAttachedJob.id,
+        orphanActiveJob.id,
+        ownerABaristaJob.id,
+      ]) {
+        const ineligibleJobApplication = await request(
+          '/restaurant/applications',
+          {
+            method: 'POST',
+            headers: jsonHeaders(workerToken),
+            body: JSON.stringify({
+              restaurantJobId: jobId,
+            }),
+          },
+        )
+        assert.equal(ineligibleJobApplication.status, 404)
+      }
+
+      const workerApplication = await request<{
+        application: { id: string }
+      }>('/restaurant/applications', {
+        method: 'POST',
+        headers: jsonHeaders(workerToken),
+        body: JSON.stringify({
+          restaurantJobId: activePostedJob.id,
+        }),
+      })
       assert.equal(workerApplication.status, 201)
+      const duplicateWorkerApplication = await request<{
+        application: { id: string }
+      }>('/restaurant/applications', {
+        method: 'POST',
+        headers: jsonHeaders(workerToken),
+        body: JSON.stringify({
+          restaurantJobId: activePostedJob.id,
+        }),
+      })
+      assert.equal(duplicateWorkerApplication.status, 201)
+      assert.equal(
+        duplicateWorkerApplication.body.application.id,
+        workerApplication.body.application.id,
+      )
+      assert.equal(
+        await prisma.restaurantApplication.count({
+          where: {
+            userId: workerUser.id,
+            restaurantJobId: activePostedJob.id,
+          },
+        }),
+        1,
+      )
 
       const ownerApplications = await request<
         Array<{ worker: Record<string, unknown> }>
