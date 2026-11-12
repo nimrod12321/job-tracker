@@ -14,6 +14,9 @@ import type {
   AdminRestaurantCandidateLead,
   AdminRestaurantDetail,
   AdminRestaurantInput,
+  AdminRestaurantTeam,
+  AdminRestaurantTeamMember,
+  AdminRestaurantTeamMemberInput,
   AdminWantedRoleUsersReport,
   CandidateLeadStatus,
 } from '../types/admin'
@@ -191,6 +194,81 @@ export async function getAdminRestaurantDetail(
 
   if (!response.ok) {
     await handleApiError(response, 'Failed to load restaurant')
+  }
+
+  return response.json()
+}
+
+export async function getAdminRestaurantTeam(
+  id: string,
+): Promise<AdminRestaurantTeam> {
+  const response = await fetch(
+    `${API_BASE_URL}/admin/restaurants/${encodeURIComponent(id)}/team`,
+    {
+      headers: getHeaders(),
+    },
+  )
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to load restaurant team')
+  }
+
+  return response.json()
+}
+
+export async function addAdminRestaurantHiringManager(
+  id: string,
+  input: AdminRestaurantTeamMemberInput,
+): Promise<AdminRestaurantTeamMember> {
+  const response = await fetch(
+    `${API_BASE_URL}/admin/restaurants/${encodeURIComponent(id)}/team/hiring-managers`,
+    {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(input),
+    },
+  )
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to add hiring manager')
+  }
+
+  return response.json()
+}
+
+export async function removeAdminRestaurantTeamMember(
+  id: string,
+  memberId: string,
+): Promise<void> {
+  const response = await fetch(
+    `${API_BASE_URL}/admin/restaurants/${encodeURIComponent(id)}/team/members/${encodeURIComponent(memberId)}`,
+    {
+      method: 'DELETE',
+      headers: getHeaders(),
+    },
+  )
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to remove team member')
+  }
+}
+
+export async function replaceAdminRestaurantOwner(
+  id: string,
+  memberId: string,
+  input: AdminRestaurantTeamMemberInput,
+): Promise<AdminRestaurantTeamMember> {
+  const response = await fetch(
+    `${API_BASE_URL}/admin/restaurants/${encodeURIComponent(id)}/team/owners/${encodeURIComponent(memberId)}/replace`,
+    {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(input),
+    },
+  )
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to replace restaurant owner')
   }
 
   return response.json()

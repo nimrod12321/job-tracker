@@ -28,6 +28,11 @@ import {
 import { recordAuthenticatedOwnerActivityBestEffort } from '../services/analytics.service.js'
 import { DEFAULT_RESTAURANT_JOB_BOARD_JOBS } from '../services/restaurantJobTemplates.js'
 import {
+  addRestaurantHiringManager,
+  removeRestaurantHiringManager,
+  RestaurantTeamError,
+} from '../services/restaurantTeam.service.js'
+import {
   leadIdSchema,
   restaurantClaimCompleteSchema,
   restaurantSlugSchema,
@@ -1818,79 +1823,23 @@ export async function addOwnerTeamMember(req: Request, res: Response) {
       })
     }
 
-    let phoneNumber: string
-
-    try {
-      phoneNumber = normalizeIsraeliPhoneNumber(result.data.phoneNumber)
-    } catch {
-      return res.status(400).json({
-        message: 'phone number is invalid',
-      })
-    }
-
-    const existingUser = await prisma.user.findUnique({
-      where: {
-        phoneNumber,
-      },
-      select: {
-        id: true,
-        fullName: true,
-        phoneNumber: true,
-      },
-    })
-    const existingMember = await prisma.restaurantMember.findUnique({
-      where: {
-        restaurantId_phoneNumber: {
-          restaurantId: access.restaurant.id,
-          phoneNumber,
-        },
-      },
+    const serviceResult = await addRestaurantHiringManager({
+      restaurantId: access.restaurant.id,
+      phoneNumber: result.data.phoneNumber,
+      displayName: result.data.displayName,
+      invitedByUserId: userId,
     })
 
-    if (existingMember?.role === 'owner') {
-      return res.status(400).json({
-        message: 'owner member cannot be changed',
-      })
-    }
-
-    const member = await prisma.restaurantMember.upsert({
-      where: {
-        restaurantId_phoneNumber: {
-          restaurantId: access.restaurant.id,
-          phoneNumber,
-        },
-      },
-      update: {
-        userId: existingUser?.id ?? null,
-        displayName:
-          result.data.displayName || existingUser?.fullName || '',
-        role: 'hiringManager',
-        status: existingUser ? 'active' : 'pending',
-        invitedByUserId: userId,
-      },
-      create: {
-        restaurantId: access.restaurant.id,
-        userId: existingUser?.id ?? null,
-        phoneNumber,
-        displayName:
-          result.data.displayName || existingUser?.fullName || '',
-        role: 'hiringManager',
-        status: existingUser ? 'active' : 'pending',
-        invitedByUserId: userId,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            fullName: true,
-            phoneNumber: true,
-          },
-        },
-      },
-    })
-
-    return res.status(existingMember ? 200 : 201).json(mapTeamMember(member))
+    return res
+      .status(serviceResult.created ? 201 : 200)
+      .json(mapTeamMember(serviceResult.member))
   } catch (error) {
+    if (error instanceof RestaurantTeamError) {
+      return res.status(
+        error.code === 'OWNER_ROLE_PROTECTED' ? 400 : error.status,
+      ).json({ message: error.message })
+    }
+
     console.error(error)
 
     return res.status(500).json({
@@ -1931,37 +1880,19 @@ export async function removeOwnerTeamMember(req: Request, res: Response) {
       })
     }
 
-    const member = await prisma.restaurantMember.findFirst({
-      where: {
-        id: idResult.data,
-        restaurantId: access.restaurant.id,
-      },
-    })
-
-    if (!member) {
-      return res.status(404).json({
-        message: 'team member not found',
-      })
-    }
-
-    if (member.role === 'owner') {
-      return res.status(400).json({
-        message: 'owner member cannot be removed',
-      })
-    }
-
-    await prisma.restaurantMember.update({
-      where: {
-        id: member.id,
-      },
-      data: {
-        status: 'removed',
-        userId: null,
-      },
+    await removeRestaurantHiringManager({
+      restaurantId: access.restaurant.id,
+      memberId: idResult.data,
     })
 
     return res.status(204).send()
   } catch (error) {
+    if (error instanceof RestaurantTeamError) {
+      return res.status(
+        error.code === 'HIRING_MANAGER_REQUIRED' ? 400 : error.status,
+      ).json({ message: error.message })
+    }
+
     console.error(error)
 
     return res.status(500).json({

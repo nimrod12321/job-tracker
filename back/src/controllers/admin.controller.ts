@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express'
-import type { RestaurantRole } from '../generated/prisma/client.js'
+import type { Prisma, RestaurantRole } from '../generated/prisma/client.js'
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js'
 import { prisma } from '../lib/prisma.js'
 import { getValidationErrorMessage } from '../utils/validation.js'
@@ -29,6 +29,10 @@ import {
 } from '../services/googlePlaces.service.js'
 import { mapAdminCandidateNotificationDeliveries } from '../services/adminCandidateNotification.service.js'
 import { setRestaurantJobBoardRoles } from '../services/adminOperations.service.js'
+import {
+  lockRestaurantMembershipState,
+  RestaurantTeamError,
+} from '../services/restaurantTeam.service.js'
 import {
   getAnalyticsExcludedUserIds,
   isAnalyticsExcludedCandidatePhone,
@@ -312,17 +316,16 @@ function mapAdminRestaurantSummary(restaurant: {
     ),
   )
   const mappedClaim = mapAdminClaim(restaurant.claim ?? null)
-  const ownerUser =
-    ownerMember?.user ??
-    (restaurant.user.email ||
-    restaurant.user.phoneNumber
+  const ownerUser = ownerMember
+    ? ownerMember.user
+    : restaurant.user.email || restaurant.user.phoneNumber
       ? {
           id: restaurant.user.id,
           email: restaurant.user.email,
           phoneNumber: restaurant.user.phoneNumber,
           fullName: restaurant.user.fullName,
         }
-      : null)
+      : null
   const latestActivityDates = [
     restaurant.updatedAt,
     ...candidateActivityDates,
@@ -464,29 +467,54 @@ function getSafeOwnerLoginPhone(value: string | undefined) {
 }
 
 async function syncRestaurantOwnerLoginPhone(
-  tx: Pick<typeof prisma, 'restaurantMember' | 'user'>,
+  tx: Prisma.TransactionClient,
   input: {
     restaurantId: string
     ownerLoginPhone: string | null
     displayName: string
+    changedByUserId: string
   },
 ) {
-  await tx.restaurantMember.deleteMany({
+  await lockRestaurantMembershipState(tx, input.restaurantId)
+
+  const currentOwners = await tx.restaurantMember.findMany({
     where: {
       restaurantId: input.restaurantId,
       role: 'owner',
-      ...(input.ownerLoginPhone
-        ? {
-            phoneNumber: {
-              not: input.ownerLoginPhone,
-            },
-          }
-        : {}),
+      status: { not: 'removed' },
     },
   })
 
+  if (currentOwners.length > 1) {
+    throw new RestaurantTeamError(
+      'OWNER_STATE_CONFLICT',
+      409,
+      'restaurant ownership state is ambiguous',
+    )
+  }
+
+  const currentOwner = currentOwners[0]
+
   if (!input.ownerLoginPhone) {
+    if (currentOwner) {
+      throw new RestaurantTeamError(
+        'OWNER_ROLE_PROTECTED',
+        409,
+        'use the restaurant team controls to replace an owner',
+      )
+    }
     return
+  }
+
+  if (
+    currentOwner &&
+    currentOwner.phoneNumber !== input.ownerLoginPhone
+  ) {
+    throw new RestaurantTeamError(
+      'OWNER_ROLE_PROTECTED',
+      409,
+      'use the restaurant team controls to replace an owner',
+    )
   }
 
   const user = await tx.user.findUnique({
@@ -499,28 +527,58 @@ async function syncRestaurantOwnerLoginPhone(
     },
   })
 
-  await tx.restaurantMember.upsert({
-    where: {
-      restaurantId_phoneNumber: {
-        restaurantId: input.restaurantId,
-        phoneNumber: input.ownerLoginPhone,
+  const [byPhone, byUser] = await Promise.all([
+    tx.restaurantMember.findUnique({
+      where: {
+        restaurantId_phoneNumber: {
+          restaurantId: input.restaurantId,
+          phoneNumber: input.ownerLoginPhone,
+        },
       },
-    },
-    update: {
-      role: 'owner',
-      status: user ? 'active' : 'pending',
-      userId: user?.id ?? null,
-      displayName: input.displayName || user?.fullName || '',
-    },
-    create: {
-      restaurantId: input.restaurantId,
-      phoneNumber: input.ownerLoginPhone,
-      role: 'owner',
-      status: user ? 'active' : 'pending',
-      userId: user?.id ?? null,
-      displayName: input.displayName || user?.fullName || '',
-    },
-  })
+    }),
+    user
+      ? tx.restaurantMember.findUnique({
+          where: {
+            restaurantId_userId: {
+              restaurantId: input.restaurantId,
+              userId: user.id,
+            },
+          },
+        })
+      : null,
+  ])
+
+  if (byPhone && byUser && byPhone.id !== byUser.id) {
+    throw new RestaurantTeamError(
+      'MEMBERSHIP_CONFLICT',
+      409,
+      'phone and user are already connected through different memberships',
+    )
+  }
+
+  const existingMember = currentOwner ?? byPhone ?? byUser
+  const memberData = {
+    phoneNumber: input.ownerLoginPhone,
+    role: 'owner' as const,
+    status: user ? ('active' as const) : ('pending' as const),
+    userId: user?.id ?? null,
+    displayName: input.displayName || user?.fullName || '',
+    invitedByUserId: input.changedByUserId,
+  }
+
+  if (existingMember) {
+    await tx.restaurantMember.update({
+      where: { id: existingMember.id },
+      data: memberData,
+    })
+  } else {
+    await tx.restaurantMember.create({
+      data: {
+        restaurantId: input.restaurantId,
+        ...memberData,
+      },
+    })
+  }
 }
 
 function getAdminUserId(req: Request) {
@@ -867,6 +925,7 @@ export async function createAdminRestaurant(req: Request, res: Response) {
           restaurantId: createdRestaurant.id,
           ownerLoginPhone: ownerLoginPhoneResult.ownerLoginPhone,
           displayName: createdRestaurant.contactPerson,
+          changedByUserId: adminUserId,
         })
       }
 
@@ -882,6 +941,10 @@ export async function createAdminRestaurant(req: Request, res: Response) {
 
     return res.status(201).json(mapAdminRestaurantSummary(restaurant))
   } catch (error) {
+    if (error instanceof RestaurantTeamError) {
+      return res.status(error.status).json({ message: error.message })
+    }
+
     if (error instanceof GooglePlacesError) {
       return res.status(error.status).json({
         message: error.message,
@@ -1229,32 +1292,6 @@ export async function updateAdminRestaurant(req: Request, res: Response) {
       })
     }
 
-    if (ownerLoginPhoneResult.ownerLoginPhone !== undefined) {
-      const activeOwner = await prisma.restaurantMember.findFirst({
-        where: {
-          restaurantId: restaurant.id,
-          role: 'owner',
-          status: 'active',
-          userId: {
-            not: null,
-          },
-        },
-        select: {
-          phoneNumber: true,
-        },
-      })
-
-      if (
-        activeOwner &&
-        activeOwner.phoneNumber !== ownerLoginPhoneResult.ownerLoginPhone
-      ) {
-        return res.status(409).json({
-          message:
-            'restaurant already has an active owner; first-owner access cannot be replaced here',
-        })
-      }
-    }
-
     const slug =
       typeof requestedSlug === 'string' && requestedSlug.trim()
         ? await generateUniqueRestaurantSlug(requestedSlug, restaurant.id)
@@ -1315,6 +1352,7 @@ export async function updateAdminRestaurant(req: Request, res: Response) {
           restaurantId: updated.id,
           ownerLoginPhone: ownerLoginPhoneResult.ownerLoginPhone,
           displayName: updated.contactPerson,
+          changedByUserId: adminUserId,
         })
       }
 
@@ -1335,6 +1373,10 @@ export async function updateAdminRestaurant(req: Request, res: Response) {
       mapAdminRestaurantSummary(updatedRestaurant, excludedUserIds),
     )
   } catch (error) {
+    if (error instanceof RestaurantTeamError) {
+      return res.status(error.status).json({ message: error.message })
+    }
+
     console.error(error)
 
     return res.status(500).json({

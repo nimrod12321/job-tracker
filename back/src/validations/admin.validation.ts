@@ -20,6 +20,21 @@ export const adminRestaurantIdSchema = z
   .string()
   .uuid('restaurant id must be valid')
 
+export const adminRestaurantMemberIdSchema = z
+  .string()
+  .uuid('member id must be valid')
+
+export const adminRestaurantTeamMemberSchema = z
+  .object({
+    displayName: patchText('name', 150),
+    phoneNumber: z
+      .string({ error: 'phone number is required' })
+      .trim()
+      .min(1, 'phone number is required')
+      .max(50, 'phone number is too long'),
+  })
+  .strict()
+
 export const adminRestaurantCreateSchema = z
   .object({
     restaurantName: z
