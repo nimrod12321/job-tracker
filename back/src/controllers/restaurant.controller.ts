@@ -21,6 +21,10 @@ import {
 
 const PROFILE_REQUIRED_MESSAGE =
   'Complete your worker profile to start seeing restaurant jobs.'
+const RESTAURANT_WORKER_ACCESS_REQUIRED_MESSAGE =
+  'restaurant worker access required'
+const VERIFIED_RESTAURANT_WORKER_REQUIRED_MESSAGE =
+  'verified restaurant worker account required'
 
 function getUserId(req: Request) {
   return (req as AuthenticatedRequest).userId
@@ -115,6 +119,63 @@ function isRestaurantWorkerProfileComplete(
       user.phoneVerifiedAt &&
       profile.homeGooglePlaceId,
   )
+}
+
+type RestaurantWorkerEligibilityUser = {
+  track: string
+  workerLocationRequired: boolean
+  phoneNumber: string | null
+  phoneVerifiedAt: Date | null
+  restaurantWorkerProfile: RestaurantWorkerProfile | null
+}
+
+type RestaurantWorkerEligibility =
+  | {
+      eligible: true
+      profile: RestaurantWorkerProfile
+    }
+  | {
+      eligible: false
+      status: 400 | 403
+      message: string
+    }
+
+function getRestaurantWorkerEligibility(
+  user: RestaurantWorkerEligibilityUser | null,
+): RestaurantWorkerEligibility {
+  if (user?.track !== 'restaurant') {
+    return {
+      eligible: false,
+      status: 403,
+      message: RESTAURANT_WORKER_ACCESS_REQUIRED_MESSAGE,
+    }
+  }
+
+  if (!user.phoneNumber || !user.phoneVerifiedAt) {
+    return {
+      eligible: false,
+      status: 403,
+      message: VERIFIED_RESTAURANT_WORKER_REQUIRED_MESSAGE,
+    }
+  }
+
+  if (
+    !isRestaurantWorkerProfileComplete(
+      user.restaurantWorkerProfile,
+      user,
+    )
+  ) {
+    return {
+      eligible: false,
+      status: 400,
+      message: PROFILE_REQUIRED_MESSAGE,
+    }
+  }
+
+  return {
+    eligible: true,
+    profile: user.restaurantWorkerProfile,
+  }
 }
 
 function isLocationMatch(job: RestaurantJob, profileLocation: string) {
@@ -309,24 +370,15 @@ export async function getRestaurantMapJobs(req: Request, res: Response) {
       },
     })
 
-    if (user?.track !== 'restaurant') {
-      return res.status(403).json({
-        message: 'restaurant worker access required',
+    const eligibility = getRestaurantWorkerEligibility(user)
+
+    if (!eligibility.eligible) {
+      return res.status(eligibility.status).json({
+        message: eligibility.message,
       })
     }
 
-    if (
-      !isRestaurantWorkerProfileComplete(
-        user.restaurantWorkerProfile,
-        user,
-      )
-    ) {
-      return res.status(400).json({
-        message: PROFILE_REQUIRED_MESSAGE,
-      })
-    }
-
-    const wantedRoles = user.restaurantWorkerProfile?.wantedRoles ?? []
+    const wantedRoles = eligibility.profile.wantedRoles
 
     const restaurants = await prisma.restaurantOwnerProfile.findMany({
       where: {
@@ -435,18 +487,23 @@ export async function getRestaurantExploreJobs(
         restaurantWorkerProfile: true,
       },
     })
-    const profile = user?.restaurantWorkerProfile ?? null
+    const eligibility = getRestaurantWorkerEligibility(user)
 
-    if (!user || !isRestaurantWorkerProfileComplete(profile, user)) {
-      return res.status(400).json({
-        message: PROFILE_REQUIRED_MESSAGE,
+    if (!eligibility.eligible) {
+      return res.status(eligibility.status).json({
+        message: eligibility.message,
       })
     }
+
+    const { profile } = eligibility
 
     const jobs = await prisma.restaurantJob.findMany({
       where: {
         kind: 'posted',
         isActive: true,
+        ownerProfileId: {
+          not: null,
+        },
         role: {
           in: profile.wantedRoles,
         },
@@ -517,11 +574,33 @@ export async function createRestaurantApplication(
       })
     }
 
+    const user = await prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+      include: {
+        restaurantWorkerProfile: true,
+      },
+    })
+    const eligibility = getRestaurantWorkerEligibility(user)
+
+    if (!eligibility.eligible) {
+      return res.status(eligibility.status).json({
+        message: eligibility.message,
+      })
+    }
+
     const restaurantJob = await prisma.restaurantJob.findFirst({
       where: {
         id: result.data.restaurantJobId,
         kind: 'posted',
         isActive: true,
+        ownerProfileId: {
+          not: null,
+        },
+        role: {
+          in: eligibility.profile.wantedRoles,
+        },
       },
       select: {
         id: true,
