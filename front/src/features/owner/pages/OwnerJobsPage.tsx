@@ -35,6 +35,7 @@ import type {
   OwnerProfile,
 } from '../types/owner'
 import { useOwnerRestaurant } from '../context/ownerRestaurantState'
+import { shouldRenderOwnerJobForm } from '../utils/ownerJobBoardAvailability'
 
 const emptyJobForm: OwnerJobInput = {
   role: 'waiter',
@@ -163,6 +164,11 @@ function OwnerJobsPage() {
     : ''
   const qrStorageKey = getQrWidgetStorageKey(profile?.slug)
   const isJobBoardPilotPaused = !ENABLE_DEVELOPMENT_JOB_BOARD
+  const hasManagedJobBoardJobs = jobs.length > 0
+  const canRenderJobForm = shouldRenderOwnerJobForm(
+    editingJobId,
+    ENABLE_DEVELOPMENT_JOB_BOARD,
+  )
 
   const text = {
     title: language === 'he' ? 'התחילו לגייס' : 'Start hiring',
@@ -1349,17 +1355,23 @@ function OwnerJobsPage() {
       <div className="owner-list-heading owner-job-board-heading">
         <div>
           <h2>{text.jobBoard}</h2>
-          <p>{isJobBoardPilotPaused ? text.jobBoardSoon : text.boardHint}</p>
+          <p>
+            {isJobBoardPilotPaused && !hasManagedJobBoardJobs
+              ? text.jobBoardSoon
+              : text.boardHint}
+          </p>
         </div>
         {isJobStatusSaved && (
           <p className="owner-job-save-notice" aria-live="polite">
             {text.saved}
           </p>
         )}
-        {isJobBoardPilotPaused && <span>{text.comingSoon}</span>}
+        {isJobBoardPilotPaused && !hasManagedJobBoardJobs && (
+          <span>{text.comingSoon}</span>
+        )}
       </div>
 
-      {!isJobBoardPilotPaused && isCreating && (
+      {isCreating && canRenderJobForm && (
         <form
           className="owner-job-form owner-step-card"
           onSubmit={handleSubmit}
@@ -1543,10 +1555,12 @@ function OwnerJobsPage() {
 
       <section
         className={`owner-job-list-section${
-          isJobBoardPilotPaused ? ' owner-job-board-muted' : ''
+          isJobBoardPilotPaused && !hasManagedJobBoardJobs
+            ? ' owner-job-board-muted'
+            : ''
         }`}
       >
-        {isJobBoardPilotPaused && (
+        {isJobBoardPilotPaused && !hasManagedJobBoardJobs && (
           <p className="owner-job-board-coming-soon-copy">
             {text.jobBoardPilotHint}
           </p>

@@ -6,7 +6,10 @@ import { env } from '../config/env.js'
 import { prisma } from '../lib/prisma.js'
 import { restaurantRoles } from '../validations/restaurant.validation.js'
 import { isAnalyticsExcludedUser } from './analyticsExclusion.service.js'
-import { getDefaultRestaurantJobBoardJob } from './restaurantJobTemplates.js'
+import {
+  getDefaultRestaurantJobBoardJob,
+  isLegacyDefaultRestaurantJobBoardJob,
+} from './restaurantJobTemplates.js'
 
 type UserInsightSource = {
   phoneNumber: string | null
@@ -137,7 +140,11 @@ export async function setRestaurantJobBoardRoles(
         ownerProfileId: restaurant.id,
       },
       select: {
+        id: true,
         role: true,
+        shiftInfo: true,
+        requirements: true,
+        description: true,
       },
     })
     const existingRoles = new Set(existingJobs.map((job) => job.role))
@@ -160,6 +167,20 @@ export async function setRestaurantJobBoardRoles(
         })),
         skipDuplicates: true,
       })
+    }
+
+    for (const job of existingJobs) {
+      if (
+        uniqueActiveRoles.includes(job.role) &&
+        isLegacyDefaultRestaurantJobBoardJob(job)
+      ) {
+        await tx.restaurantJob.update({
+          where: {
+            id: job.id,
+          },
+          data: getDefaultRestaurantJobBoardJob(job.role),
+        })
+      }
     }
 
     await tx.restaurantJob.updateMany({
