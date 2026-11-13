@@ -41,14 +41,14 @@ function RestaurantExplorePage() {
   const activeIndexRef = useRef(0)
   const isCardActionPending = useRef(false)
   const text = {
-    title: language === 'he' ? 'משמרות סביבך' : 'Jobs near you',
+    title: language === 'he' ? 'משרות סביבך' : 'Jobs near you',
     subtitle:
       language === 'he'
         ? 'החלק ימינה כדי להגיש בקשה, שמאלה כדי לדלג.'
         : 'Swipe right to apply, left to skip.',
     loading:
       language === 'he'
-        ? 'מחפש משמרות במסעדות...'
+        ? 'מחפש משרות במסעדות...'
         : 'Finding restaurant jobs...',
     completeProfile:
       language === 'he'
@@ -62,14 +62,14 @@ function RestaurantExplorePage() {
     tryAgain: language === 'he' ? 'נסה שוב' : 'Try again',
     noMore:
       language === 'he'
-        ? 'אין עוד משמרות כרגע.'
+        ? 'אין עוד משרות כרגע.'
         : 'No more restaurant jobs right now.',
     noMoreHint:
       language === 'he'
         ? 'אפשר לבדוק שוב מאוחר יותר או לעדכן תפקידים ומיקום.'
         : 'Check again later or update your wanted roles and location.',
     updateProfile: language === 'he' ? 'עדכון פרופיל' : 'Update profile',
-    findMore: language === 'he' ? 'חפש עוד משמרות' : 'Find more jobs',
+    findMore: language === 'he' ? 'חפש עוד משרות' : 'Find more jobs',
     skipped: language === 'he' ? 'דילגת' : 'Skipped',
     exitSwipe: language === 'he' ? 'יציאה מהחלקה' : 'Exit swipe',
   }

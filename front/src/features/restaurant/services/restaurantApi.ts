@@ -9,6 +9,7 @@ import type {
   RestaurantExploreJob,
   RestaurantMatch,
   RestaurantMapEntry,
+  RestaurantJobBoardRestaurantResponse,
   RestaurantWorkerProfile,
   RestaurantWorkerProfileInput,
 } from '../types/restaurant'
@@ -121,6 +122,21 @@ export async function applyToRestaurantJob(
   }
 
   return data.application
+}
+
+export async function getRestaurantJobBoardRestaurant(
+  restaurantId: string,
+): Promise<RestaurantJobBoardRestaurantResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/restaurant/job-board/restaurants/${encodeURIComponent(restaurantId)}`,
+    { headers: getHeaders() },
+  )
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to load restaurant jobs')
+  }
+
+  return response.json()
 }
 
 export async function getRestaurantMatches(): Promise<RestaurantMatch[]> {

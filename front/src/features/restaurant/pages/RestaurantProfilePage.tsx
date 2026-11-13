@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { getCurrentUser } from '../../auth/services/authApi'
 import { getAuthToken } from '../../auth/utils/authStorage'
 import {
@@ -193,7 +193,11 @@ function isWorkerProfileComplete(form: RestaurantProfileForm) {
 
 function RestaurantProfilePage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { direction, language } = useRestaurantLanguage()
+  const requestedRole = RESTAURANT_ROLES.find(
+    (role) => role.value === searchParams.get('role'),
+  )?.value
   const [form, setForm] = useState<RestaurantProfileForm>(emptyProfile)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -221,6 +225,12 @@ function RestaurantProfilePage() {
     save: language === 'he' ? 'שמירת פרופיל' : 'Save profile',
     personalDetails: language === 'he' ? 'פרטים אישיים' : 'Personal details',
     jobPreferences: language === 'he' ? 'העדפות עבודה' : 'Job preferences',
+    preferenceUpdateHint:
+      requestedRole
+        ? language === 'he'
+          ? `כדי להגיש למשרת ${getRestaurantRoleLabel(requestedRole, 'he')}, הוסיפו את התפקיד להעדפות ושמרו.`
+          : `To apply for ${getRestaurantRoleLabel(requestedRole, 'en')}, add the role to your preferences and save.`
+        : '',
     extraDetails: language === 'he' ? 'פרטים נוספים' : 'Extra details',
     locationTitle: language === 'he' ? 'מיקום' : 'Location',
     locationQuestion:
@@ -380,7 +390,13 @@ function RestaurantProfilePage() {
       setRequiresVerifiedLocation(profile.locationRequired)
       setLocationWasEdited(false)
       setSuccess(text.saved)
-      navigate('/restaurant/explore')
+      const requestedReturnTo = searchParams.get('returnTo')
+      const safeReturnTo =
+        requestedReturnTo?.startsWith('/restaurant/restaurants/')
+          ? requestedReturnTo
+          : '/restaurant/explore'
+
+      navigate(safeReturnTo)
     } catch (error) {
       setError(
         error instanceof Error
@@ -462,6 +478,12 @@ function RestaurantProfilePage() {
           <div className="guided-form-heading">
             <h2>{text.jobPreferences}</h2>
           </div>
+
+          {text.preferenceUpdateHint && (
+            <p className="form-helper-text restaurant-preference-update-hint">
+              {text.preferenceUpdateHint}
+            </p>
+          )}
 
           <fieldset className="restaurant-role-options">
             <legend>

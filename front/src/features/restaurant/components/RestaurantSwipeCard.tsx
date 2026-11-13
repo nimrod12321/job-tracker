@@ -1,5 +1,7 @@
 import { useRef, useState, type PointerEvent } from 'react'
+import { Link } from 'react-router-dom'
 import {
+  getRestaurantEmploymentScopeLabel,
   getRestaurantRoleLabel,
   type RestaurantExploreJob,
 } from '../types/restaurant'
@@ -18,16 +20,6 @@ const avatarColors = [
   '#866460',
   '#be123c',
 ]
-const roleIcons: Record<RestaurantExploreJob['role'], string> = {
-  bartender: '🍸',
-  cook: '🍳',
-  floorManager: '📋',
-  host: '👋',
-  waiter: '🍽️',
-  barista: '☕',
-  socialManager: '📱',
-  counterWorker: '🧾',
-}
 const DEMO_REAL_PLACE_MARKER = 'source=demo_real_place.'
 const DEMO_REAL_PLACE_NOTE = 'Demo listing — not verified by restaurant.'
 
@@ -106,14 +98,16 @@ function RestaurantSwipeCard({
   const text = {
     applyHint: language === 'he' ? 'הגש' : 'APPLY',
     skipHint: language === 'he' ? 'דלג' : 'SKIP',
-    shift: language === 'he' ? 'משמרות' : 'Shift',
-    requirements: language === 'he' ? 'דרישות' : 'Need',
+    scope: language === 'he' ? 'היקף משרה' : 'Employment scope',
+    description:
+      language === 'he' ? 'הגדרת תפקיד' : 'Job description',
+    requirements: language === 'he' ? 'דרישות' : 'Requirements',
+    hourlyWage: language === 'he' ? 'שכר שעתי' : 'Hourly wage',
     skip: language === 'he' ? 'דלג' : 'Skip',
     apply: language === 'he' ? 'הגש בקשה' : 'Apply',
     applying: language === 'he' ? 'שולח...' : 'Applying...',
   }
   const avatar = getRestaurantAvatar(job)
-  const roleIcon = roleIcons[job.role]
   const isDemoRealPlace = job.description.includes(DEMO_REAL_PLACE_MARKER)
   const description = getCleanDemoText(job.description)
   const requirements = getCleanDemoText(job.requirements)
@@ -302,14 +296,15 @@ function RestaurantSwipeCard({
             <span>{avatar.initial}</span>
           </div>
           <div>
-            <p className="restaurant-job-name" dir="auto">
+            <Link
+              className="restaurant-job-name"
+              dir="auto"
+              to={`/restaurant/restaurants/${job.restaurantId}`}
+            >
               {job.restaurantName}
-            </p>
+            </Link>
             <div className="restaurant-job-role-line">
               <h2>{getRestaurantRoleLabel(job.role, language)}</h2>
-              <span className="restaurant-job-role-icon" aria-hidden="true">
-                {roleIcon}
-              </span>
             </div>
           </div>
         </div>
@@ -322,24 +317,39 @@ function RestaurantSwipeCard({
           </div>
         )}
 
-        {job.shiftInfo && (
-          <div className="restaurant-job-highlight">
-            <span>{text.shift}</span>
-            <strong dir="auto">{job.shiftInfo}</strong>
-          </div>
+        <section className="restaurant-job-section restaurant-job-scope">
+          <h3>{text.scope}</h3>
+          <p>
+            {getRestaurantEmploymentScopeLabel(
+              job.employmentScope,
+              language,
+            )}
+          </p>
+        </section>
+
+        {job.hourlyWage !== null && (
+          <section className="restaurant-job-section restaurant-job-salary">
+            <h3>{text.hourlyWage}</h3>
+            <p>
+              {language === 'he'
+                ? `₪${job.hourlyWage} לשעה`
+                : `₪${job.hourlyWage}/hour`}
+            </p>
+          </section>
         )}
 
         {description && (
-          <p className="restaurant-job-description" dir="auto">
-            {description}
-          </p>
+          <section className="restaurant-job-section restaurant-job-description">
+            <h3>{text.description}</h3>
+            <p dir="auto">{description}</p>
+          </section>
         )}
 
         {requirements && (
-          <div className="restaurant-job-requirements">
-            <strong>{text.requirements}</strong>
+          <section className="restaurant-job-section restaurant-job-requirements">
+            <h3>{text.requirements}</h3>
             <p dir="auto">{requirements}</p>
-          </div>
+          </section>
         )}
       </div>
 

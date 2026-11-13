@@ -51,7 +51,7 @@ function AppLayout({
     ownerProfile: language === 'he' ? 'פרופיל' : 'Profile',
     ownerAddRestaurant:
       language === 'he' ? 'הוספת מסעדה' : 'Add restaurant',
-    workerExplore: language === 'he' ? 'משמרות' : 'Explore',
+    workerExplore: language === 'he' ? 'משרות' : 'Explore',
     workerMatches: language === 'he' ? 'התאמות' : 'Matches',
     workerProfile: language === 'he' ? 'פרופיל' : 'Profile',
     logout: language === 'he' ? 'התנתקות' : 'Log out',

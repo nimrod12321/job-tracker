@@ -2,6 +2,7 @@ import { Router } from 'express'
 import {
   createRestaurantApplication,
   getRestaurantExploreJobs,
+  getRestaurantJobBoardRestaurant,
   getRestaurantMatches,
   getRestaurantMapJobs,
   getRestaurantProfile,
@@ -15,6 +16,10 @@ restaurantRouter.use(requireAuth)
 restaurantRouter.get('/profile', getRestaurantProfile)
 restaurantRouter.put('/profile', updateRestaurantProfile)
 restaurantRouter.post('/explore', getRestaurantExploreJobs)
+restaurantRouter.get(
+  '/job-board/restaurants/:restaurantId',
+  getRestaurantJobBoardRestaurant,
+)
 restaurantRouter.get('/jobs/map', getRestaurantMapJobs)
 restaurantRouter.post('/applications', createRestaurantApplication)
 restaurantRouter.get('/matches', getRestaurantMatches)

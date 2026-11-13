@@ -90,6 +90,7 @@ type OwnerProfileResponse = {
   id: string
   slug: string | null
   qrEnabledRoles: string[]
+  venueTypes?: string[]
 }
 
 type OwnerJobResponse = {
@@ -98,12 +99,18 @@ type OwnerJobResponse = {
   isActive: boolean
   role?: string
   description?: string
+  shiftInfo?: string
+  employmentScope?: 'fullTime' | 'partTime' | 'flexible' | null
+  hourlyWage?: number | null
 }
 
 type RestaurantExploreResponse = {
   jobs: Array<{
     id: string
     restaurantName: string
+    restaurantId?: string | null
+    employmentScope?: 'fullTime' | 'partTime' | 'flexible' | null
+    hourlyWage?: number | null
     contactPhone?: unknown
     contactWhatsapp?: unknown
   }>
@@ -919,6 +926,133 @@ test(
         },
       )
       assert.equal(activateBarista.status, 200)
+
+      const waiterBeforeUxUpdate =
+        await prisma.restaurantJob.findUniqueOrThrow({
+          where: { id: ownerAWaiterJob.id },
+        })
+      const ownerUpdatesJobUxFields = await request<OwnerJobResponse>(
+        `/owner/jobs/${ownerAWaiterJob.id}`,
+        {
+          method: 'PUT',
+          headers: jsonHeaders(ownerA.token),
+          body: JSON.stringify({
+            role: 'waiter',
+            description: 'Friendly table service',
+            requirements: 'Reliable and welcoming',
+            shiftInfo: waiterBeforeUxUpdate.shiftInfo,
+            employmentScope: 'partTime',
+            hourlyWage: 52,
+            contactPhone: '',
+            contactWhatsapp: '',
+          }),
+        },
+      )
+      assert.equal(ownerUpdatesJobUxFields.status, 200)
+      assert.equal(ownerUpdatesJobUxFields.body.employmentScope, 'partTime')
+      assert.equal(ownerUpdatesJobUxFields.body.hourlyWage, 52)
+      assert.equal(ownerUpdatesJobUxFields.body.kind, 'posted')
+      assert.equal(ownerUpdatesJobUxFields.body.isActive, true)
+      assert.equal(
+        ownerUpdatesJobUxFields.body.shiftInfo,
+        waiterBeforeUxUpdate.shiftInfo,
+      )
+
+      const ownerModifiesOptionalSalary = await request<OwnerJobResponse>(
+        `/owner/jobs/${ownerAWaiterJob.id}`,
+        {
+          method: 'PUT',
+          headers: jsonHeaders(ownerA.token),
+          body: JSON.stringify({
+            role: 'waiter',
+            description: 'Friendly table service',
+            requirements: 'Reliable and welcoming',
+            shiftInfo: waiterBeforeUxUpdate.shiftInfo,
+            employmentScope: 'partTime',
+            hourlyWage: 58,
+            contactPhone: '',
+            contactWhatsapp: '',
+          }),
+        },
+      )
+      assert.equal(ownerModifiesOptionalSalary.status, 200)
+      assert.equal(ownerModifiesOptionalSalary.body.hourlyWage, 58)
+      assert.equal(ownerModifiesOptionalSalary.body.kind, 'posted')
+      assert.equal(ownerModifiesOptionalSalary.body.isActive, true)
+
+      const ownerRemovesOptionalSalary = await request<OwnerJobResponse>(
+        `/owner/jobs/${ownerAWaiterJob.id}`,
+        {
+          method: 'PUT',
+          headers: jsonHeaders(ownerA.token),
+          body: JSON.stringify({
+            role: 'waiter',
+            description: 'Friendly table service',
+            requirements: 'Reliable and welcoming',
+            shiftInfo: waiterBeforeUxUpdate.shiftInfo,
+            employmentScope: 'partTime',
+            hourlyWage: null,
+            contactPhone: '',
+            contactWhatsapp: '',
+          }),
+        },
+      )
+      assert.equal(ownerRemovesOptionalSalary.status, 200)
+      assert.equal(ownerRemovesOptionalSalary.body.hourlyWage, null)
+      assert.equal(ownerRemovesOptionalSalary.body.kind, 'posted')
+      assert.equal(ownerRemovesOptionalSalary.body.isActive, true)
+
+      const invalidInactiveJobUpdate = await request<OwnerJobResponse>(
+        `/owner/jobs/${recreatedCounterWorkerJob.body.id}`,
+        {
+          method: 'PUT',
+          headers: jsonHeaders(ownerA.token),
+          body: JSON.stringify({
+            role: 'counterWorker',
+            description: 'Counter service job',
+            requirements: 'Friendly and reliable',
+            shiftInfo: 'Flexible counter shifts',
+            employmentScope: 'flexible',
+            hourlyWage: 0,
+            contactPhone: '',
+            contactWhatsapp: '',
+          }),
+        },
+      )
+      assert.equal(invalidInactiveJobUpdate.status, 400)
+
+      const inactiveJobAfterFailedUpdate =
+        await prisma.restaurantJob.findUniqueOrThrow({
+          where: { id: recreatedCounterWorkerJob.body.id },
+        })
+      assert.equal(inactiveJobAfterFailedUpdate.isActive, false)
+
+      const ownerProfileBeforeVenueUpdate =
+        await prisma.restaurantOwnerProfile.findUniqueOrThrow({
+          where: { id: ownerA.profile.id },
+        })
+      const venueTypeUpdate = await request<OwnerProfileResponse>(
+        '/owner/profile',
+        {
+          method: 'PUT',
+          headers: jsonHeaders(ownerA.token),
+          body: JSON.stringify({
+            restaurantName: ownerProfileBeforeVenueUpdate.restaurantName,
+            contactPerson: ownerProfileBeforeVenueUpdate.contactPerson,
+            phoneNumber: ownerProfileBeforeVenueUpdate.phoneNumber,
+            whatsappNumber: ownerProfileBeforeVenueUpdate.whatsappNumber,
+            city: ownerProfileBeforeVenueUpdate.city,
+            street: ownerProfileBeforeVenueUpdate.street,
+            description: ownerProfileBeforeVenueUpdate.description,
+            venueTypes: ['cafe', 'patisserie'],
+          }),
+        },
+      )
+      assert.equal(venueTypeUpdate.status, 200)
+      assert.deepEqual(venueTypeUpdate.body.venueTypes, [
+        'cafe',
+        'patisserie',
+      ])
 
       const publicAfterBaristaActivation = await request<{
         qrEnabledRoles: string[]
@@ -2938,6 +3072,10 @@ test(
         },
       )
       assert.equal(unauthenticatedApplication.status, 401)
+      const unauthenticatedRestaurantDetail = await request(
+        `/restaurant/job-board/restaurants/${ownerA.profile.id}`,
+      )
+      assert.equal(unauthenticatedRestaurantDetail.status, 401)
 
       const nonWorkerToken = await registerAndLogin(
         `non-worker-${runId}@example.test`,
@@ -2978,6 +3116,16 @@ test(
           },
         )
         assert.equal(deniedApplication.status, 403, `${label} apply access`)
+
+        const deniedRestaurantDetail = await request(
+          `/restaurant/job-board/restaurants/${ownerA.profile.id}`,
+          { headers: jsonHeaders(token) },
+        )
+        assert.equal(
+          deniedRestaurantDetail.status,
+          403,
+          `${label} restaurant detail access`,
+        )
       }
 
       const unverifiedWorkerEmail = `unverified-worker-${runId}@example.test`
@@ -3165,6 +3313,48 @@ test(
           (job) =>
             job.contactPhone === undefined &&
             job.contactWhatsapp === undefined,
+        ),
+      )
+      const restaurantDetail = await request<{
+        restaurant: {
+          id: string
+          venueTypes: string[]
+          phoneNumber?: unknown
+          whatsappNumber?: unknown
+        }
+        jobs: RestaurantExploreResponse['jobs']
+      }>(`/restaurant/job-board/restaurants/${ownerA.profile.id}`, {
+        headers: jsonHeaders(workerToken),
+      })
+      assert.equal(restaurantDetail.status, 200)
+      assert.equal(restaurantDetail.body.restaurant.id, ownerA.profile.id)
+      assert.deepEqual(restaurantDetail.body.restaurant.venueTypes, [
+        'cafe',
+        'patisserie',
+      ])
+      assert.equal(restaurantDetail.body.restaurant.phoneNumber, undefined)
+      assert.equal(
+        restaurantDetail.body.restaurant.whatsappNumber,
+        undefined,
+      )
+      assert.ok(
+        restaurantDetail.body.jobs.some(
+          (job) => job.id === activePostedJob.id,
+        ),
+      )
+      assert.ok(
+        restaurantDetail.body.jobs.some(
+          (job) => job.id === ownerABaristaJob.id,
+        ),
+        'restaurant detail should show active roles beyond worker preferences',
+      )
+      assert.ok(
+        restaurantDetail.body.jobs.every(
+          (job) =>
+            job.id !== inactiveAttachedJob.id &&
+            job.id !== draftAttachedJob.id &&
+            job.id !== orphanActiveJob.id &&
+            job.restaurantId === ownerA.profile.id,
         ),
       )
       assert.ok(

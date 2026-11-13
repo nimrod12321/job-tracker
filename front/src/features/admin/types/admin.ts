@@ -1,4 +1,7 @@
-import type { RestaurantRole } from '../../restaurant/types/restaurant'
+import type {
+  RestaurantEmploymentScope,
+  RestaurantRole,
+} from '../../restaurant/types/restaurant'
 import type {
   CandidateLeadStatus,
   RestaurantCandidateLead,
@@ -257,6 +260,8 @@ export type AdminRestaurantJob = {
   description: string
   requirements: string
   shiftInfo: string
+  employmentScope: RestaurantEmploymentScope | null
+  hourlyWage: number | null
   kind: 'draft' | 'posted'
   isActive: boolean
   applicationsCount: number
