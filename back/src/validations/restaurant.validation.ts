@@ -11,6 +11,21 @@ export const restaurantRoles = [
   'counterWorker',
 ] as const
 
+export const restaurantEmploymentScopes = [
+  'fullTime',
+  'partTime',
+  'flexible',
+] as const
+
+export const restaurantVenueTypes = [
+  'restaurant',
+  'bar',
+  'cafe',
+  'fastFood',
+  'stand',
+  'patisserie',
+] as const
+
 export const defaultQrEnabledRoles = [
   'waiter',
   'bartender',
@@ -140,3 +155,7 @@ export const restaurantApplicationSchema = z
       .uuid('restaurant job id must be valid'),
   })
   .strict()
+
+export const restaurantIdSchema = z
+  .string({ error: 'restaurant id is required' })
+  .uuid('restaurant id must be valid')

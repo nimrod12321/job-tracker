@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import PeepssModal from '../../../components/common/PeepssModal'
 import {
+  getRestaurantEmploymentScopeLabel,
   getRestaurantRoleLabel,
   RESTAURANT_ROLES,
   type RestaurantRole,
@@ -1541,7 +1542,14 @@ function AdminRestaurantDetailPage() {
                     <article key={job.id}>
                       <div>
                         <strong>{getRestaurantRoleLabel(job.role)}</strong>
-                        <p>{job.shiftInfo || job.description || 'No details'}</p>
+                        <p>
+                          {getRestaurantEmploymentScopeLabel(
+                            job.employmentScope,
+                          )}
+                          {job.hourlyWage !== null
+                            ? ` · ₪${job.hourlyWage}/hour`
+                            : ''}
+                        </p>
                       </div>
                       <span className={`application-status ${job.isActive ? 'relevant' : 'rejected'}`}>
                         {job.isActive ? 'Active' : 'Inactive'}

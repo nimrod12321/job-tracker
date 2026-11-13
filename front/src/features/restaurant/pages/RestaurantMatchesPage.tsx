@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { getRestaurantMatches } from '../services/restaurantApi'
 import { getRestaurantProfile } from '../services/restaurantApi'
 import {
+  getRestaurantEmploymentScopeLabel,
   getRestaurantRoleLabel,
   type RestaurantMatch,
 } from '../types/restaurant'
@@ -26,7 +27,8 @@ function RestaurantMatchesPage() {
       language === 'he'
         ? 'כשהמסעדה תבחר אותך, זה יופיע כאן.'
         : 'When a restaurant selects you, it will appear here.',
-    shift: language === 'he' ? 'משמרות' : 'Shift',
+    scope: language === 'he' ? 'היקף משרה' : 'Employment scope',
+    salary: language === 'he' ? 'שכר שעתי' : 'Hourly wage',
     requirements: language === 'he' ? 'דרישות' : 'Requirements',
     call: language === 'he' ? 'טלפון' : 'Call',
     whatsapp: language === 'he' ? 'וואטסאפ' : 'WhatsApp',
@@ -134,10 +136,24 @@ function RestaurantMatchesPage() {
                     .join(' · ')}
                 </p>
 
-                {match.job.shiftInfo && (
+                <div>
+                  <strong>{text.scope}</strong>
+                  <p>
+                    {getRestaurantEmploymentScopeLabel(
+                      match.job.employmentScope,
+                      language,
+                    )}
+                  </p>
+                </div>
+
+                {match.job.hourlyWage !== null && (
                   <div>
-                    <strong>{text.shift}</strong>
-                    <p>{match.job.shiftInfo}</p>
+                    <strong>{text.salary}</strong>
+                    <p>
+                      {language === 'he'
+                        ? `₪${match.job.hourlyWage} לשעה`
+                        : `₪${match.job.hourlyWage}/hour`}
+                    </p>
                   </div>
                 )}
 

@@ -55,6 +55,7 @@ import ProfilePage from './features/profile/pages/ProfilePage'
 import RestaurantPublicApplyPage from './features/public/pages/RestaurantPublicApplyPage'
 import RestaurantClaimPage from './features/public/pages/RestaurantClaimPage'
 import RestaurantExplorePage from './features/restaurant/pages/RestaurantExplorePage'
+import RestaurantJobBoardDetailPage from './features/restaurant/pages/RestaurantJobBoardDetailPage'
 import RestaurantMapPage from './features/restaurant/pages/RestaurantMapPage'
 import RestaurantMatchesPage from './features/restaurant/pages/RestaurantMatchesPage'
 import RestaurantProfilePage from './features/restaurant/pages/RestaurantProfilePage'
@@ -555,6 +556,10 @@ function App() {
           <Route
             path="/restaurant/profile"
             element={<RestaurantProfilePage />}
+          />
+          <Route
+            path="/restaurant/restaurants/:restaurantId"
+            element={<RestaurantJobBoardDetailPage />}
           />
           <Route
             path="/restaurant/matches"

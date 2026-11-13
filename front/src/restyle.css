@@ -4443,6 +4443,238 @@ img.peepss-logo.swipe-immersive-logo {
   }
 }
 
+/* Job Board v2: compact, top-aligned content with actions always available. */
+.restaurant-job-card::before,
+.swipe-immersive-page .restaurant-job-card::before {
+  display: none;
+  content: none;
+}
+
+.restaurant-job-details,
+.swipe-immersive-page .restaurant-job-details {
+  display: block;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+
+.restaurant-shell .swipe-immersive-page .restaurant-card-stack,
+.restaurant-shell
+  .swipe-immersive-page
+  .restaurant-card-stack
+  .restaurant-job-card {
+  touch-action: pan-y;
+}
+
+.restaurant-job-name {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--ink);
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.restaurant-job-name:visited {
+  color: var(--ink);
+}
+
+.restaurant-job-name:hover,
+.restaurant-job-name:focus-visible {
+  color: var(--accent);
+}
+
+.restaurant-job-section,
+.restaurant-job-description,
+.restaurant-job-requirements {
+  display: block;
+  overflow: visible;
+  margin: 10px 18px 0;
+  padding: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-box-orient: initial;
+  -webkit-line-clamp: unset;
+}
+
+.restaurant-job-section h3,
+.restaurant-job-description h3,
+.restaurant-job-requirements h3 {
+  margin: 0 0 3px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.restaurant-job-section p,
+.restaurant-job-description p,
+.restaurant-job-requirements p {
+  display: block;
+  overflow: visible;
+  margin: 0;
+  padding: 0;
+  color: var(--muted);
+  font: inherit;
+  -webkit-box-orient: initial;
+  -webkit-line-clamp: unset;
+}
+
+.restaurant-job-scope,
+.restaurant-job-salary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+}
+
+.restaurant-job-salary {
+  margin-top: 6px;
+}
+
+.restaurant-job-actions {
+  flex: 0 0 auto;
+}
+
+.owner-hourly-wage-field {
+  margin-top: 14px;
+}
+
+.owner-venue-type-options {
+  margin: 0;
+}
+
+.restaurant-board-detail-page {
+  width: min(760px, 100%);
+  margin: 0 auto;
+  padding: 18px 16px 40px;
+}
+
+.restaurant-board-detail-back {
+  width: auto;
+  min-width: 0;
+  margin-bottom: 14px;
+}
+
+.restaurant-board-detail-header,
+.restaurant-board-job-card {
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+}
+
+.restaurant-board-detail-header {
+  padding: 20px;
+}
+
+.restaurant-board-detail-header h1,
+.restaurant-board-detail-heading h2,
+.restaurant-board-job-card h3,
+.restaurant-board-job-card h4,
+.restaurant-board-detail-header p,
+.restaurant-board-job-card p {
+  margin-top: 0;
+}
+
+.restaurant-board-detail-header > p:last-child {
+  margin-bottom: 0;
+}
+
+.restaurant-board-venue-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 12px 0;
+}
+
+.restaurant-board-venue-types span {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: var(--surface-2);
+  font-size: 12px;
+}
+
+.restaurant-board-detail-heading {
+  margin: 22px 0 10px;
+}
+
+.restaurant-board-job-list {
+  display: grid;
+  gap: 12px;
+}
+
+.restaurant-board-job-card {
+  display: grid;
+  gap: 11px;
+  padding: 18px;
+}
+
+.restaurant-board-job-card h3 {
+  margin-bottom: 1px;
+}
+
+.restaurant-board-job-card section h4 {
+  margin-bottom: 3px;
+  font-size: 13px;
+}
+
+.restaurant-board-job-card section p {
+  margin-bottom: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.restaurant-board-job-card .ui-button {
+  justify-self: start;
+  width: auto;
+  min-width: 150px;
+}
+
+@media (max-width: 430px) {
+  .restaurant-shell .restaurant-job-description,
+  .restaurant-shell .restaurant-job-requirements,
+  .restaurant-shell .restaurant-job-section {
+    display: block;
+    overflow: visible;
+    margin: 7px 14px 0;
+    padding: 0;
+    font-size: 12px;
+    line-height: 1.35;
+    -webkit-box-orient: initial;
+    -webkit-line-clamp: unset;
+  }
+
+  .restaurant-shell .restaurant-job-description p,
+  .restaurant-shell .restaurant-job-requirements p,
+  .restaurant-shell .restaurant-job-section p {
+    display: block;
+    overflow: visible;
+    -webkit-box-orient: initial;
+    -webkit-line-clamp: unset;
+  }
+
+  .restaurant-board-detail-page {
+    padding-inline: 12px;
+  }
+
+  .restaurant-board-detail-header,
+  .restaurant-board-job-card {
+    border-radius: 14px;
+    padding: 15px;
+  }
+
+  .restaurant-board-job-card .ui-button {
+    justify-self: stretch;
+    width: 100%;
+  }
+}
+
 @media (max-width: 360px) {
   :root {
     --mobile-gutter: 14px;

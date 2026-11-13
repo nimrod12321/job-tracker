@@ -14,6 +14,7 @@ import { recordCandidateReceivedBestEffort } from '../services/analytics.service
 import {
   restaurantApplicationSchema,
   restaurantExploreSchema,
+  restaurantIdSchema,
   restaurantProfileSchema,
   workerAvailabilityOptions,
   workerExperienceLevels,
@@ -66,6 +67,9 @@ function mapRestaurantJob(job: RestaurantJob) {
     description: job.description,
     requirements: job.requirements,
     shiftInfo: job.shiftInfo,
+    employmentScope: job.employmentScope,
+    hourlyWage: job.hourlyWage,
+    restaurantId: job.ownerProfileId,
   }
 }
 
@@ -553,6 +557,85 @@ export async function getRestaurantExploreJobs(
   }
 }
 
+export async function getRestaurantJobBoardRestaurant(
+  req: Request,
+  res: Response,
+) {
+  try {
+    const userId = getUserId(req)
+
+    if (!userId) {
+      return res.status(401).json({ message: 'unauthorized' })
+    }
+
+    const restaurantIdResult = restaurantIdSchema.safeParse(
+      req.params.restaurantId,
+    )
+
+    if (!restaurantIdResult.success) {
+      return res.status(400).json({
+        message: getValidationErrorMessage(restaurantIdResult.error),
+      })
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { restaurantWorkerProfile: true },
+    })
+    const eligibility = getRestaurantWorkerEligibility(user)
+
+    if (!eligibility.eligible) {
+      return res.status(eligibility.status).json({
+        message: eligibility.message,
+      })
+    }
+
+    const restaurant = await prisma.restaurantOwnerProfile.findUnique({
+      where: { id: restaurantIdResult.data },
+      select: {
+        id: true,
+        restaurantName: true,
+        description: true,
+        city: true,
+        street: true,
+        venueTypes: true,
+        jobs: {
+          where: {
+            kind: 'posted',
+            isActive: true,
+          },
+          orderBy: [
+            { createdAt: 'desc' },
+            { id: 'asc' },
+          ],
+        },
+      },
+    })
+
+    if (!restaurant) {
+      return res.status(404).json({ message: 'restaurant not found' })
+    }
+
+    return res.json({
+      restaurant: {
+        id: restaurant.id,
+        restaurantName: restaurant.restaurantName,
+        description: restaurant.description,
+        city: restaurant.city,
+        street: restaurant.street,
+        venueTypes: restaurant.venueTypes,
+      },
+      jobs: restaurant.jobs.map(mapRestaurantJob),
+    })
+  } catch (error) {
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to load restaurant jobs',
+    })
+  }
+}
+
 export async function createRestaurantApplication(
   req: Request,
   res: Response,
@@ -691,6 +774,8 @@ export async function getRestaurantMatches(req: Request, res: Response) {
           description: match.restaurantJob.description,
           requirements: match.restaurantJob.requirements,
           shiftInfo: match.restaurantJob.shiftInfo,
+          employmentScope: match.restaurantJob.employmentScope,
+          hourlyWage: match.restaurantJob.hourlyWage,
           contactPhone: match.restaurantJob.contactPhone,
           contactWhatsapp: match.restaurantJob.contactWhatsapp,
         },
