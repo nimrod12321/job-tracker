@@ -228,7 +228,8 @@ function OwnerJobsPage() {
     words: language === 'he' ? 'מילים' : 'words',
     saving: language === 'he' ? 'שומר...' : 'Saving...',
     saved: language === 'he' ? 'נשמר' : 'Saved',
-    saveChanges: language === 'he' ? 'שמירת שינויים' : 'Save changes',
+    saveChanges:
+      language === 'he' ? 'שמור ופרסם משרה' : 'Save and publish job',
     next: language === 'he' ? 'הבא' : 'Next',
     back: language === 'he' ? 'חזרה' : 'Back',
     jobBoard: language === 'he' ? 'לוח משרות' : 'Job board',
@@ -1403,37 +1404,39 @@ function OwnerJobsPage() {
               )}
 
               {jobStep === 2 && (
-                <fieldset className="restaurant-role-options owner-shift-options">
-                  <legend>{text.shiftStep}</legend>
-                  <div>
-                    <label>
-                      <input
-                        type="radio"
-                        name="owner-job-employment-scope"
-                        checked={form.employmentScope === null}
-                        onChange={() => updateField('employmentScope', null)}
-                      />
-                      <span>{text.unspecifiedScope}</span>
-                    </label>
-                    {RESTAURANT_EMPLOYMENT_SCOPES.map((scope) => (
-                      <label key={scope.value}>
+                <>
+                  <fieldset className="restaurant-role-options owner-shift-options">
+                    <legend>{text.shiftStep}</legend>
+                    <div>
+                      <label>
                         <input
                           type="radio"
                           name="owner-job-employment-scope"
-                          checked={form.employmentScope === scope.value}
-                          onChange={() =>
-                            updateField('employmentScope', scope.value)
-                          }
+                          checked={form.employmentScope === null}
+                          onChange={() => updateField('employmentScope', null)}
                         />
-                        <span>
-                          {getRestaurantEmploymentScopeLabel(
-                            scope.value,
-                            language,
-                          )}
-                        </span>
+                        <span>{text.unspecifiedScope}</span>
                       </label>
-                    ))}
-                  </div>
+                      {RESTAURANT_EMPLOYMENT_SCOPES.map((scope) => (
+                        <label key={scope.value}>
+                          <input
+                            type="radio"
+                            name="owner-job-employment-scope"
+                            checked={form.employmentScope === scope.value}
+                            onChange={() =>
+                              updateField('employmentScope', scope.value)
+                            }
+                          />
+                          <span>
+                            {getRestaurantEmploymentScopeLabel(
+                              scope.value,
+                              language,
+                            )}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
                   <label className="owner-field-wide owner-hourly-wage-field">
                     {text.hourlyWage}
                     <input
@@ -1456,7 +1459,7 @@ function OwnerJobsPage() {
                       {text.hourlyWageHint}
                     </span>
                   </label>
-                </fieldset>
+                </>
               )}
 
               {jobStep === 3 && (

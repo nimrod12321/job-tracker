@@ -1107,6 +1107,9 @@ export async function updateOwnerJob(req: Request, res: Response) {
       data: {
         ...jobInput,
         ...optionalJobData,
+        kind: 'posted',
+        isActive: true,
+        publishedFromDraftId: null,
         location: profile?.city ?? existingJob.location,
         area: profile?.street ?? existingJob.area,
         contactPhone:
