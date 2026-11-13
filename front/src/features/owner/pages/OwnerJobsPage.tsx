@@ -11,6 +11,8 @@ import {
 } from '../../../analytics/ownerActivityActions'
 import {
   RESTAURANT_ROLES,
+  RESTAURANT_EMPLOYMENT_SCOPES,
+  getRestaurantEmploymentScopeLabel,
   getRestaurantRoleLabel,
   type RestaurantRole,
 } from '../../restaurant/types/restaurant'
@@ -42,23 +44,15 @@ const emptyJobForm: OwnerJobInput = {
   description: '',
   requirements: '',
   shiftInfo: '',
+  employmentScope: null,
+  hourlyWage: null,
   contactPhone: '',
   contactWhatsapp: '',
 }
 
-const shiftOptions = [
-  { he: 'בוקר', en: 'Morning' },
-  { he: 'צהריים', en: 'Afternoon' },
-  { he: 'ערב', en: 'Evening' },
-  { he: 'לילה', en: 'Night' },
-  { he: 'סופי שבוע', en: 'Weekends' },
-  { he: 'גמיש', en: 'Flexible' },
-]
-
 // Keep these aligned with ownerJobSchema on the backend and with the compact
 // two-line sections rendered by RestaurantSwipeCard.
 const JOB_TEXT_WORD_LIMITS = {
-  shiftInfo: 14,
   description: 18,
   requirements: 16,
 } as const
@@ -115,6 +109,8 @@ function getJobInputFromJob(job: OwnerJob): OwnerJobInput {
     description: job.description,
     requirements: job.requirements,
     shiftInfo: job.shiftInfo,
+    employmentScope: job.employmentScope,
+    hourlyWage: job.hourlyWage,
     contactPhone: job.contactPhone,
     contactWhatsapp: job.contactWhatsapp,
   }
@@ -203,10 +199,20 @@ function OwnerJobsPage() {
     editJob: language === 'he' ? 'עריכת משרה' : 'Edit job',
     cancelEdit: language === 'he' ? 'ביטול עריכה' : 'Cancel edit',
     roleStep: language === 'he' ? 'את מי אתם מחפשים?' : 'Who are you hiring?',
-    shiftStep: language === 'he' ? 'מתי המשמרות?' : 'When are the shifts?',
+    shiftStep:
+      language === 'he' ? 'מה היקף המשרה?' : 'What is the employment scope?',
     detailsStep:
       language === 'he' ? 'מה חשוב לדעת?' : 'What should workers know?',
-    shiftInfo: language === 'he' ? 'משמרות' : 'Shift info',
+    employmentScope:
+      language === 'he' ? 'היקף משרה' : 'Employment scope',
+    unspecifiedScope:
+      language === 'he' ? 'לא צוין' : 'Not specified',
+    hourlyWage:
+      language === 'he' ? 'שכר שעתי (₪)' : 'Hourly wage (₪)',
+    hourlyWageHint:
+      language === 'he'
+        ? 'לא חובה. יוצג רק אם תזינו סכום.'
+        : 'Optional. Shown only when you enter an amount.',
     contactStep:
       language === 'he'
         ? 'לאן לפנות אחרי התאמה?'
@@ -504,12 +510,6 @@ function OwnerJobsPage() {
   function getJobTextLimitError(input: OwnerJobInput, currentStep: number) {
     const fields = [
       {
-        label: text.shiftInfo,
-        value: input.shiftInfo,
-        limit: JOB_TEXT_WORD_LIMITS.shiftInfo,
-        step: 2,
-      },
-      {
         label: text.requirements,
         value: input.requirements,
         limit: JOB_TEXT_WORD_LIMITS.requirements,
@@ -727,29 +727,6 @@ function OwnerJobsPage() {
       pendingJobIds.current.delete(job.id)
       setBusyJobId(null)
     }
-  }
-
-  function toggleShift(label: string) {
-    const currentValues = form.shiftInfo
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean)
-
-    const nextValue = currentValues.includes(label)
-      ? currentValues.filter((item) => item !== label).join(', ')
-      : [...currentValues, label].join(', ')
-
-    if (countWords(nextValue) > JOB_TEXT_WORD_LIMITS.shiftInfo) {
-      setError(
-        language === 'he'
-          ? `משמרות: אפשר לבחור עד ${JOB_TEXT_WORD_LIMITS.shiftInfo} מילים.`
-          : `Shift info: use up to ${JOB_TEXT_WORD_LIMITS.shiftInfo} words.`,
-      )
-      return
-    }
-
-    setError(null)
-    updateField('shiftInfo', nextValue)
   }
 
   async function handleCopyQrLink() {
@@ -1429,25 +1406,56 @@ function OwnerJobsPage() {
                 <fieldset className="restaurant-role-options owner-shift-options">
                   <legend>{text.shiftStep}</legend>
                   <div>
-                    {shiftOptions.map((option) => {
-                      const label = option[language]
-
-                      return (
-                        <label key={label}>
-                          <input
-                            type="checkbox"
-                            checked={form.shiftInfo.includes(label)}
-                            onChange={() => toggleShift(label)}
-                          />
-                          <span>{label}</span>
-                        </label>
-                      )
-                    })}
+                    <label>
+                      <input
+                        type="radio"
+                        name="owner-job-employment-scope"
+                        checked={form.employmentScope === null}
+                        onChange={() => updateField('employmentScope', null)}
+                      />
+                      <span>{text.unspecifiedScope}</span>
+                    </label>
+                    {RESTAURANT_EMPLOYMENT_SCOPES.map((scope) => (
+                      <label key={scope.value}>
+                        <input
+                          type="radio"
+                          name="owner-job-employment-scope"
+                          checked={form.employmentScope === scope.value}
+                          onChange={() =>
+                            updateField('employmentScope', scope.value)
+                          }
+                        />
+                        <span>
+                          {getRestaurantEmploymentScopeLabel(
+                            scope.value,
+                            language,
+                          )}
+                        </span>
+                      </label>
+                    ))}
                   </div>
-                  <p className="owner-job-word-count" aria-live="polite">
-                    {countWords(form.shiftInfo)}/
-                    {JOB_TEXT_WORD_LIMITS.shiftInfo} {text.words}
-                  </p>
+                  <label className="owner-field-wide owner-hourly-wage-field">
+                    {text.hourlyWage}
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min="1"
+                      max="10000"
+                      step="1"
+                      value={form.hourlyWage ?? ''}
+                      onChange={(event) =>
+                        updateField(
+                          'hourlyWage',
+                          event.target.value
+                            ? Number(event.target.value)
+                            : null,
+                        )
+                      }
+                    />
+                    <span className="form-helper-text">
+                      {text.hourlyWageHint}
+                    </span>
+                  </label>
                 </fieldset>
               )}
 

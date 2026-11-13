@@ -7,6 +7,11 @@ import {
   saveOwnerProfile,
 } from '../services/ownerApi'
 import type { OwnerProfileInput } from '../types/owner'
+import {
+  getRestaurantVenueTypeLabel,
+  RESTAURANT_VENUE_TYPES,
+  type RestaurantVenueType,
+} from '../../restaurant/types/restaurant'
 import VerifiedAddressAutocomplete from '../../../components/location/VerifiedAddressAutocomplete'
 import { useOwnerRestaurant } from '../context/ownerRestaurantState'
 
@@ -18,9 +23,13 @@ const emptyProfile: OwnerProfileInput = {
   city: 'Tel Aviv–Yafo',
   street: '',
   description: '',
+  venueTypes: [],
 }
 
-type ProfileField = Exclude<keyof OwnerProfileInput, 'locationPlaceId'>
+type ProfileField = Exclude<
+  keyof OwnerProfileInput,
+  'locationPlaceId' | 'venueTypes'
+>
 
 type OwnerProfilePageProps = {
   mode?: 'profile' | 'createAdditional'
@@ -82,6 +91,12 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
         : 'Restaurant profile saved.',
     restaurantSection:
       language === 'he' ? 'פרטי המסעדה' : 'Restaurant details',
+    venueTypes:
+      language === 'he' ? 'סוג המקום' : 'Business type',
+    venueTypesHelp:
+      language === 'he'
+        ? 'אפשר לבחור יותר מסוג אחד.'
+        : 'You can choose more than one.',
     contactSection:
       language === 'he' ? 'יצירת קשר' : 'Contact',
     descriptionSection:
@@ -152,6 +167,7 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
             city: profile.city,
             street: profile.street,
             description: profile.description,
+            venueTypes: profile.venueTypes,
           })
         }
       } catch (error) {
@@ -176,7 +192,7 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
     }
   }, [isCreatingAdditionalRestaurant, selectedRestaurantId])
 
-  function updateField(field: keyof OwnerProfileInput, value: string) {
+  function updateField(field: ProfileField, value: string) {
     setForm((currentForm) => ({
       ...currentForm,
       [field]: value,
@@ -184,6 +200,17 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
     setMissingFields((currentFields) =>
       currentFields.filter((currentField) => currentField !== field),
     )
+  }
+
+  function toggleVenueType(venueType: RestaurantVenueType) {
+    setForm((currentForm) => ({
+      ...currentForm,
+      venueTypes: currentForm.venueTypes.includes(venueType)
+        ? currentForm.venueTypes.filter(
+            (currentVenueType) => currentVenueType !== venueType,
+          )
+        : [...currentForm.venueTypes, venueType],
+    }))
   }
 
   function getMissingProfileFields() {
@@ -271,6 +298,7 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
         city: savedProfile.city,
         street: savedProfile.street,
         description: savedProfile.description,
+        venueTypes: savedProfile.venueTypes,
       })
       setSuccess(text.saved)
       setIsNewProfile(false)
@@ -338,6 +366,28 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
                 </span>
               )}
             </label>
+
+            <fieldset className="restaurant-role-options owner-field-wide owner-venue-type-options">
+              <legend>{text.venueTypes}</legend>
+              <p className="form-helper-text">{text.venueTypesHelp}</p>
+              <div>
+                {RESTAURANT_VENUE_TYPES.map((venueType) => (
+                  <label key={venueType.value}>
+                    <input
+                      type="checkbox"
+                      checked={form.venueTypes.includes(venueType.value)}
+                      onChange={() => toggleVenueType(venueType.value)}
+                    />
+                    <span>
+                      {getRestaurantVenueTypeLabel(
+                        venueType.value,
+                        language,
+                      )}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
 
             <div className="owner-field-wide owner-location-section">
               <div className="restaurant-location-heading">

@@ -171,6 +171,7 @@ function mapOwnerProfile(profile: RestaurantOwnerProfile) {
     description: profile.description,
     slug: profile.slug,
     qrEnabledRoles: profile.qrEnabledRoles,
+    venueTypes: profile.venueTypes,
     locationStatus: profile.locationStatus,
     locationCity: profile.locationCity,
     locationStreetName: profile.locationStreetName,
@@ -196,6 +197,8 @@ function mapOwnerJob(job: RestaurantJob) {
     description: job.description,
     requirements: job.requirements,
     shiftInfo: job.shiftInfo,
+    employmentScope: job.employmentScope,
+    hourlyWage: job.hourlyWage,
     contactPhone: job.contactPhone,
     contactWhatsapp: job.contactWhatsapp,
     kind: job.kind,
@@ -479,7 +482,9 @@ export async function createAdditionalOwnerRestaurant(
       })
     }
 
-    const { locationPlaceId, ...profileInput } = result.data
+    const { locationPlaceId, venueTypes, ...profileInput } = result.data
+    const venueTypesData =
+      venueTypes === undefined ? {} : { venueTypes }
     const verifiedLocation = await verifyRestaurantPlaceId({
       placeId: locationPlaceId,
     })
@@ -576,6 +581,7 @@ export async function createAdditionalOwnerRestaurant(
           await tx.restaurantOwnerProfile.create({
             data: {
               ...profileInput,
+              ...venueTypesData,
               ...verifiedLocationData,
               slug,
               userId: placeholderUser.id,
@@ -699,7 +705,9 @@ export async function updateOwnerProfile(req: Request, res: Response) {
           userId,
         },
       }))
-    const { locationPlaceId, ...profileInput } = result.data
+    const { locationPlaceId, venueTypes, ...profileInput } = result.data
+    const venueTypesData =
+      venueTypes === undefined ? {} : { venueTypes }
 
     if (!existingProfile && !locationPlaceId) {
       return res.status(400).json({
@@ -743,6 +751,7 @@ export async function updateOwnerProfile(req: Request, res: Response) {
           },
           data: {
             ...profileInput,
+            ...venueTypesData,
             ...locationData,
             ...(slug ? { slug } : {}),
           },
@@ -753,11 +762,13 @@ export async function updateOwnerProfile(req: Request, res: Response) {
           },
           update: {
             ...profileInput,
+            ...venueTypesData,
             ...locationData,
             ...(slug ? { slug } : {}),
           },
           create: {
             ...profileInput,
+            ...venueTypesData,
             ...locationData,
             userId,
             ...(slug ? { slug } : {}),
@@ -928,9 +939,15 @@ export async function createOwnerJob(req: Request, res: Response) {
       })
     }
 
+    const { employmentScope, hourlyWage, ...jobInput } = result.data
+    const optionalJobData = {
+      ...(employmentScope === undefined ? {} : { employmentScope }),
+      ...(hourlyWage === undefined ? {} : { hourlyWage }),
+    }
     const job = await prisma.restaurantJob.create({
       data: {
-        ...result.data,
+        ...jobInput,
+        ...optionalJobData,
         restaurantName: profile.restaurantName,
         location: profile.city,
         area: profile.street,
@@ -1078,12 +1095,18 @@ export async function updateOwnerJob(req: Request, res: Response) {
       }
     }
 
+    const { employmentScope, hourlyWage, ...jobInput } = bodyResult.data
+    const optionalJobData = {
+      ...(employmentScope === undefined ? {} : { employmentScope }),
+      ...(hourlyWage === undefined ? {} : { hourlyWage }),
+    }
     const job = await prisma.restaurantJob.update({
       where: {
         id: existingJob.id,
       },
       data: {
-        ...bodyResult.data,
+        ...jobInput,
+        ...optionalJobData,
         location: profile?.city ?? existingJob.location,
         area: profile?.street ?? existingJob.area,
         contactPhone:

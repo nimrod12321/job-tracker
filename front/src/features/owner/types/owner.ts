@@ -1,4 +1,8 @@
-import type { RestaurantRole } from '../../restaurant/types/restaurant'
+import type {
+  RestaurantEmploymentScope,
+  RestaurantRole,
+  RestaurantVenueType,
+} from '../../restaurant/types/restaurant'
 
 export type OwnerProfile = {
   id: string
@@ -11,6 +15,7 @@ export type OwnerProfile = {
   description: string
   slug: string | null
   qrEnabledRoles: RestaurantRole[]
+  venueTypes: RestaurantVenueType[]
   locationStatus: 'unverified' | 'verified'
   locationCity: string | null
   locationStreetName: string | null
@@ -63,6 +68,7 @@ export type OwnerProfileInput = {
   city: string
   street: string
   description: string
+  venueTypes: RestaurantVenueType[]
   locationPlaceId?: string
 }
 
@@ -71,6 +77,8 @@ export type OwnerJobInput = {
   description: string
   requirements: string
   shiftInfo: string
+  employmentScope: RestaurantEmploymentScope | null
+  hourlyWage: number | null
   contactPhone: string
   contactWhatsapp: string
 }

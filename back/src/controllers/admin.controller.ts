@@ -594,6 +594,8 @@ function mapAdminRestaurantJob(job: {
   description: string
   requirements: string
   shiftInfo: string
+  employmentScope: 'fullTime' | 'partTime' | 'flexible' | null
+  hourlyWage: number | null
   kind: 'draft' | 'posted'
   isActive: boolean
   createdAt: Date
@@ -614,6 +616,8 @@ function mapAdminRestaurantJob(job: {
     description: job.description,
     requirements: job.requirements,
     shiftInfo: job.shiftInfo,
+    employmentScope: job.employmentScope,
+    hourlyWage: job.hourlyWage,
     kind: job.kind,
     isActive: job.isActive,
     applicationsCount: job.applications

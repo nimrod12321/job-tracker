@@ -48,6 +48,21 @@ enum RestaurantJobKind {
   posted
 }
 
+enum RestaurantEmploymentScope {
+  fullTime
+  partTime
+  flexible
+}
+
+enum RestaurantVenueType {
+  restaurant
+  bar
+  cafe
+  fastFood
+  stand
+  patisserie
+}
+
 enum RestaurantApplicationStatus {
   applied
   selected
@@ -257,14 +272,16 @@ model RestaurantJob {
   restaurantName  String
   role            RestaurantRole
   location        String
-  area            String            @default("")
-  description     String            @default("")
-  requirements    String            @default("")
-  shiftInfo       String            @default("")
-  contactPhone    String            @default("")
-  contactWhatsapp String            @default("")
-  kind            RestaurantJobKind @default(draft)
-  isActive        Boolean           @default(true)
+  area            String                     @default("")
+  description     String                     @default("")
+  requirements    String                     @default("")
+  shiftInfo       String                     @default("")
+  employmentScope RestaurantEmploymentScope?
+  hourlyWage      Int?
+  contactPhone    String                     @default("")
+  contactWhatsapp String                     @default("")
+  kind            RestaurantJobKind          @default(draft)
+  isActive        Boolean                    @default(true)
 
   // Set on a posted job to the id of the draft it was published from.
   // Unique so a draft can produce at most one posted job (publish is idempotent).
@@ -292,15 +309,16 @@ model RestaurantOwnerProfile {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  restaurantName String           @default("")
-  contactPerson  String           @default("")
-  phoneNumber    String           @default("")
-  whatsappNumber String           @default("")
-  city           String           @default("")
-  street         String           @default("")
-  description    String           @default("")
-  slug           String?          @unique
-  qrEnabledRoles RestaurantRole[] @default([waiter, bartender, host, cook, floorManager])
+  restaurantName String                @default("")
+  contactPerson  String                @default("")
+  phoneNumber    String                @default("")
+  whatsappNumber String                @default("")
+  city           String                @default("")
+  street         String                @default("")
+  description    String                @default("")
+  slug           String?               @unique
+  qrEnabledRoles RestaurantRole[]      @default([waiter, bartender, host, cook, floorManager])
+  venueTypes     RestaurantVenueType[] @default([])
 
   // Legacy city/street fields above remain for compatibility. Map visibility
   // relies only on these trusted, nullable Google-verified fields.

@@ -1,5 +1,9 @@
 import { z } from 'zod'
-import { restaurantRoles } from './restaurant.validation.js'
+import {
+  restaurantEmploymentScopes,
+  restaurantRoles,
+  restaurantVenueTypes,
+} from './restaurant.validation.js'
 import { candidateLeadStatusSchema } from './publicRestaurant.validation.js'
 
 const optionalText = (field: string, maxLength: number) =>
@@ -36,6 +40,14 @@ export const ownerProfileSchema = z
     street: optionalText('street', 200),
     locationPlaceId: optionalText('location place id', 300),
     description: optionalText('description', 2_000),
+    venueTypes: z
+      .array(z.enum(restaurantVenueTypes, { error: 'venue type is invalid' }))
+      .max(restaurantVenueTypes.length, 'too many venue types')
+      .refine(
+        (venueTypes) => new Set(venueTypes).size === venueTypes.length,
+        'venue types must be unique',
+      )
+      .optional(),
   })
   .strict()
 
@@ -70,7 +82,20 @@ export const ownerJobSchema = z
     }),
     description: limitedJobText('description', 2_000, 18),
     requirements: limitedJobText('requirements', 2_000, 16),
-    shiftInfo: limitedJobText('shift info', 500, 14),
+    shiftInfo: optionalText('shift info', 500),
+    employmentScope: z
+      .enum(restaurantEmploymentScopes, {
+        error: 'employment scope is invalid',
+      })
+      .nullable()
+      .optional(),
+    hourlyWage: z
+      .number({ error: 'hourly wage must be a number' })
+      .int('hourly wage must be a whole number')
+      .min(1, 'hourly wage must be at least 1')
+      .max(10_000, 'hourly wage is too high')
+      .nullable()
+      .optional(),
     contactPhone: optionalText('contact phone', 50),
     contactWhatsapp: optionalText('contact WhatsApp', 50),
   })

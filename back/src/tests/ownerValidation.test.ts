@@ -11,7 +11,7 @@ const validJob = {
   contactWhatsapp: '',
 }
 
-test('owner job text accepts values at the compact-card word limits', () => {
+test('owner job description and requirements accept compact-card word limits', () => {
   const result = ownerJobSchema.safeParse({
     ...validJob,
     shiftInfo: Array.from({ length: 14 }, () => 'shift').join(' '),
@@ -42,12 +42,21 @@ test('owner job requirements reject more than 16 words', () => {
   assert.match(result.error?.issues[0]?.message ?? '', /16 words or fewer/)
 })
 
-test('owner job shift info rejects more than 14 words', () => {
+test('legacy shift info is preserved without the retired word limit', () => {
   const result = ownerJobSchema.safeParse({
     ...validJob,
-    shiftInfo: Array.from({ length: 15 }, () => 'shift').join(' '),
+    shiftInfo: Array.from({ length: 20 }, () => 'legacy').join(' '),
+  })
+
+  assert.equal(result.success, true)
+})
+
+test('legacy shift info still respects its storage length limit', () => {
+  const result = ownerJobSchema.safeParse({
+    ...validJob,
+    shiftInfo: 'x'.repeat(501),
   })
 
   assert.equal(result.success, false)
-  assert.match(result.error?.issues[0]?.message ?? '', /14 words or fewer/)
+  assert.match(result.error?.issues[0]?.message ?? '', /too long/)
 })
