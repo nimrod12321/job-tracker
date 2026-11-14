@@ -107,6 +107,8 @@ const PROFILE_REQUIRED_MESSAGE =
 
 const DUPLICATE_OWNER_JOB_ROLE_MESSAGE =
   'A job for this role already exists. Edit the existing job instead.'
+const JOB_HAS_APPLICATIONS_MESSAGE =
+  'This job has applications and cannot be deleted. Deactivate it instead.'
 
 function getUserId(req: Request) {
   return (req as AuthenticatedRequest).userId
@@ -1243,11 +1245,49 @@ export async function deleteOwnerJob(req: Request, res: Response) {
       })
     }
 
-    await prisma.restaurantJob.delete({
-      where: {
-        id: existingJob.id,
-      },
+    const deletionResult = await prisma.$transaction(async (tx) => {
+      const lockedJobs = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT "id"
+        FROM "RestaurantJob"
+        WHERE "id" = ${existingJob.id}
+          AND "ownerProfileId" = ${access.restaurant.id}
+        FOR UPDATE
+      `
+
+      if (lockedJobs.length === 0) {
+        return 'notFound' as const
+      }
+
+      const applicationCount = await tx.restaurantApplication.count({
+        where: {
+          restaurantJobId: existingJob.id,
+        },
+      })
+
+      if (applicationCount > 0) {
+        return 'hasApplications' as const
+      }
+
+      await tx.restaurantJob.delete({
+        where: {
+          id: existingJob.id,
+        },
+      })
+
+      return 'deleted' as const
     })
+
+    if (deletionResult === 'notFound') {
+      return res.status(404).json({
+        message: 'restaurant job not found',
+      })
+    }
+
+    if (deletionResult === 'hasApplications') {
+      return res.status(409).json({
+        message: JOB_HAS_APPLICATIONS_MESSAGE,
+      })
+    }
 
     return res.status(204).send()
   } catch (error) {
