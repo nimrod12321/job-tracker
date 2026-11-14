@@ -30,19 +30,25 @@ export type GoogleMapInstance = {
     callback: (event: GoogleMapMouseEvent) => void,
   ) => unknown
   fitBounds: (bounds: GoogleBoundsInstance, padding?: number) => void
+  getCenter: () => GoogleLatLng | undefined
   setCenter: (center: { lat: number; lng: number }) => void
   setZoom: (zoom: number) => void
 }
 
 export type GoogleMapMouseEvent = {
-  latLng?: {
-    lat: () => number
-    lng: () => number
-  } | null
+  latLng?: GoogleLatLng | null
+}
+
+export type GoogleLatLng = {
+  lat: () => number
+  lng: () => number
 }
 
 export type GoogleCircleInstance = {
   setMap: (map: GoogleMapInstance | null) => void
+  setCenter: (center: { lat: number; lng: number }) => void
+  setOptions: (options: Record<string, unknown>) => void
+  setRadius: (radius: number) => void
 }
 
 export type GoogleMarkerInstance = {
