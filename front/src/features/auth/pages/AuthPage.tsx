@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import PeepssLogo from '../../../components/brand/PeepssLogo'
 import {
+  completeRegistration,
+  isRegistrationConsentRequired,
   requestAuthCode,
   verifyAuthCode,
   type UserTrack,
@@ -21,7 +23,7 @@ type AuthPageProps = {
   onAuthSuccess: (token: string) => Promise<void>
 }
 
-type AuthStep = 'details' | 'code'
+type AuthStep = 'details' | 'code' | 'consent'
 type PhoneAuthTrack = Extract<UserTrack, 'restaurant' | 'restaurantOwner'>
 
 function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
@@ -34,6 +36,7 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
   const [track, setTrack] = useState<PhoneAuthTrack>('restaurant')
   const [legalAccepted, setLegalAccepted] = useState(false)
   const [marketingSmsOptIn, setMarketingSmsOptIn] = useState(false)
+  const [registrationToken, setRegistrationToken] = useState('')
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -98,6 +101,15 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
       isHebrew
         ? 'כדי להירשם צריך לאשר את תנאי השימוש ומדיניות הפרטיות.'
         : 'Accept the Terms of Use and Privacy Policy to register.',
+    consentTitle: isHebrew
+      ? 'עוד רגע מסיימים'
+      : 'One last step',
+    completeSignup: isHebrew
+      ? 'סיום הרשמה'
+      : 'Complete signup',
+    completingSignup: isHebrew
+      ? 'מסיים הרשמה...'
+      : 'Completing signup...',
   }
 
   useEffect(() => {
@@ -119,11 +131,6 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
 
     if (!phoneNumber.trim()) {
       setError(text.phoneRequired)
-      return false
-    }
-
-    if (mode === 'register' && !legalAccepted) {
-      setError(text.legalRequired)
       return false
     }
 
@@ -211,8 +218,6 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
           ? {
               fullName: fullName.trim(),
               track,
-              legalAccepted,
-              marketingSmsOptIn,
             }
           : {}),
         ...(mode === 'register' && track === 'restaurantOwner'
@@ -224,6 +229,13 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
             }
           : {}),
       })
+
+      if (isRegistrationConsentRequired(response)) {
+        setRegistrationToken(response.registrationToken)
+        setStep('consent')
+        setIsLoading(false)
+        return
+      }
 
       if (response.ownerAcquisitionFlow && analyticsAttempt) {
         void linkOwnerOtpVerified({
@@ -252,6 +264,52 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
           errorMessage.toLowerCase().includes('account not found')
           ? text.loginMissingAccount
           : errorMessage,
+      )
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  async function handleCompleteRegistration(
+    event: FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault()
+    setError(null)
+
+    if (!legalAccepted) {
+      setError(text.legalRequired)
+      return
+    }
+
+    if (!registrationToken) {
+      setError(text.fallbackError)
+      return
+    }
+
+    setIsLoading(true)
+
+    try {
+      const response = await completeRegistration({
+        registrationToken,
+        legalAccepted,
+        marketingSmsOptIn,
+      })
+      const analyticsAttempt = otpVerifiedAttemptRef.current
+
+      if (response.ownerAcquisitionFlow && analyticsAttempt) {
+        void linkOwnerOtpVerified({
+          token: response.token,
+          flow: response.ownerAcquisitionFlow,
+          attempt: analyticsAttempt,
+        })
+      }
+
+      await onAuthSuccess(response.token)
+    } catch (completeError) {
+      setError(
+        completeError instanceof Error
+          ? completeError.message
+          : text.fallbackError,
       )
     } finally {
       setIsLoading(false)
@@ -388,43 +446,6 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
                   </fieldset>
                 )}
 
-                {mode === 'register' && (
-                  <div className="registration-consents">
-                    <label className="consent-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={legalAccepted}
-                        onChange={(event) => {
-                          setLegalAccepted(event.target.checked)
-                          setError(null)
-                        }}
-                        required
-                      />
-                      <span>
-                        {text.legalPrefix}
-                        <Link to="/terms" target="_blank" rel="noreferrer">
-                          {text.terms}
-                        </Link>
-                        {text.legalJoin}
-                        <Link to="/privacy" target="_blank" rel="noreferrer">
-                          {text.privacy}
-                        </Link>
-                        .
-                      </span>
-                    </label>
-                    <label className="consent-checkbox consent-checkbox--optional">
-                      <input
-                        type="checkbox"
-                        checked={marketingSmsOptIn}
-                        onChange={(event) =>
-                          setMarketingSmsOptIn(event.target.checked)
-                        }
-                      />
-                      <span>{text.marketingSms}</span>
-                    </label>
-                  </div>
-                )}
-
                 {import.meta.env.DEV && (
                   <p className="auth-dev-hint">{text.devHint}</p>
                 )}
@@ -444,7 +465,7 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
                   {isLoading ? text.sendingCode : text.sendCode}
                 </button>
               </form>
-            ) : (
+            ) : step === 'code' ? (
               <form className="auth-form auth-code-form" onSubmit={handleVerifyCode}>
                 <div className="auth-code-heading">
                   <h2>{text.codeTitle}</h2>
@@ -520,6 +541,64 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
                     {text.changePhone}
                   </button>
                 </div>
+              </form>
+            ) : (
+              <form
+                className="auth-form registration-consent-form"
+                onSubmit={handleCompleteRegistration}
+              >
+                <div className="auth-code-heading">
+                  <h2>{text.consentTitle}</h2>
+                </div>
+                <div className="registration-consents">
+                  <label className="consent-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={legalAccepted}
+                      onChange={(event) => {
+                        setLegalAccepted(event.target.checked)
+                        setError(null)
+                      }}
+                      required
+                    />
+                    <span>
+                      {text.legalPrefix}
+                      <Link to="/terms" target="_blank" rel="noreferrer">
+                        {text.terms}
+                      </Link>
+                      {text.legalJoin}
+                      <Link to="/privacy" target="_blank" rel="noreferrer">
+                        {text.privacy}
+                      </Link>
+                      .
+                    </span>
+                  </label>
+                  <label className="consent-checkbox consent-checkbox--optional">
+                    <input
+                      type="checkbox"
+                      checked={marketingSmsOptIn}
+                      onChange={(event) =>
+                        setMarketingSmsOptIn(event.target.checked)
+                      }
+                    />
+                    <span>{text.marketingSms}</span>
+                  </label>
+                </div>
+                {error && (
+                  <p className="message message-error" role="alert">
+                    {error}
+                  </p>
+                )}
+                <button
+                  className="ui-button ui-button--primary"
+                  type="submit"
+                  disabled={isLoading}
+                  aria-busy={isLoading}
+                >
+                  {isLoading
+                    ? text.completingSignup
+                    : text.completeSignup}
+                </button>
               </form>
             )}
           </div>

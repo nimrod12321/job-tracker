@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { verifyCodeSchema } from '../validations/auth.validation.js'
+import {
+  completeRegistrationSchema,
+  verifyCodeSchema,
+} from '../validations/auth.validation.js'
 import { sendMarketingSmsAtBoundary } from '../services/marketingSms.service.js'
 import { selectNewCandidateNotificationRecipients } from '../services/restaurantCandidateNotification.service.js'
-import { requiresLegalAcceptanceForOtpPurpose } from '../services/legalConsent.service.js'
 
-test('registration-like OTP flows require legal acceptance while login does not', () => {
+test('OTP may be verified before consent but registration completion requires acceptance', () => {
   const withoutLegal = verifyCodeSchema.safeParse({
     phoneNumber: '0501234567',
     code: '1234',
@@ -24,11 +26,23 @@ test('registration-like OTP flows require legal acceptance while login does not'
 
   assert.equal(withoutLegal.success, true)
   assert.equal(withLegalAndNoMarketing.success, true)
-  assert.equal(requiresLegalAcceptanceForOtpPurpose('register'), true)
-  assert.equal(requiresLegalAcceptanceForOtpPurpose('qrApply'), true)
-  assert.equal(requiresLegalAcceptanceForOtpPurpose('login'), false)
   if (withLegalAndNoMarketing.success) {
     assert.equal(withLegalAndNoMarketing.data.marketingSmsOptIn, false)
+  }
+  assert.equal(
+    completeRegistrationSchema.safeParse({
+      registrationToken: 'verified-registration-token',
+      legalAccepted: false,
+    }).success,
+    false,
+  )
+  const completedWithoutMarketing = completeRegistrationSchema.safeParse({
+    registrationToken: 'verified-registration-token',
+    legalAccepted: true,
+  })
+  assert.equal(completedWithoutMarketing.success, true)
+  if (completedWithoutMarketing.success) {
+    assert.equal(completedWithoutMarketing.data.marketingSmsOptIn, false)
   }
 })
 

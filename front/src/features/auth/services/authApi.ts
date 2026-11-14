@@ -54,11 +54,21 @@ type RequestCodeResponse = {
   ok: boolean
 }
 
-type VerifyCodeResponse = {
+export type AuthenticatedCodeResponse = {
   token: string
   user: AuthUser
   ownerAcquisitionFlow: OwnerAcquisitionFlow | null
 }
+
+export type RegistrationConsentRequiredResponse = {
+  requiresConsent: true
+  registrationToken: string
+  ownerAcquisitionFlow: OwnerAcquisitionFlow | null
+}
+
+export type VerifyCodeResponse =
+  | AuthenticatedCodeResponse
+  | RegistrationConsentRequiredResponse
 
 export async function registerUser(
   email: string,
@@ -165,4 +175,35 @@ export async function verifyAuthCode(input: {
   }
 
   return response.json()
+}
+
+export async function completeRegistration(input: {
+  registrationToken: string
+  legalAccepted: boolean
+  marketingSmsOptIn: boolean
+}): Promise<AuthenticatedCodeResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/auth/complete-registration`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(input),
+    },
+  )
+
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(response, 'Failed to complete registration'),
+    )
+  }
+
+  return response.json()
+}
+
+export function isRegistrationConsentRequired(
+  response: VerifyCodeResponse,
+): response is RegistrationConsentRequiredResponse {
+  return 'requiresConsent' in response && response.requiresConsent === true
 }

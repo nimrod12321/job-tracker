@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import PeepssLogo from '../../../components/brand/PeepssLogo'
 import {
+  completeRegistration,
+  isRegistrationConsentRequired,
   requestAuthCode,
   verifyAuthCode,
 } from '../../auth/services/authApi'
@@ -31,7 +33,7 @@ type ClaimPageProps = {
   ) => Promise<void>
 }
 
-type ClaimStep = 'overview' | 'phone' | 'code'
+type ClaimStep = 'overview' | 'phone' | 'code' | 'consent'
 type ClaimStatus = 'loading' | 'ready' | 'unavailable' | 'activated'
 
 function readStoredClaimToken(slug: string) {
@@ -77,6 +79,7 @@ function RestaurantClaimPage({ onClaimSuccess }: ClaimPageProps) {
   const [code, setCode] = useState('')
   const [legalAccepted, setLegalAccepted] = useState(false)
   const [marketingSmsOptIn, setMarketingSmsOptIn] = useState(false)
+  const [registrationToken, setRegistrationToken] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -166,6 +169,10 @@ function RestaurantClaimPage({ onClaimSuccess }: ClaimPageProps) {
       isHebrew
         ? 'כדי להפעיל את המסעדה צריך לאשר את תנאי השימוש ומדיניות הפרטיות.'
         : 'Accept the Terms of Use and Privacy Policy to activate the restaurant.',
+    consentTitle: isHebrew ? 'עוד רגע מסיימים' : 'One last step',
+    finishActivation: isHebrew
+      ? 'סיום הרשמה והפעלת המסעדה'
+      : 'Complete signup and activate restaurant',
   }
 
   useEffect(() => {
@@ -246,11 +253,6 @@ function RestaurantClaimPage({ onClaimSuccess }: ClaimPageProps) {
       return
     }
 
-    if (!legalAccepted) {
-      setError(text.legalRequired)
-      return
-    }
-
     setIsLoading(true)
 
     try {
@@ -289,8 +291,6 @@ function RestaurantClaimPage({ onClaimSuccess }: ClaimPageProps) {
         purpose: 'register',
         fullName: fullName.trim(),
         track: 'restaurantOwner',
-        legalAccepted,
-        marketingSmsOptIn,
         ownerFlowHint: 'claim',
         ...(analyticsAttempt
           ? {
@@ -299,43 +299,90 @@ function RestaurantClaimPage({ onClaimSuccess }: ClaimPageProps) {
           : {}),
       })
 
-      if (auth.ownerAcquisitionFlow && analyticsAttempt) {
-        void linkOwnerOtpVerified({
-          token: auth.token,
-          flow: auth.ownerAcquisitionFlow,
-          attempt: analyticsAttempt,
-        })
+      if (isRegistrationConsentRequired(auth)) {
+        setRegistrationToken(auth.registrationToken)
+        setStep('consent')
+        return
       }
-      const completed = await completePublicRestaurantClaim({
-        slug: restaurantSlug,
-        token: claimToken,
-        authToken: auth.token,
-      })
 
-      clearClaimContext()
-      await onClaimSuccess(auth.token, completed.profileComplete)
+      await finishClaim(auth.token, auth.ownerAcquisitionFlow)
     } catch (error) {
-      if (
-        error instanceof RestaurantClaimApiError &&
-        error.code === 'ALREADY_ACTIVATED'
-      ) {
+      handleClaimError(error, text.invalidCode)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  async function finishClaim(
+    authToken: string,
+    ownerAcquisitionFlow:
+      | Parameters<typeof linkOwnerOtpVerified>[0]['flow']
+      | null,
+  ) {
+    const analyticsAttempt = otpVerifiedAttemptRef.current
+
+    if (ownerAcquisitionFlow && analyticsAttempt) {
+      void linkOwnerOtpVerified({
+        token: authToken,
+        flow: ownerAcquisitionFlow,
+        attempt: analyticsAttempt,
+      })
+    }
+
+    const completed = await completePublicRestaurantClaim({
+      slug: restaurantSlug,
+      token: claimToken,
+      authToken,
+    })
+
+    clearClaimContext()
+    await onClaimSuccess(authToken, completed.profileComplete)
+  }
+
+  function handleClaimError(error: unknown, fallback: string) {
+    if (
+      error instanceof RestaurantClaimApiError &&
+      error.code === 'ALREADY_ACTIVATED'
+    ) {
+      clearClaimContext()
+      setStatus('activated')
+      return
+    }
+
+    if (error instanceof RestaurantClaimApiError) {
+      if (error.code === 'CLAIM_UNAVAILABLE') {
         clearClaimContext()
-        setStatus('activated')
+        setStatus('unavailable')
         return
       }
 
-      if (error instanceof RestaurantClaimApiError) {
-        if (error.code === 'CLAIM_UNAVAILABLE') {
-          clearClaimContext()
-          setStatus('unavailable')
-          return
-        }
+      setError(error.message)
+      return
+    }
 
-        setError(error.message)
-        return
-      }
+    setError(fallback)
+  }
 
-      setError(text.invalidCode)
+  async function handleCompleteConsent(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setError(null)
+
+    if (!legalAccepted) {
+      setError(text.legalRequired)
+      return
+    }
+
+    setIsLoading(true)
+
+    try {
+      const auth = await completeRegistration({
+        registrationToken,
+        legalAccepted,
+        marketingSmsOptIn,
+      })
+      await finishClaim(auth.token, auth.ownerAcquisitionFlow)
+    } catch (error) {
+      handleClaimError(error, text.fallbackError)
     } finally {
       setIsLoading(false)
     }
@@ -484,40 +531,6 @@ function RestaurantClaimPage({ onClaimSuccess }: ClaimPageProps) {
                 }}
               />
             </label>
-            <div className="registration-consents">
-              <label className="consent-checkbox">
-                <input
-                  type="checkbox"
-                  checked={legalAccepted}
-                  onChange={(event) => {
-                    setLegalAccepted(event.target.checked)
-                    setError(null)
-                  }}
-                  required
-                />
-                <span>
-                  {text.legalPrefix}
-                  <Link to="/terms" target="_blank" rel="noreferrer">
-                    {text.terms}
-                  </Link>
-                  {text.legalJoin}
-                  <Link to="/privacy" target="_blank" rel="noreferrer">
-                    {text.privacy}
-                  </Link>
-                  .
-                </span>
-              </label>
-              <label className="consent-checkbox consent-checkbox--optional">
-                <input
-                  type="checkbox"
-                  checked={marketingSmsOptIn}
-                  onChange={(event) =>
-                    setMarketingSmsOptIn(event.target.checked)
-                  }
-                />
-                <span>{text.marketingSms}</span>
-              </label>
-            </div>
             {error && <p className="message message-error" role="alert">{error}</p>}
             <button
               className="ui-button ui-button--primary"
@@ -595,6 +608,58 @@ function RestaurantClaimPage({ onClaimSuccess }: ClaimPageProps) {
                 {text.changePhone}
               </button>
             </div>
+          </form>
+        )}
+
+        {step === 'consent' && (
+          <form
+            className="auth-form claim-form registration-consent-form"
+            onSubmit={handleCompleteConsent}
+          >
+            <h2>{text.consentTitle}</h2>
+            <div className="registration-consents">
+              <label className="consent-checkbox">
+                <input
+                  type="checkbox"
+                  checked={legalAccepted}
+                  onChange={(event) => {
+                    setLegalAccepted(event.target.checked)
+                    setError(null)
+                  }}
+                  required
+                />
+                <span>
+                  {text.legalPrefix}
+                  <Link to="/terms" target="_blank" rel="noreferrer">
+                    {text.terms}
+                  </Link>
+                  {text.legalJoin}
+                  <Link to="/privacy" target="_blank" rel="noreferrer">
+                    {text.privacy}
+                  </Link>
+                  .
+                </span>
+              </label>
+              <label className="consent-checkbox consent-checkbox--optional">
+                <input
+                  type="checkbox"
+                  checked={marketingSmsOptIn}
+                  onChange={(event) =>
+                    setMarketingSmsOptIn(event.target.checked)
+                  }
+                />
+                <span>{text.marketingSms}</span>
+              </label>
+            </div>
+            {error && <p className="message message-error" role="alert">{error}</p>}
+            <button
+              className="ui-button ui-button--primary"
+              type="submit"
+              disabled={isLoading}
+              aria-busy={isLoading}
+            >
+              {isLoading ? text.completing : text.finishActivation}
+            </button>
           </form>
         )}
       </article>

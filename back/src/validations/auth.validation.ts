@@ -77,3 +77,11 @@ export const verifyCodeSchema = z
     marketingSmsOptIn: z.boolean().optional().default(false),
   })
   .strict()
+
+export const completeRegistrationSchema = z
+  .object({
+    registrationToken: z.string().trim().min(1),
+    legalAccepted: requiredLegalAcceptanceSchema,
+    marketingSmsOptIn: z.boolean().optional().default(false),
+  })
+  .strict()

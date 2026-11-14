@@ -8,7 +8,12 @@ import {
 } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import PeepssLogo from '../../../components/brand/PeepssLogo'
-import { requestAuthCode, verifyAuthCode } from '../../auth/services/authApi'
+import {
+  completeRegistration,
+  isRegistrationConsentRequired,
+  requestAuthCode,
+  verifyAuthCode,
+} from '../../auth/services/authApi'
 import RestaurantLanguageToggle from '../../restaurant/components/RestaurantLanguageToggle'
 import {
   RESTAURANT_ROLES,
@@ -23,7 +28,7 @@ import {
   type PublicRestaurant,
 } from '../services/publicRestaurantApi'
 
-type PublicApplyStep = 'identify' | 'verify' | 'details'
+type PublicApplyStep = 'identify' | 'verify' | 'consent' | 'details'
 
 type RestaurantPublicApplyPageProps = {
   onAuthVerified: (token: string) => Promise<void>
@@ -74,6 +79,7 @@ function RestaurantPublicApplyPage({
   const [phoneNumber, setPhoneNumber] = useState('')
   const [legalAccepted, setLegalAccepted] = useState(false)
   const [marketingSmsOptIn, setMarketingSmsOptIn] = useState(false)
+  const [registrationToken, setRegistrationToken] = useState('')
   const [code, setCode] = useState('')
   const [verifiedToken, setVerifiedToken] = useState<string | null>(null)
   const [wantedRoles, setWantedRoles] = useState<RestaurantRole[]>([])
@@ -212,6 +218,10 @@ function RestaurantPublicApplyPage({
       language === 'he'
         ? 'כדי להמשיך צריך לאשר את תנאי השימוש ומדיניות הפרטיות.'
         : 'Accept the Terms of Use and Privacy Policy to continue.',
+    consentTitle:
+      language === 'he' ? 'עוד רגע מסיימים הרשמה' : 'One last signup step',
+    completeSignup:
+      language === 'he' ? 'סיום הרשמה והמשך' : 'Complete signup and continue',
   }
   const availableQrRoles = useMemo(
     () =>
@@ -351,9 +361,13 @@ function RestaurantPublicApplyPage({
           code: codeToVerify,
           purpose: 'qrApply',
           fullName: fullName.trim(),
-          legalAccepted,
-          marketingSmsOptIn,
         })
+
+        if (isRegistrationConsentRequired(response)) {
+          setRegistrationToken(response.registrationToken)
+          setStep('consent')
+          return
+        }
 
         await onAuthVerified(response.token)
         setVerifiedToken(response.token)
@@ -367,8 +381,6 @@ function RestaurantPublicApplyPage({
     },
     [
       fullName,
-      legalAccepted,
-      marketingSmsOptIn,
       onAuthVerified,
       phoneNumber,
       text.codeError,
@@ -401,11 +413,6 @@ function RestaurantPublicApplyPage({
       return
     }
 
-    if (!legalAccepted) {
-      setError(text.legalRequired)
-      return
-    }
-
     setIsSubmitting(true)
 
     try {
@@ -428,6 +435,37 @@ function RestaurantPublicApplyPage({
   async function handleVerifyCode(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     await verifyQrCode(code, 'manual')
+  }
+
+  async function handleCompleteConsent(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setError(null)
+
+    if (!legalAccepted) {
+      setError(text.legalRequired)
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      const response = await completeRegistration({
+        registrationToken,
+        legalAccepted,
+        marketingSmsOptIn,
+      })
+      await onAuthVerified(response.token)
+      setVerifiedToken(response.token)
+      setStep('details')
+    } catch (completeError) {
+      setError(
+        completeError instanceof Error
+          ? completeError.message
+          : text.invalidCodeError,
+      )
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   async function handleResendCode() {
@@ -565,17 +603,19 @@ function RestaurantPublicApplyPage({
                       ? '1'
                       : step === 'verify'
                         ? '2'
-                        : '3'}
-                    /3
+                        : step === 'consent'
+                          ? '3'
+                          : '4'}
+                    /4
                   </span>
                   <div>
-                    {['identify', 'verify', 'details'].map((currentStep) => (
+                    {['identify', 'verify', 'consent', 'details'].map((currentStep) => (
                       <span
                         className={
-                          ['identify', 'verify', 'details'].indexOf(
+                          ['identify', 'verify', 'consent', 'details'].indexOf(
                             currentStep,
                           ) <=
-                          ['identify', 'verify', 'details'].indexOf(step)
+                          ['identify', 'verify', 'consent', 'details'].indexOf(step)
                             ? 'active'
                             : ''
                         }
@@ -620,40 +660,6 @@ function RestaurantPublicApplyPage({
                     inputMode="tel"
                   />
                 </label>
-                <div className="registration-consents">
-                  <label className="consent-checkbox">
-                    <input
-                      type="checkbox"
-                      checked={legalAccepted}
-                      onChange={(event) => {
-                        setLegalAccepted(event.target.checked)
-                        setError(null)
-                      }}
-                      required
-                    />
-                    <span>
-                      {text.legalPrefix}
-                      <Link to="/terms" target="_blank" rel="noreferrer">
-                        {text.terms}
-                      </Link>
-                      {text.legalJoin}
-                      <Link to="/privacy" target="_blank" rel="noreferrer">
-                        {text.legalPrivacy}
-                      </Link>
-                      .
-                    </span>
-                  </label>
-                  <label className="consent-checkbox consent-checkbox--optional">
-                    <input
-                      type="checkbox"
-                      checked={marketingSmsOptIn}
-                      onChange={(event) =>
-                        setMarketingSmsOptIn(event.target.checked)
-                      }
-                    />
-                    <span>{text.marketingSms}</span>
-                  </label>
-                </div>
                 {import.meta.env.DEV && (
                   <p className="auth-dev-hint">{text.devHint}</p>
                 )}
@@ -736,6 +742,62 @@ function RestaurantPublicApplyPage({
                     {text.changePhone}
                   </button>
                 </div>
+              </form>
+                )}
+
+                {step === 'consent' && (
+              <form
+                className="public-apply-form registration-consent-form"
+                onSubmit={handleCompleteConsent}
+              >
+                <h2>{text.consentTitle}</h2>
+                <div className="registration-consents">
+                  <label className="consent-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={legalAccepted}
+                      onChange={(event) => {
+                        setLegalAccepted(event.target.checked)
+                        setError(null)
+                      }}
+                      required
+                    />
+                    <span>
+                      {text.legalPrefix}
+                      <Link to="/terms" target="_blank" rel="noreferrer">
+                        {text.terms}
+                      </Link>
+                      {text.legalJoin}
+                      <Link to="/privacy" target="_blank" rel="noreferrer">
+                        {text.legalPrivacy}
+                      </Link>
+                      .
+                    </span>
+                  </label>
+                  <label className="consent-checkbox consent-checkbox--optional">
+                    <input
+                      type="checkbox"
+                      checked={marketingSmsOptIn}
+                      onChange={(event) =>
+                        setMarketingSmsOptIn(event.target.checked)
+                      }
+                    />
+                    <span>{text.marketingSms}</span>
+                  </label>
+                </div>
+                {error && (
+                  <p className="message message-error" role="alert">
+                    {error}
+                  </p>
+                )}
+                <button
+                  className="ui-button ui-button--primary"
+                  type="submit"
+                  disabled={isSubmitting}
+                  aria-busy={isSubmitting}
+                >
+                  {isSubmitting ? text.submitting : text.completeSignup}
+                </button>
               </form>
                 )}
 

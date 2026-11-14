@@ -1,11 +1,5 @@
 export const CURRENT_LEGAL_POLICY_VERSION = '2026-11-14-beta'
 
-export function requiresLegalAcceptanceForOtpPurpose(
-  purpose: 'login' | 'register' | 'qrApply',
-) {
-  return purpose === 'register' || purpose === 'qrApply'
-}
-
 export function getLegalConsentData(acceptedAt = new Date()) {
   return {
     legalAcceptedAt: acceptedAt,

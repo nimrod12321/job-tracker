@@ -72,6 +72,12 @@ type AuthResponse = {
   }
 }
 
+type RegistrationConsentRequiredResponse = {
+  requiresConsent: true
+  registrationToken: string
+  ownerAcquisitionFlow: string | null
+}
+
 type PrismaModule = typeof import('../lib/prisma.js')
 type OtpProviderModule = typeof import('../services/otpProvider.js')
 
@@ -260,23 +266,71 @@ test(
         'register',
       )
       assert.ok(newCode)
-      const missingLegalAcceptance = await verifyCode({
-        phoneNumber: newCodePhone,
-        code: newCode,
-        purpose: 'register',
-        fullName: 'Phone User',
-        track: 'restaurant',
-        legalAccepted: false,
-      })
-      assert.equal(missingLegalAcceptance.status, 400)
+      const verifiedBeforeConsent =
+        await request<RegistrationConsentRequiredResponse>(
+          '/auth/verify-code',
+          {
+            method: 'POST',
+            headers: jsonHeaders(),
+            body: JSON.stringify({
+              phoneNumber: newCodePhone,
+              code: newCode,
+              purpose: 'register',
+              fullName: 'Phone User',
+              track: 'restaurant',
+            }),
+          },
+        )
+      assert.equal(verifiedBeforeConsent.status, 200)
+      assert.equal(verifiedBeforeConsent.body.requiresConsent, true)
+      assert.ok(verifiedBeforeConsent.body.registrationToken)
 
-      const registeredUser = await verifyCode({
-        phoneNumber: newCodePhone,
-        code: newCode,
-        purpose: 'register',
-        fullName: 'Phone User',
-        track: 'restaurant',
+      const provisionalUser = await prisma.user.findUniqueOrThrow({
+        where: { phoneNumber: newCodePhone },
       })
+      assert.equal(provisionalUser.registrationCompletedAt, null)
+      assert.equal(provisionalUser.legalAcceptedAt, null)
+      assert.equal(provisionalUser.legalPolicyVersion, null)
+      assert.equal(provisionalUser.marketingSmsEnabled, false)
+
+      const restrictedTokenCannotAuthenticate = await request(
+        '/auth/me',
+        {
+          headers: {
+            Authorization: `Bearer ${verifiedBeforeConsent.body.registrationToken}`,
+          },
+        },
+      )
+      assert.equal(restrictedTokenCannotAuthenticate.status, 401)
+
+      const completionWithoutLegalConsent = await request(
+        '/auth/complete-registration',
+        {
+          method: 'POST',
+          headers: jsonHeaders(),
+          body: JSON.stringify({
+            registrationToken:
+              verifiedBeforeConsent.body.registrationToken,
+            legalAccepted: false,
+            marketingSmsOptIn: false,
+          }),
+        },
+      )
+      assert.equal(completionWithoutLegalConsent.status, 400)
+
+      const registeredUser = await request<AuthResponse>(
+        '/auth/complete-registration',
+        {
+          method: 'POST',
+          headers: jsonHeaders(),
+          body: JSON.stringify({
+            registrationToken:
+              verifiedBeforeConsent.body.registrationToken,
+            legalAccepted: true,
+            marketingSmsOptIn: false,
+          }),
+        },
+      )
       assert.equal(registeredUser.status, 200)
       assert.ok(registeredUser.body.token)
       assert.equal(registeredUser.body.user.phoneNumber, newCodePhone)
@@ -290,6 +344,7 @@ test(
         },
       })
       assert.equal(storedUser.passwordHash, null)
+      assert.ok(storedUser.registrationCompletedAt)
       assert.ok(storedUser.legalAcceptedAt)
       assert.equal(storedUser.legalPolicyVersion, '2026-11-14-beta')
       assert.equal(storedUser.marketingSmsEnabled, false)

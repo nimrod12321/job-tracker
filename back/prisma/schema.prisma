@@ -143,6 +143,7 @@ model User {
   fullName                    String    @default("")
   track                       UserTrack @default(highTech)
   workerLocationRequired      Boolean   @default(false)
+  registrationCompletedAt     DateTime? @default(now())
   legalAcceptedAt             DateTime?
   legalPolicyVersion          String?
   marketingSmsEnabled         Boolean   @default(false)
