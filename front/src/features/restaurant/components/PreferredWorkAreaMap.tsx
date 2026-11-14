@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   loadGoogleMaps,
   type GoogleCircleInstance,
+  type GoogleAutocompleteInstance,
   type GoogleMapInstance,
   type GoogleMapsNamespace,
 } from '../../../utils/googleMaps'
@@ -37,19 +38,23 @@ function PreferredWorkAreaMap({
   onChange,
 }: PreferredWorkAreaMapProps) {
   const mapElementRef = useRef<HTMLDivElement | null>(null)
+  const searchInputRef = useRef<HTMLInputElement | null>(null)
   const mapRef = useRef<GoogleMapInstance | null>(null)
   const mapsRef = useRef<GoogleMapsNamespace | null>(null)
   const circleRef = useRef<GoogleCircleInstance | null>(null)
+  const autocompleteRef = useRef<GoogleAutocompleteInstance | null>(null)
   const onChangeRef = useRef(onChange)
   const languageRef = useRef(language)
   const initialValueRef = useRef(value)
   const isUserPanningRef = useRef(false)
+  const isSearchPanningRef = useRef(false)
   const radiusRef = useRef(value?.radiusKm ?? DEFAULT_RADIUS_KM)
   const [draftRadiusKm, setDraftRadiusKm] = useState(
     value?.radiusKm ?? DEFAULT_RADIUS_KM,
   )
   const [isMapReady, setIsMapReady] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [searchError, setSearchError] = useState<string | null>(null)
 
   useEffect(() => {
     onChangeRef.current = onChange
@@ -114,6 +119,69 @@ function PreferredWorkAreaMap({
           strokeWeight: 2,
         })
 
+        if (searchInputRef.current) {
+          try {
+            const autocomplete = new google.maps.places.Autocomplete(
+              searchInputRef.current,
+              {
+                bounds: TEL_AVIV_BOUNDS,
+                strictBounds: true,
+                componentRestrictions: { country: 'il' },
+                fields: [
+                  'place_id',
+                  'formatted_address',
+                  'geometry',
+                  'name',
+                  'types',
+                ],
+                types: ['geocode'],
+              },
+            )
+
+            autocompleteRef.current = autocomplete
+            listeners.push(
+              autocomplete.addListener('place_changed', () => {
+                const place = autocomplete.getPlace()
+                const location = place.geometry?.location
+
+                if (!location) {
+                  setSearchError(
+                    languageRef.current === 'he'
+                      ? 'בחרו רחוב או שכונה מתוך ההצעות של Google.'
+                      : 'Choose a street or neighborhood from the Google suggestions.',
+                  )
+                  return
+                }
+
+                const latitude = location.lat()
+                const longitude = location.lng()
+
+                if (!isInsideTelAvivBounds(latitude, longitude)) {
+                  setSearchError(
+                    languageRef.current === 'he'
+                      ? 'בחרו מיקום בתוך תל אביב-יפו.'
+                      : 'Choose a location within Tel Aviv–Yafo.',
+                  )
+                  return
+                }
+
+                setSearchError(null)
+                setError(null)
+                isUserPanningRef.current = false
+                isSearchPanningRef.current = true
+                circle.setCenter({ lat: latitude, lng: longitude })
+                map.panTo({ lat: latitude, lng: longitude })
+              }),
+            )
+          } catch {
+            setSearchError(
+              languageRef.current === 'he'
+                ? 'חיפוש המיקום אינו זמין כרגע. עדיין אפשר לגרור את המפה.'
+                : 'Location search is unavailable. You can still drag the map.',
+            )
+          }
+        }
+
         const synchronizeCircleWithMap = () => {
           const center = map.getCenter()
 
@@ -128,11 +196,15 @@ function PreferredWorkAreaMap({
             isUserPanningRef.current = true
           }),
           map.addListener('idle', () => {
-            if (!isUserPanningRef.current) {
+            if (
+              !isUserPanningRef.current &&
+              !isSearchPanningRef.current
+            ) {
               return
             }
 
             isUserPanningRef.current = false
+            isSearchPanningRef.current = false
             const center = map.getCenter()
 
             if (!center) {
@@ -185,6 +257,7 @@ function PreferredWorkAreaMap({
       }
       circleRef.current?.setMap(null)
       circleRef.current = null
+      autocompleteRef.current = null
       mapRef.current = null
       mapsRef.current = null
     }
@@ -240,6 +313,38 @@ function PreferredWorkAreaMap({
 
   return (
     <div className="preferred-work-area-control">
+      <label className="preferred-work-area-search">
+        <span>
+          {language === 'he'
+            ? 'חיפוש רחוב או שכונה'
+            : 'Search for a street or neighborhood'}
+        </span>
+        <input
+          ref={searchInputRef}
+          type="search"
+          autoComplete="off"
+          placeholder={
+            language === 'he'
+              ? 'לדוגמה: פלורנטין או רחוב דיזנגוף'
+              : 'For example: Florentin or Dizengoff Street'
+          }
+          onChange={() => {
+            if (searchError) {
+              setSearchError(null)
+            }
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault()
+            }
+          }}
+        />
+      </label>
+      {searchError && (
+        <p className="form-helper-text preferred-work-area-search-error" role="status">
+          {searchError}
+        </p>
+      )}
       <div
         ref={mapElementRef}
         className="preferred-work-area-map"

@@ -31,6 +31,7 @@ export type GoogleMapInstance = {
   ) => unknown
   fitBounds: (bounds: GoogleBoundsInstance, padding?: number) => void
   getCenter: () => GoogleLatLng | undefined
+  panTo: (center: { lat: number; lng: number }) => void
   setCenter: (center: { lat: number; lng: number }) => void
   setZoom: (zoom: number) => void
 }
@@ -63,6 +64,9 @@ export type GoogleBoundsInstance = {
 export type GoogleAutocompletePlace = {
   place_id?: string
   formatted_address?: string
+  geometry?: {
+    location?: GoogleLatLng
+  }
   name?: string
   types?: string[]
 }

@@ -1896,6 +1896,24 @@ img.peepss-logo.swipe-immersive-logo {
   gap: 10px;
 }
 
+.preferred-work-area-search {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.preferred-work-area-search input {
+  width: 100%;
+  min-width: 0;
+}
+
+.preferred-work-area-search-error {
+  margin: -3px 0 0;
+  color: var(--danger, #a83d32);
+}
+
 .preferred-work-area-map {
   width: 100%;
   min-height: 280px;
@@ -1937,6 +1955,40 @@ img.peepss-logo.swipe-immersive-logo {
 }
 
 .preferred-work-area-error {
+  margin: 0;
+}
+
+.preferred-work-area-save-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+}
+
+.preferred-work-area-save-row .ui-button {
+  width: auto;
+  min-height: 40px;
+  padding: 8px 16px;
+}
+
+.preferred-work-area-save-status {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.preferred-work-area-save-status--dirty {
+  color: var(--ink);
+}
+
+.preferred-work-area-save-status--persisted,
+.preferred-work-area-save-status--saved,
+.preferred-work-area-save-status--confirmed {
+  color: var(--success, #2f6b4f);
+}
+
+.preferred-work-area-save-error {
   margin: 0;
 }
 
