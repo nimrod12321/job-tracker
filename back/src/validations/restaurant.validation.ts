@@ -1,4 +1,9 @@
 import { z } from 'zod'
+import {
+  PREFERRED_WORK_AREA_BOUNDS,
+  PREFERRED_WORK_AREA_MAX_RADIUS_KM,
+  PREFERRED_WORK_AREA_MIN_RADIUS_KM,
+} from '../services/preferredWorkArea.service.js'
 
 export const restaurantRoles = [
   'waiter',
@@ -76,6 +81,44 @@ const ageSchema = z.preprocess(
     .max(80, 'age must be at most 80'),
 )
 
+export const preferredWorkAreaSchema = z
+  .object({
+    latitude: z
+      .number({ error: 'preferred work area latitude must be a number' })
+      .finite('preferred work area latitude must be finite')
+      .min(
+        PREFERRED_WORK_AREA_BOUNDS.minLatitude,
+        'preferred work area must be within Tel Aviv–Yafo',
+      )
+      .max(
+        PREFERRED_WORK_AREA_BOUNDS.maxLatitude,
+        'preferred work area must be within Tel Aviv–Yafo',
+      ),
+    longitude: z
+      .number({ error: 'preferred work area longitude must be a number' })
+      .finite('preferred work area longitude must be finite')
+      .min(
+        PREFERRED_WORK_AREA_BOUNDS.minLongitude,
+        'preferred work area must be within Tel Aviv–Yafo',
+      )
+      .max(
+        PREFERRED_WORK_AREA_BOUNDS.maxLongitude,
+        'preferred work area must be within Tel Aviv–Yafo',
+      ),
+    radiusKm: z
+      .number({ error: 'preferred work area radius must be a number' })
+      .finite('preferred work area radius must be finite')
+      .min(
+        PREFERRED_WORK_AREA_MIN_RADIUS_KM,
+        `preferred work area radius must be at least ${PREFERRED_WORK_AREA_MIN_RADIUS_KM} km`,
+      )
+      .max(
+        PREFERRED_WORK_AREA_MAX_RADIUS_KM,
+        `preferred work area radius must be at most ${PREFERRED_WORK_AREA_MAX_RADIUS_KM} km`,
+      ),
+  })
+  .strict()
+
 export const restaurantProfileSchema = z
   .object({
     fullName: requiredText('full name', 150),
@@ -120,6 +163,7 @@ export const restaurantProfileSchema = z
       },
     ),
     age: ageSchema,
+    preferredWorkArea: preferredWorkAreaSchema.nullable().optional(),
   })
   .strict()
 

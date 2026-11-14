@@ -9,12 +9,15 @@ import {
 import {
   RESTAURANT_ROLES,
   getRestaurantRoleLabel,
+  type PreferredWorkArea,
   type RestaurantRole,
   type RestaurantWorkerProfile,
+  type RestaurantWorkerProfileInput,
 } from '../types/restaurant'
 import { useRestaurantLanguage } from '../utils/restaurantLanguage'
 import { formatIsraeliPhoneForDisplay } from '../../../utils/phoneDisplay'
 import VerifiedAddressAutocomplete from '../../../components/location/VerifiedAddressAutocomplete'
+import PreferredWorkAreaMap from '../components/PreferredWorkAreaMap'
 
 type RestaurantProfileForm = {
   fullName: string
@@ -27,6 +30,7 @@ type RestaurantProfileForm = {
   availability: string[]
   extraDetails: string
   age: string
+  preferredWorkArea: PreferredWorkArea | null
 }
 
 const emptyProfile: RestaurantProfileForm = {
@@ -40,6 +44,7 @@ const emptyProfile: RestaurantProfileForm = {
   availability: [],
   extraDetails: '',
   age: '',
+  preferredWorkArea: null,
 }
 
 const experienceOptions = [
@@ -173,8 +178,34 @@ function profileToForm(
     availability: parseAvailability(profile.availability),
     extraDetails: parsedExperience.extraDetails,
     age: profile.age === 0 ? '' : String(profile.age),
+    preferredWorkArea: profile.preferredWorkArea,
   }
 }
+
+function profileToInput(
+  profile: RestaurantWorkerProfile,
+  preferredWorkArea: PreferredWorkArea | null,
+): RestaurantWorkerProfileInput {
+  return {
+    fullName: profile.fullName,
+    phoneNumber: profile.phoneNumber,
+    location: profile.location,
+    wantedRoles: profile.wantedRoles,
+    experienceText: profile.experienceText,
+    availability: profile.availability,
+    age: profile.age,
+    preferredWorkArea,
+  }
+}
+
+type WorkAreaSaveState =
+  | 'clean'
+  | 'dirty'
+  | 'saving'
+  | 'persisted'
+  | 'saved'
+  | 'confirmed'
+  | 'error'
 
 function isWorkerProfileComplete(form: RestaurantProfileForm) {
   const age = Number(form.age)
@@ -203,6 +234,14 @@ function RestaurantProfilePage() {
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [persistedProfile, setPersistedProfile] =
+    useState<RestaurantWorkerProfile | null>(null)
+  const [hasExistingProfile, setHasExistingProfile] = useState(false)
+  const [workAreaDraft, setWorkAreaDraft] =
+    useState<PreferredWorkArea | null>(null)
+  const [workAreaSaveState, setWorkAreaSaveState] =
+    useState<WorkAreaSaveState>('clean')
+  const [workAreaError, setWorkAreaError] = useState<string | null>(null)
   const [hasVerifiedHomeLocation, setHasVerifiedHomeLocation] =
     useState(false)
   const [locationWasEdited, setLocationWasEdited] = useState(false)
@@ -241,6 +280,12 @@ function RestaurantProfilePage() {
       language === 'he'
         ? 'בחרו כתובת מהרשימה. אנחנו שומרים רק את הרחוב כדי להציג משרות קרובות.'
         : 'Choose an address from the list. We save only the street to show nearby jobs.',
+    preferredWorkAreaTitle:
+      language === 'he' ? 'אזור עבודה מועדף' : 'Preferred work area',
+    preferredWorkAreaHelp:
+      language === 'he'
+        ? 'לא חובה. בחרו אזור רק אם תרצו לצמצם את המשרות שמופיעות בהחלקה.'
+        : 'Optional. Choose an area only if you want to narrow the jobs shown in Swipe.',
     locationError:
       language === 'he'
         ? 'בחרו כתובת מהרשימה. אנחנו נשמור רק את הרחוב.'
@@ -253,6 +298,36 @@ function RestaurantProfilePage() {
       language === 'he'
         ? 'צריך למלא שם, טלפון, גיל 16–80, תפקיד אחד לפחות, ניסיון וזמינות.'
         : 'Fill name, phone, age 16–80, at least one role, experience and availability.',
+    saveWorkArea:
+      language === 'he' ? 'שמירת אזור עבודה' : 'Save work area',
+    confirmWorkArea:
+      language === 'he' ? 'אישור אזור עבודה' : 'Confirm work area',
+    savingWorkArea:
+      language === 'he' ? 'שומר אזור...' : 'Saving area...',
+    workAreaUnsaved:
+      language === 'he'
+        ? 'יש שינויים באזור העבודה שעדיין לא נשמרו.'
+        : 'Your work area has unsaved changes.',
+    workAreaSaved:
+      language === 'he'
+        ? 'אזור העבודה נשמר בהצלחה.'
+        : 'Work area saved successfully.',
+    workAreaPersisted:
+      language === 'he'
+        ? 'זה אזור העבודה השמור שלכם.'
+        : 'This is your saved work area.',
+    workAreaRemoved:
+      language === 'he'
+        ? 'אזור העבודה הוסר בהצלחה.'
+        : 'Work area removed successfully.',
+    workAreaConfirmed:
+      language === 'he'
+        ? 'האזור אושר ויישמר כשתשמרו את הפרופיל.'
+        : 'Area confirmed. It will be saved when you save your profile.',
+    workAreaSaveError:
+      language === 'he'
+        ? 'לא הצלחנו לשמור את אזור העבודה. נסו שוב.'
+        : 'We could not save the work area. Please try again.',
   }
 
   useEffect(() => {
@@ -274,6 +349,12 @@ function RestaurantProfilePage() {
           )
 
           if (profile) {
+            setPersistedProfile(profile)
+            setHasExistingProfile(true)
+            setWorkAreaDraft(profile.preferredWorkArea)
+            setWorkAreaSaveState(
+              profile.preferredWorkArea ? 'persisted' : 'clean',
+            )
             setHasVerifiedHomeLocation(Boolean(profile.homeGooglePlaceId))
             setForm((currentForm) => ({
               ...currentForm,
@@ -282,6 +363,10 @@ function RestaurantProfilePage() {
               phoneNumber: profile.phoneNumber || user?.phoneNumber || '',
             }))
           } else {
+            setPersistedProfile(null)
+            setHasExistingProfile(false)
+            setWorkAreaDraft(null)
+            setWorkAreaSaveState('clean')
             setForm((currentForm) => ({
               ...currentForm,
               fullName: user?.fullName ?? '',
@@ -314,7 +399,7 @@ function RestaurantProfilePage() {
   function updateTextField(
     field: Exclude<
       keyof RestaurantProfileForm,
-      'wantedRoles' | 'availability'
+      'wantedRoles' | 'availability' | 'preferredWorkArea'
     >,
     value: string,
   ) {
@@ -346,6 +431,61 @@ function RestaurantProfilePage() {
         availability: nextAvailability,
       }
     })
+  }
+
+  function handleWorkAreaDraftChange(
+    preferredWorkArea: PreferredWorkArea | null,
+  ) {
+    setWorkAreaDraft(preferredWorkArea)
+    setWorkAreaError(null)
+    setWorkAreaSaveState('dirty')
+
+    if (hasExistingProfile) {
+      setForm((currentForm) => ({
+        ...currentForm,
+        preferredWorkArea,
+      }))
+    }
+  }
+
+  async function handleWorkAreaSave() {
+    setWorkAreaError(null)
+
+    if (!hasExistingProfile) {
+      setForm((currentForm) => ({
+        ...currentForm,
+        preferredWorkArea: workAreaDraft,
+      }))
+      setWorkAreaSaveState('confirmed')
+      return
+    }
+
+    if (!persistedProfile) {
+      setWorkAreaError(text.workAreaSaveError)
+      setWorkAreaSaveState('error')
+      return
+    }
+
+    setWorkAreaSaveState('saving')
+
+    try {
+      const profile = await saveRestaurantProfile(
+        profileToInput(persistedProfile, workAreaDraft),
+      )
+
+      setPersistedProfile(profile)
+      setWorkAreaDraft(profile.preferredWorkArea)
+      setForm((currentForm) => ({
+        ...currentForm,
+        preferredWorkArea: profile.preferredWorkArea,
+      }))
+      setWorkAreaSaveState('saved')
+    } catch (error) {
+      setWorkAreaError(
+        error instanceof Error ? error.message : text.workAreaSaveError,
+      )
+      setWorkAreaSaveState('error')
+    }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -383,8 +523,13 @@ function RestaurantProfilePage() {
         experienceText: serializeExperienceText(form),
         availability: form.availability.join(', '),
         age: Number(form.age) || 0,
+        preferredWorkArea: form.preferredWorkArea,
       })
 
+      setPersistedProfile(profile)
+      setHasExistingProfile(true)
+      setWorkAreaDraft(profile.preferredWorkArea)
+      setWorkAreaSaveState('saved')
       setForm(profileToForm(profile))
       setHasVerifiedHomeLocation(Boolean(profile.homeGooglePlaceId))
       setRequiresVerifiedLocation(profile.locationRequired)
@@ -580,6 +725,62 @@ function RestaurantProfilePage() {
           </p>
         </section>
 
+        <section className="worker-profile-section preferred-work-area-section">
+          <div className="guided-form-heading">
+            <h2>{text.preferredWorkAreaTitle}</h2>
+            <span className="worker-optional-label">{text.optional}</span>
+          </div>
+          <p className="form-helper-text">{text.preferredWorkAreaHelp}</p>
+          <PreferredWorkAreaMap
+            language={language}
+            value={workAreaDraft}
+            onChange={handleWorkAreaDraftChange}
+          />
+          <div className="preferred-work-area-save-row">
+            <button
+              type="button"
+              className="ui-button ui-button--secondary"
+              disabled={
+                isSaving ||
+                workAreaSaveState === 'saving' ||
+                workAreaSaveState === 'clean' ||
+                workAreaSaveState === 'persisted' ||
+                workAreaSaveState === 'saved' ||
+                workAreaSaveState === 'confirmed'
+              }
+              aria-busy={workAreaSaveState === 'saving'}
+              onClick={() => void handleWorkAreaSave()}
+            >
+              {workAreaSaveState === 'saving'
+                ? text.savingWorkArea
+                : hasExistingProfile
+                  ? text.saveWorkArea
+                  : text.confirmWorkArea}
+            </button>
+            <p
+              className={`preferred-work-area-save-status preferred-work-area-save-status--${workAreaSaveState}`}
+              aria-live="polite"
+            >
+              {workAreaSaveState === 'dirty'
+                ? text.workAreaUnsaved
+                : workAreaSaveState === 'persisted'
+                  ? text.workAreaPersisted
+                  : workAreaSaveState === 'saved'
+                    ? workAreaDraft
+                      ? text.workAreaSaved
+                      : text.workAreaRemoved
+                    : workAreaSaveState === 'confirmed'
+                      ? text.workAreaConfirmed
+                      : ''}
+            </p>
+          </div>
+          {workAreaError && (
+            <p className="message message-error preferred-work-area-save-error" role="alert">
+              {workAreaError}
+            </p>
+          )}
+        </section>
+
         <section className="worker-profile-section worker-extra-details-section">
           <div className="guided-form-heading">
             <h2>{text.extraDetails}</h2>
@@ -643,7 +844,7 @@ function RestaurantProfilePage() {
           <button
             className="ui-button ui-button--primary"
             type="submit"
-            disabled={isSaving}
+            disabled={isSaving || workAreaSaveState === 'saving'}
             aria-busy={isSaving}
           >
             {isSaving ? text.saving : text.save}

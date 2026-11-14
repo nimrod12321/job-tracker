@@ -12,6 +12,10 @@ import {
 } from '../services/googlePlaces.service.js'
 import { recordCandidateReceivedBestEffort } from '../services/analytics.service.js'
 import {
+  getPreferredWorkArea,
+  isInsidePreferredWorkArea,
+} from '../services/preferredWorkArea.service.js'
+import {
   restaurantApplicationSchema,
   restaurantExploreSchema,
   restaurantIdSchema,
@@ -51,6 +55,7 @@ function mapRestaurantProfile(
     homeLongitude: profile.homeLongitude,
     homeLocationUpdatedAt:
       profile.homeLocationUpdatedAt?.toISOString() ?? null,
+    preferredWorkArea: getPreferredWorkArea(profile),
     locationRequired,
     createdAt: profile.createdAt.toISOString(),
     updatedAt: profile.updatedAt.toISOString(),
@@ -277,7 +282,21 @@ export async function updateRestaurantProfile(
       })
     }
 
-    const { homePlaceId, ...profileInput } = result.data
+    const { homePlaceId, preferredWorkArea, ...profileInput } = result.data
+    const preferredWorkAreaData =
+      preferredWorkArea === undefined
+        ? {}
+        : preferredWorkArea === null
+          ? {
+              preferredWorkAreaLatitude: null,
+              preferredWorkAreaLongitude: null,
+              preferredWorkAreaRadiusKm: null,
+            }
+          : {
+              preferredWorkAreaLatitude: preferredWorkArea.latitude,
+              preferredWorkAreaLongitude: preferredWorkArea.longitude,
+              preferredWorkAreaRadiusKm: preferredWorkArea.radiusKm,
+            }
 
     if (
       user.workerLocationRequired &&
@@ -322,6 +341,7 @@ export async function updateRestaurantProfile(
           ? { phoneNumber: user.phoneNumber }
           : {}),
         ...homeLocationData,
+        ...preferredWorkAreaData,
       },
       create: {
         ...profileInput,
@@ -329,6 +349,7 @@ export async function updateRestaurantProfile(
           ? { phoneNumber: user.phoneNumber }
           : {}),
         ...homeLocationData,
+        ...preferredWorkAreaData,
         userId,
       },
     })
@@ -500,6 +521,7 @@ export async function getRestaurantExploreJobs(
     }
 
     const { profile } = eligibility
+    const preferredWorkArea = getPreferredWorkArea(profile)
 
     const jobs = await prisma.restaurantJob.findMany({
       where: {
@@ -519,6 +541,25 @@ export async function getRestaurantExploreJobs(
             userId,
           },
         },
+        ...(preferredWorkArea
+          ? {
+              ownerProfile: {
+                is: {
+                  locationStatus: 'verified',
+                  latitude: { not: null },
+                  longitude: { not: null },
+                },
+              },
+            }
+          : {}),
+      },
+      include: {
+        ownerProfile: {
+          select: {
+            latitude: true,
+            longitude: true,
+          },
+        },
       },
       orderBy: [
         {
@@ -530,7 +571,23 @@ export async function getRestaurantExploreJobs(
       ],
     })
 
-    jobs.sort((firstJob, secondJob) => {
+    const geographicallyEligibleJobs = preferredWorkArea
+      ? jobs.filter((job) => {
+          const latitude = job.ownerProfile?.latitude
+          const longitude = job.ownerProfile?.longitude
+
+          return (
+            typeof latitude === 'number' &&
+            typeof longitude === 'number' &&
+            isInsidePreferredWorkArea(preferredWorkArea, {
+              latitude,
+              longitude,
+            })
+          )
+        })
+      : jobs
+
+    geographicallyEligibleJobs.sort((firstJob, secondJob) => {
       const focusDifference =
         Number(secondJob.id === result.data.focusJobId) -
         Number(firstJob.id === result.data.focusJobId)
@@ -546,7 +603,10 @@ export async function getRestaurantExploreJobs(
     })
 
     return res.json({
-      jobs: jobs.slice(0, result.data.limit).map(mapRestaurantJob),
+      jobs: geographicallyEligibleJobs
+        .slice(0, result.data.limit)
+        .map(mapRestaurantJob),
+      preferredWorkAreaApplied: preferredWorkArea !== null,
     })
   } catch (error) {
     console.error(error)
