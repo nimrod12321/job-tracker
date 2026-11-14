@@ -84,7 +84,10 @@ export async function getRestaurantExploreJobs(input: {
   limit?: number
   excludeJobIds?: string[]
   focusJobId?: string
-}): Promise<RestaurantExploreJob[]> {
+}): Promise<{
+  jobs: RestaurantExploreJob[]
+  preferredWorkAreaApplied: boolean
+}> {
   const response = await fetch(`${API_BASE_URL}/restaurant/explore`, {
     method: 'POST',
     headers: getHeaders(),
@@ -95,11 +98,10 @@ export async function getRestaurantExploreJobs(input: {
     await handleApiError(response, 'Failed to load restaurant jobs')
   }
 
-  const data = (await response.json()) as {
+  return (await response.json()) as {
     jobs: RestaurantExploreJob[]
+    preferredWorkAreaApplied: boolean
   }
-
-  return data.jobs
 }
 
 export async function applyToRestaurantJob(

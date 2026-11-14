@@ -37,6 +37,8 @@ function RestaurantExplorePage() {
   const [needsProfile, setNeedsProfile] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
+  const [preferredWorkAreaApplied, setPreferredWorkAreaApplied] =
+    useState(false)
   const animationTimeout = useRef<number | null>(null)
   const activeIndexRef = useRef(0)
   const isCardActionPending = useRef(false)
@@ -68,6 +70,16 @@ function RestaurantExplorePage() {
       language === 'he'
         ? 'אפשר לבדוק שוב מאוחר יותר או לעדכן תפקידים ומיקום.'
         : 'Check again later or update your wanted roles and location.',
+    noAreaMatches:
+      language === 'he'
+        ? 'אין כרגע משרות באזור העבודה שבחרת.'
+        : 'There are no jobs in your preferred work area right now.',
+    noAreaMatchesHint:
+      language === 'he'
+        ? 'אפשר להרחיב את האזור או להסיר אותו בפרופיל.'
+        : 'You can expand or remove the area in your profile.',
+    editPreferredArea:
+      language === 'he' ? 'עריכת אזור עבודה' : 'Edit preferred area',
     updateProfile: language === 'he' ? 'עדכון פרופיל' : 'Update profile',
     findMore: language === 'he' ? 'חפש עוד משרות' : 'Find more jobs',
     skipped: language === 'he' ? 'דילגת' : 'Skipped',
@@ -118,13 +130,14 @@ function RestaurantExplorePage() {
     setFeedback(null)
 
     try {
-      const nextJobs = await getRestaurantExploreJobs({
+      const result = await getRestaurantExploreJobs({
         limit: 10,
         excludeJobIds: excludedIds,
         focusJobId,
       })
 
-      setJobs(nextJobs)
+      setJobs(result.jobs)
+      setPreferredWorkAreaApplied(result.preferredWorkAreaApplied)
       setActiveIndex(0)
     } catch (error) {
       const message =
@@ -150,14 +163,15 @@ function RestaurantExplorePage() {
 
     async function loadInitialJobs() {
       try {
-        const initialJobs = await getRestaurantExploreJobs({
+        const result = await getRestaurantExploreJobs({
           limit: 10,
           excludeJobIds: [],
           focusJobId,
         })
 
         if (isActive) {
-          setJobs(initialJobs)
+          setJobs(result.jobs)
+          setPreferredWorkAreaApplied(result.preferredWorkAreaApplied)
           setActiveIndex(0)
         }
       } catch (error) {
@@ -380,14 +394,22 @@ function RestaurantExplorePage() {
     return renderSwipePage(
       <div className="swipe-immersive-state">
         <div className="empty-state restaurant-empty-state">
-          <h2>{text.noMore}</h2>
-          <p>{text.noMoreHint}</p>
+          <h2>
+            {preferredWorkAreaApplied ? text.noAreaMatches : text.noMore}
+          </h2>
+          <p>
+            {preferredWorkAreaApplied
+              ? text.noAreaMatchesHint
+              : text.noMoreHint}
+          </p>
           <div className="restaurant-empty-actions">
             <Link
               className="ui-button ui-button--secondary"
               to="/restaurant/profile"
             >
-              {text.updateProfile}
+              {preferredWorkAreaApplied
+                ? text.editPreferredArea
+                : text.updateProfile}
             </Link>
             <button
               className="ui-button ui-button--primary"
