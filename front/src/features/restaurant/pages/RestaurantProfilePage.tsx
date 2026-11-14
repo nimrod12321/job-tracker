@@ -18,6 +18,7 @@ import { useRestaurantLanguage } from '../utils/restaurantLanguage'
 import { formatIsraeliPhoneForDisplay } from '../../../utils/phoneDisplay'
 import VerifiedAddressAutocomplete from '../../../components/location/VerifiedAddressAutocomplete'
 import PreferredWorkAreaMap from '../components/PreferredWorkAreaMap'
+import SmsNotificationSettings from '../../../components/settings/SmsNotificationSettings'
 
 type RestaurantProfileForm = {
   fullName: string
@@ -827,6 +828,8 @@ function RestaurantProfilePage() {
               : 'Some roles may require legal age or experience.'}
           </p>
         </section>
+
+        <SmsNotificationSettings className="worker-profile-section" />
 
         {error && (
           <p className="message message-error" role="alert">

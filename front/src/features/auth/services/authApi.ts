@@ -64,13 +64,21 @@ export async function registerUser(
   email: string,
   password: string,
   track: UserTrack = 'restaurant',
+  legalAccepted = false,
+  marketingSmsOptIn = false,
 ): Promise<RegisterResponse> {
   const response = await fetch(`${API_BASE_URL}/auth/register`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ email, password, track }),
+    body: JSON.stringify({
+      email,
+      password,
+      track,
+      legalAccepted,
+      marketingSmsOptIn,
+    }),
   })
 
   if (!response.ok) {
@@ -141,6 +149,8 @@ export async function verifyAuthCode(input: {
   track?: 'restaurant' | 'restaurantOwner'
   ownerFlowHint?: 'selfServe' | 'claim'
   ownerOtpAnalytics?: OwnerOtpVerifiedAttempt
+  legalAccepted?: boolean
+  marketingSmsOptIn?: boolean
 }): Promise<VerifyCodeResponse> {
   const response = await fetch(`${API_BASE_URL}/auth/verify-code`, {
     method: 'POST',

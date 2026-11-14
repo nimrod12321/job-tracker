@@ -135,27 +135,51 @@ model Job {
 }
 
 model User {
-  id                     String    @id @default(uuid())
-  email                  String?   @unique
-  passwordHash           String?
-  phoneNumber            String?   @unique
-  phoneVerifiedAt        DateTime?
-  fullName               String    @default("")
-  track                  UserTrack @default(highTech)
-  workerLocationRequired Boolean   @default(false)
-  createdAt              DateTime  @default(now())
-  updatedAt              DateTime  @updatedAt
+  id                          String    @id @default(uuid())
+  email                       String?   @unique
+  passwordHash                String?
+  phoneNumber                 String?   @unique
+  phoneVerifiedAt             DateTime?
+  fullName                    String    @default("")
+  track                       UserTrack @default(highTech)
+  workerLocationRequired      Boolean   @default(false)
+  legalAcceptedAt             DateTime?
+  legalPolicyVersion          String?
+  marketingSmsEnabled         Boolean   @default(false)
+  marketingSmsConsentedAt     DateTime?
+  marketingSmsOptedOutAt      DateTime?
+  newCandidateSmsEnabled      Boolean   @default(true)
+  candidateReminderSmsEnabled Boolean   @default(true)
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @updatedAt
 
-  jobs                      Job[]
-  resumeProfile             ResumeProfile?
-  discoveryDecisions        JobDiscoveryDecision[]
-  restaurantWorkerProfile   RestaurantWorkerProfile?
-  restaurantOwnerProfile    RestaurantOwnerProfile?
-  restaurantApplications    RestaurantApplication[]
-  restaurantMemberships     RestaurantMember[]         @relation("RestaurantMemberUser")
-  restaurantInvitesSent     RestaurantMember[]         @relation("RestaurantMemberInviter")
-  adminRestaurantReadStates AdminRestaurantReadState[]
-  analyticsAcquisitions     AnalyticsAcquisition[]
+  jobs                          Job[]
+  resumeProfile                 ResumeProfile?
+  discoveryDecisions            JobDiscoveryDecision[]
+  restaurantWorkerProfile       RestaurantWorkerProfile?
+  restaurantOwnerProfile        RestaurantOwnerProfile?
+  restaurantApplications        RestaurantApplication[]
+  restaurantMemberships         RestaurantMember[]             @relation("RestaurantMemberUser")
+  restaurantInvitesSent         RestaurantMember[]             @relation("RestaurantMemberInviter")
+  adminRestaurantReadStates     AdminRestaurantReadState[]
+  analyticsAcquisitions         AnalyticsAcquisition[]
+  marketingSmsUnsubscribeTokens MarketingSmsUnsubscribeToken[]
+}
+
+model MarketingSmsUnsubscribeToken {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([usedAt])
 }
 
 model OtpVerification {

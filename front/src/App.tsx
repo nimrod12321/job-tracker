@@ -30,6 +30,7 @@ import JobDetailPage from './features/jobs/pages/JobDetailPage'
 import ImportJobPage from './features/jobs/pages/ImportJobPage'
 import JobsPage from './features/jobs/pages/jobsPage'
 import LegalPage from './features/legal/pages/LegalPage'
+import SmsUnsubscribePage from './features/legal/SmsUnsubscribePage'
 import OwnerApplicationsPage from './features/owner/pages/OwnerApplicationsPage'
 import OwnerJobsPage from './features/owner/pages/OwnerJobsPage'
 import OwnerProfilePage from './features/owner/pages/OwnerProfilePage'
@@ -434,6 +435,7 @@ function App() {
         />
       </Route>
       <Route element={<StandardLayout className="legal-standard-layout" />}>
+        <Route path="/sms/unsubscribe" element={<SmsUnsubscribePage />} />
         <Route path="/terms" element={<LegalPage kind="terms" />} />
         <Route path="/privacy" element={<LegalPage kind="privacy" />} />
         <Route

@@ -1,4 +1,5 @@
 import { createServer } from 'node:http'
+import { createHash } from 'node:crypto'
 import type { AddressInfo } from 'node:net'
 import assert from 'node:assert/strict'
 import test from 'node:test'
@@ -149,10 +150,19 @@ test(
     }
 
     async function verifyCode(body: Record<string, unknown>) {
+      const purpose = body.purpose
+      const isRegistrationLike =
+        purpose === 'register' || purpose === 'qrApply'
+
       return request<AuthResponse>('/auth/verify-code', {
         method: 'POST',
         headers: jsonHeaders(),
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          ...(isRegistrationLike && !('legalAccepted' in body)
+            ? { legalAccepted: true }
+            : {}),
+          ...body,
+        }),
       })
     }
 
@@ -250,6 +260,16 @@ test(
         'register',
       )
       assert.ok(newCode)
+      const missingLegalAcceptance = await verifyCode({
+        phoneNumber: newCodePhone,
+        code: newCode,
+        purpose: 'register',
+        fullName: 'Phone User',
+        track: 'restaurant',
+        legalAccepted: false,
+      })
+      assert.equal(missingLegalAcceptance.status, 400)
+
       const registeredUser = await verifyCode({
         phoneNumber: newCodePhone,
         code: newCode,
@@ -270,6 +290,99 @@ test(
         },
       })
       assert.equal(storedUser.passwordHash, null)
+      assert.ok(storedUser.legalAcceptedAt)
+      assert.equal(storedUser.legalPolicyVersion, '2026-11-14-beta')
+      assert.equal(storedUser.marketingSmsEnabled, false)
+      assert.equal(storedUser.marketingSmsConsentedAt, null)
+
+      const unauthorizedSettings = await request(
+        '/auth/notification-settings',
+      )
+      assert.equal(unauthorizedSettings.status, 401)
+      const unauthorizedSettingsChange = await request(
+        '/auth/notification-settings',
+        {
+          method: 'PATCH',
+          headers: jsonHeaders(),
+          body: JSON.stringify({ marketingSmsEnabled: true }),
+        },
+      )
+      assert.equal(unauthorizedSettingsChange.status, 401)
+
+      const initialSettings = await request<{
+        marketingSmsEnabled: boolean
+        marketingSmsConsentedAt: string | null
+        newCandidateSmsEnabled: boolean
+        candidateReminderSmsEnabled: boolean
+      }>('/auth/notification-settings', {
+        headers: {
+          Authorization: `Bearer ${registeredUser.body.token}`,
+        },
+      })
+      assert.equal(initialSettings.status, 200)
+      assert.equal(initialSettings.body.marketingSmsEnabled, false)
+      assert.equal(initialSettings.body.marketingSmsConsentedAt, null)
+      assert.equal(initialSettings.body.newCandidateSmsEnabled, true)
+      assert.equal(
+        initialSettings.body.candidateReminderSmsEnabled,
+        true,
+      )
+
+      const enabledMarketing = await request<{
+        marketingSmsEnabled: boolean
+        marketingSmsConsentedAt: string | null
+      }>('/auth/notification-settings', {
+        method: 'PATCH',
+        headers: {
+          ...jsonHeaders(),
+          Authorization: `Bearer ${registeredUser.body.token}`,
+        },
+        body: JSON.stringify({ marketingSmsEnabled: true }),
+      })
+      assert.equal(enabledMarketing.status, 200)
+      assert.equal(enabledMarketing.body.marketingSmsEnabled, true)
+      assert.ok(enabledMarketing.body.marketingSmsConsentedAt)
+
+      const persistedSettings = await request<{
+        marketingSmsEnabled: boolean
+        marketingSmsConsentedAt: string | null
+      }>('/auth/notification-settings', {
+        headers: {
+          Authorization: `Bearer ${registeredUser.body.token}`,
+        },
+      })
+      assert.equal(persistedSettings.status, 200)
+      assert.equal(persistedSettings.body.marketingSmsEnabled, true)
+      assert.equal(
+        persistedSettings.body.marketingSmsConsentedAt,
+        enabledMarketing.body.marketingSmsConsentedAt,
+      )
+
+      const unsubscribeToken = `unsubscribe-${runId}-opaque-token`
+      await prisma.marketingSmsUnsubscribeToken.create({
+        data: {
+          userId: registeredUser.body.user.id,
+          tokenHash: createHash('sha256')
+            .update(unsubscribeToken, 'utf8')
+            .digest('hex'),
+          expiresAt: new Date(Date.now() + 60_000),
+        },
+      })
+      const unsubscribe = await request<{ ok: boolean }>(
+        '/auth/sms/unsubscribe',
+        {
+          method: 'POST',
+          headers: jsonHeaders(),
+          body: JSON.stringify({ token: unsubscribeToken }),
+        },
+      )
+      assert.equal(unsubscribe.status, 200)
+      assert.equal(unsubscribe.body.ok, true)
+      const optedOutUser = await prisma.user.findUniqueOrThrow({
+        where: { id: registeredUser.body.user.id },
+      })
+      assert.equal(optedOutUser.marketingSmsEnabled, false)
+      assert.ok(optedOutUser.marketingSmsOptedOutAt)
 
       await requestCode(newCodePhone, 'login')
       const loginCode = getCapturedOtpCodeForTest(newCodePhone, 'login')

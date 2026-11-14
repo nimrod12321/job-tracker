@@ -26,6 +26,12 @@ import {
   ownerOtpAnalyticsAttemptSchema,
   ownerSignupAnalyticsSchema,
 } from '../validations/analytics.validation.js'
+import {
+  CURRENT_LEGAL_POLICY_VERSION,
+  getInitialMarketingConsentData,
+  getLegalConsentData,
+  requiresLegalAcceptanceForOtpPurpose,
+} from '../services/legalConsent.service.js'
 
 type AuthUserRecord = {
   id: string
@@ -127,7 +133,7 @@ export async function register(req: Request, res: Response) {
       })
     }
 
-    const { email, password, track } = result.data
+    const { email, password, track, marketingSmsOptIn } = result.data
     const normalizedEmail = email.trim().toLowerCase()
 
     // Admin access is derived from a server-side allowlist. Public signup
@@ -150,6 +156,7 @@ export async function register(req: Request, res: Response) {
     }
 
     const passwordHash = await bcrypt.hash(password, 10)
+    const acceptedAt = new Date()
 
     const user = await prisma.user.create({
       data: {
@@ -157,6 +164,11 @@ export async function register(req: Request, res: Response) {
         passwordHash,
         track,
         workerLocationRequired: track === 'restaurant',
+        ...getLegalConsentData(acceptedAt),
+        ...getInitialMarketingConsentData(
+          marketingSmsOptIn,
+          acceptedAt,
+        ),
       },
     })
 
@@ -345,6 +357,15 @@ export async function verifyCode(req: Request, res: Response) {
     )
 
     if (
+      requiresLegalAcceptanceForOtpPurpose(result.data.purpose) &&
+      result.data.legalAccepted !== true
+    ) {
+      return res.status(400).json({
+        message: 'terms and privacy acceptance is required',
+      })
+    }
+
+    if (
       result.data.purpose === 'register' ||
       result.data.purpose === 'qrApply'
     ) {
@@ -465,6 +486,11 @@ export async function verifyCode(req: Request, res: Response) {
       result.data.purpose === 'qrApply'
         ? 'restaurant'
         : result.data.track ?? 'restaurant'
+    const shouldRecordLegalAcceptance = Boolean(
+      !existingUser?.legalAcceptedAt ||
+        existingUser.legalPolicyVersion !==
+          CURRENT_LEGAL_POLICY_VERSION,
+    )
     const user = existingUser
       ? await prisma.user.update({
           where: {
@@ -477,6 +503,12 @@ export async function verifyCode(req: Request, res: Response) {
               result.data.purpose === 'qrApply'
                 ? existingUser.track
                 : track,
+            ...(shouldRecordLegalAcceptance
+              ? getLegalConsentData(now)
+              : {}),
+            ...(result.data.marketingSmsOptIn
+              ? getInitialMarketingConsentData(true, now)
+              : {}),
           },
         })
       : await prisma.user.create({
@@ -486,6 +518,11 @@ export async function verifyCode(req: Request, res: Response) {
             fullName,
             track,
             workerLocationRequired: track === 'restaurant',
+            ...getLegalConsentData(now),
+            ...getInitialMarketingConsentData(
+              result.data.marketingSmsOptIn,
+              now,
+            ),
           },
         })
 

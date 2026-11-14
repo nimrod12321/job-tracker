@@ -75,6 +75,8 @@ function RestaurantClaimPage({ onClaimSuccess }: ClaimPageProps) {
   const [fullName, setFullName] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
   const [code, setCode] = useState('')
+  const [legalAccepted, setLegalAccepted] = useState(false)
+  const [marketingSmsOptIn, setMarketingSmsOptIn] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -152,6 +154,18 @@ function RestaurantClaimPage({ onClaimSuccess }: ClaimPageProps) {
       : 'Enter the 4-digit code.',
     fallbackError: isHebrew ? 'משהו השתבש. נסו שוב.' : 'Something went wrong. Try again.',
     resent: isHebrew ? 'שלחנו קוד חדש.' : 'We sent a new code.',
+    legalPrefix: isHebrew ? 'קראתי ואני מאשר/ת את ' : 'I have read and accept the ',
+    terms: isHebrew ? 'תנאי השימוש' : 'Terms of Use',
+    legalJoin: isHebrew ? ' ואת ' : ' and ',
+    privacy: isHebrew ? 'מדיניות הפרטיות' : 'Privacy Policy',
+    marketingSms:
+      isHebrew
+        ? 'אשמח לקבל מדי פעם עדכונים והמלצות שיווקיות ב-SMS (לא חובה).'
+        : 'I would like occasional promotional updates and recommendations by SMS (optional).',
+    legalRequired:
+      isHebrew
+        ? 'כדי להפעיל את המסעדה צריך לאשר את תנאי השימוש ומדיניות הפרטיות.'
+        : 'Accept the Terms of Use and Privacy Policy to activate the restaurant.',
   }
 
   useEffect(() => {
@@ -232,6 +246,11 @@ function RestaurantClaimPage({ onClaimSuccess }: ClaimPageProps) {
       return
     }
 
+    if (!legalAccepted) {
+      setError(text.legalRequired)
+      return
+    }
+
     setIsLoading(true)
 
     try {
@@ -270,6 +289,8 @@ function RestaurantClaimPage({ onClaimSuccess }: ClaimPageProps) {
         purpose: 'register',
         fullName: fullName.trim(),
         track: 'restaurantOwner',
+        legalAccepted,
+        marketingSmsOptIn,
         ownerFlowHint: 'claim',
         ...(analyticsAttempt
           ? {
@@ -463,6 +484,40 @@ function RestaurantClaimPage({ onClaimSuccess }: ClaimPageProps) {
                 }}
               />
             </label>
+            <div className="registration-consents">
+              <label className="consent-checkbox">
+                <input
+                  type="checkbox"
+                  checked={legalAccepted}
+                  onChange={(event) => {
+                    setLegalAccepted(event.target.checked)
+                    setError(null)
+                  }}
+                  required
+                />
+                <span>
+                  {text.legalPrefix}
+                  <Link to="/terms" target="_blank" rel="noreferrer">
+                    {text.terms}
+                  </Link>
+                  {text.legalJoin}
+                  <Link to="/privacy" target="_blank" rel="noreferrer">
+                    {text.privacy}
+                  </Link>
+                  .
+                </span>
+              </label>
+              <label className="consent-checkbox consent-checkbox--optional">
+                <input
+                  type="checkbox"
+                  checked={marketingSmsOptIn}
+                  onChange={(event) =>
+                    setMarketingSmsOptIn(event.target.checked)
+                  }
+                />
+                <span>{text.marketingSms}</span>
+              </label>
+            </div>
             {error && <p className="message message-error" role="alert">{error}</p>}
             <button
               className="ui-button ui-button--primary"

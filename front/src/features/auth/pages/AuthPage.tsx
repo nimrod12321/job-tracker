@@ -32,6 +32,8 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
   const [phoneNumber, setPhoneNumber] = useState('')
   const [code, setCode] = useState('')
   const [track, setTrack] = useState<PhoneAuthTrack>('restaurant')
+  const [legalAccepted, setLegalAccepted] = useState(false)
+  const [marketingSmsOptIn, setMarketingSmsOptIn] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -84,6 +86,18 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
     switchToRegister: isHebrew ? 'להרשמה' : 'Register instead',
     switchLanguage: isHebrew ? 'English' : 'עברית',
     switchLanguageLabel: isHebrew ? 'Switch to English' : 'החלפה לעברית',
+    legalPrefix: isHebrew ? 'קראתי ואני מאשר/ת את ' : 'I have read and accept the ',
+    terms: isHebrew ? 'תנאי השימוש' : 'Terms of Use',
+    legalJoin: isHebrew ? ' ואת ' : ' and ',
+    privacy: isHebrew ? 'מדיניות הפרטיות' : 'Privacy Policy',
+    marketingSms:
+      isHebrew
+        ? 'אשמח לקבל מדי פעם המלצות למשרות ועדכונים שיווקיים ב-SMS (לא חובה).'
+        : 'I would like occasional job recommendations and promotional updates by SMS (optional).',
+    legalRequired:
+      isHebrew
+        ? 'כדי להירשם צריך לאשר את תנאי השימוש ומדיניות הפרטיות.'
+        : 'Accept the Terms of Use and Privacy Policy to register.',
   }
 
   useEffect(() => {
@@ -105,6 +119,11 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
 
     if (!phoneNumber.trim()) {
       setError(text.phoneRequired)
+      return false
+    }
+
+    if (mode === 'register' && !legalAccepted) {
+      setError(text.legalRequired)
       return false
     }
 
@@ -192,6 +211,8 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
           ? {
               fullName: fullName.trim(),
               track,
+              legalAccepted,
+              marketingSmsOptIn,
             }
           : {}),
         ...(mode === 'register' && track === 'restaurantOwner'
@@ -365,6 +386,43 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
                       </span>
                     </label>
                   </fieldset>
+                )}
+
+                {mode === 'register' && (
+                  <div className="registration-consents">
+                    <label className="consent-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={legalAccepted}
+                        onChange={(event) => {
+                          setLegalAccepted(event.target.checked)
+                          setError(null)
+                        }}
+                        required
+                      />
+                      <span>
+                        {text.legalPrefix}
+                        <Link to="/terms" target="_blank" rel="noreferrer">
+                          {text.terms}
+                        </Link>
+                        {text.legalJoin}
+                        <Link to="/privacy" target="_blank" rel="noreferrer">
+                          {text.privacy}
+                        </Link>
+                        .
+                      </span>
+                    </label>
+                    <label className="consent-checkbox consent-checkbox--optional">
+                      <input
+                        type="checkbox"
+                        checked={marketingSmsOptIn}
+                        onChange={(event) =>
+                          setMarketingSmsOptIn(event.target.checked)
+                        }
+                      />
+                      <span>{text.marketingSms}</span>
+                    </label>
+                  </div>
                 )}
 
                 {import.meta.env.DEV && (

@@ -14,6 +14,7 @@ import {
 } from '../../restaurant/types/restaurant'
 import VerifiedAddressAutocomplete from '../../../components/location/VerifiedAddressAutocomplete'
 import { useOwnerRestaurant } from '../context/ownerRestaurantState'
+import SmsNotificationSettings from '../../../components/settings/SmsNotificationSettings'
 
 const emptyProfile: OwnerProfileInput = {
   restaurantName: '',
@@ -509,6 +510,13 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
             </label>
           </div>
         </section>
+
+        {!isCreatingAdditionalRestaurant && (
+          <SmsNotificationSettings
+            className="owner-profile-section-card"
+            showOwnerControls
+          />
+        )}
 
         {error && (
           <div className="message message-error owner-profile-error-summary" role="alert">

@@ -72,6 +72,8 @@ function RestaurantPublicApplyPage({
   const [step, setStep] = useState<PublicApplyStep>('identify')
   const [fullName, setFullName] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
+  const [legalAccepted, setLegalAccepted] = useState(false)
+  const [marketingSmsOptIn, setMarketingSmsOptIn] = useState(false)
   const [code, setCode] = useState('')
   const [verifiedToken, setVerifiedToken] = useState<string | null>(null)
   const [wantedRoles, setWantedRoles] = useState<RestaurantRole[]>([])
@@ -197,6 +199,19 @@ function RestaurantPublicApplyPage({
       language === 'he'
         ? 'צריך למלא גיל תקין ולבחור לפחות תפקיד אחד.'
         : 'Please enter a valid age and choose at least one role.',
+    legalPrefix: language === 'he' ? 'קראתי ואני מאשר/ת את ' : 'I have read and accept the ',
+    terms: language === 'he' ? 'תנאי השימוש' : 'Terms of Use',
+    legalJoin: language === 'he' ? ' ואת ' : ' and ',
+    legalPrivacy:
+      language === 'he' ? 'מדיניות הפרטיות' : 'Privacy Policy',
+    marketingSms:
+      language === 'he'
+        ? 'אשמח לקבל מדי פעם המלצות למשרות ועדכונים שיווקיים ב-SMS (לא חובה).'
+        : 'I would like occasional job recommendations and promotional updates by SMS (optional).',
+    legalRequired:
+      language === 'he'
+        ? 'כדי להמשיך צריך לאשר את תנאי השימוש ומדיניות הפרטיות.'
+        : 'Accept the Terms of Use and Privacy Policy to continue.',
   }
   const availableQrRoles = useMemo(
     () =>
@@ -336,6 +351,8 @@ function RestaurantPublicApplyPage({
           code: codeToVerify,
           purpose: 'qrApply',
           fullName: fullName.trim(),
+          legalAccepted,
+          marketingSmsOptIn,
         })
 
         await onAuthVerified(response.token)
@@ -350,6 +367,8 @@ function RestaurantPublicApplyPage({
     },
     [
       fullName,
+      legalAccepted,
+      marketingSmsOptIn,
       onAuthVerified,
       phoneNumber,
       text.codeError,
@@ -379,6 +398,11 @@ function RestaurantPublicApplyPage({
 
     if (fullName.trim().length < 2 || !phoneNumber.trim()) {
       setError(text.namePhoneError)
+      return
+    }
+
+    if (!legalAccepted) {
+      setError(text.legalRequired)
       return
     }
 
@@ -596,6 +620,40 @@ function RestaurantPublicApplyPage({
                     inputMode="tel"
                   />
                 </label>
+                <div className="registration-consents">
+                  <label className="consent-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={legalAccepted}
+                      onChange={(event) => {
+                        setLegalAccepted(event.target.checked)
+                        setError(null)
+                      }}
+                      required
+                    />
+                    <span>
+                      {text.legalPrefix}
+                      <Link to="/terms" target="_blank" rel="noreferrer">
+                        {text.terms}
+                      </Link>
+                      {text.legalJoin}
+                      <Link to="/privacy" target="_blank" rel="noreferrer">
+                        {text.legalPrivacy}
+                      </Link>
+                      .
+                    </span>
+                  </label>
+                  <label className="consent-checkbox consent-checkbox--optional">
+                    <input
+                      type="checkbox"
+                      checked={marketingSmsOptIn}
+                      onChange={(event) =>
+                        setMarketingSmsOptIn(event.target.checked)
+                      }
+                    />
+                    <span>{text.marketingSms}</span>
+                  </label>
+                </div>
                 {import.meta.env.DEV && (
                   <p className="auth-dev-hint">{text.devHint}</p>
                 )}

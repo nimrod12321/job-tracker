@@ -68,6 +68,17 @@ export const prismaCandidateNotificationRepository: CandidateNotificationDeliver
           status: 'pending',
           attemptCount: 0,
           lastAttemptAt: null,
+          recipientMember: {
+            is: {
+              status: 'active',
+              user: {
+                is:
+                  kind === 'reminder24h'
+                    ? { candidateReminderSmsEnabled: true }
+                    : { newCandidateSmsEnabled: true },
+              },
+            },
+          },
           ...(kind === 'reminder24h'
             ? {
                 candidateLead: {
@@ -118,6 +129,17 @@ export const prismaCandidateNotificationRepository: CandidateNotificationDeliver
             status: 'pending',
             attemptCount: 0,
             lastAttemptAt: null,
+            recipientMember: {
+              is: {
+                status: 'active',
+                user: {
+                  is:
+                    delivery.kind === 'reminder24h'
+                      ? { candidateReminderSmsEnabled: true }
+                      : { newCandidateSmsEnabled: true },
+                },
+              },
+            },
             ...(delivery.kind === 'reminder24h'
               ? {
                   candidateLead: {
@@ -153,6 +175,14 @@ export const prismaCandidateNotificationRepository: CandidateNotificationDeliver
               status: 'pending',
               attemptCount: 0,
               lastAttemptAt: null,
+              recipientMember: {
+                is: {
+                  status: 'active',
+                  user: {
+                    is: { candidateReminderSmsEnabled: true },
+                  },
+                },
+              },
               candidateLead: {
                 source: 'qr',
                 firstContactInitiatedAt: null,

@@ -378,10 +378,19 @@ test(
     }
 
     async function verifyPhoneCode(body: Record<string, unknown>) {
+      const purpose = body.purpose
+      const isRegistrationLike =
+        purpose === 'register' || purpose === 'qrApply'
+
       return request<AuthResponse>('/auth/verify-code', {
         method: 'POST',
         headers: jsonHeaders(),
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          ...(isRegistrationLike && !('legalAccepted' in body)
+            ? { legalAccepted: true }
+            : {}),
+          ...body,
+        }),
       })
     }
 
@@ -398,6 +407,7 @@ test(
           email,
           password: 'password123',
           track,
+          legalAccepted: true,
         }),
       })
 
@@ -1523,6 +1533,7 @@ test(
           email: adminEmail,
           password: 'password123',
           track: 'restaurantOwner',
+          legalAccepted: true,
         }),
       })
       assert.equal(allowlistedAdminSelfSignup.status, 403)
