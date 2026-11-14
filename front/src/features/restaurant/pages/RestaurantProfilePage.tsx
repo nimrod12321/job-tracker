@@ -9,12 +9,14 @@ import {
 import {
   RESTAURANT_ROLES,
   getRestaurantRoleLabel,
+  type PreferredWorkArea,
   type RestaurantRole,
   type RestaurantWorkerProfile,
 } from '../types/restaurant'
 import { useRestaurantLanguage } from '../utils/restaurantLanguage'
 import { formatIsraeliPhoneForDisplay } from '../../../utils/phoneDisplay'
 import VerifiedAddressAutocomplete from '../../../components/location/VerifiedAddressAutocomplete'
+import PreferredWorkAreaMap from '../components/PreferredWorkAreaMap'
 
 type RestaurantProfileForm = {
   fullName: string
@@ -27,6 +29,7 @@ type RestaurantProfileForm = {
   availability: string[]
   extraDetails: string
   age: string
+  preferredWorkArea: PreferredWorkArea | null
 }
 
 const emptyProfile: RestaurantProfileForm = {
@@ -40,6 +43,7 @@ const emptyProfile: RestaurantProfileForm = {
   availability: [],
   extraDetails: '',
   age: '',
+  preferredWorkArea: null,
 }
 
 const experienceOptions = [
@@ -173,6 +177,7 @@ function profileToForm(
     availability: parseAvailability(profile.availability),
     extraDetails: parsedExperience.extraDetails,
     age: profile.age === 0 ? '' : String(profile.age),
+    preferredWorkArea: profile.preferredWorkArea,
   }
 }
 
@@ -241,6 +246,12 @@ function RestaurantProfilePage() {
       language === 'he'
         ? 'בחרו כתובת מהרשימה. אנחנו שומרים רק את הרחוב כדי להציג משרות קרובות.'
         : 'Choose an address from the list. We save only the street to show nearby jobs.',
+    preferredWorkAreaTitle:
+      language === 'he' ? 'אזור עבודה מועדף' : 'Preferred work area',
+    preferredWorkAreaHelp:
+      language === 'he'
+        ? 'לא חובה. בחרו אזור רק אם תרצו לצמצם את המשרות שמופיעות בהחלקה.'
+        : 'Optional. Choose an area only if you want to narrow the jobs shown in Swipe.',
     locationError:
       language === 'he'
         ? 'בחרו כתובת מהרשימה. אנחנו נשמור רק את הרחוב.'
@@ -314,7 +325,7 @@ function RestaurantProfilePage() {
   function updateTextField(
     field: Exclude<
       keyof RestaurantProfileForm,
-      'wantedRoles' | 'availability'
+      'wantedRoles' | 'availability' | 'preferredWorkArea'
     >,
     value: string,
   ) {
@@ -383,6 +394,7 @@ function RestaurantProfilePage() {
         experienceText: serializeExperienceText(form),
         availability: form.availability.join(', '),
         age: Number(form.age) || 0,
+        preferredWorkArea: form.preferredWorkArea,
       })
 
       setForm(profileToForm(profile))
@@ -578,6 +590,24 @@ function RestaurantProfilePage() {
           <p className="form-helper-text worker-location-privacy">
             {text.locationHelp}
           </p>
+        </section>
+
+        <section className="worker-profile-section preferred-work-area-section">
+          <div className="guided-form-heading">
+            <h2>{text.preferredWorkAreaTitle}</h2>
+            <span className="worker-optional-label">{text.optional}</span>
+          </div>
+          <p className="form-helper-text">{text.preferredWorkAreaHelp}</p>
+          <PreferredWorkAreaMap
+            language={language}
+            value={form.preferredWorkArea}
+            onChange={(preferredWorkArea) =>
+              setForm((currentForm) => ({
+                ...currentForm,
+                preferredWorkArea,
+              }))
+            }
+          />
         </section>
 
         <section className="worker-profile-section worker-extra-details-section">

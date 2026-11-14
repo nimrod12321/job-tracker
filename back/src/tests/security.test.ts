@@ -106,6 +106,7 @@ type OwnerJobResponse = {
 }
 
 type RestaurantExploreResponse = {
+  preferredWorkAreaApplied?: boolean
   jobs: Array<{
     id: string
     restaurantName: string
@@ -2970,6 +2971,11 @@ test(
       const completedNewWorkerProfile = await request<{
         homeGooglePlaceId: string | null
         locationRequired: boolean
+        preferredWorkArea: {
+          latitude: number
+          longitude: number
+          radiusKm: number
+        } | null
       }>('/restaurant/profile', {
         method: 'PUT',
         headers: jsonHeaders(workerToken),
@@ -2990,6 +2996,7 @@ test(
         workerStreetPlaceId,
       )
       assert.equal(completedNewWorkerProfile.body.locationRequired, true)
+      assert.equal(completedNewWorkerProfile.body.preferredWorkArea, null)
 
       const legacyWorkerEmail = `legacy-worker-${runId}@example.test`
       const legacyWorkerToken = await registerAndLogin(
@@ -3339,6 +3346,150 @@ test(
       assert.ok(
         ownerAMapEntry.jobs.every((job) => job.id !== undefined),
       )
+
+      const unknownLocationJob = await prisma.restaurantJob.create({
+        data: {
+          ownerProfileId: legacyRestaurant.id,
+          restaurantName: legacyRestaurant.restaurantName,
+          role: 'waiter',
+          location: 'Tel Aviv',
+          area: 'Unknown coordinates',
+          kind: 'posted',
+          isActive: true,
+        },
+      })
+      await prisma.restaurantOwnerProfile.update({
+        where: { id: ownerB.profile.id },
+        data: {
+          locationStatus: 'verified',
+          latitude: 32.13,
+          longitude: 34.84,
+          locationVerifiedAt: new Date(),
+        },
+      })
+      await prisma.restaurantJob.update({
+        where: { id: inactiveAttachedJob.id },
+        data: { kind: 'posted', isActive: true },
+      })
+
+      const savePreferredArea = async (
+        preferredWorkArea: {
+          latitude: number
+          longitude: number
+          radiusKm: number
+        } | null,
+      ) =>
+        request<{
+          preferredWorkArea: {
+            latitude: number
+            longitude: number
+            radiusKm: number
+          } | null
+        }>('/restaurant/profile', {
+          method: 'PUT',
+          headers: jsonHeaders(workerToken),
+          body: JSON.stringify({
+            fullName: 'Worker',
+            phoneNumber: '+972509999999',
+            location: 'Tel Aviv',
+            wantedRoles: ['waiter', 'host'],
+            experienceText: '2 years\n\nVerified QR experience',
+            availability: 'Evening, Weekends',
+            age: 25,
+            preferredWorkArea,
+          }),
+        })
+
+      const createdPreferredArea = await savePreferredArea({
+        latitude: 32.0809,
+        longitude: 34.7732,
+        radiusKm: 1,
+      })
+      assert.equal(createdPreferredArea.status, 200)
+      assert.equal(createdPreferredArea.body.preferredWorkArea?.radiusKm, 1)
+
+      const updatedPreferredArea = await savePreferredArea({
+        latitude: 32.0809,
+        longitude: 34.7732,
+        radiusKm: 0.5,
+      })
+      assert.equal(updatedPreferredArea.status, 200)
+      assert.equal(updatedPreferredArea.body.preferredWorkArea?.radiusKm, 0.5)
+
+      const geographicallyFilteredExplore =
+        await request<RestaurantExploreResponse>('/restaurant/explore', {
+          method: 'POST',
+          headers: jsonHeaders(workerToken),
+          body: JSON.stringify({
+            limit: 1,
+            excludeJobIds: [],
+            focusJobId: activePostedJob.id,
+          }),
+        })
+      assert.equal(geographicallyFilteredExplore.status, 200)
+      assert.equal(
+        geographicallyFilteredExplore.body.preferredWorkAreaApplied,
+        true,
+      )
+      assert.equal(geographicallyFilteredExplore.body.jobs.length, 1)
+      assert.ok(
+        geographicallyFilteredExplore.body.jobs[0]?.id ===
+          activePostedJob.id,
+        'Swipe should filter by verified restaurant coordinates before pagination',
+      )
+      assert.ok(
+        geographicallyFilteredExplore.body.jobs.every(
+          (job) => job.id !== unknownLocationJob.id,
+        ),
+      )
+
+      const mapWithPreferredArea = await request<RestaurantMapResponse>(
+        '/restaurant/jobs/map',
+        { headers: jsonHeaders(workerToken) },
+      )
+      assert.equal(mapWithPreferredArea.status, 200)
+      assert.ok(
+        mapWithPreferredArea.body.some(
+          (entry) =>
+            entry.restaurantId === ownerB.profile.id &&
+            entry.jobs.some((job) => job.id === inactiveAttachedJob.id),
+        ),
+        'Jobs Map must keep eligible restaurants outside the Swipe circle',
+      )
+
+      const removedPreferredArea = await savePreferredArea(null)
+      assert.equal(removedPreferredArea.status, 200)
+      assert.equal(removedPreferredArea.body.preferredWorkArea, null)
+      const unfilteredExplore = await request<RestaurantExploreResponse>(
+        '/restaurant/explore',
+        {
+          method: 'POST',
+          headers: jsonHeaders(workerToken),
+          body: JSON.stringify({ limit: 10, excludeJobIds: [] }),
+        },
+      )
+      assert.equal(unfilteredExplore.status, 200)
+      assert.equal(unfilteredExplore.body.preferredWorkAreaApplied, false)
+      assert.ok(
+        unfilteredExplore.body.jobs.some(
+          (job) => job.id === inactiveAttachedJob.id,
+        ),
+        'removing the preference should restore existing Swipe behavior',
+      )
+      assert.ok(
+        unfilteredExplore.body.jobs.some(
+          (job) => job.id === unknownLocationJob.id,
+        ),
+        'workers without an area should retain jobs with unknown coordinates',
+      )
+
+      await prisma.restaurantJob.update({
+        where: { id: inactiveAttachedJob.id },
+        data: { isActive: false },
+      })
+      await prisma.restaurantJob.delete({
+        where: { id: unknownLocationJob.id },
+      })
 
       const ownerCannotReplaceVerifiedLocation = await request<{
         message?: string

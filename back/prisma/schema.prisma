@@ -262,6 +262,12 @@ model RestaurantWorkerProfile {
   homeLongitude         Float?
   homeLocationUpdatedAt DateTime?
 
+  // Optional worker-selected circle used only to filter the Swipe feed.
+  // It is intentionally separate from the worker's verified home location.
+  preferredWorkAreaLatitude  Float?
+  preferredWorkAreaLongitude Float?
+  preferredWorkAreaRadiusKm  Float?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

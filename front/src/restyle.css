@@ -1882,6 +1882,64 @@ img.peepss-logo.swipe-immersive-logo {
   font-weight: 400;
 }
 
+.preferred-work-area-section .guided-form-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.preferred-work-area-control,
+.preferred-work-area-radius {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+}
+
+.preferred-work-area-map {
+  width: 100%;
+  min-height: 280px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.preferred-work-area-radius {
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.preferred-work-area-radius input[type='range'] {
+  min-height: 28px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  accent-color: var(--action);
+  box-shadow: none;
+}
+
+.preferred-work-area-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.preferred-work-area-status .ui-button {
+  width: auto;
+  min-height: 36px;
+  padding: 7px 12px;
+}
+
+.preferred-work-area-error {
+  margin: 0;
+}
+
 .worker-extra-details-label {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

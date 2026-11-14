@@ -1,12 +1,13 @@
 import { GOOGLE_MAPS_API_KEY } from '../config/env'
 
-type GoogleMapsNamespace = {
+export type GoogleMapsNamespace = {
   maps: {
     Map: new (
       element: HTMLElement,
       options: Record<string, unknown>,
     ) => GoogleMapInstance
     Marker: new (options: Record<string, unknown>) => GoogleMarkerInstance
+    Circle: new (options: Record<string, unknown>) => GoogleCircleInstance
     SymbolPath: {
       CIRCLE: unknown
     }
@@ -24,9 +25,24 @@ type GoogleMapsNamespace = {
 }
 
 export type GoogleMapInstance = {
+  addListener: (
+    eventName: string,
+    callback: (event: GoogleMapMouseEvent) => void,
+  ) => unknown
   fitBounds: (bounds: GoogleBoundsInstance, padding?: number) => void
   setCenter: (center: { lat: number; lng: number }) => void
   setZoom: (zoom: number) => void
+}
+
+export type GoogleMapMouseEvent = {
+  latLng?: {
+    lat: () => number
+    lng: () => number
+  } | null
+}
+
+export type GoogleCircleInstance = {
+  setMap: (map: GoogleMapInstance | null) => void
 }
 
 export type GoogleMarkerInstance = {

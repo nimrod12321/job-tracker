@@ -141,9 +141,16 @@ export type RestaurantWorkerProfile = {
   homeLatitude: number | null
   homeLongitude: number | null
   homeLocationUpdatedAt: string | null
+  preferredWorkArea: PreferredWorkArea | null
   locationRequired: boolean
   createdAt: string
   updatedAt: string
+}
+
+export type PreferredWorkArea = {
+  latitude: number
+  longitude: number
+  radiusKm: number
 }
 
 export type RestaurantWorkerProfileInput = {
@@ -155,6 +162,7 @@ export type RestaurantWorkerProfileInput = {
   experienceText: string
   availability: string
   age: number
+  preferredWorkArea?: PreferredWorkArea | null
 }
 
 export type RestaurantMapJob = {
