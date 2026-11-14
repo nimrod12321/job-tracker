@@ -951,10 +951,34 @@ test(
       assert.equal(ownerUpdatesJobUxFields.status, 200)
       assert.equal(ownerUpdatesJobUxFields.body.employmentScope, 'partTime')
       assert.equal(ownerUpdatesJobUxFields.body.hourlyWage, 52)
+      assert.equal(ownerUpdatesJobUxFields.body.kind, 'posted')
+      assert.equal(ownerUpdatesJobUxFields.body.isActive, true)
       assert.equal(
         ownerUpdatesJobUxFields.body.shiftInfo,
         waiterBeforeUxUpdate.shiftInfo,
       )
+
+      const ownerModifiesOptionalSalary = await request<OwnerJobResponse>(
+        `/owner/jobs/${ownerAWaiterJob.id}`,
+        {
+          method: 'PUT',
+          headers: jsonHeaders(ownerA.token),
+          body: JSON.stringify({
+            role: 'waiter',
+            description: 'Friendly table service',
+            requirements: 'Reliable and welcoming',
+            shiftInfo: waiterBeforeUxUpdate.shiftInfo,
+            employmentScope: 'partTime',
+            hourlyWage: 58,
+            contactPhone: '',
+            contactWhatsapp: '',
+          }),
+        },
+      )
+      assert.equal(ownerModifiesOptionalSalary.status, 200)
+      assert.equal(ownerModifiesOptionalSalary.body.hourlyWage, 58)
+      assert.equal(ownerModifiesOptionalSalary.body.kind, 'posted')
+      assert.equal(ownerModifiesOptionalSalary.body.isActive, true)
 
       const ownerRemovesOptionalSalary = await request<OwnerJobResponse>(
         `/owner/jobs/${ownerAWaiterJob.id}`,
@@ -975,6 +999,33 @@ test(
       )
       assert.equal(ownerRemovesOptionalSalary.status, 200)
       assert.equal(ownerRemovesOptionalSalary.body.hourlyWage, null)
+      assert.equal(ownerRemovesOptionalSalary.body.kind, 'posted')
+      assert.equal(ownerRemovesOptionalSalary.body.isActive, true)
+
+      const invalidInactiveJobUpdate = await request<OwnerJobResponse>(
+        `/owner/jobs/${recreatedCounterWorkerJob.body.id}`,
+        {
+          method: 'PUT',
+          headers: jsonHeaders(ownerA.token),
+          body: JSON.stringify({
+            role: 'counterWorker',
+            description: 'Counter service job',
+            requirements: 'Friendly and reliable',
+            shiftInfo: 'Flexible counter shifts',
+            employmentScope: 'flexible',
+            hourlyWage: 0,
+            contactPhone: '',
+            contactWhatsapp: '',
+          }),
+        },
+      )
+      assert.equal(invalidInactiveJobUpdate.status, 400)
+
+      const inactiveJobAfterFailedUpdate =
+        await prisma.restaurantJob.findUniqueOrThrow({
+          where: { id: recreatedCounterWorkerJob.body.id },
+        })
+      assert.equal(inactiveJobAfterFailedUpdate.isActive, false)
 
       const ownerProfileBeforeVenueUpdate =
         await prisma.restaurantOwnerProfile.findUniqueOrThrow({
