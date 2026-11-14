@@ -130,6 +130,14 @@ export async function register(req: Request, res: Response) {
     const { email, password, track } = result.data
     const normalizedEmail = email.trim().toLowerCase()
 
+    // Admin access is derived from a server-side allowlist. Public signup
+    // must never be able to claim an unused allowlisted identity.
+    if (env.adminEmails.includes(normalizedEmail)) {
+      return res.status(403).json({
+        message: 'admin account registration is not available',
+      })
+    }
+
     const existingUser = await prisma.user.findUnique({
       where: {
         email: normalizedEmail,

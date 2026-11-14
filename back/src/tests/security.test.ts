@@ -3,6 +3,7 @@ import type { AddressInfo } from 'node:net'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import 'dotenv/config'
+import bcrypt from 'bcryptjs'
 import type { Express } from 'express'
 
 const shouldRunSecurityTests = process.env.RUN_SECURITY_TESTS === 'true'
@@ -397,6 +398,31 @@ test(
           password: 'password123',
           track,
         }),
+      })
+
+      const login = await request<AuthResponse>('/auth/login', {
+        method: 'POST',
+        headers: jsonHeaders(),
+        body: JSON.stringify({
+          email,
+          password: 'password123',
+        }),
+      })
+
+      assert.equal(login.status, 200)
+
+      return login.body.token
+    }
+
+    async function createAdminAndLogin(email: string) {
+      createdEmails.push(email)
+
+      await prisma.user.create({
+        data: {
+          email,
+          passwordHash: await bcrypt.hash('password123', 10),
+          track: 'restaurantOwner',
+        },
       })
 
       const login = await request<AuthResponse>('/auth/login', {
@@ -1374,6 +1400,27 @@ test(
             status: 'applied',
           },
         })
+      const ownerCannotDeleteJobWithApplication = await request<{
+        message?: string
+      }>(`/owner/jobs/${ownerAWaiterJob.id}`, {
+        method: 'DELETE',
+        headers: jsonHeaders(ownerA.token),
+      })
+      assert.equal(ownerCannotDeleteJobWithApplication.status, 409)
+      assert.equal(
+        ownerCannotDeleteJobWithApplication.body.message,
+        'This job has applications and cannot be deleted. Deactivate it instead.',
+      )
+      assert.ok(
+        await prisma.restaurantJob.findUnique({
+          where: { id: ownerAWaiterJob.id },
+        }),
+      )
+      assert.ok(
+        await prisma.restaurantApplication.findUnique({
+          where: { id: removableAppliedApplication.id },
+        }),
+      )
       const hiringManagerDeleteAppliedApplication = await request(
         `/owner/applications/${removableAppliedApplication.id}`,
         {
@@ -1415,11 +1462,29 @@ test(
       )
       assert.equal(nonAdminAdminRequest.status, 403)
 
-      const adminToken = await registerAndLogin(adminEmail, 'restaurantOwner')
-      const secondAdminToken = await registerAndLogin(
-        secondAdminEmail,
-        'restaurantOwner',
+      const allowlistedAdminSelfSignup = await request<{
+        message?: string
+      }>('/auth/register', {
+        method: 'POST',
+        headers: jsonHeaders(),
+        body: JSON.stringify({
+          email: adminEmail,
+          password: 'password123',
+          track: 'restaurantOwner',
+        }),
+      })
+      assert.equal(allowlistedAdminSelfSignup.status, 403)
+      assert.equal(
+        allowlistedAdminSelfSignup.body.message,
+        'admin account registration is not available',
       )
+      assert.equal(
+        await prisma.user.findUnique({ where: { email: adminEmail } }),
+        null,
+      )
+
+      const adminToken = await createAdminAndLogin(adminEmail)
+      const secondAdminToken = await createAdminAndLogin(secondAdminEmail)
 
       const nonAdminCannotUpdateOtherRestaurantLocation = await request(
         `/admin/restaurants/${ownerB.profile.id}/location`,

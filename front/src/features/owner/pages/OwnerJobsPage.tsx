@@ -268,6 +268,10 @@ function OwnerJobsPage() {
     activated: language === 'he' ? 'המשרה הופעלה.' : 'Job activated.',
     deactivated: language === 'he' ? 'המשרה כובתה.' : 'Job deactivated.',
     deleted: language === 'he' ? 'המשרה נמחקה.' : 'Job deleted.',
+    cannotDeleteJobWithApplications:
+      language === 'he'
+        ? 'לא ניתן למחוק משרה שיש לה מועמדויות. אפשר לכבות אותה במקום.'
+        : 'This job has applications and cannot be deleted. Deactivate it instead.',
     emptyJobs:
       language === 'he'
         ? 'אין עדיין משרות בלוח.'
@@ -718,10 +722,15 @@ function OwnerJobsPage() {
         ]
       })
       setSuccess(null)
-      setError(
+      const message =
         error instanceof Error
           ? error.message
-          : 'Failed to delete restaurant job',
+          : 'Failed to delete restaurant job'
+      setError(
+        message ===
+          'This job has applications and cannot be deleted. Deactivate it instead.'
+          ? text.cannotDeleteJobWithApplications
+          : message,
       )
     } finally {
       pendingJobIds.current.delete(job.id)
