@@ -6,7 +6,7 @@ import {
   getOwnerProfile,
   saveOwnerProfile,
 } from '../services/ownerApi'
-import type { OwnerProfileInput } from '../types/owner'
+import type { OwnerProfile, OwnerProfileInput } from '../types/owner'
 import {
   getRestaurantVenueTypeLabel,
   RESTAURANT_VENUE_TYPES,
@@ -36,6 +36,14 @@ type OwnerProfilePageProps = {
   mode?: 'profile' | 'createAdditional'
 }
 
+function hasCompletedOwnerProfileDetails(profile: OwnerProfile) {
+  return Boolean(
+    profile.restaurantName.trim() &&
+      profile.slug?.trim() &&
+      (profile.city.trim() || profile.street.trim()),
+  )
+}
+
 function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
   const isCreatingAdditionalRestaurant = mode === 'createAdditional'
   const navigate = useNavigate()
@@ -50,6 +58,8 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
   const [missingFields, setMissingFields] = useState<ProfileField[]>([])
   const [success, setSuccess] = useState<string | null>(null)
   const [isNewProfile, setIsNewProfile] = useState(true)
+  const [showNotificationSettings, setShowNotificationSettings] =
+    useState(false)
   const [locationStatus, setLocationStatus] =
     useState<'unverified' | 'verified'>('unverified')
   const [locationInput, setLocationInput] = useState('')
@@ -147,6 +157,7 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
       setSuccess(null)
       setForm(emptyProfile)
       setIsNewProfile(true)
+      setShowNotificationSettings(false)
       setLocationStatus('unverified')
       setLocationInput('')
       setLocationPlaceId('')
@@ -158,6 +169,9 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
 
         if (isActive && profile) {
           setIsNewProfile(false)
+          setShowNotificationSettings(
+            hasCompletedOwnerProfileDetails(profile),
+          )
           setLocationStatus(profile.locationStatus)
           setLocationInput(profile.formattedAddress || profile.street)
           setForm({
@@ -511,7 +525,7 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
           </div>
         </section>
 
-        {!isCreatingAdditionalRestaurant && (
+        {!isCreatingAdditionalRestaurant && showNotificationSettings && (
           <SmsNotificationSettings
             className="owner-profile-section-card"
             showOwnerControls
