@@ -295,6 +295,7 @@ test(
             purpose: 'register',
             fullName: `${label} ${runId}`,
             track: 'restaurantOwner',
+            legalAccepted: true,
           }),
         },
       )

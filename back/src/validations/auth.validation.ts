@@ -12,6 +12,12 @@ const passwordSchema = z
   .string({ error: requiredCredentialsMessage })
   .min(1, requiredCredentialsMessage)
 
+const requiredLegalAcceptanceSchema = z
+  .boolean({ error: 'terms and privacy acceptance is required' })
+  .refine((accepted) => accepted, {
+    message: 'terms and privacy acceptance is required',
+  })
+
 export const registerSchema = z.object({
   email: emailSchema.email('invalid email'),
   password: passwordSchema.min(6, 'password must be at least 6 characters'),
@@ -19,6 +25,8 @@ export const registerSchema = z.object({
     .enum(['highTech', 'restaurant', 'restaurantOwner'])
     .optional()
     .default('highTech'),
+  legalAccepted: requiredLegalAcceptanceSchema,
+  marketingSmsOptIn: z.boolean().optional().default(false),
 })
 
 export const loginSchema = z.object({
@@ -65,5 +73,15 @@ export const verifyCodeSchema = z
     // This is validated separately for the same non-blocking reason.
     ownerFlowHint: z.unknown().optional(),
     ownerOtpAnalytics: z.unknown().optional(),
+    legalAccepted: z.boolean().optional(),
+    marketingSmsOptIn: z.boolean().optional().default(false),
+  })
+  .strict()
+
+export const completeRegistrationSchema = z
+  .object({
+    registrationToken: z.string().trim().min(1),
+    legalAccepted: requiredLegalAcceptanceSchema,
+    marketingSmsOptIn: z.boolean().optional().default(false),
   })
   .strict()

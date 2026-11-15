@@ -2,7 +2,11 @@ import type { Request, Response } from 'express'
 import bcrypt from 'bcryptjs'
 import { env } from '../config/env.js'
 import { prisma } from '../lib/prisma.js'
-import { signAuthToken } from '../lib/jwt.js'
+import {
+  signAuthToken,
+  signRegistrationCompletionToken,
+  verifyRegistrationCompletionToken,
+} from '../lib/jwt.js'
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js'
 import { requestOtpCode, verifyOtpCode } from '../services/otp.service.js'
 import {
@@ -18,6 +22,7 @@ import { normalizeIsraeliPhoneNumber } from '../utils/phone.js'
 import { getValidationErrorMessage } from '../utils/validation.js'
 import {
   loginSchema,
+  completeRegistrationSchema,
   registerSchema,
   requestCodeSchema,
   verifyCodeSchema,
@@ -26,6 +31,11 @@ import {
   ownerOtpAnalyticsAttemptSchema,
   ownerSignupAnalyticsSchema,
 } from '../validations/analytics.validation.js'
+import {
+  CURRENT_LEGAL_POLICY_VERSION,
+  getInitialMarketingConsentData,
+  getLegalConsentData,
+} from '../services/legalConsent.service.js'
 
 type AuthUserRecord = {
   id: string
@@ -62,6 +72,41 @@ function getOtpTokenAnalyticsOptions(
             ownerOtpAnalytics.anonymousAcquisitionId,
         }
       : {}),
+  }
+}
+
+function getRegistrationTokenAnalyticsOptions(
+  ownerAcquisitionFlow: Awaited<
+    ReturnType<typeof resolveOwnerAcquisitionFlow>
+  >,
+  ownerOtpAnalytics: ReturnType<typeof getOwnerOtpAnalyticsAttempt>,
+) {
+  return ownerAcquisitionFlow && ownerOtpAnalytics
+    ? {
+        ownerAcquisitionFlow,
+        ownerAcquisitionId:
+          ownerOtpAnalytics.anonymousAcquisitionId,
+      }
+    : {}
+}
+
+function registrationConsentRequiredResponse(
+  userId: string,
+  ownerAcquisitionFlow: Awaited<
+    ReturnType<typeof resolveOwnerAcquisitionFlow>
+  >,
+  ownerOtpAnalytics: ReturnType<typeof getOwnerOtpAnalyticsAttempt>,
+) {
+  return {
+    requiresConsent: true as const,
+    registrationToken: signRegistrationCompletionToken(
+      userId,
+      getRegistrationTokenAnalyticsOptions(
+        ownerAcquisitionFlow,
+        ownerOtpAnalytics,
+      ),
+    ),
+    ownerAcquisitionFlow,
   }
 }
 
@@ -127,7 +172,7 @@ export async function register(req: Request, res: Response) {
       })
     }
 
-    const { email, password, track } = result.data
+    const { email, password, track, marketingSmsOptIn } = result.data
     const normalizedEmail = email.trim().toLowerCase()
 
     // Admin access is derived from a server-side allowlist. Public signup
@@ -150,6 +195,7 @@ export async function register(req: Request, res: Response) {
     }
 
     const passwordHash = await bcrypt.hash(password, 10)
+    const acceptedAt = new Date()
 
     const user = await prisma.user.create({
       data: {
@@ -157,6 +203,11 @@ export async function register(req: Request, res: Response) {
         passwordHash,
         track,
         workerLocationRequired: track === 'restaurant',
+        ...getLegalConsentData(acceptedAt),
+        ...getInitialMarketingConsentData(
+          marketingSmsOptIn,
+          acceptedAt,
+        ),
       },
     })
 
@@ -414,6 +465,28 @@ export async function verifyCode(req: Request, res: Response) {
         console.error('Failed to resolve owner acquisition flow:', error)
       }
 
+      await attemptOwnerOtpAnalyticsRecording({
+        userId: existingUser.id,
+        flow: ownerAcquisitionFlow,
+        analytics: ownerOtpAnalytics,
+      })
+
+      if (!existingUser.registrationCompletedAt) {
+        return res.json(
+          registrationConsentRequiredResponse(
+            existingUser.id,
+            ownerAcquisitionFlow,
+            ownerOtpAnalytics,
+          ),
+        )
+      }
+
+      await linkPendingRestaurantMemberships(
+        existingUser.id,
+        existingUser.phoneNumber,
+      )
+      const restaurantMemberRole =
+        await getPrimaryRestaurantMembershipRole(existingUser.id)
       const token = signAuthToken(
         existingUser.id,
         getOtpTokenAnalyticsOptions(
@@ -421,18 +494,6 @@ export async function verifyCode(req: Request, res: Response) {
           ownerOtpAnalytics,
         ),
       )
-      await linkPendingRestaurantMemberships(
-        existingUser.id,
-        existingUser.phoneNumber,
-      )
-      const restaurantMemberRole =
-        await getPrimaryRestaurantMembershipRole(existingUser.id)
-
-      await attemptOwnerOtpAnalyticsRecording({
-        userId: existingUser.id,
-        flow: ownerAcquisitionFlow,
-        analytics: ownerOtpAnalytics,
-      })
 
       return res.json({
         token,
@@ -465,6 +526,12 @@ export async function verifyCode(req: Request, res: Response) {
       result.data.purpose === 'qrApply'
         ? 'restaurant'
         : result.data.track ?? 'restaurant'
+    const shouldRecordLegalAcceptance = Boolean(
+      !existingUser?.legalAcceptedAt ||
+        existingUser.legalPolicyVersion !==
+          CURRENT_LEGAL_POLICY_VERSION,
+    )
+    const completesRegistration = result.data.legalAccepted === true
     const user = existingUser
       ? await prisma.user.update({
           where: {
@@ -477,6 +544,18 @@ export async function verifyCode(req: Request, res: Response) {
               result.data.purpose === 'qrApply'
                 ? existingUser.track
                 : track,
+            ...(completesRegistration &&
+            shouldRecordLegalAcceptance
+              ? getLegalConsentData(now)
+              : {}),
+            ...(completesRegistration &&
+            result.data.marketingSmsOptIn
+              ? getInitialMarketingConsentData(true, now)
+              : {}),
+            ...(completesRegistration &&
+            !existingUser.registrationCompletedAt
+              ? { registrationCompletedAt: now }
+              : {}),
           },
         })
       : await prisma.user.create({
@@ -486,8 +565,34 @@ export async function verifyCode(req: Request, res: Response) {
             fullName,
             track,
             workerLocationRequired: track === 'restaurant',
+            registrationCompletedAt: completesRegistration ? now : null,
+            ...(completesRegistration
+              ? getLegalConsentData(now)
+              : {}),
+            ...(completesRegistration
+              ? getInitialMarketingConsentData(
+                  result.data.marketingSmsOptIn,
+                  now,
+                )
+              : {}),
           },
         })
+
+    await attemptOwnerOtpAnalyticsRecording({
+      userId: user.id,
+      flow: ownerAcquisitionFlow,
+      analytics: ownerOtpAnalytics,
+    })
+
+    if (!completesRegistration) {
+      return res.json(
+        registrationConsentRequiredResponse(
+          user.id,
+          ownerAcquisitionFlow,
+          ownerOtpAnalytics,
+        ),
+      )
+    }
 
     await linkPendingRestaurantMemberships(user.id, user.phoneNumber)
     const restaurantMemberRole =
@@ -500,12 +605,6 @@ export async function verifyCode(req: Request, res: Response) {
       ),
     )
 
-    await attemptOwnerOtpAnalyticsRecording({
-      userId: user.id,
-      flow: ownerAcquisitionFlow,
-      analytics: ownerOtpAnalytics,
-    })
-
     return res.json({
       token,
       user: mapAuthUserWithRestaurantRole(user, restaurantMemberRole),
@@ -516,6 +615,97 @@ export async function verifyCode(req: Request, res: Response) {
 
     return res.status(500).json({
       message: 'failed to verify code',
+    })
+  }
+}
+
+export async function completeRegistration(req: Request, res: Response) {
+  try {
+    const result = completeRegistrationSchema.safeParse(req.body)
+
+    if (!result.success) {
+      return res.status(400).json({
+        message: getValidationErrorMessage(result.error),
+      })
+    }
+
+    let registrationPayload: ReturnType<
+      typeof verifyRegistrationCompletionToken
+    >
+
+    try {
+      registrationPayload = verifyRegistrationCompletionToken(
+        result.data.registrationToken,
+      )
+    } catch {
+      return res.status(401).json({
+        message: 'invalid or expired registration token',
+      })
+    }
+
+    const existingUser = await prisma.user.findUnique({
+      where: { id: registrationPayload.userId },
+    })
+
+    if (!existingUser?.phoneNumber || !existingUser.phoneVerifiedAt) {
+      return res.status(401).json({
+        message: 'verified registration is no longer available',
+      })
+    }
+
+    const now = new Date()
+    const shouldRecordLegalAcceptance = Boolean(
+      !existingUser.legalAcceptedAt ||
+        existingUser.legalPolicyVersion !==
+          CURRENT_LEGAL_POLICY_VERSION,
+    )
+    const user = await prisma.user.update({
+      where: { id: existingUser.id },
+      data: {
+        registrationCompletedAt:
+          existingUser.registrationCompletedAt ?? now,
+        ...(shouldRecordLegalAcceptance
+          ? getLegalConsentData(now)
+          : {}),
+        ...(result.data.marketingSmsOptIn
+          ? getInitialMarketingConsentData(true, now)
+          : {}),
+      },
+    })
+
+    await linkPendingRestaurantMemberships(user.id, user.phoneNumber)
+    const restaurantMemberRole =
+      await getPrimaryRestaurantMembershipRole(user.id)
+    const token = signAuthToken(user.id, {
+      authMethod: 'otp',
+      ...(registrationPayload.ownerAcquisitionId
+        ? {
+            ownerAcquisitionId:
+              registrationPayload.ownerAcquisitionId,
+          }
+        : {}),
+      ...(registrationPayload.ownerAcquisitionFlow
+        ? {
+            ownerAcquisitionFlow:
+              registrationPayload.ownerAcquisitionFlow,
+          }
+        : {}),
+    })
+
+    return res.json({
+      token,
+      user: mapAuthUserWithRestaurantRole(
+        user,
+        restaurantMemberRole,
+      ),
+      ownerAcquisitionFlow:
+        registrationPayload.ownerAcquisitionFlow ?? null,
+    })
+  } catch (error) {
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to complete registration',
     })
   }
 }

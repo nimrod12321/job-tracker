@@ -12,6 +12,8 @@ export type RestaurantNotificationMember = {
   phoneNumber: string
   role: string
   status: string
+  newCandidateSmsEnabled?: boolean
+  candidateReminderSmsEnabled?: boolean
 }
 
 export type CandidateNotificationRecipient = {
@@ -31,6 +33,7 @@ export type PendingNewCandidateDelivery = {
 export function selectNewCandidateNotificationRecipients(
   restaurantId: string,
   members: RestaurantNotificationMember[],
+  kind: 'newCandidate' | 'reminder24h' = 'newCandidate',
 ) {
   const recipientsByPhone = new Map<
     string,
@@ -42,7 +45,10 @@ export function selectNewCandidateNotificationRecipients(
       member.restaurantId !== restaurantId ||
       member.status !== 'active' ||
       !member.userId ||
-      !NOTIFICATION_MEMBER_ROLES.has(member.role)
+      !NOTIFICATION_MEMBER_ROLES.has(member.role) ||
+      (kind === 'newCandidate' && member.newCandidateSmsEnabled === false) ||
+      (kind === 'reminder24h' &&
+        member.candidateReminderSmsEnabled === false)
     ) {
       continue
     }

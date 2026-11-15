@@ -90,6 +90,12 @@ const prismaCandidateContactReminderRepository: CandidateContactReminderReposito
                   phoneNumber: true,
                   role: true,
                   status: true,
+                  user: {
+                    select: {
+                      newCandidateSmsEnabled: true,
+                      candidateReminderSmsEnabled: true,
+                    },
+                  },
                 },
               },
             },
@@ -99,7 +105,13 @@ const prismaCandidateContactReminderRepository: CandidateContactReminderReposito
 
       return leads.map(({ ownerProfile, ...lead }) => ({
         ...lead,
-        members: ownerProfile.members,
+        members: ownerProfile.members.map(({ user, ...member }) => ({
+          ...member,
+          newCandidateSmsEnabled:
+            user?.newCandidateSmsEnabled ?? false,
+          candidateReminderSmsEnabled:
+            user?.candidateReminderSmsEnabled ?? false,
+        })),
       }))
     },
 
@@ -167,6 +179,7 @@ export async function dispatchCandidateContactReminders(
     const recipients = selectNewCandidateNotificationRecipients(
       candidate.ownerProfileId,
       candidate.members,
+      'reminder24h',
     )
 
     deliveries.push(
