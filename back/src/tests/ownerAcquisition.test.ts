@@ -219,6 +219,7 @@ test(
         purpose: 'register',
         fullName: `Stage 2 ${runId}`,
         track: input.track ?? 'restaurantOwner',
+        legalAccepted: true,
         ...(input.ownerFlowHint
           ? { ownerFlowHint: input.ownerFlowHint }
           : {}),
@@ -621,6 +622,7 @@ test(
           purpose: 'qrApply',
           fullName: `Candidate ${runId}`,
           track: 'restaurantOwner',
+          legalAccepted: true,
           ownerFlowHint: 'claim',
           ownerOtpAnalytics: otpAttemptFromLinkPayload(
             candidateLinkPayload,

@@ -1,5 +1,6 @@
 import { Router, type Request } from 'express'
 import {
+  completeRegistration,
   getMe,
   login,
   register,
@@ -12,6 +13,11 @@ import {
 } from '../middleware/rateLimit.middleware.js'
 import { requireAuth } from '../middleware/auth.middleware.js'
 import { normalizeIsraeliPhoneNumber } from '../utils/phone.js'
+import {
+  getNotificationSettings,
+  unsubscribeFromMarketingSms,
+  updateNotificationSettings,
+} from '../controllers/accountSettings.controller.js'
 
 
 export const authRouter = Router()
@@ -53,6 +59,14 @@ const verifyCodeRateLimit = createInMemoryRateLimit({
   windowMs: OTP_RATE_LIMIT_WINDOW_MS,
 })
 
+const completeRegistrationRateLimit = createInMemoryRateLimit({
+  keyGenerator: (req) =>
+    `complete-registration:${getClientIp(req)}`,
+  maxRequests: 20,
+  message: 'too many registration attempts. please try again later.',
+  windowMs: OTP_RATE_LIMIT_WINDOW_MS,
+})
+
 // Legacy email/password auth. The current UI only exposes phone-OTP, but
 // these endpoints are still live in the backend, so they still need
 // brute-force protection.
@@ -70,8 +84,35 @@ const registerRateLimit = createInMemoryRateLimit({
   windowMs: OTP_RATE_LIMIT_WINDOW_MS,
 })
 
+const unsubscribeRateLimit = createInMemoryRateLimit({
+  keyGenerator: (req) => `sms-unsubscribe:${getClientIp(req)}`,
+  maxRequests: 20,
+  message: 'too many unsubscribe requests. please try again later.',
+  windowMs: OTP_RATE_LIMIT_WINDOW_MS,
+})
+
 authRouter.post('/register', registerRateLimit, register)
 authRouter.post('/login', loginRateLimit, login)
 authRouter.post('/request-code', requestCodeRateLimit, requestCode)
 authRouter.post('/verify-code', verifyCodeRateLimit, verifyCode)
+authRouter.post(
+  '/complete-registration',
+  completeRegistrationRateLimit,
+  completeRegistration,
+)
+authRouter.post(
+  '/sms/unsubscribe',
+  unsubscribeRateLimit,
+  unsubscribeFromMarketingSms,
+)
 authRouter.get('/me', requireAuth, getMe)
+authRouter.get(
+  '/notification-settings',
+  requireAuth,
+  getNotificationSettings,
+)
+authRouter.patch(
+  '/notification-settings',
+  requireAuth,
+  updateNotificationSettings,
+)

@@ -18,6 +18,7 @@ import { useRestaurantLanguage } from '../utils/restaurantLanguage'
 import { formatIsraeliPhoneForDisplay } from '../../../utils/phoneDisplay'
 import VerifiedAddressAutocomplete from '../../../components/location/VerifiedAddressAutocomplete'
 import PreferredWorkAreaMap from '../components/PreferredWorkAreaMap'
+import SmsNotificationSettings from '../../../components/settings/SmsNotificationSettings'
 
 type RestaurantProfileForm = {
   fullName: string
@@ -237,6 +238,8 @@ function RestaurantProfilePage() {
   const [persistedProfile, setPersistedProfile] =
     useState<RestaurantWorkerProfile | null>(null)
   const [hasExistingProfile, setHasExistingProfile] = useState(false)
+  const [showNotificationSettings, setShowNotificationSettings] =
+    useState(false)
   const [workAreaDraft, setWorkAreaDraft] =
     useState<PreferredWorkArea | null>(null)
   const [workAreaSaveState, setWorkAreaSaveState] =
@@ -351,6 +354,7 @@ function RestaurantProfilePage() {
           if (profile) {
             setPersistedProfile(profile)
             setHasExistingProfile(true)
+            setShowNotificationSettings(true)
             setWorkAreaDraft(profile.preferredWorkArea)
             setWorkAreaSaveState(
               profile.preferredWorkArea ? 'persisted' : 'clean',
@@ -365,6 +369,7 @@ function RestaurantProfilePage() {
           } else {
             setPersistedProfile(null)
             setHasExistingProfile(false)
+            setShowNotificationSettings(false)
             setWorkAreaDraft(null)
             setWorkAreaSaveState('clean')
             setForm((currentForm) => ({
@@ -827,6 +832,10 @@ function RestaurantProfilePage() {
               : 'Some roles may require legal age or experience.'}
           </p>
         </section>
+
+        {showNotificationSettings && (
+          <SmsNotificationSettings className="worker-profile-section" />
+        )}
 
         {error && (
           <p className="message message-error" role="alert">

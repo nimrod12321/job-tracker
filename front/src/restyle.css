@@ -3502,6 +3502,74 @@ img.peepss-logo.swipe-immersive-logo {
   text-underline-offset: 2px;
 }
 
+.registration-consents,
+.sms-notification-options {
+  display: grid;
+  gap: 10px;
+}
+
+.consent-checkbox {
+  display: flex !important;
+  align-items: flex-start;
+  gap: 9px !important;
+  min-width: 0;
+  color: var(--ink);
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.consent-checkbox input {
+  flex: 0 0 auto;
+  width: 18px !important;
+  height: 18px !important;
+  min-height: 0 !important;
+  margin: 1px 0 0;
+  padding: 0 !important;
+  accent-color: var(--accent);
+}
+
+.consent-checkbox span {
+  min-width: 0;
+}
+
+.consent-checkbox a {
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.consent-checkbox--optional {
+  color: var(--muted);
+}
+
+.sms-notification-settings .guided-form-heading,
+.sms-notification-settings .form-helper-text,
+.sms-notification-settings .message,
+.sms-notification-settings .status-message {
+  margin: 0;
+}
+
+.sms-notification-save {
+  justify-self: start;
+  min-width: 132px;
+}
+
+[dir='rtl'] .sms-notification-save {
+  justify-self: end;
+}
+
+.sms-unsubscribe-page .legal-page-card {
+  display: grid;
+  gap: 16px;
+}
+
+.sms-unsubscribe-page .legal-page-card > * {
+  margin-block: 0;
+}
+
 /* ---------- Claim ---------- */
 
 .claim-standard-layout {

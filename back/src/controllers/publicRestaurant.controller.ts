@@ -402,11 +402,23 @@ export async function createVerifiedPublicRestaurantLead(
           phoneNumber: true,
           role: true,
           status: true,
+          user: {
+            select: {
+              newCandidateSmsEnabled: true,
+              candidateReminderSmsEnabled: true,
+            },
+          },
         },
       })
       const recipients = selectNewCandidateNotificationRecipients(
         profile.id,
-        members,
+        members.map(({ user, ...member }) => ({
+          ...member,
+          newCandidateSmsEnabled:
+            user?.newCandidateSmsEnabled ?? false,
+          candidateReminderSmsEnabled:
+            user?.candidateReminderSmsEnabled ?? false,
+        })),
       )
 
       return createLeadWithPendingNewCandidateDeliveries(recipients, {
