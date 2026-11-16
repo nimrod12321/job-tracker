@@ -107,12 +107,14 @@ export function loadGoogleMaps() {
       if (window.google?.maps?.places) {
         resolve(window.google)
       } else {
+        script.remove()
         googleMapsPromise = null
         reject(new Error('Google Maps did not load correctly'))
       }
     }
 
     function handleError() {
+      script.remove()
       googleMapsPromise = null
       reject(new Error('Google Maps failed to load'))
     }

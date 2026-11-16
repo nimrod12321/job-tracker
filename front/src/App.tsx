@@ -1,4 +1,11 @@
-import { useEffect, useState } from 'react'
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
 import {
   Navigate,
   Route,
@@ -14,27 +21,11 @@ import ProtectedRoute from './components/routing/ProtectedRoute'
 import { getCurrentUser, type AuthUser } from './features/auth/services/authApi'
 import {
   AUTH_SESSION_EXPIRED_EVENT,
+  AUTH_TOKEN_STORAGE_KEY,
   clearAuthToken,
   getAuthToken,
   saveAuthToken,
 } from './features/auth/utils/authStorage'
-import AdminLeadsPage from './features/admin/pages/AdminLeadsPage'
-import AdminOverviewPage from './features/admin/pages/AdminOverviewPage'
-import AdminRestaurantDetailPage from './features/admin/pages/AdminRestaurantDetailPage'
-import AdminRestaurantsPage from './features/admin/pages/AdminRestaurantsPage'
-import AuthPage from './features/auth/pages/AuthPage'
-import DashboardPage from './features/dashboard/pages/DashboardPage'
-import DiscoverPage from './features/discovery/pages/DiscoverPage'
-import LikedJobsPage from './features/discovery/pages/LikedJobsPage'
-import JobDetailPage from './features/jobs/pages/JobDetailPage'
-import ImportJobPage from './features/jobs/pages/ImportJobPage'
-import JobsPage from './features/jobs/pages/jobsPage'
-import LegalPage from './features/legal/pages/LegalPage'
-import SmsUnsubscribePage from './features/legal/SmsUnsubscribePage'
-import OwnerApplicationsPage from './features/owner/pages/OwnerApplicationsPage'
-import OwnerJobsPage from './features/owner/pages/OwnerJobsPage'
-import OwnerProfilePage from './features/owner/pages/OwnerProfilePage'
-import OwnerTeamPage from './features/owner/pages/OwnerTeamPage'
 import {
   getOwnerProfile,
   getOwnerRestaurants,
@@ -46,23 +37,104 @@ import {
 } from './features/owner/context/OwnerRestaurantContext'
 import {
   clearStoredOwnerRestaurantId,
-  resolveValidOwnerRestaurantId,
 } from './features/owner/utils/ownerRestaurantSelection'
+import {
+  createOwnerPostAuthBootstrapHandoff,
+  loadOwnerPostAuthBootstrap,
+  resolveOwnerPostAuthBootstrap,
+  type OwnerPostAuthBootstrap,
+  type OwnerPostAuthBootstrapHandoff,
+} from './features/owner/utils/ownerPostAuthBootstrap'
 import {
   getSafeOwnerApplicationsReturnTo,
   parseOwnerApplicationsDeepLink,
 } from './features/owner/utils/ownerApplicationsDeepLink'
-import ProfilePage from './features/profile/pages/ProfilePage'
-import RestaurantPublicApplyPage from './features/public/pages/RestaurantPublicApplyPage'
-import RestaurantClaimPage from './features/public/pages/RestaurantClaimPage'
-import RestaurantExplorePage from './features/restaurant/pages/RestaurantExplorePage'
-import RestaurantJobBoardDetailPage from './features/restaurant/pages/RestaurantJobBoardDetailPage'
-import RestaurantMapPage from './features/restaurant/pages/RestaurantMapPage'
-import RestaurantMatchesPage from './features/restaurant/pages/RestaurantMatchesPage'
-import RestaurantProfilePage from './features/restaurant/pages/RestaurantProfilePage'
 import { getRestaurantProfile } from './features/restaurant/services/restaurantApi'
 import type { RestaurantWorkerProfile } from './features/restaurant/types/restaurant'
 import { getStoredRestaurantLanguage } from './features/restaurant/utils/restaurantLanguage'
+
+const AdminLeadsPage = lazy(
+  () => import('./features/admin/pages/AdminLeadsPage'),
+)
+const AdminOverviewPage = lazy(
+  () => import('./features/admin/pages/AdminOverviewPage'),
+)
+const AdminRestaurantDetailPage = lazy(
+  () => import('./features/admin/pages/AdminRestaurantDetailPage'),
+)
+const AdminRestaurantsPage = lazy(
+  () => import('./features/admin/pages/AdminRestaurantsPage'),
+)
+const AuthPage = lazy(() => import('./features/auth/pages/AuthPage'))
+const DashboardPage = lazy(
+  () => import('./features/dashboard/pages/DashboardPage'),
+)
+const DiscoverPage = lazy(
+  () => import('./features/discovery/pages/DiscoverPage'),
+)
+const LikedJobsPage = lazy(
+  () => import('./features/discovery/pages/LikedJobsPage'),
+)
+const JobDetailPage = lazy(
+  () => import('./features/jobs/pages/JobDetailPage'),
+)
+const ImportJobPage = lazy(
+  () => import('./features/jobs/pages/ImportJobPage'),
+)
+const JobsPage = lazy(() => import('./features/jobs/pages/jobsPage'))
+const LegalPage = lazy(() => import('./features/legal/pages/LegalPage'))
+const SmsUnsubscribePage = lazy(
+  () => import('./features/legal/SmsUnsubscribePage'),
+)
+const OwnerApplicationsPage = lazy(
+  () => import('./features/owner/pages/OwnerApplicationsPage'),
+)
+const OwnerJobsPage = lazy(
+  () => import('./features/owner/pages/OwnerJobsPage'),
+)
+const OwnerProfilePage = lazy(
+  () => import('./features/owner/pages/OwnerProfilePage'),
+)
+const OwnerTeamPage = lazy(
+  () => import('./features/owner/pages/OwnerTeamPage'),
+)
+const ProfilePage = lazy(() => import('./features/profile/pages/ProfilePage'))
+const RestaurantPublicApplyPage = lazy(
+  () => import('./features/public/pages/RestaurantPublicApplyPage'),
+)
+const RestaurantClaimPage = lazy(
+  () => import('./features/public/pages/RestaurantClaimPage'),
+)
+const RestaurantExplorePage = lazy(
+  () => import('./features/restaurant/pages/RestaurantExplorePage'),
+)
+const RestaurantJobBoardDetailPage = lazy(
+  () => import('./features/restaurant/pages/RestaurantJobBoardDetailPage'),
+)
+const RestaurantMapPage = lazy(
+  () => import('./features/restaurant/pages/RestaurantMapPage'),
+)
+const RestaurantMatchesPage = lazy(
+  () => import('./features/restaurant/pages/RestaurantMatchesPage'),
+)
+const RestaurantProfilePage = lazy(
+  () => import('./features/restaurant/pages/RestaurantProfilePage'),
+)
+
+function RouteLoadingFallback() {
+  const language = getStoredRestaurantLanguage()
+
+  return (
+    <section className="checking-session-screen" aria-live="polite">
+      <div className="checking-session-card">
+        <PeepssLogo className="checking-session-logo" />
+        <p className="checking-session-text">
+          {language === 'he' ? 'טוענים את העמוד…' : 'Loading page…'}
+        </p>
+      </div>
+    </section>
+  )
+}
 
 function getHomePath(user: AuthUser | null) {
   if (user?.isAdmin) {
@@ -124,20 +196,26 @@ function isWorkerProfileComplete(
 async function getPostAuthPath(
   user: AuthUser | null,
   preferredRestaurantId?: string | null,
-) {
+): Promise<{
+  path: string
+  ownerBootstrap: OwnerPostAuthBootstrap | null
+}> {
   if (user?.isAdmin) {
-    return getHomePath(user)
+    return { path: getHomePath(user), ownerBootstrap: null }
   }
 
   if (user?.track === 'restaurant' && !user.restaurantMemberRole) {
     try {
       const profile = await getRestaurantProfile()
 
-      return isWorkerProfileComplete(profile, user)
-        ? '/restaurant/explore'
-        : '/restaurant/profile'
+      return {
+        path: isWorkerProfileComplete(profile, user)
+          ? '/restaurant/explore'
+          : '/restaurant/profile',
+        ownerBootstrap: null,
+      }
     } catch {
-      return '/restaurant/profile'
+      return { path: '/restaurant/profile', ownerBootstrap: null }
     }
   }
 
@@ -145,20 +223,26 @@ async function getPostAuthPath(
     !user?.restaurantMemberRole &&
     user?.track !== 'restaurantOwner'
   ) {
-    return getHomePath(user)
+    return { path: getHomePath(user), ownerBootstrap: null }
   }
 
   try {
-    const restaurants = await getOwnerRestaurants()
-    const restaurantId = resolveValidOwnerRestaurantId(
-      restaurants,
+    const ownerBootstrap = await loadOwnerPostAuthBootstrap(
       preferredRestaurantId,
+      {
+        getRestaurants: getOwnerRestaurants,
+        getProfile: getOwnerProfile,
+      },
     )
-    const profile = await getOwnerProfile(restaurantId ?? undefined)
 
-    return isOwnerProfileComplete(profile) ? '/owner/jobs' : '/owner/profile'
+    return {
+      path: isOwnerProfileComplete(ownerBootstrap.profile)
+        ? '/owner/jobs'
+        : '/owner/profile',
+      ownerBootstrap,
+    }
   } catch {
-    return '/owner/profile'
+    return { path: '/owner/profile', ownerBootstrap: null }
   }
 }
 
@@ -178,6 +262,10 @@ function getUserDisplayName(user: AuthUser | null) {
   return user?.email ?? user?.fullName ?? user?.phoneNumber ?? undefined
 }
 
+function createAuthSessionId() {
+  return window.crypto.randomUUID()
+}
+
 function App() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -187,6 +275,76 @@ function App() {
     Boolean(getAuthToken()),
   )
   const [showAuthLoading, setShowAuthLoading] = useState(false)
+  const [authSessionId, setAuthSessionId] = useState(createAuthSessionId)
+  const [ownerBootstrapHandoff, setOwnerBootstrapHandoff] =
+    useState<OwnerPostAuthBootstrapHandoff | null>(null)
+  const authTransitionIdRef = useRef(0)
+
+  const reconcileStoredSession = useCallback(
+    async (
+      nextToken: string | null,
+      options: {
+        clearRestaurantSelection: boolean
+        redirectWhenSignedOut: boolean
+      },
+    ) => {
+      const transitionId = ++authTransitionIdRef.current
+
+      setAuthSessionId(createAuthSessionId())
+      setOwnerBootstrapHandoff(null)
+      setCurrentUser(null)
+      setToken(nextToken)
+      setShowAuthLoading(false)
+
+      if (options.clearRestaurantSelection) {
+        clearStoredOwnerRestaurantId()
+      }
+
+      if (!nextToken) {
+        setIsCheckingAuth(false)
+        if (options.redirectWhenSignedOut) {
+          navigate('/login', { replace: true, state: null })
+        }
+        return
+      }
+
+      setIsCheckingAuth(true)
+
+      try {
+        const user = await getCurrentUser(nextToken)
+
+        if (
+          authTransitionIdRef.current !== transitionId ||
+          getAuthToken() !== nextToken
+        ) {
+          return
+        }
+
+        setCurrentUser(user)
+        setToken(nextToken)
+      } catch {
+        if (
+          authTransitionIdRef.current !== transitionId ||
+          getAuthToken() !== nextToken
+        ) {
+          return
+        }
+
+        clearAuthToken()
+        clearStoredOwnerRestaurantId()
+        setCurrentUser(null)
+        setToken(null)
+        if (options.redirectWhenSignedOut) {
+          navigate('/login', { replace: true, state: null })
+        }
+      } finally {
+        if (authTransitionIdRef.current === transitionId) {
+          setIsCheckingAuth(false)
+        }
+      }
+    },
+    [navigate],
+  )
 
   useEffect(() => {
     const existingToken = getAuthToken()
@@ -195,29 +353,73 @@ function App() {
       return
     }
 
-    async function checkCurrentUser(validToken: string) {
+    const validToken = existingToken
+    const transitionId = ++authTransitionIdRef.current
+
+    async function checkCurrentUser() {
       try {
         const user = await getCurrentUser(validToken)
+
+        if (
+          authTransitionIdRef.current !== transitionId ||
+          getAuthToken() !== validToken
+        ) {
+          return
+        }
+
         setCurrentUser(user)
         setToken(validToken)
       } catch {
+        if (
+          authTransitionIdRef.current !== transitionId ||
+          getAuthToken() !== validToken
+        ) {
+          return
+        }
+
         clearAuthToken()
+        clearStoredOwnerRestaurantId()
         setCurrentUser(null)
         setToken(null)
       } finally {
-        setIsCheckingAuth(false)
+        if (authTransitionIdRef.current === transitionId) {
+          setIsCheckingAuth(false)
+        }
       }
     }
 
-    void checkCurrentUser(existingToken)
+    void checkCurrentUser()
   }, [])
+
+  useEffect(() => {
+    function handleAuthTokenStorageChange(event: StorageEvent) {
+      if (
+        event.storageArea !== window.localStorage ||
+        event.key !== AUTH_TOKEN_STORAGE_KEY
+      ) {
+        return
+      }
+
+      void reconcileStoredSession(event.newValue, {
+        clearRestaurantSelection: true,
+        redirectWhenSignedOut: true,
+      })
+    }
+
+    window.addEventListener('storage', handleAuthTokenStorageChange)
+
+    return () => {
+      window.removeEventListener('storage', handleAuthTokenStorageChange)
+    }
+  }, [reconcileStoredSession])
 
   useEffect(() => {
     function handleSessionExpired() {
       clearAuthToken()
-      setCurrentUser(null)
-      setToken(null)
-      navigate('/login', { replace: true })
+      void reconcileStoredSession(null, {
+        clearRestaurantSelection: true,
+        redirectWhenSignedOut: true,
+      })
     }
 
     window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, handleSessionExpired)
@@ -225,7 +427,7 @@ function App() {
     return () => {
       window.removeEventListener(AUTH_SESSION_EXPIRED_EVENT, handleSessionExpired)
     }
-  }, [navigate])
+  }, [reconcileStoredSession])
 
   useEffect(() => {
     if (!isCheckingAuth) return
@@ -239,14 +441,20 @@ function App() {
     }
   }, [isCheckingAuth])
 
-  async function handleAuthSuccess(newToken: string) {
+  async function handleAuthSuccess(newToken: string, user: AuthUser) {
+    const transitionId = ++authTransitionIdRef.current
+    const nextAuthSessionId = createAuthSessionId()
+
+    clearStoredOwnerRestaurantId()
+    setAuthSessionId(nextAuthSessionId)
+    setOwnerBootstrapHandoff(null)
+    setCurrentUser(null)
     saveAuthToken(newToken)
     setToken(newToken)
     setShowAuthLoading(false)
     setIsCheckingAuth(true)
 
     try {
-      const user = await getCurrentUser(newToken)
       const returnTo = getSafeOwnerApplicationsReturnTo(
         (location.state as { returnTo?: unknown } | null)?.returnTo,
       )
@@ -255,7 +463,7 @@ function App() {
             new URL(returnTo, window.location.origin).search,
           ).restaurantId
         : null
-      const nextPath = await getPostAuthPath(
+      const { path: nextPath, ownerBootstrap } = await getPostAuthPath(
         user,
         preferredRestaurantId,
       )
@@ -265,31 +473,79 @@ function App() {
           (user.restaurantMemberRole || user.track === 'restaurantOwner'),
       )
 
+      if (
+        authTransitionIdRef.current !== transitionId ||
+        getAuthToken() !== newToken
+      ) {
+        return
+      }
+
       setCurrentUser(user)
+      setOwnerBootstrapHandoff(
+        ownerBootstrap
+          ? createOwnerPostAuthBootstrapHandoff(
+              nextAuthSessionId,
+              user.id,
+              ownerBootstrap,
+            )
+          : null,
+      )
       navigate(
         canReturnToOwnerApplications && returnTo ? returnTo : nextPath,
-        { replace: true, state: null },
+        {
+          replace: true,
+          state: null,
+        },
       )
     } catch {
-      clearAuthToken()
-      setCurrentUser(null)
-      setToken(null)
+      if (
+        authTransitionIdRef.current === transitionId &&
+        getAuthToken() === newToken
+      ) {
+        clearAuthToken()
+        clearStoredOwnerRestaurantId()
+        setOwnerBootstrapHandoff(null)
+        setCurrentUser(null)
+        setToken(null)
+      }
     } finally {
-      setIsCheckingAuth(false)
+      if (authTransitionIdRef.current === transitionId) {
+        setIsCheckingAuth(false)
+      }
     }
   }
 
   async function handlePublicAuthVerified(newToken: string) {
+    const transitionId = ++authTransitionIdRef.current
+
+    clearStoredOwnerRestaurantId()
+    setAuthSessionId(createAuthSessionId())
+    setOwnerBootstrapHandoff(null)
+    setCurrentUser(null)
     saveAuthToken(newToken)
     setToken(newToken)
 
     try {
       const user = await getCurrentUser(newToken)
+
+      if (
+        authTransitionIdRef.current !== transitionId ||
+        getAuthToken() !== newToken
+      ) {
+        return
+      }
+
       setCurrentUser(user)
     } catch {
-      clearAuthToken()
-      setCurrentUser(null)
-      setToken(null)
+      if (
+        authTransitionIdRef.current === transitionId &&
+        getAuthToken() === newToken
+      ) {
+        clearAuthToken()
+        clearStoredOwnerRestaurantId()
+        setCurrentUser(null)
+        setToken(null)
+      }
     }
   }
 
@@ -297,6 +553,12 @@ function App() {
     newToken: string,
     profileComplete: boolean,
   ) {
+    const transitionId = ++authTransitionIdRef.current
+
+    clearStoredOwnerRestaurantId()
+    setAuthSessionId(createAuthSessionId())
+    setOwnerBootstrapHandoff(null)
+    setCurrentUser(null)
     saveAuthToken(newToken)
     setToken(newToken)
     setShowAuthLoading(false)
@@ -305,6 +567,13 @@ function App() {
     try {
       const user = await getCurrentUser(newToken)
 
+      if (
+        authTransitionIdRef.current !== transitionId ||
+        getAuthToken() !== newToken
+      ) {
+        return
+      }
+
       setCurrentUser(user)
       navigate(
         user.isAdmin
@@ -312,24 +581,50 @@ function App() {
           : profileComplete
             ? '/owner/jobs'
             : '/owner/profile',
-        { replace: true },
+        { replace: true, state: null },
       )
     } catch {
-      clearAuthToken()
-      setCurrentUser(null)
-      setToken(null)
+      if (
+        authTransitionIdRef.current === transitionId &&
+        getAuthToken() === newToken
+      ) {
+        clearAuthToken()
+        clearStoredOwnerRestaurantId()
+        setCurrentUser(null)
+        setToken(null)
+      }
     } finally {
-      setIsCheckingAuth(false)
+      if (authTransitionIdRef.current === transitionId) {
+        setIsCheckingAuth(false)
+      }
     }
   }
 
   function handleLogout() {
+    authTransitionIdRef.current += 1
     clearAuthToken()
     clearStoredOwnerRestaurantId()
+    setAuthSessionId(createAuthSessionId())
+    setOwnerBootstrapHandoff(null)
     setCurrentUser(null)
     setToken(null)
-    navigate('/login', { replace: true })
+    setIsCheckingAuth(false)
+    navigate('/login', { replace: true, state: null })
   }
+
+  const handleOwnerBootstrapConsumed = useCallback(() => {
+    setOwnerBootstrapHandoff((currentHandoff) =>
+      currentHandoff?.authSessionId === authSessionId
+        ? null
+        : currentHandoff,
+    )
+  }, [authSessionId])
+
+  const ownerBootstrap = resolveOwnerPostAuthBootstrap(
+    ownerBootstrapHandoff,
+    authSessionId,
+    currentUser?.id,
+  )
 
   if (isCheckingAuth && showAuthLoading) {
     const language = getStoredRestaurantLanguage()
@@ -366,7 +661,8 @@ function App() {
   return (
     <>
       <ScrollToTop />
-      <Routes>
+      <Suspense fallback={<RouteLoadingFallback />}>
+        <Routes>
       <Route
         element={
           <StandardLayout
@@ -572,7 +868,11 @@ function App() {
         <Route
           element={
             isRestaurantOwnerAreaUser ? (
-              <OwnerRestaurantProvider>
+              <OwnerRestaurantProvider
+                key={authSessionId}
+                bootstrap={ownerBootstrap}
+                onBootstrapConsumed={handleOwnerBootstrapConsumed}
+              >
                 <AppLayout
                   userEmail={getUserDisplayName(currentUser)}
                   userTrack="restaurantOwner"
@@ -629,7 +929,8 @@ function App() {
           <Navigate to={isAuthenticated ? homePath : '/login'} replace />
         }
       />
-      </Routes>
+        </Routes>
+      </Suspense>
     </>
   )
 }

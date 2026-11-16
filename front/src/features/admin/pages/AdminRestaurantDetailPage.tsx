@@ -7,12 +7,7 @@ import {
   RESTAURANT_ROLES,
   type RestaurantRole,
 } from '../../restaurant/types/restaurant'
-import {
-  createQrAssetDataUrl,
-  createQrOnlyDataUrl,
-  downloadQrAsset,
-  type QrAssetFormat,
-} from '../../../utils/qrPoster'
+import type { QrAssetFormat } from '../../../utils/qrPoster'
 import AdminShell from '../components/AdminShell'
 import {
   addAdminRestaurantHiringManager,
@@ -221,6 +216,9 @@ function AdminRestaurantDetailPage() {
       }
 
       try {
+        const { createQrOnlyDataUrl } = await import(
+          '../../../utils/qrPoster'
+        )
         const dataUrl = await createQrOnlyDataUrl(publicQrLink)
 
         if (isActive) {
@@ -398,6 +396,8 @@ function AdminRestaurantDetailPage() {
     }
 
     try {
+      const { downloadQrAsset } = await import('../../../utils/qrPoster')
+
       await downloadQrAsset(
         {
           publicUrl: publicQrLink,
@@ -422,6 +422,9 @@ function AdminRestaurantDetailPage() {
     setError(null)
 
     try {
+      const { createQrAssetDataUrl } = await import(
+        '../../../utils/qrPoster'
+      )
       setQrPreviewUrl(
         await createQrAssetDataUrl(publicQrLink, qrAssetFormat),
       )

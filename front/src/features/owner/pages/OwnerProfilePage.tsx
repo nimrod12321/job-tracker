@@ -47,7 +47,11 @@ function hasCompletedOwnerProfileDetails(profile: OwnerProfile) {
 function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
   const isCreatingAdditionalRestaurant = mode === 'createAdditional'
   const navigate = useNavigate()
-  const { selectedRestaurantId, refreshRestaurants } = useOwnerRestaurant()
+  const {
+    consumePostAuthProfile,
+    selectedRestaurantId,
+    refreshRestaurants,
+  } = useOwnerRestaurant()
   const { direction, language } = useRestaurantLanguage()
   const [form, setForm] = useState<OwnerProfileInput>(emptyProfile)
   const [isLoading, setIsLoading] = useState(
@@ -163,9 +167,10 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
       setLocationPlaceId('')
 
       try {
-        const profile = await getOwnerProfile(
-          selectedRestaurantId ?? undefined,
-        )
+        const postAuthProfile = consumePostAuthProfile(selectedRestaurantId)
+        const profile = postAuthProfile
+          ? postAuthProfile.profile
+          : await getOwnerProfile(selectedRestaurantId ?? undefined)
 
         if (isActive && profile) {
           setIsNewProfile(false)
@@ -205,7 +210,11 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
     return () => {
       isActive = false
     }
-  }, [isCreatingAdditionalRestaurant, selectedRestaurantId])
+  }, [
+    isCreatingAdditionalRestaurant,
+    consumePostAuthProfile,
+    selectedRestaurantId,
+  ])
 
   function updateField(field: ProfileField, value: string) {
     setForm((currentForm) => ({

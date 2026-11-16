@@ -23,29 +23,46 @@ export type RestaurantAccessResolution =
       status: 'accessDenied'
     }
 
+type AccessibleRestaurantLookupOptions = {
+  userPhoneNumber?: string | null
+}
+
 export async function getAccessibleRestaurantsForUser(
   userId: string,
+  options: AccessibleRestaurantLookupOptions = {},
 ): Promise<RestaurantAccess[]> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { phoneNumber: true },
-  })
-  const memberships = await prisma.restaurantMember.findMany({
-    where: {
-      OR: [
-        { userId },
-        ...(user?.phoneNumber
-          ? [{ phoneNumber: user.phoneNumber }]
-          : []),
-      ],
-    },
-    include: {
-      restaurant: true,
-    },
-    orderBy: {
-      createdAt: 'asc',
-    },
-  })
+  const hasKnownPhoneNumber = Object.hasOwn(options, 'userPhoneNumber')
+  const userPhoneNumber = hasKnownPhoneNumber
+    ? options.userPhoneNumber
+    : (
+        await prisma.user.findUnique({
+          where: { id: userId },
+          select: { phoneNumber: true },
+        })
+      )?.phoneNumber
+  const [memberships, legacyRestaurant] = await Promise.all([
+    prisma.restaurantMember.findMany({
+      where: {
+        OR: [
+          { userId },
+          ...(userPhoneNumber
+            ? [{ phoneNumber: userPhoneNumber }]
+            : []),
+        ],
+      },
+      include: {
+        restaurant: true,
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    }),
+    prisma.restaurantOwnerProfile.findUnique({
+      where: {
+        userId,
+      },
+    }),
+  ])
   const accesses: RestaurantAccess[] = memberships
     .filter(
       (membership) =>
@@ -60,13 +77,6 @@ export async function getAccessibleRestaurantsForUser(
   const userMembershipRestaurantIds = new Set(
     memberships.map((membership) => membership.restaurantId),
   )
-  const legacyRestaurant =
-    await prisma.restaurantOwnerProfile.findUnique({
-      where: {
-        userId,
-      },
-    })
-
   // The direct profile relation predates RestaurantMember. It remains a
   // legitimate owner access path only when no membership record has ever
   // superseded it. A removed/pending membership must not be reactivated by
@@ -121,6 +131,14 @@ export async function resolveRestaurantAccessForUser(
   requestedRestaurantId?: string | null,
 ): Promise<RestaurantAccessResolution> {
   const accesses = await getAccessibleRestaurantsForUser(userId)
+
+  return resolveRestaurantAccessFromList(accesses, requestedRestaurantId)
+}
+
+export function resolveRestaurantAccessFromList(
+  accesses: RestaurantAccess[],
+  requestedRestaurantId?: string | null,
+): RestaurantAccessResolution {
   const normalizedRestaurantId = requestedRestaurantId?.trim()
 
   if (normalizedRestaurantId) {

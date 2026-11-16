@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express'
 import type {
+  Prisma,
   RestaurantJob,
   RestaurantWorkerProfile,
 } from '../generated/prisma/client.js'
@@ -30,6 +31,14 @@ const RESTAURANT_WORKER_ACCESS_REQUIRED_MESSAGE =
   'restaurant worker access required'
 const VERIFIED_RESTAURANT_WORKER_REQUIRED_MESSAGE =
   'verified restaurant worker account required'
+
+const restaurantWorkerEligibilityUserSelect = {
+  track: true,
+  workerLocationRequired: true,
+  phoneNumber: true,
+  phoneVerifiedAt: true,
+  restaurantWorkerProfile: true,
+} as const satisfies Prisma.UserSelect
 
 function getUserId(req: Request) {
   return (req as AuthenticatedRequest).userId
@@ -218,9 +227,7 @@ export async function getRestaurantProfile(req: Request, res: Response) {
       where: {
         id: userId,
       },
-      include: {
-        restaurantWorkerProfile: true,
-      },
+      select: restaurantWorkerEligibilityUserSelect,
     })
 
     if (!user) {
@@ -271,9 +278,7 @@ export async function updateRestaurantProfile(
       where: {
         id: userId,
       },
-      include: {
-        restaurantWorkerProfile: true,
-      },
+      select: restaurantWorkerEligibilityUserSelect,
     })
 
     if (!user) {
@@ -386,13 +391,7 @@ export async function getRestaurantMapJobs(req: Request, res: Response) {
       where: {
         id: userId,
       },
-      select: {
-        track: true,
-        workerLocationRequired: true,
-        phoneNumber: true,
-        phoneVerifiedAt: true,
-        restaurantWorkerProfile: true,
-      },
+      select: restaurantWorkerEligibilityUserSelect,
     })
 
     const eligibility = getRestaurantWorkerEligibility(user)
@@ -508,9 +507,7 @@ export async function getRestaurantExploreJobs(
       where: {
         id: userId,
       },
-      include: {
-        restaurantWorkerProfile: true,
-      },
+      select: restaurantWorkerEligibilityUserSelect,
     })
     const eligibility = getRestaurantWorkerEligibility(user)
 
@@ -640,7 +637,7 @@ export async function getRestaurantJobBoardRestaurant(
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      include: { restaurantWorkerProfile: true },
+      select: restaurantWorkerEligibilityUserSelect,
     })
     const eligibility = getRestaurantWorkerEligibility(user)
 
@@ -721,9 +718,7 @@ export async function createRestaurantApplication(
       where: {
         id: userId,
       },
-      include: {
-        restaurantWorkerProfile: true,
-      },
+      select: restaurantWorkerEligibilityUserSelect,
     })
     const eligibility = getRestaurantWorkerEligibility(user)
 
@@ -813,8 +808,25 @@ export async function getRestaurantMatches(req: Request, res: Response) {
         userId,
         status: 'selected',
       },
-      include: {
-        restaurantJob: true,
+      select: {
+        id: true,
+        createdAt: true,
+        restaurantJob: {
+          select: {
+            id: true,
+            restaurantName: true,
+            role: true,
+            location: true,
+            area: true,
+            description: true,
+            requirements: true,
+            shiftInfo: true,
+            employmentScope: true,
+            hourlyWage: true,
+            contactPhone: true,
+            contactWhatsapp: true,
+          },
+        },
       },
       orderBy: {
         createdAt: 'desc',

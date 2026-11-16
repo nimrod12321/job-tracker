@@ -6,6 +6,7 @@ import {
   isRegistrationConsentRequired,
   requestAuthCode,
   verifyAuthCode,
+  type AuthUser,
   type UserTrack,
 } from '../services/authApi'
 import { useRestaurantLanguage } from '../../restaurant/utils/restaurantLanguage'
@@ -20,7 +21,7 @@ import { persistAnalyticsAcquisition } from '../../../analytics/events'
 
 type AuthPageProps = {
   mode: 'login' | 'register'
-  onAuthSuccess: (token: string) => Promise<void>
+  onAuthSuccess: (token: string, user: AuthUser) => Promise<void>
 }
 
 type AuthStep = 'details' | 'code' | 'consent'
@@ -254,7 +255,7 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
       document.documentElement.scrollTop = 0
       document.body.scrollTop = 0
 
-      await onAuthSuccess(response.token)
+      await onAuthSuccess(response.token, response.user)
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : text.fallbackError
@@ -304,7 +305,7 @@ function AuthPage({ mode, onAuthSuccess }: AuthPageProps) {
         })
       }
 
-      await onAuthSuccess(response.token)
+      await onAuthSuccess(response.token, response.user)
     } catch (completeError) {
       setError(
         completeError instanceof Error
