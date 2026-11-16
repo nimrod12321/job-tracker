@@ -5,8 +5,9 @@ import type {
   OwnerProfile,
 } from '../src/features/owner/types/owner.ts'
 import {
-  getOwnerPostAuthBootstrap,
+  createOwnerPostAuthBootstrapHandoff,
   loadOwnerPostAuthBootstrap,
+  resolveOwnerPostAuthBootstrap,
 } from '../src/features/owner/utils/ownerPostAuthBootstrap.ts'
 
 const RESTAURANT_ID = '11111111-1111-4111-8111-111111111111'
@@ -67,17 +68,45 @@ test('owner post-auth bootstrap fetches restaurants and profile exactly once', a
   })
 })
 
-test('navigation state exposes only the explicit owner bootstrap payload', () => {
+test('owner bootstrap resolves only for the authenticated account and session', () => {
   const bootstrap = {
     restaurants,
     selectedRestaurantId: RESTAURANT_ID,
     profile,
   }
-
-  assert.equal(
-    getOwnerPostAuthBootstrap({ ownerBootstrap: bootstrap }),
+  const handoff = createOwnerPostAuthBootstrapHandoff(
+    'session-a',
+    'user-a',
     bootstrap,
   )
-  assert.equal(getOwnerPostAuthBootstrap(null), null)
-  assert.equal(getOwnerPostAuthBootstrap({ ownerBootstrap: 'invalid' }), null)
+
+  assert.equal(
+    resolveOwnerPostAuthBootstrap(handoff, 'session-a', 'user-a'),
+    bootstrap,
+  )
+  assert.equal(
+    resolveOwnerPostAuthBootstrap(handoff, 'session-a', 'user-b'),
+    null,
+  )
+  assert.equal(
+    resolveOwnerPostAuthBootstrap(handoff, 'session-b', 'user-a'),
+    null,
+  )
+})
+
+test('a fresh page session cannot recover an old owner bootstrap', () => {
+  const bootstrap = {
+    restaurants,
+    selectedRestaurantId: RESTAURANT_ID,
+    profile,
+  }
+  const storedItemCount = storage.size
+
+  createOwnerPostAuthBootstrapHandoff('session-a', 'user-a', bootstrap)
+
+  assert.equal(storage.size, storedItemCount)
+  assert.equal(
+    resolveOwnerPostAuthBootstrap(null, 'session-b', 'user-a'),
+    null,
+  )
 })

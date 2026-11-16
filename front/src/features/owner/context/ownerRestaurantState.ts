@@ -1,5 +1,12 @@
 import { createContext, useContext } from 'react'
-import type { OwnerAccessibleRestaurant } from '../types/owner'
+import type {
+  OwnerAccessibleRestaurant,
+  OwnerProfile,
+} from '../types/owner'
+
+export type ConsumedOwnerPostAuthProfile = {
+  profile: OwnerProfile | null
+}
 
 export type OwnerRestaurantContextValue = {
   restaurants: OwnerAccessibleRestaurant[]
@@ -10,6 +17,9 @@ export type OwnerRestaurantContextValue = {
   refreshRestaurants: (
     preferredRestaurantId?: string,
   ) => Promise<OwnerAccessibleRestaurant[]>
+  consumePostAuthProfile: (
+    restaurantId: string | null,
+  ) => ConsumedOwnerPostAuthProfile | null
 }
 
 export const OwnerRestaurantContext =

@@ -10,6 +10,12 @@ export type OwnerPostAuthBootstrap = {
   profile: OwnerProfile | null
 }
 
+export type OwnerPostAuthBootstrapHandoff = {
+  authSessionId: string
+  userId: string
+  bootstrap: OwnerPostAuthBootstrap
+}
+
 type OwnerPostAuthDependencies = {
   getRestaurants: () => Promise<OwnerAccessibleRestaurant[]>
   getProfile: (restaurantId?: string) => Promise<OwnerProfile | null>
@@ -35,22 +41,31 @@ export async function loadOwnerPostAuthBootstrap(
   }
 }
 
-export function getOwnerPostAuthBootstrap(
-  state: unknown,
-): OwnerPostAuthBootstrap | null {
-  if (!state || typeof state !== 'object' || !('ownerBootstrap' in state)) {
-    return null
+export function createOwnerPostAuthBootstrapHandoff(
+  authSessionId: string,
+  userId: string,
+  bootstrap: OwnerPostAuthBootstrap,
+): OwnerPostAuthBootstrapHandoff {
+  return {
+    authSessionId,
+    userId,
+    bootstrap,
   }
+}
 
-  const bootstrap = (state as { ownerBootstrap?: unknown }).ownerBootstrap
-
+export function resolveOwnerPostAuthBootstrap(
+  handoff: OwnerPostAuthBootstrapHandoff | null,
+  authSessionId: string,
+  userId: string | null | undefined,
+): OwnerPostAuthBootstrap | null {
   if (
-    !bootstrap ||
-    typeof bootstrap !== 'object' ||
-    !Array.isArray((bootstrap as OwnerPostAuthBootstrap).restaurants)
+    !handoff ||
+    !userId ||
+    handoff.authSessionId !== authSessionId ||
+    handoff.userId !== userId
   ) {
     return null
   }
 
-  return bootstrap as OwnerPostAuthBootstrap
+  return handoff.bootstrap
 }

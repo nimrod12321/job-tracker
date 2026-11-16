@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
@@ -23,9 +24,11 @@ import {
 
 export function OwnerRestaurantProvider({
   bootstrap,
+  onBootstrapConsumed,
   children,
 }: {
   bootstrap?: OwnerPostAuthBootstrap | null
+  onBootstrapConsumed?: () => void
   children: ReactNode
 }) {
   const location = useLocation()
@@ -35,6 +38,7 @@ export function OwnerRestaurantProvider({
       ? parseOwnerApplicationsDeepLink(location.search).restaurantId
       : null
   const [initialBootstrap] = useState(bootstrap)
+  const [initialOwnerPath] = useState(location.pathname)
   const [initialRequestedRestaurantId] = useState(requestedRestaurantId)
   const [restaurants, setRestaurants] = useState<OwnerAccessibleRestaurant[]>(
     () => initialBootstrap?.restaurants ?? [],
@@ -44,10 +48,23 @@ export function OwnerRestaurantProvider({
   >(() => initialBootstrap?.selectedRestaurantId ?? null)
   const [isLoading, setIsLoading] = useState(() => !initialBootstrap)
   const [error, setError] = useState<string | null>(null)
+  const postAuthProfileRef = useRef(
+    initialBootstrap &&
+      (initialOwnerPath === '/owner/jobs' ||
+        initialOwnerPath === '/owner/profile')
+      ? {
+          restaurantId: initialBootstrap.selectedRestaurantId,
+          profile: initialBootstrap.profile,
+        }
+      : null,
+  )
+  const revalidationRef = useRef<Promise<void> | null>(null)
 
   const refreshRestaurants = useCallback(async (
     preferredRestaurantId?: string,
   ) => {
+    postAuthProfileRef.current = null
+
     try {
       const nextRestaurants = await getOwnerRestaurants()
       const nextRestaurantId =
@@ -71,6 +88,23 @@ export function OwnerRestaurantProvider({
       setIsLoading(false)
     }
   }, [requestedRestaurantId])
+
+  const consumePostAuthProfile = useCallback((restaurantId: string | null) => {
+    const postAuthProfile = postAuthProfileRef.current
+
+    if (!postAuthProfile || postAuthProfile.restaurantId !== restaurantId) {
+      return null
+    }
+
+    postAuthProfileRef.current = null
+    return { profile: postAuthProfile.profile }
+  }, [])
+
+  useEffect(() => {
+    if (initialBootstrap) {
+      onBootstrapConsumed?.()
+    }
+  }, [initialBootstrap, onBootstrapConsumed])
 
   useEffect(() => {
     if (initialBootstrap) {
@@ -110,6 +144,45 @@ export function OwnerRestaurantProvider({
     }
   }, [initialBootstrap, initialRequestedRestaurantId])
 
+  useEffect(() => {
+    function revalidateAuthorizedRestaurants() {
+      if (
+        document.visibilityState === 'hidden' ||
+        revalidationRef.current
+      ) {
+        return
+      }
+
+      setIsLoading(true)
+      const revalidation = refreshRestaurants(
+        selectedRestaurantId ?? undefined,
+      )
+        .then(() => undefined)
+        .catch(() => undefined)
+        .finally(() => {
+          if (revalidationRef.current === revalidation) {
+            revalidationRef.current = null
+          }
+        })
+
+      revalidationRef.current = revalidation
+    }
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible') {
+        revalidateAuthorizedRestaurants()
+      }
+    }
+
+    window.addEventListener('focus', revalidateAuthorizedRestaurants)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      window.removeEventListener('focus', revalidateAuthorizedRestaurants)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [refreshRestaurants, selectedRestaurantId])
+
   const selectedRestaurant = useMemo(
     () =>
       restaurants.find(
@@ -133,12 +206,15 @@ export function OwnerRestaurantProvider({
           return
         }
 
+        postAuthProfileRef.current = null
         storeOwnerRestaurantId(restaurantId)
         setSelectedRestaurantId(restaurantId)
       },
       refreshRestaurants,
+      consumePostAuthProfile,
     }),
     [
+      consumePostAuthProfile,
       isLoading,
       refreshRestaurants,
       restaurants,
