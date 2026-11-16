@@ -183,7 +183,8 @@ function mapOwnerProfile(profile: RestaurantOwnerProfile) {
     qrEnabledRoles: profile.qrEnabledRoles,
     venueTypes: profile.venueTypes,
     ownerMatchContactConfirmed:
-      profile.ownerMatchContactConfirmedAt !== null,
+      profile.ownerMatchContactConfirmedAt !== null ||
+      profile.matchContactDisclosureVersion !== null,
     primaryHiringManagerMemberId:
       profile.primaryHiringManagerMemberId,
     locationStatus: profile.locationStatus,
@@ -500,7 +501,7 @@ export async function createAdditionalOwnerRestaurant(
       locationPlaceId,
       venueTypes,
       hiringManagerPhone,
-      ownerMatchContactConfirmed: _ownerMatchContactConfirmed,
+      matchContactDisclosureVersion,
       ...profileInput
     } = result.data
     const venueTypesData =
@@ -618,7 +619,8 @@ export async function createAdditionalOwnerRestaurant(
               ...verifiedLocationData,
               slug,
               userId: placeholderUser.id,
-              ownerMatchContactConfirmedAt: new Date(),
+              matchContactDisclosureVersion:
+                matchContactDisclosureVersion ?? null,
             },
           })
 
@@ -755,7 +757,7 @@ export async function updateOwnerProfile(req: Request, res: Response) {
       locationPlaceId,
       venueTypes,
       hiringManagerPhone,
-      ownerMatchContactConfirmed,
+      matchContactDisclosureVersion,
       ...profileInput
     } = result.data
     const venueTypesData =
@@ -771,11 +773,11 @@ export async function updateOwnerProfile(req: Request, res: Response) {
       !existingProfile &&
       (!profileInput.restaurantName.trim() ||
         !venueTypes?.length ||
-        ownerMatchContactConfirmed !== true)
+        !matchContactDisclosureVersion)
     ) {
       return res.status(400).json({
         message:
-          'Restaurant name, at least one business type, and match contact confirmation are required.',
+          'Restaurant name, at least one business type, and the current match contact disclosure are required.',
       })
     }
 
@@ -874,7 +876,8 @@ export async function updateOwnerProfile(req: Request, res: Response) {
                   ...locationData,
                   userId,
                   ...(slug ? { slug } : {}),
-                  ownerMatchContactConfirmedAt: new Date(),
+                  matchContactDisclosureVersion:
+                    matchContactDisclosureVersion ?? null,
                 },
               })
 

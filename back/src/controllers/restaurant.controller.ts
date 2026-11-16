@@ -841,6 +841,7 @@ export async function getRestaurantMatches(req: Request, res: Response) {
             ownerProfile: {
               select: {
                 ownerMatchContactConfirmedAt: true,
+                matchContactDisclosureVersion: true,
                 primaryHiringManagerMemberId: true,
                 members: {
                   where: {

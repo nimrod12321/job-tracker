@@ -224,7 +224,7 @@ test(
         description: '',
         venueTypes: ['cafe', 'patisserie'],
         hiringManagerPhone,
-        ownerMatchContactConfirmed: true,
+        matchContactDisclosureVersion: 'owner-match-contact-v1',
       }
     }
 
@@ -308,7 +308,11 @@ test(
         ],
       )
       assert.deepEqual(secondProfile.venueTypes, ['cafe', 'patisserie'])
-      assert.ok(secondProfile.ownerMatchContactConfirmedAt)
+      assert.equal(secondProfile.ownerMatchContactConfirmedAt, null)
+      assert.equal(
+        secondProfile.matchContactDisclosureVersion,
+        'owner-match-contact-v1',
+      )
       assert.equal(secondProfile.contactPerson, owner.fullName)
       assert.equal(secondProfile.phoneNumber, owner.phoneNumber)
 

@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { getDefaultRestaurantJobBoardJob } from '../services/restaurantJobTemplates.js'
-import { resolveRestaurantMatchContact } from '../services/restaurantMatchContact.service.js'
+import {
+  MATCH_CONTACT_DISCLOSURE_VERSION,
+  resolveRestaurantMatchContact,
+} from '../services/restaurantMatchContact.service.js'
 import { selectNewCandidateNotificationRecipients } from '../services/restaurantCandidateNotification.service.js'
 import { ownerAdditionalRestaurantSchema } from '../validations/owner.validation.js'
 import { restaurantRoles } from '../validations/restaurant.validation.js'
@@ -47,7 +50,7 @@ test('new restaurant input requires venue type but not description or contact pe
     locationPlaceId: 'google-place-id',
     venueTypes: ['cafe', 'patisserie'],
     hiringManagerPhone: '',
-    ownerMatchContactConfirmed: true,
+    matchContactDisclosureVersion: MATCH_CONTACT_DISCLOSURE_VERSION,
   })
 
   assert.equal(result.success, true)
@@ -55,6 +58,13 @@ test('new restaurant input requires venue type but not description or contact pe
     ownerAdditionalRestaurantSchema.safeParse({
       ...result.data,
       venueTypes: [],
+    }).success,
+    false,
+  )
+  assert.equal(
+    ownerAdditionalRestaurantSchema.safeParse({
+      ...result.data,
+      matchContactDisclosureVersion: undefined,
     }).success,
     false,
   )
@@ -86,6 +96,7 @@ test('legacy restaurant keeps customized job contact until explicit confirmation
     resolveRestaurantMatchContact(
       {
         ownerMatchContactConfirmedAt: null,
+        matchContactDisclosureVersion: null,
         primaryHiringManagerMemberId: null,
         members: [
           member({
@@ -106,6 +117,7 @@ test('designated active manager is the Match contact', () => {
     resolveRestaurantMatchContact(
       {
         ownerMatchContactConfirmedAt: now,
+        matchContactDisclosureVersion: null,
         primaryHiringManagerMemberId: 'manager-two',
         members: [
           member({
@@ -150,6 +162,7 @@ test('one active manager is automatic, while removed or ambiguous managers fall 
     resolveRestaurantMatchContact(
       {
         ownerMatchContactConfirmedAt: now,
+        matchContactDisclosureVersion: null,
         primaryHiringManagerMemberId: null,
         members: [owner, activeManager],
       },
@@ -162,6 +175,7 @@ test('one active manager is automatic, while removed or ambiguous managers fall 
     resolveRestaurantMatchContact(
       {
         ownerMatchContactConfirmedAt: now,
+        matchContactDisclosureVersion: null,
         primaryHiringManagerMemberId: 'manager-one',
         members: [
           owner,
@@ -177,6 +191,7 @@ test('one active manager is automatic, while removed or ambiguous managers fall 
     resolveRestaurantMatchContact(
       {
         ownerMatchContactConfirmedAt: now,
+        matchContactDisclosureVersion: null,
         primaryHiringManagerMemberId: null,
         members: [
           owner,
@@ -199,6 +214,7 @@ test('confirmed team rule never exposes a stale job contact when ownership is am
     resolveRestaurantMatchContact(
       {
         ownerMatchContactConfirmedAt: now,
+        matchContactDisclosureVersion: null,
         primaryHiringManagerMemberId: null,
         members: [],
       },
@@ -208,6 +224,27 @@ test('confirmed team rule never exposes a stale job contact when ownership is am
       contactPhone: '',
       contactWhatsapp: '',
     },
+  )
+})
+
+test('onboarding disclosure enables Match contact without fabricating explicit confirmation', () => {
+  assert.equal(
+    resolveRestaurantMatchContact(
+      {
+        ownerMatchContactConfirmedAt: null,
+        matchContactDisclosureVersion: MATCH_CONTACT_DISCLOSURE_VERSION,
+        primaryHiringManagerMemberId: null,
+        members: [
+          member({
+            id: 'owner',
+            role: 'owner',
+            phoneNumber: '+972501111111',
+          }),
+        ],
+      },
+      legacyContact,
+    ).contactPhone,
+    '+972501111111',
   )
 })
 

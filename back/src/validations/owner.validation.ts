@@ -5,6 +5,7 @@ import {
   restaurantVenueTypes,
 } from './restaurant.validation.js'
 import { candidateLeadStatusSchema } from './publicRestaurant.validation.js'
+import { MATCH_CONTACT_DISCLOSURE_VERSION } from '../services/restaurantMatchContact.service.js'
 
 const optionalText = (field: string, maxLength: number) =>
   z
@@ -41,7 +42,9 @@ export const ownerProfileSchema = z
     locationPlaceId: optionalText('location place id', 300),
     description: optionalText('description', 2_000),
     hiringManagerPhone: optionalText('hiring manager phone', 50),
-    ownerMatchContactConfirmed: z.boolean().optional(),
+    matchContactDisclosureVersion: z
+      .literal(MATCH_CONTACT_DISCLOSURE_VERSION)
+      .optional(),
     venueTypes: z
       .array(z.enum(restaurantVenueTypes, { error: 'venue type is invalid' }))
       .max(restaurantVenueTypes.length, 'too many venue types')
@@ -78,11 +81,14 @@ export const ownerAdditionalRestaurantSchema = ownerProfileSchema.superRefine(
       })
     }
 
-    if (profile.ownerMatchContactConfirmed !== true) {
+    if (
+      profile.matchContactDisclosureVersion !==
+      MATCH_CONTACT_DISCLOSURE_VERSION
+    ) {
       context.addIssue({
         code: 'custom',
-        path: ['ownerMatchContactConfirmed'],
-        message: 'match contact confirmation is required',
+        path: ['matchContactDisclosureVersion'],
+        message: 'current match contact disclosure is required',
       })
     }
   },

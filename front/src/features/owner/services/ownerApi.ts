@@ -18,6 +18,15 @@ import type {
 import type { RestaurantRole } from '../../restaurant/types/restaurant'
 import { getStoredOwnerRestaurantId } from '../utils/ownerRestaurantSelection'
 
+const MATCH_CONTACT_DISCLOSURE_VERSION = 'owner-match-contact-v1'
+
+function withMatchContactDisclosure(input: OwnerProfileInput) {
+  return {
+    ...input,
+    matchContactDisclosureVersion: MATCH_CONTACT_DISCLOSURE_VERSION,
+  }
+}
+
 function getHeaders(restaurantId?: string | null): Headers {
   const headers = new Headers({
     'Content-Type': 'application/json',
@@ -104,7 +113,7 @@ export async function saveOwnerProfile(
   const response = await fetch(`${API_BASE_URL}/owner/profile`, {
     method: 'PUT',
     headers: getHeaders(restaurantId),
-    body: JSON.stringify(input),
+    body: JSON.stringify(withMatchContactDisclosure(input)),
   })
 
   if (!response.ok) {
@@ -121,7 +130,7 @@ export async function createAdditionalOwnerRestaurant(
   const response = await fetch(`${API_BASE_URL}/owner/restaurants`, {
     method: 'POST',
     headers: getHeaders(authorizingRestaurantId),
-    body: JSON.stringify(input),
+    body: JSON.stringify(withMatchContactDisclosure(input)),
   })
 
   if (!response.ok) {

@@ -72,7 +72,6 @@ export type OwnerProfileInput = {
   description: string
   venueTypes: RestaurantVenueType[]
   hiringManagerPhone: string
-  ownerMatchContactConfirmed: boolean
   locationPlaceId?: string
 }
 

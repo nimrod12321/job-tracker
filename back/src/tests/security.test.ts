@@ -482,7 +482,7 @@ test(
           description: '',
           locationPlaceId,
           venueTypes: ['restaurant'],
-          ownerMatchContactConfirmed: true,
+          matchContactDisclosureVersion: 'owner-match-contact-v1',
         }),
       })
 

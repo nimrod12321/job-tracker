@@ -26,7 +26,6 @@ const emptyProfile: OwnerProfileInput = {
   description: '',
   venueTypes: [],
   hiringManagerPhone: '',
-  ownerMatchContactConfirmed: false,
 }
 
 type ProfileField = Exclude<
@@ -34,7 +33,6 @@ type ProfileField = Exclude<
   | 'locationPlaceId'
   | 'venueTypes'
   | 'hiringManagerPhone'
-  | 'ownerMatchContactConfirmed'
 >
 
 type OwnerProfilePageProps = {
@@ -123,20 +121,12 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
         : 'Add a hiring manager (optional)',
     hiringManagerHelp:
       language === 'he'
-        ? 'מנהל הגיוס יוכל לנהל מועמדים ולקבל התראות לאחר אימות הטלפון. במקרה של התאמה, יוצג למועמד המספר של מנהל הגיוס. אם אין מנהל גיוס, יוצג המספר של בעל המסעדה.'
-        : 'After verifying their phone, the hiring manager can manage candidates and receive alerts. After a Match, candidates see the hiring manager’s number. Without one, they see the restaurant owner’s number.',
-    matchContactConfirmation:
-      language === 'he'
-        ? 'ברור לי שאם אין מנהל/ת גיוס פעיל, מספר הטלפון המאומת שלי יוצג רק למועמדים שהמסעדה בחרה להתאים איתם.'
-        : 'I understand that without an active hiring manager, my verified phone will be shown only to candidates the restaurant selects for a Match.',
+        ? 'מועמדים שתבחר יקבלו את המספר של מנהל הגיוס, או את שלך אם אין מנהל פעיל.'
+        : 'Candidates you select will receive the hiring manager’s number, or yours if no manager is active.',
     venueTypesRequired:
       language === 'he'
         ? 'צריך לבחור לפחות סוג מקום אחד.'
         : 'Choose at least one business type.',
-    matchContactRequired:
-      language === 'he'
-        ? 'צריך לאשר כיצד יוצג איש הקשר לאחר התאמה.'
-        : 'Confirm how contact details are shown after a Match.',
     contactSection:
       language === 'he' ? 'יצירת קשר' : 'Contact',
     descriptionSection:
@@ -214,8 +204,6 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
             description: profile.description,
             venueTypes: profile.venueTypes,
             hiringManagerPhone: '',
-            ownerMatchContactConfirmed:
-              profile.ownerMatchContactConfirmed,
           })
         }
       } catch (error) {
@@ -299,11 +287,6 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
       return
     }
 
-    if (isNewProfile && !form.ownerMatchContactConfirmed) {
-      setError(text.matchContactRequired)
-      return
-    }
-
     const nextMissingFields = getMissingProfileFields()
 
     if (nextMissingFields.length > 0) {
@@ -359,8 +342,6 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
         description: savedProfile.description,
         venueTypes: savedProfile.venueTypes,
         hiringManagerPhone: '',
-        ownerMatchContactConfirmed:
-          savedProfile.ownerMatchContactConfirmed,
       })
       setSuccess(text.saved)
       setIsNewProfile(false)
@@ -556,20 +537,6 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
                 <span className="form-helper-text">
                   {text.hiringManagerHelp}
                 </span>
-              </label>
-
-              <label className="owner-field-wide owner-match-contact-confirmation">
-                <input
-                  type="checkbox"
-                  checked={form.ownerMatchContactConfirmed}
-                  onChange={(event) =>
-                    setForm((currentForm) => ({
-                      ...currentForm,
-                      ownerMatchContactConfirmed: event.target.checked,
-                    }))
-                  }
-                />
-                <span>{text.matchContactConfirmation}</span>
               </label>
             </div>
           </section>

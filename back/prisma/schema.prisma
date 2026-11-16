@@ -354,12 +354,13 @@ model RestaurantOwnerProfile {
   qrEnabledRoles RestaurantRole[]      @default([waiter, bartender, host, cook, floorManager])
   venueTypes     RestaurantVenueType[] @default([])
 
-  // New restaurants explicitly acknowledge that a verified team phone may be
-  // disclosed only after a Job Board match. A null value preserves legacy and
-  // customized per-job contacts until the owner opts into the team rule.
-  ownerMatchContactConfirmedAt DateTime?
-  primaryHiringManagerMemberId String?           @unique
-  primaryHiringManager         RestaurantMember? @relation("PrimaryHiringManager", fields: [primaryHiringManagerMemberId], references: [id], onDelete: SetNull)
+  // Legacy restaurants can explicitly enable team-based Match contacts.
+  // New onboarding records the disclosure version shown before submission,
+  // without representing it as an explicit checkbox confirmation.
+  ownerMatchContactConfirmedAt  DateTime?
+  matchContactDisclosureVersion String?
+  primaryHiringManagerMemberId  String?           @unique
+  primaryHiringManager          RestaurantMember? @relation("PrimaryHiringManager", fields: [primaryHiringManagerMemberId], references: [id], onDelete: SetNull)
 
   // Legacy city/street fields above remain for compatibility. Map visibility
   // relies only on these trusted, nullable Google-verified fields.

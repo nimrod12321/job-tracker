@@ -1,5 +1,8 @@
 import { normalizeIsraeliPhoneNumber } from '../utils/phone.js'
 
+export const MATCH_CONTACT_DISCLOSURE_VERSION =
+  'owner-match-contact-v1'
+
 type MatchContactMember = {
   id: string
   phoneNumber: string
@@ -14,6 +17,7 @@ type MatchContactMember = {
 
 type MatchContactRestaurant = {
   ownerMatchContactConfirmedAt: Date | null
+  matchContactDisclosureVersion: string | null
   primaryHiringManagerMemberId: string | null
   members: MatchContactMember[]
 }
@@ -46,7 +50,10 @@ export function resolveRestaurantMatchContact(
 ) {
   // Existing restaurants keep their manually configured job-level contact
   // until an owner explicitly accepts the team-contact disclosure rule.
-  if (!restaurant?.ownerMatchContactConfirmedAt) {
+  if (
+    !restaurant?.ownerMatchContactConfirmedAt &&
+    !restaurant?.matchContactDisclosureVersion
+  ) {
     return legacyContact
   }
 
