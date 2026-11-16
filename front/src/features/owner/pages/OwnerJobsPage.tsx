@@ -17,11 +17,7 @@ import {
   type RestaurantRole,
 } from '../../restaurant/types/restaurant'
 import { useRestaurantLanguage } from '../../restaurant/utils/restaurantLanguage'
-import {
-  createQrAssetDataUrl,
-  downloadQrAsset,
-  type QrAssetFormat,
-} from '../../../utils/qrPoster'
+import type { QrAssetFormat } from '../../../utils/qrPoster'
 import {
   createOwnerJob,
   deleteOwnerJob,
@@ -130,6 +126,7 @@ function OwnerJobsPage() {
   const [isCreating, setIsCreating] = useState(false)
   const [editingJobId, setEditingJobId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [loadAttempt, setLoadAttempt] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [qrRolesSaveStatus, setQrRolesSaveStatus] = useState<
     'idle' | 'saving' | 'saved' | 'error'
@@ -179,6 +176,7 @@ function OwnerJobsPage() {
       language === 'he'
         ? 'טוען משרות מסעדה...'
         : 'Loading restaurant jobs...',
+    retry: language === 'he' ? 'נסו שוב' : 'Try again',
     completeProfile:
       language === 'he'
         ? 'כדי לנהל משרות צריך להשלים פרופיל מסעדה'
@@ -464,7 +462,7 @@ function OwnerJobsPage() {
     return () => {
       isActive = false
     }
-  }, [ownerBootstrap, selectedRestaurantId])
+  }, [loadAttempt, ownerBootstrap, selectedRestaurantId])
 
   useEffect(() => {
     return () => {
@@ -824,6 +822,8 @@ function OwnerJobsPage() {
     recordQrAssetDownloadStarted(qrAssetFormat, sendOwnerActivityEvent)
 
     try {
+      const { downloadQrAsset } = await import('../../../utils/qrPoster')
+
       await downloadQrAsset(
         {
           publicUrl: publicHiringLink,
@@ -857,6 +857,9 @@ function OwnerJobsPage() {
     setError(null)
 
     try {
+      const { createQrAssetDataUrl } = await import(
+        '../../../utils/qrPoster'
+      )
       const dataUrl = await createQrAssetDataUrl(
         publicHiringLink,
         qrAssetFormat,
@@ -1052,9 +1055,16 @@ function OwnerJobsPage() {
   if (error && !profile) {
     return (
       <section className="owner-jobs-page owner-guided-page" dir={direction}>
-        <p className="message message-error" role="alert">
-          {error}
-        </p>
+        <div className="message message-error" role="alert">
+          <p>{error}</p>
+          <button
+            className="ui-button ui-button--secondary"
+            type="button"
+            onClick={() => setLoadAttempt((attempt) => attempt + 1)}
+          >
+            {text.retry}
+          </button>
+        </div>
       </section>
     )
   }

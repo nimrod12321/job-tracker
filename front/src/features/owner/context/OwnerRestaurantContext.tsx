@@ -157,9 +157,19 @@ export function OwnerRestaurantProvider({
 
   if (error) {
     return (
-      <p className="message message-error" role="alert">
-        {error}
-      </p>
+      <div className="message message-error" role="alert">
+        <p>{error}</p>
+        <button
+          className="ui-button ui-button--secondary"
+          type="button"
+          onClick={() => {
+            setIsLoading(true)
+            void refreshRestaurants().catch(() => undefined)
+          }}
+        >
+          {language === 'he' ? 'נסו שוב' : 'Try again'}
+        </button>
+      </div>
     )
   }
 
