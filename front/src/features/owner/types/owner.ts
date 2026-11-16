@@ -16,6 +16,8 @@ export type OwnerProfile = {
   slug: string | null
   qrEnabledRoles: RestaurantRole[]
   venueTypes: RestaurantVenueType[]
+  ownerMatchContactConfirmed: boolean
+  primaryHiringManagerMemberId: string | null
   locationStatus: 'unverified' | 'verified'
   locationCity: string | null
   locationStreetName: string | null
@@ -69,6 +71,8 @@ export type OwnerProfileInput = {
   street: string
   description: string
   venueTypes: RestaurantVenueType[]
+  hiringManagerPhone: string
+  ownerMatchContactConfirmed: boolean
   locationPlaceId?: string
 }
 

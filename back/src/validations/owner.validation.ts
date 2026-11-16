@@ -40,6 +40,8 @@ export const ownerProfileSchema = z
     street: optionalText('street', 200),
     locationPlaceId: optionalText('location place id', 300),
     description: optionalText('description', 2_000),
+    hiringManagerPhone: optionalText('hiring manager phone', 50),
+    ownerMatchContactConfirmed: z.boolean().optional(),
     venueTypes: z
       .array(z.enum(restaurantVenueTypes, { error: 'venue type is invalid' }))
       .max(restaurantVenueTypes.length, 'too many venue types')
@@ -55,11 +57,6 @@ export const ownerAdditionalRestaurantSchema = ownerProfileSchema.superRefine(
   (profile, context) => {
     const requiredFields = [
       ['restaurantName', profile.restaurantName],
-      ['contactPerson', profile.contactPerson],
-      ['phoneNumber', profile.phoneNumber],
-      ['city', profile.city],
-      ['street', profile.street],
-      ['description', profile.description],
       ['locationPlaceId', profile.locationPlaceId],
     ] as const
 
@@ -71,6 +68,22 @@ export const ownerAdditionalRestaurantSchema = ownerProfileSchema.superRefine(
           message: `${field} is required`,
         })
       }
+    }
+
+    if (!profile.venueTypes?.length) {
+      context.addIssue({
+        code: 'custom',
+        path: ['venueTypes'],
+        message: 'choose at least one business type',
+      })
+    }
+
+    if (profile.ownerMatchContactConfirmed !== true) {
+      context.addIssue({
+        code: 'custom',
+        path: ['ownerMatchContactConfirmed'],
+        message: 'match contact confirmation is required',
+      })
     }
   },
 )
@@ -152,3 +165,12 @@ export const ownerTeamMemberSchema = z
 export const ownerTeamMemberIdSchema = z
   .string()
   .uuid('member id must be valid')
+
+export const ownerMatchContactSchema = z
+  .object({
+    primaryHiringManagerMemberId: z
+      .string()
+      .uuid('team member id must be valid')
+      .nullable(),
+  })
+  .strict()

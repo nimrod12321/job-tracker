@@ -14,6 +14,9 @@ export const restaurantRoles = [
   'barista',
   'socialManager',
   'counterWorker',
+  'restaurantManager',
+  'baker',
+  'pastryChef',
 ] as const
 
 export const restaurantEmploymentScopes = [

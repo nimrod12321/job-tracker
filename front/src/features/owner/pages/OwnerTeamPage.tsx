@@ -3,6 +3,7 @@ import {
   addOwnerTeamMember,
   getOwnerTeam,
   removeOwnerTeamMember,
+  updateOwnerMatchContact,
 } from '../services/ownerApi'
 import type { OwnerTeam, OwnerTeamMember } from '../types/owner'
 import { useRestaurantLanguage } from '../../restaurant/utils/restaurantLanguage'
@@ -12,7 +13,7 @@ import { useOwnerRestaurant } from '../context/ownerRestaurantState'
 const roleLabels = {
   he: {
     owner: 'בעלים',
-    hiringManager: 'מנהל עובדים',
+    hiringManager: 'מנהל/ת גיוס',
   },
   en: {
     owner: 'Owner',
@@ -42,13 +43,14 @@ function OwnerTeamPage() {
   const [busyMemberId, setBusyMemberId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSavingMatchContact, setIsSavingMatchContact] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const text = {
     title: language === 'he' ? 'צוות המסעדה' : 'Restaurant team',
     subtitle:
       language === 'he'
-        ? 'הוסיפו מנהלי עובדים עם מספר הטלפון האישי שלהם.'
+        ? 'הוסיפו מנהלי גיוס עם מספר הטלפון האישי שלהם.'
         : 'Add hiring managers with their own phone login.',
     loading: language === 'he' ? 'טוען צוות...' : 'Loading team...',
     name: language === 'he' ? 'שם' : 'Name',
@@ -56,7 +58,7 @@ function OwnerTeamPage() {
       language === 'he' ? 'לא חובה' : 'Optional',
     phone: language === 'he' ? 'טלפון' : 'Phone',
     add:
-      language === 'he' ? 'הוספת מנהל עובדים' : 'Add hiring manager',
+      language === 'he' ? 'הוספת מנהל/ת גיוס' : 'Add hiring manager',
     adding: language === 'he' ? 'מוסיף...' : 'Adding...',
     remove: language === 'he' ? 'הסרה' : 'Remove',
     pendingHint:
@@ -71,6 +73,23 @@ function OwnerTeamPage() {
       language === 'he'
         ? 'מנהל העובדים נוסף.'
         : 'Hiring manager added.',
+    matchContactTitle:
+      language === 'he' ? 'איש קשר לאחר התאמה' : 'Contact after a Match',
+    matchContactHelp:
+      language === 'he'
+        ? 'מועמדים רואים את המספר הזה רק לאחר שבחרתם להתאים איתם. מנהל/ת גיוס יחיד/ה ופעיל/ה נבחר/ת אוטומטית; אם יש כמה, בחרו איש קשר ראשי.'
+        : 'Candidates see this number only after you select them for a Match. One active hiring manager is selected automatically; with several, choose the primary contact.',
+    useOwner:
+      language === 'he'
+        ? 'אישור כלל איש הקשר'
+        : 'Confirm contact rule',
+    contactRuleEnabled:
+      language === 'he' ? 'כלל איש הקשר פעיל.' : 'Contact rule is active.',
+    primary: language === 'he' ? 'איש קשר ראשי' : 'Primary contact',
+    choosePrimary:
+      language === 'he' ? 'בחירה כאיש קשר ראשי' : 'Set as primary',
+    contactSaved:
+      language === 'he' ? 'איש הקשר נשמר.' : 'Match contact saved.',
   }
 
   useEffect(() => {
@@ -177,6 +196,40 @@ function OwnerTeamPage() {
     }
   }
 
+  async function handleMatchContact(memberId: string | null) {
+    setError(null)
+    setMessage(null)
+    setIsSavingMatchContact(true)
+
+    try {
+      const updated = await updateOwnerMatchContact(
+        memberId,
+        selectedRestaurantId ?? undefined,
+      )
+
+      setTeam((currentTeam) =>
+        currentTeam
+          ? {
+              ...currentTeam,
+              restaurant: {
+                ...currentTeam.restaurant,
+                ...updated,
+              },
+            }
+          : currentTeam,
+      )
+      setMessage(text.contactSaved)
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to update Match contact',
+      )
+    } finally {
+      setIsSavingMatchContact(false)
+    }
+  }
+
   if (isLoading) {
     return <p className="status-message">{text.loading}</p>
   }
@@ -193,6 +246,17 @@ function OwnerTeamPage() {
       </section>
     )
   }
+
+  const activeHiringManagers =
+    team?.members.filter(
+      (member) =>
+        member.role === 'hiringManager' && member.status === 'active',
+    ) ?? []
+  const effectivePrimaryHiringManagerId =
+    team?.restaurant.primaryHiringManagerMemberId ??
+    (activeHiringManagers.length === 1
+      ? activeHiringManagers[0]!.id
+      : null)
 
   return (
     <section className="owner-team-page">
@@ -240,6 +304,25 @@ function OwnerTeamPage() {
         </p>
       )}
 
+      <section className="owner-team-card owner-team-match-contact">
+        <h2>{text.matchContactTitle}</h2>
+        <p>{text.matchContactHelp}</p>
+        {team?.restaurant.ownerMatchContactConfirmed ? (
+          <p className="owner-team-primary-contact">
+            {text.contactRuleEnabled}
+          </p>
+        ) : (
+          <button
+            className="ui-button ui-button--secondary"
+            type="button"
+            disabled={isSavingMatchContact}
+            onClick={() => void handleMatchContact(null)}
+          >
+            {text.useOwner}
+          </button>
+        )}
+      </section>
+
       <div className="owner-team-list">
         {team?.members.map((member) => (
           <article className="owner-team-card" key={member.id}>
@@ -255,6 +338,22 @@ function OwnerTeamPage() {
               <span>{roleLabels[language][member.role]}</span>
               <span>{statusLabels[language][member.status]}</span>
             </div>
+            {member.role === 'hiringManager' && member.status === 'active' && (
+              member.id === effectivePrimaryHiringManagerId ? (
+                <span className="owner-team-primary-contact">
+                  {text.primary}
+                </span>
+              ) : (
+                <button
+                  className="ui-button ui-button--secondary"
+                  type="button"
+                  disabled={isSavingMatchContact}
+                  onClick={() => void handleMatchContact(member.id)}
+                >
+                  {text.choosePrimary}
+                </button>
+              )
+            )}
             {member.role !== 'owner' && (
               <button
                 className="ui-button ui-button--destructive"

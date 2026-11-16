@@ -399,3 +399,23 @@ export async function removeOwnerTeamMember(
     await handleApiError(response, 'Failed to remove team member')
   }
 }
+
+export async function updateOwnerMatchContact(
+  primaryHiringManagerMemberId: string | null,
+  restaurantId?: string,
+): Promise<{
+  ownerMatchContactConfirmed: boolean
+  primaryHiringManagerMemberId: string | null
+}> {
+  const response = await fetch(`${API_BASE_URL}/owner/team/match-contact`, {
+    method: 'PATCH',
+    headers: getHeaders(restaurantId),
+    body: JSON.stringify({ primaryHiringManagerMemberId }),
+  })
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to update Match contact')
+  }
+
+  return response.json()
+}

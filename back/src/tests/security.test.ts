@@ -4,6 +4,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import 'dotenv/config'
 import bcrypt from 'bcryptjs'
+import { randomInt } from 'node:crypto'
 import type { Express } from 'express'
 
 const shouldRunSecurityTests = process.env.RUN_SECURITY_TESTS === 'true'
@@ -90,6 +91,7 @@ type OwnerTeamResponse = {
 type OwnerProfileResponse = {
   id: string
   slug: string | null
+  phoneNumber: string
   qrEnabledRoles: string[]
   venueTypes?: string[]
 }
@@ -453,6 +455,15 @@ test(
     async function createOwner(emailPrefix: string) {
       const email = `${emailPrefix}-${runId}@example.test`
       const token = await registerAndLogin(email, 'restaurantOwner')
+      await prisma.user.update({
+        where: { email },
+        data: {
+          phoneNumber: `+9725${randomInt(0, 100_000_000)
+            .toString()
+            .padStart(8, '0')}`,
+          phoneVerifiedAt: new Date(),
+        },
+      })
       const restaurantName = `${emailPrefix} ${runId}`
       createdRestaurantNames.push(restaurantName)
       const locationPlaceId = `${emailPrefix}-place-${runId}`
@@ -463,13 +474,15 @@ test(
         headers: jsonHeaders(token),
         body: JSON.stringify({
           restaurantName,
-          contactPerson: 'Owner',
-          phoneNumber: '0500000000',
-          whatsappNumber: '0500000000',
+          contactPerson: '',
+          phoneNumber: '',
+          whatsappNumber: '',
           city: 'Tel Aviv',
           street: emailPrefix,
-          description: 'Security test restaurant',
+          description: '',
           locationPlaceId,
+          venueTypes: ['restaurant'],
+          ownerMatchContactConfirmed: true,
         }),
       })
 
@@ -586,19 +599,22 @@ test(
       assert.equal(ownerAInitialJobs.status, 200)
       assert.equal(
         ownerAInitialJobs.body.length,
-        8,
+        11,
       )
       assert.deepEqual(
         ownerAInitialJobs.body
           .map((job) => job.role)
           .sort(),
         [
+          'baker',
           'barista',
           'bartender',
           'cook',
           'counterWorker',
           'floorManager',
           'host',
+          'pastryChef',
+          'restaurantManager',
           'socialManager',
           'waiter',
         ],
@@ -2420,6 +2436,17 @@ test(
           phoneNumber: '+972501234321',
         },
       })
+      await prisma.restaurantMember.updateMany({
+        where: {
+          restaurantId: ownerA.profile.id,
+          user: { email: ownerA.email },
+          role: 'owner',
+          status: 'active',
+        },
+        data: {
+          phoneNumber: '+972501234321',
+        },
+      })
 
       const adminRestaurantLead =
         await prisma.restaurantCandidateLead.create({
@@ -2490,7 +2517,10 @@ test(
       )
       assert.equal(ownerADetail.status, 200)
       assert.equal(ownerADetail.body.ownerAccountPhone, '+972501234321')
-      assert.equal(ownerADetail.body.restaurantContactPhone, '0500000000')
+      assert.equal(
+        ownerADetail.body.restaurantContactPhone,
+        ownerA.profile.phoneNumber,
+      )
 
       const publicRestaurant = await request<Record<string, unknown>>(
         `/public/restaurants/${ownerA.profile.slug}`,
