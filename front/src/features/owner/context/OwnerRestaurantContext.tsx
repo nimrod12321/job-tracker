@@ -13,6 +13,7 @@ import {
   resolveValidOwnerRestaurantId,
   storeOwnerRestaurantId,
 } from '../utils/ownerRestaurantSelection'
+import type { OwnerPostAuthBootstrap } from '../utils/ownerPostAuthBootstrap'
 import { parseOwnerApplicationsDeepLink } from '../utils/ownerApplicationsDeepLink'
 import {
   OwnerRestaurantContext,
@@ -20,18 +21,28 @@ import {
   useOwnerRestaurant,
 } from './ownerRestaurantState'
 
-export function OwnerRestaurantProvider({ children }: { children: ReactNode }) {
+export function OwnerRestaurantProvider({
+  bootstrap,
+  children,
+}: {
+  bootstrap?: OwnerPostAuthBootstrap | null
+  children: ReactNode
+}) {
   const location = useLocation()
   const { language } = useRestaurantLanguage()
   const requestedRestaurantId =
     location.pathname === '/owner/applications'
       ? parseOwnerApplicationsDeepLink(location.search).restaurantId
       : null
-  const [restaurants, setRestaurants] = useState<OwnerAccessibleRestaurant[]>([])
+  const [initialBootstrap] = useState(bootstrap)
+  const [initialRequestedRestaurantId] = useState(requestedRestaurantId)
+  const [restaurants, setRestaurants] = useState<OwnerAccessibleRestaurant[]>(
+    () => initialBootstrap?.restaurants ?? [],
+  )
   const [selectedRestaurantId, setSelectedRestaurantId] = useState<
     string | null
-  >(null)
-  const [isLoading, setIsLoading] = useState(true)
+  >(() => initialBootstrap?.selectedRestaurantId ?? null)
+  const [isLoading, setIsLoading] = useState(() => !initialBootstrap)
   const [error, setError] = useState<string | null>(null)
 
   const refreshRestaurants = useCallback(async (
@@ -62,6 +73,10 @@ export function OwnerRestaurantProvider({ children }: { children: ReactNode }) {
   }, [requestedRestaurantId])
 
   useEffect(() => {
+    if (initialBootstrap) {
+      return
+    }
+
     let isActive = true
 
     void getOwnerRestaurants()
@@ -72,7 +87,7 @@ export function OwnerRestaurantProvider({ children }: { children: ReactNode }) {
         setSelectedRestaurantId(
           resolveValidOwnerRestaurantId(
             nextRestaurants,
-            requestedRestaurantId,
+            initialRequestedRestaurantId,
           ),
         )
         setError(null)
@@ -93,7 +108,7 @@ export function OwnerRestaurantProvider({ children }: { children: ReactNode }) {
     return () => {
       isActive = false
     }
-  }, [requestedRestaurantId])
+  }, [initialBootstrap, initialRequestedRestaurantId])
 
   const selectedRestaurant = useMemo(
     () =>

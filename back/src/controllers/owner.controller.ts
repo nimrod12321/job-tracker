@@ -8,7 +8,10 @@ import type {
 } from '../generated/prisma/client.js'
 import { prisma } from '../lib/prisma.js'
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js'
-import { getRequestRestaurantAccess } from '../middleware/restaurantAccess.middleware.js'
+import {
+  getRequestRestaurantAccess,
+  getRequestRestaurantAccesses,
+} from '../middleware/restaurantAccess.middleware.js'
 import {
   ensureOwnerMembershipForUser,
   getAccessibleRestaurantsForUser,
@@ -124,7 +127,9 @@ export async function getOwnerRestaurants(req: Request, res: Response) {
       })
     }
 
-    const accesses = await getAccessibleRestaurantsForUser(userId)
+    const accesses =
+      getRequestRestaurantAccesses(req) ??
+      (await getAccessibleRestaurantsForUser(userId))
 
     return res.json({
       restaurants: accesses.map((access) => ({
@@ -1362,7 +1367,9 @@ export async function getAllOwnerApplications(
       return res.status(401).json({ message: 'unauthorized' })
     }
 
-    const accesses = await getAccessibleRestaurantsForUser(userId)
+    const accesses =
+      getRequestRestaurantAccesses(req) ??
+      (await getAccessibleRestaurantsForUser(userId))
     const restaurantIds = accesses.map((access) => access.restaurant.id)
 
     if (restaurantIds.length === 0) {
@@ -1596,7 +1603,9 @@ export async function getAllOwnerLeads(req: Request, res: Response) {
       return res.status(401).json({ message: 'unauthorized' })
     }
 
-    const accesses = await getAccessibleRestaurantsForUser(userId)
+    const accesses =
+      getRequestRestaurantAccesses(req) ??
+      (await getAccessibleRestaurantsForUser(userId))
     const restaurantIds = accesses.map((access) => access.restaurant.id)
 
     if (restaurantIds.length === 0) {

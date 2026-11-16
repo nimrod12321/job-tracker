@@ -4,12 +4,13 @@ import {
   ensureOwnerMembershipForUser,
   getAccessibleRestaurantsForUser,
   hasExistingRestaurantAssociationForUser,
-  resolveRestaurantAccessForUser,
+  resolveRestaurantAccessFromList,
 } from '../services/restaurantAccess.service.js'
 import type { AuthenticatedRequest } from './auth.middleware.js'
 
 export interface RestaurantScopedRequest extends AuthenticatedRequest {
   restaurantAccess?: RestaurantAccess
+  restaurantAccesses?: RestaurantAccess[]
 }
 
 type RestaurantAccessMiddlewareOptions = {
@@ -18,6 +19,18 @@ type RestaurantAccessMiddlewareOptions = {
 
 export function getRequestRestaurantAccess(req: Request) {
   return (req as RestaurantScopedRequest).restaurantAccess ?? null
+}
+
+export function getRequestRestaurantAccesses(req: Request) {
+  return (req as RestaurantScopedRequest).restaurantAccesses
+}
+
+export function setRequestRestaurantAccesses(
+  req: Request,
+  accesses: RestaurantAccess[],
+) {
+  const scopedRequest = req as RestaurantScopedRequest
+  scopedRequest.restaurantAccesses = accesses
 }
 
 export function createRestaurantAccessMiddleware(
@@ -34,8 +47,12 @@ export function createRestaurantAccessMiddleware(
 
     try {
       const requestedRestaurantId = req.get('X-Restaurant-Id')?.trim()
-      const resolution = await resolveRestaurantAccessForUser(
-        userId,
+      const accesses =
+        scopedRequest.restaurantAccesses ??
+        (await getAccessibleRestaurantsForUser(userId))
+      scopedRequest.restaurantAccesses = accesses
+      const resolution = resolveRestaurantAccessFromList(
+        accesses,
         requestedRestaurantId,
       )
 
@@ -46,11 +63,13 @@ export function createRestaurantAccessMiddleware(
             userId,
           )
 
-          const refreshedResolution =
-            await resolveRestaurantAccessForUser(
-              userId,
-              requestedRestaurantId,
-            )
+          const refreshedAccesses =
+            await getAccessibleRestaurantsForUser(userId)
+          scopedRequest.restaurantAccesses = refreshedAccesses
+          const refreshedResolution = resolveRestaurantAccessFromList(
+            refreshedAccesses,
+            requestedRestaurantId,
+          )
 
           if (refreshedResolution.status === 'selectionRequired') {
             res.status(409).json({
@@ -87,8 +106,6 @@ export function createRestaurantAccessMiddleware(
       }
 
       if (options.allowNoRestaurant && !requestedRestaurantId) {
-        const accesses = await getAccessibleRestaurantsForUser(userId)
-
         if (
           accesses.length === 0 &&
           !(await hasExistingRestaurantAssociationForUser(userId))

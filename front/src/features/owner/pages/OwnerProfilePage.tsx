@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useRestaurantLanguage } from '../../restaurant/utils/restaurantLanguage'
 import {
   createAdditionalOwnerRestaurant,
@@ -14,6 +14,7 @@ import {
 } from '../../restaurant/types/restaurant'
 import VerifiedAddressAutocomplete from '../../../components/location/VerifiedAddressAutocomplete'
 import { useOwnerRestaurant } from '../context/ownerRestaurantState'
+import { getOwnerPostAuthBootstrap } from '../utils/ownerPostAuthBootstrap'
 import SmsNotificationSettings from '../../../components/settings/SmsNotificationSettings'
 
 const emptyProfile: OwnerProfileInput = {
@@ -47,6 +48,8 @@ function hasCompletedOwnerProfileDetails(profile: OwnerProfile) {
 function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
   const isCreatingAdditionalRestaurant = mode === 'createAdditional'
   const navigate = useNavigate()
+  const location = useLocation()
+  const ownerBootstrap = getOwnerPostAuthBootstrap(location.state)
   const { selectedRestaurantId, refreshRestaurants } = useOwnerRestaurant()
   const { direction, language } = useRestaurantLanguage()
   const [form, setForm] = useState<OwnerProfileInput>(emptyProfile)
@@ -163,9 +166,10 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
       setLocationPlaceId('')
 
       try {
-        const profile = await getOwnerProfile(
-          selectedRestaurantId ?? undefined,
-        )
+        const profile =
+          ownerBootstrap?.selectedRestaurantId === selectedRestaurantId
+            ? ownerBootstrap.profile
+            : await getOwnerProfile(selectedRestaurantId ?? undefined)
 
         if (isActive && profile) {
           setIsNewProfile(false)
@@ -205,7 +209,11 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
     return () => {
       isActive = false
     }
-  }, [isCreatingAdditionalRestaurant, selectedRestaurantId])
+  }, [
+    isCreatingAdditionalRestaurant,
+    ownerBootstrap,
+    selectedRestaurantId,
+  ])
 
   function updateField(field: ProfileField, value: string) {
     setForm((currentForm) => ({
