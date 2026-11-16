@@ -1326,11 +1326,33 @@ export async function getOwnerApplications(req: Request, res: Response) {
           ownerProfileId: profile.id,
         },
       },
-      include: {
-        restaurantJob: true,
+      select: {
+        id: true,
+        status: true,
+        createdAt: true,
+        restaurantJob: {
+          select: {
+            id: true,
+            role: true,
+            description: true,
+            shiftInfo: true,
+            isActive: true,
+          },
+        },
         user: {
-          include: {
-            restaurantWorkerProfile: true,
+          select: {
+            id: true,
+            restaurantWorkerProfile: {
+              select: {
+                fullName: true,
+                phoneNumber: true,
+                location: true,
+                wantedRoles: true,
+                experienceText: true,
+                availability: true,
+                age: true,
+              },
+            },
           },
         },
       },
@@ -1382,9 +1404,17 @@ export async function getAllOwnerApplications(
           ownerProfileId: { in: restaurantIds },
         },
       },
-      include: {
+      select: {
+        id: true,
+        status: true,
+        createdAt: true,
         restaurantJob: {
-          include: {
+          select: {
+            id: true,
+            role: true,
+            description: true,
+            shiftInfo: true,
+            isActive: true,
             ownerProfile: {
               select: {
                 id: true,
@@ -1394,8 +1424,19 @@ export async function getAllOwnerApplications(
           },
         },
         user: {
-          include: {
-            restaurantWorkerProfile: true,
+          select: {
+            id: true,
+            restaurantWorkerProfile: {
+              select: {
+                fullName: true,
+                phoneNumber: true,
+                location: true,
+                wantedRoles: true,
+                experienceText: true,
+                availability: true,
+                age: true,
+              },
+            },
           },
         },
       },
