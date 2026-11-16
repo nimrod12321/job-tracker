@@ -46,8 +46,12 @@ import {
 } from './features/owner/context/OwnerRestaurantContext'
 import {
   clearStoredOwnerRestaurantId,
-  resolveValidOwnerRestaurantId,
 } from './features/owner/utils/ownerRestaurantSelection'
+import {
+  getOwnerPostAuthBootstrap,
+  loadOwnerPostAuthBootstrap,
+  type OwnerPostAuthBootstrap,
+} from './features/owner/utils/ownerPostAuthBootstrap'
 import {
   getSafeOwnerApplicationsReturnTo,
   parseOwnerApplicationsDeepLink,
@@ -124,20 +128,26 @@ function isWorkerProfileComplete(
 async function getPostAuthPath(
   user: AuthUser | null,
   preferredRestaurantId?: string | null,
-) {
+): Promise<{
+  path: string
+  ownerBootstrap: OwnerPostAuthBootstrap | null
+}> {
   if (user?.isAdmin) {
-    return getHomePath(user)
+    return { path: getHomePath(user), ownerBootstrap: null }
   }
 
   if (user?.track === 'restaurant' && !user.restaurantMemberRole) {
     try {
       const profile = await getRestaurantProfile()
 
-      return isWorkerProfileComplete(profile, user)
-        ? '/restaurant/explore'
-        : '/restaurant/profile'
+      return {
+        path: isWorkerProfileComplete(profile, user)
+          ? '/restaurant/explore'
+          : '/restaurant/profile',
+        ownerBootstrap: null,
+      }
     } catch {
-      return '/restaurant/profile'
+      return { path: '/restaurant/profile', ownerBootstrap: null }
     }
   }
 
@@ -145,20 +155,26 @@ async function getPostAuthPath(
     !user?.restaurantMemberRole &&
     user?.track !== 'restaurantOwner'
   ) {
-    return getHomePath(user)
+    return { path: getHomePath(user), ownerBootstrap: null }
   }
 
   try {
-    const restaurants = await getOwnerRestaurants()
-    const restaurantId = resolveValidOwnerRestaurantId(
-      restaurants,
+    const ownerBootstrap = await loadOwnerPostAuthBootstrap(
       preferredRestaurantId,
+      {
+        getRestaurants: getOwnerRestaurants,
+        getProfile: getOwnerProfile,
+      },
     )
-    const profile = await getOwnerProfile(restaurantId ?? undefined)
 
-    return isOwnerProfileComplete(profile) ? '/owner/jobs' : '/owner/profile'
+    return {
+      path: isOwnerProfileComplete(ownerBootstrap.profile)
+        ? '/owner/jobs'
+        : '/owner/profile',
+      ownerBootstrap,
+    }
   } catch {
-    return '/owner/profile'
+    return { path: '/owner/profile', ownerBootstrap: null }
   }
 }
 
@@ -239,14 +255,13 @@ function App() {
     }
   }, [isCheckingAuth])
 
-  async function handleAuthSuccess(newToken: string) {
+  async function handleAuthSuccess(newToken: string, user: AuthUser) {
     saveAuthToken(newToken)
     setToken(newToken)
     setShowAuthLoading(false)
     setIsCheckingAuth(true)
 
     try {
-      const user = await getCurrentUser(newToken)
       const returnTo = getSafeOwnerApplicationsReturnTo(
         (location.state as { returnTo?: unknown } | null)?.returnTo,
       )
@@ -255,7 +270,7 @@ function App() {
             new URL(returnTo, window.location.origin).search,
           ).restaurantId
         : null
-      const nextPath = await getPostAuthPath(
+      const { path: nextPath, ownerBootstrap } = await getPostAuthPath(
         user,
         preferredRestaurantId,
       )
@@ -268,7 +283,10 @@ function App() {
       setCurrentUser(user)
       navigate(
         canReturnToOwnerApplications && returnTo ? returnTo : nextPath,
-        { replace: true, state: null },
+        {
+          replace: true,
+          state: ownerBootstrap ? { ownerBootstrap } : null,
+        },
       )
     } catch {
       clearAuthToken()
@@ -572,7 +590,9 @@ function App() {
         <Route
           element={
             isRestaurantOwnerAreaUser ? (
-              <OwnerRestaurantProvider>
+              <OwnerRestaurantProvider
+                bootstrap={getOwnerPostAuthBootstrap(location.state)}
+              >
                 <AppLayout
                   userEmail={getUserDisplayName(currentUser)}
                   userTrack="restaurantOwner"

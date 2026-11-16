@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import PeepssModal from '../../../components/common/PeepssModal'
 import { ENABLE_DEVELOPMENT_JOB_BOARD } from '../../../config/env'
 import { sendOwnerActivityEvent } from '../../../analytics/ownerActivity'
@@ -37,6 +37,7 @@ import type {
   OwnerProfile,
 } from '../types/owner'
 import { useOwnerRestaurant } from '../context/ownerRestaurantState'
+import { getOwnerPostAuthBootstrap } from '../utils/ownerPostAuthBootstrap'
 import { shouldRenderOwnerJobForm } from '../utils/ownerJobBoardAvailability'
 
 const emptyJobForm: OwnerJobInput = {
@@ -118,6 +119,8 @@ function getJobInputFromJob(job: OwnerJob): OwnerJobInput {
 
 function OwnerJobsPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const ownerBootstrap = getOwnerPostAuthBootstrap(location.state)
   const { selectedRestaurantId } = useOwnerRestaurant()
   const { direction, language } = useRestaurantLanguage()
   const [profile, setProfile] = useState<OwnerProfile | null>(null)
@@ -416,9 +419,10 @@ function OwnerJobsPage() {
       setIsCreating(false)
 
       try {
-        const ownerProfile = await getOwnerProfile(
-          selectedRestaurantId ?? undefined,
-        )
+        const ownerProfile =
+          ownerBootstrap?.selectedRestaurantId === selectedRestaurantId
+            ? ownerBootstrap.profile
+            : await getOwnerProfile(selectedRestaurantId ?? undefined)
 
         if (isActive) {
           setProfile(ownerProfile)
@@ -460,7 +464,7 @@ function OwnerJobsPage() {
     return () => {
       isActive = false
     }
-  }, [selectedRestaurantId])
+  }, [ownerBootstrap, selectedRestaurantId])
 
   useEffect(() => {
     return () => {

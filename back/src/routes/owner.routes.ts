@@ -30,6 +30,7 @@ import {
   type AuthenticatedRequest,
 } from '../middleware/auth.middleware.js'
 import {
+  setRequestRestaurantAccesses,
   requireRestaurantAccess,
   resolveOwnerProfileRestaurantAccess,
 } from '../middleware/restaurantAccess.middleware.js'
@@ -60,10 +61,13 @@ const requireRestaurantOwner: RequestHandler = async (req, res, next) => {
       },
       select: {
         track: true,
+        phoneNumber: true,
       },
     })
 
-    const accesses = await getAccessibleRestaurantsForUser(userId)
+    const accesses = await getAccessibleRestaurantsForUser(userId, {
+      userPhoneNumber: user?.phoneNumber ?? null,
+    })
 
     if (user?.track !== 'restaurantOwner' && accesses.length === 0) {
       res.status(403).json({
@@ -72,6 +76,7 @@ const requireRestaurantOwner: RequestHandler = async (req, res, next) => {
       return
     }
 
+    setRequestRestaurantAccesses(req, accesses)
     next()
   } catch (error) {
     next(error)
