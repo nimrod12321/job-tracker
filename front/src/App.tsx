@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import {
   Navigate,
   Route,
@@ -18,23 +18,6 @@ import {
   getAuthToken,
   saveAuthToken,
 } from './features/auth/utils/authStorage'
-import AdminLeadsPage from './features/admin/pages/AdminLeadsPage'
-import AdminOverviewPage from './features/admin/pages/AdminOverviewPage'
-import AdminRestaurantDetailPage from './features/admin/pages/AdminRestaurantDetailPage'
-import AdminRestaurantsPage from './features/admin/pages/AdminRestaurantsPage'
-import AuthPage from './features/auth/pages/AuthPage'
-import DashboardPage from './features/dashboard/pages/DashboardPage'
-import DiscoverPage from './features/discovery/pages/DiscoverPage'
-import LikedJobsPage from './features/discovery/pages/LikedJobsPage'
-import JobDetailPage from './features/jobs/pages/JobDetailPage'
-import ImportJobPage from './features/jobs/pages/ImportJobPage'
-import JobsPage from './features/jobs/pages/jobsPage'
-import LegalPage from './features/legal/pages/LegalPage'
-import SmsUnsubscribePage from './features/legal/SmsUnsubscribePage'
-import OwnerApplicationsPage from './features/owner/pages/OwnerApplicationsPage'
-import OwnerJobsPage from './features/owner/pages/OwnerJobsPage'
-import OwnerProfilePage from './features/owner/pages/OwnerProfilePage'
-import OwnerTeamPage from './features/owner/pages/OwnerTeamPage'
 import {
   getOwnerProfile,
   getOwnerRestaurants,
@@ -46,23 +29,102 @@ import {
 } from './features/owner/context/OwnerRestaurantContext'
 import {
   clearStoredOwnerRestaurantId,
-  resolveValidOwnerRestaurantId,
 } from './features/owner/utils/ownerRestaurantSelection'
+import {
+  getOwnerPostAuthBootstrap,
+  loadOwnerPostAuthBootstrap,
+  type OwnerPostAuthBootstrap,
+} from './features/owner/utils/ownerPostAuthBootstrap'
 import {
   getSafeOwnerApplicationsReturnTo,
   parseOwnerApplicationsDeepLink,
 } from './features/owner/utils/ownerApplicationsDeepLink'
-import ProfilePage from './features/profile/pages/ProfilePage'
-import RestaurantPublicApplyPage from './features/public/pages/RestaurantPublicApplyPage'
-import RestaurantClaimPage from './features/public/pages/RestaurantClaimPage'
-import RestaurantExplorePage from './features/restaurant/pages/RestaurantExplorePage'
-import RestaurantJobBoardDetailPage from './features/restaurant/pages/RestaurantJobBoardDetailPage'
-import RestaurantMapPage from './features/restaurant/pages/RestaurantMapPage'
-import RestaurantMatchesPage from './features/restaurant/pages/RestaurantMatchesPage'
-import RestaurantProfilePage from './features/restaurant/pages/RestaurantProfilePage'
 import { getRestaurantProfile } from './features/restaurant/services/restaurantApi'
 import type { RestaurantWorkerProfile } from './features/restaurant/types/restaurant'
 import { getStoredRestaurantLanguage } from './features/restaurant/utils/restaurantLanguage'
+
+const AdminLeadsPage = lazy(
+  () => import('./features/admin/pages/AdminLeadsPage'),
+)
+const AdminOverviewPage = lazy(
+  () => import('./features/admin/pages/AdminOverviewPage'),
+)
+const AdminRestaurantDetailPage = lazy(
+  () => import('./features/admin/pages/AdminRestaurantDetailPage'),
+)
+const AdminRestaurantsPage = lazy(
+  () => import('./features/admin/pages/AdminRestaurantsPage'),
+)
+const AuthPage = lazy(() => import('./features/auth/pages/AuthPage'))
+const DashboardPage = lazy(
+  () => import('./features/dashboard/pages/DashboardPage'),
+)
+const DiscoverPage = lazy(
+  () => import('./features/discovery/pages/DiscoverPage'),
+)
+const LikedJobsPage = lazy(
+  () => import('./features/discovery/pages/LikedJobsPage'),
+)
+const JobDetailPage = lazy(
+  () => import('./features/jobs/pages/JobDetailPage'),
+)
+const ImportJobPage = lazy(
+  () => import('./features/jobs/pages/ImportJobPage'),
+)
+const JobsPage = lazy(() => import('./features/jobs/pages/jobsPage'))
+const LegalPage = lazy(() => import('./features/legal/pages/LegalPage'))
+const SmsUnsubscribePage = lazy(
+  () => import('./features/legal/SmsUnsubscribePage'),
+)
+const OwnerApplicationsPage = lazy(
+  () => import('./features/owner/pages/OwnerApplicationsPage'),
+)
+const OwnerJobsPage = lazy(
+  () => import('./features/owner/pages/OwnerJobsPage'),
+)
+const OwnerProfilePage = lazy(
+  () => import('./features/owner/pages/OwnerProfilePage'),
+)
+const OwnerTeamPage = lazy(
+  () => import('./features/owner/pages/OwnerTeamPage'),
+)
+const ProfilePage = lazy(() => import('./features/profile/pages/ProfilePage'))
+const RestaurantPublicApplyPage = lazy(
+  () => import('./features/public/pages/RestaurantPublicApplyPage'),
+)
+const RestaurantClaimPage = lazy(
+  () => import('./features/public/pages/RestaurantClaimPage'),
+)
+const RestaurantExplorePage = lazy(
+  () => import('./features/restaurant/pages/RestaurantExplorePage'),
+)
+const RestaurantJobBoardDetailPage = lazy(
+  () => import('./features/restaurant/pages/RestaurantJobBoardDetailPage'),
+)
+const RestaurantMapPage = lazy(
+  () => import('./features/restaurant/pages/RestaurantMapPage'),
+)
+const RestaurantMatchesPage = lazy(
+  () => import('./features/restaurant/pages/RestaurantMatchesPage'),
+)
+const RestaurantProfilePage = lazy(
+  () => import('./features/restaurant/pages/RestaurantProfilePage'),
+)
+
+function RouteLoadingFallback() {
+  const language = getStoredRestaurantLanguage()
+
+  return (
+    <section className="checking-session-screen" aria-live="polite">
+      <div className="checking-session-card">
+        <PeepssLogo className="checking-session-logo" />
+        <p className="checking-session-text">
+          {language === 'he' ? 'טוענים את העמוד…' : 'Loading page…'}
+        </p>
+      </div>
+    </section>
+  )
+}
 
 function getHomePath(user: AuthUser | null) {
   if (user?.isAdmin) {
@@ -124,20 +186,26 @@ function isWorkerProfileComplete(
 async function getPostAuthPath(
   user: AuthUser | null,
   preferredRestaurantId?: string | null,
-) {
+): Promise<{
+  path: string
+  ownerBootstrap: OwnerPostAuthBootstrap | null
+}> {
   if (user?.isAdmin) {
-    return getHomePath(user)
+    return { path: getHomePath(user), ownerBootstrap: null }
   }
 
   if (user?.track === 'restaurant' && !user.restaurantMemberRole) {
     try {
       const profile = await getRestaurantProfile()
 
-      return isWorkerProfileComplete(profile, user)
-        ? '/restaurant/explore'
-        : '/restaurant/profile'
+      return {
+        path: isWorkerProfileComplete(profile, user)
+          ? '/restaurant/explore'
+          : '/restaurant/profile',
+        ownerBootstrap: null,
+      }
     } catch {
-      return '/restaurant/profile'
+      return { path: '/restaurant/profile', ownerBootstrap: null }
     }
   }
 
@@ -145,20 +213,26 @@ async function getPostAuthPath(
     !user?.restaurantMemberRole &&
     user?.track !== 'restaurantOwner'
   ) {
-    return getHomePath(user)
+    return { path: getHomePath(user), ownerBootstrap: null }
   }
 
   try {
-    const restaurants = await getOwnerRestaurants()
-    const restaurantId = resolveValidOwnerRestaurantId(
-      restaurants,
+    const ownerBootstrap = await loadOwnerPostAuthBootstrap(
       preferredRestaurantId,
+      {
+        getRestaurants: getOwnerRestaurants,
+        getProfile: getOwnerProfile,
+      },
     )
-    const profile = await getOwnerProfile(restaurantId ?? undefined)
 
-    return isOwnerProfileComplete(profile) ? '/owner/jobs' : '/owner/profile'
+    return {
+      path: isOwnerProfileComplete(ownerBootstrap.profile)
+        ? '/owner/jobs'
+        : '/owner/profile',
+      ownerBootstrap,
+    }
   } catch {
-    return '/owner/profile'
+    return { path: '/owner/profile', ownerBootstrap: null }
   }
 }
 
@@ -239,14 +313,13 @@ function App() {
     }
   }, [isCheckingAuth])
 
-  async function handleAuthSuccess(newToken: string) {
+  async function handleAuthSuccess(newToken: string, user: AuthUser) {
     saveAuthToken(newToken)
     setToken(newToken)
     setShowAuthLoading(false)
     setIsCheckingAuth(true)
 
     try {
-      const user = await getCurrentUser(newToken)
       const returnTo = getSafeOwnerApplicationsReturnTo(
         (location.state as { returnTo?: unknown } | null)?.returnTo,
       )
@@ -255,7 +328,7 @@ function App() {
             new URL(returnTo, window.location.origin).search,
           ).restaurantId
         : null
-      const nextPath = await getPostAuthPath(
+      const { path: nextPath, ownerBootstrap } = await getPostAuthPath(
         user,
         preferredRestaurantId,
       )
@@ -268,7 +341,10 @@ function App() {
       setCurrentUser(user)
       navigate(
         canReturnToOwnerApplications && returnTo ? returnTo : nextPath,
-        { replace: true, state: null },
+        {
+          replace: true,
+          state: ownerBootstrap ? { ownerBootstrap } : null,
+        },
       )
     } catch {
       clearAuthToken()
@@ -366,7 +442,8 @@ function App() {
   return (
     <>
       <ScrollToTop />
-      <Routes>
+      <Suspense fallback={<RouteLoadingFallback />}>
+        <Routes>
       <Route
         element={
           <StandardLayout
@@ -572,7 +649,9 @@ function App() {
         <Route
           element={
             isRestaurantOwnerAreaUser ? (
-              <OwnerRestaurantProvider>
+              <OwnerRestaurantProvider
+                bootstrap={getOwnerPostAuthBootstrap(location.state)}
+              >
                 <AppLayout
                   userEmail={getUserDisplayName(currentUser)}
                   userTrack="restaurantOwner"
@@ -629,7 +708,8 @@ function App() {
           <Navigate to={isAuthenticated ? homePath : '/login'} replace />
         }
       />
-      </Routes>
+        </Routes>
+      </Suspense>
     </>
   )
 }

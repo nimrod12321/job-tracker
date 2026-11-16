@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import PeepssModal from '../../../components/common/PeepssModal'
 import { ENABLE_DEVELOPMENT_JOB_BOARD } from '../../../config/env'
 import { sendOwnerActivityEvent } from '../../../analytics/ownerActivity'
@@ -17,11 +17,7 @@ import {
   type RestaurantRole,
 } from '../../restaurant/types/restaurant'
 import { useRestaurantLanguage } from '../../restaurant/utils/restaurantLanguage'
-import {
-  createQrAssetDataUrl,
-  downloadQrAsset,
-  type QrAssetFormat,
-} from '../../../utils/qrPoster'
+import type { QrAssetFormat } from '../../../utils/qrPoster'
 import {
   createOwnerJob,
   deleteOwnerJob,
@@ -37,6 +33,7 @@ import type {
   OwnerProfile,
 } from '../types/owner'
 import { useOwnerRestaurant } from '../context/ownerRestaurantState'
+import { getOwnerPostAuthBootstrap } from '../utils/ownerPostAuthBootstrap'
 import { shouldRenderOwnerJobForm } from '../utils/ownerJobBoardAvailability'
 
 const emptyJobForm: OwnerJobInput = {
@@ -118,6 +115,8 @@ function getJobInputFromJob(job: OwnerJob): OwnerJobInput {
 
 function OwnerJobsPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const ownerBootstrap = getOwnerPostAuthBootstrap(location.state)
   const { selectedRestaurantId } = useOwnerRestaurant()
   const { direction, language } = useRestaurantLanguage()
   const [profile, setProfile] = useState<OwnerProfile | null>(null)
@@ -127,6 +126,7 @@ function OwnerJobsPage() {
   const [isCreating, setIsCreating] = useState(false)
   const [editingJobId, setEditingJobId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [loadAttempt, setLoadAttempt] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [qrRolesSaveStatus, setQrRolesSaveStatus] = useState<
     'idle' | 'saving' | 'saved' | 'error'
@@ -176,6 +176,7 @@ function OwnerJobsPage() {
       language === 'he'
         ? 'טוען משרות מסעדה...'
         : 'Loading restaurant jobs...',
+    retry: language === 'he' ? 'נסו שוב' : 'Try again',
     completeProfile:
       language === 'he'
         ? 'כדי לנהל משרות צריך להשלים פרופיל מסעדה'
@@ -416,9 +417,10 @@ function OwnerJobsPage() {
       setIsCreating(false)
 
       try {
-        const ownerProfile = await getOwnerProfile(
-          selectedRestaurantId ?? undefined,
-        )
+        const ownerProfile =
+          ownerBootstrap?.selectedRestaurantId === selectedRestaurantId
+            ? ownerBootstrap.profile
+            : await getOwnerProfile(selectedRestaurantId ?? undefined)
 
         if (isActive) {
           setProfile(ownerProfile)
@@ -460,7 +462,7 @@ function OwnerJobsPage() {
     return () => {
       isActive = false
     }
-  }, [selectedRestaurantId])
+  }, [loadAttempt, ownerBootstrap, selectedRestaurantId])
 
   useEffect(() => {
     return () => {
@@ -820,6 +822,8 @@ function OwnerJobsPage() {
     recordQrAssetDownloadStarted(qrAssetFormat, sendOwnerActivityEvent)
 
     try {
+      const { downloadQrAsset } = await import('../../../utils/qrPoster')
+
       await downloadQrAsset(
         {
           publicUrl: publicHiringLink,
@@ -853,6 +857,9 @@ function OwnerJobsPage() {
     setError(null)
 
     try {
+      const { createQrAssetDataUrl } = await import(
+        '../../../utils/qrPoster'
+      )
       const dataUrl = await createQrAssetDataUrl(
         publicHiringLink,
         qrAssetFormat,
@@ -1048,9 +1055,16 @@ function OwnerJobsPage() {
   if (error && !profile) {
     return (
       <section className="owner-jobs-page owner-guided-page" dir={direction}>
-        <p className="message message-error" role="alert">
-          {error}
-        </p>
+        <div className="message message-error" role="alert">
+          <p>{error}</p>
+          <button
+            className="ui-button ui-button--secondary"
+            type="button"
+            onClick={() => setLoadAttempt((attempt) => attempt + 1)}
+          >
+            {text.retry}
+          </button>
+        </div>
       </section>
     )
   }
