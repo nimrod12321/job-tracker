@@ -1,4 +1,11 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
 import {
   Navigate,
   Route,
@@ -14,6 +21,7 @@ import ProtectedRoute from './components/routing/ProtectedRoute'
 import { getCurrentUser, type AuthUser } from './features/auth/services/authApi'
 import {
   AUTH_SESSION_EXPIRED_EVENT,
+  AUTH_TOKEN_STORAGE_KEY,
   clearAuthToken,
   getAuthToken,
   saveAuthToken,
@@ -31,9 +39,11 @@ import {
   clearStoredOwnerRestaurantId,
 } from './features/owner/utils/ownerRestaurantSelection'
 import {
-  getOwnerPostAuthBootstrap,
+  createOwnerPostAuthBootstrapHandoff,
   loadOwnerPostAuthBootstrap,
+  resolveOwnerPostAuthBootstrap,
   type OwnerPostAuthBootstrap,
+  type OwnerPostAuthBootstrapHandoff,
 } from './features/owner/utils/ownerPostAuthBootstrap'
 import {
   getSafeOwnerApplicationsReturnTo,
@@ -252,6 +262,10 @@ function getUserDisplayName(user: AuthUser | null) {
   return user?.email ?? user?.fullName ?? user?.phoneNumber ?? undefined
 }
 
+function createAuthSessionId() {
+  return window.crypto.randomUUID()
+}
+
 function App() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -261,6 +275,76 @@ function App() {
     Boolean(getAuthToken()),
   )
   const [showAuthLoading, setShowAuthLoading] = useState(false)
+  const [authSessionId, setAuthSessionId] = useState(createAuthSessionId)
+  const [ownerBootstrapHandoff, setOwnerBootstrapHandoff] =
+    useState<OwnerPostAuthBootstrapHandoff | null>(null)
+  const authTransitionIdRef = useRef(0)
+
+  const reconcileStoredSession = useCallback(
+    async (
+      nextToken: string | null,
+      options: {
+        clearRestaurantSelection: boolean
+        redirectWhenSignedOut: boolean
+      },
+    ) => {
+      const transitionId = ++authTransitionIdRef.current
+
+      setAuthSessionId(createAuthSessionId())
+      setOwnerBootstrapHandoff(null)
+      setCurrentUser(null)
+      setToken(nextToken)
+      setShowAuthLoading(false)
+
+      if (options.clearRestaurantSelection) {
+        clearStoredOwnerRestaurantId()
+      }
+
+      if (!nextToken) {
+        setIsCheckingAuth(false)
+        if (options.redirectWhenSignedOut) {
+          navigate('/login', { replace: true, state: null })
+        }
+        return
+      }
+
+      setIsCheckingAuth(true)
+
+      try {
+        const user = await getCurrentUser(nextToken)
+
+        if (
+          authTransitionIdRef.current !== transitionId ||
+          getAuthToken() !== nextToken
+        ) {
+          return
+        }
+
+        setCurrentUser(user)
+        setToken(nextToken)
+      } catch {
+        if (
+          authTransitionIdRef.current !== transitionId ||
+          getAuthToken() !== nextToken
+        ) {
+          return
+        }
+
+        clearAuthToken()
+        clearStoredOwnerRestaurantId()
+        setCurrentUser(null)
+        setToken(null)
+        if (options.redirectWhenSignedOut) {
+          navigate('/login', { replace: true, state: null })
+        }
+      } finally {
+        if (authTransitionIdRef.current === transitionId) {
+          setIsCheckingAuth(false)
+        }
+      }
+    },
+    [navigate],
+  )
 
   useEffect(() => {
     const existingToken = getAuthToken()
@@ -269,29 +353,73 @@ function App() {
       return
     }
 
-    async function checkCurrentUser(validToken: string) {
+    const validToken = existingToken
+    const transitionId = ++authTransitionIdRef.current
+
+    async function checkCurrentUser() {
       try {
         const user = await getCurrentUser(validToken)
+
+        if (
+          authTransitionIdRef.current !== transitionId ||
+          getAuthToken() !== validToken
+        ) {
+          return
+        }
+
         setCurrentUser(user)
         setToken(validToken)
       } catch {
+        if (
+          authTransitionIdRef.current !== transitionId ||
+          getAuthToken() !== validToken
+        ) {
+          return
+        }
+
         clearAuthToken()
+        clearStoredOwnerRestaurantId()
         setCurrentUser(null)
         setToken(null)
       } finally {
-        setIsCheckingAuth(false)
+        if (authTransitionIdRef.current === transitionId) {
+          setIsCheckingAuth(false)
+        }
       }
     }
 
-    void checkCurrentUser(existingToken)
+    void checkCurrentUser()
   }, [])
+
+  useEffect(() => {
+    function handleAuthTokenStorageChange(event: StorageEvent) {
+      if (
+        event.storageArea !== window.localStorage ||
+        event.key !== AUTH_TOKEN_STORAGE_KEY
+      ) {
+        return
+      }
+
+      void reconcileStoredSession(event.newValue, {
+        clearRestaurantSelection: true,
+        redirectWhenSignedOut: true,
+      })
+    }
+
+    window.addEventListener('storage', handleAuthTokenStorageChange)
+
+    return () => {
+      window.removeEventListener('storage', handleAuthTokenStorageChange)
+    }
+  }, [reconcileStoredSession])
 
   useEffect(() => {
     function handleSessionExpired() {
       clearAuthToken()
-      setCurrentUser(null)
-      setToken(null)
-      navigate('/login', { replace: true })
+      void reconcileStoredSession(null, {
+        clearRestaurantSelection: true,
+        redirectWhenSignedOut: true,
+      })
     }
 
     window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, handleSessionExpired)
@@ -299,7 +427,7 @@ function App() {
     return () => {
       window.removeEventListener(AUTH_SESSION_EXPIRED_EVENT, handleSessionExpired)
     }
-  }, [navigate])
+  }, [reconcileStoredSession])
 
   useEffect(() => {
     if (!isCheckingAuth) return
@@ -314,6 +442,13 @@ function App() {
   }, [isCheckingAuth])
 
   async function handleAuthSuccess(newToken: string, user: AuthUser) {
+    const transitionId = ++authTransitionIdRef.current
+    const nextAuthSessionId = createAuthSessionId()
+
+    clearStoredOwnerRestaurantId()
+    setAuthSessionId(nextAuthSessionId)
+    setOwnerBootstrapHandoff(null)
+    setCurrentUser(null)
     saveAuthToken(newToken)
     setToken(newToken)
     setShowAuthLoading(false)
@@ -338,34 +473,79 @@ function App() {
           (user.restaurantMemberRole || user.track === 'restaurantOwner'),
       )
 
+      if (
+        authTransitionIdRef.current !== transitionId ||
+        getAuthToken() !== newToken
+      ) {
+        return
+      }
+
       setCurrentUser(user)
+      setOwnerBootstrapHandoff(
+        ownerBootstrap
+          ? createOwnerPostAuthBootstrapHandoff(
+              nextAuthSessionId,
+              user.id,
+              ownerBootstrap,
+            )
+          : null,
+      )
       navigate(
         canReturnToOwnerApplications && returnTo ? returnTo : nextPath,
         {
           replace: true,
-          state: ownerBootstrap ? { ownerBootstrap } : null,
+          state: null,
         },
       )
     } catch {
-      clearAuthToken()
-      setCurrentUser(null)
-      setToken(null)
+      if (
+        authTransitionIdRef.current === transitionId &&
+        getAuthToken() === newToken
+      ) {
+        clearAuthToken()
+        clearStoredOwnerRestaurantId()
+        setOwnerBootstrapHandoff(null)
+        setCurrentUser(null)
+        setToken(null)
+      }
     } finally {
-      setIsCheckingAuth(false)
+      if (authTransitionIdRef.current === transitionId) {
+        setIsCheckingAuth(false)
+      }
     }
   }
 
   async function handlePublicAuthVerified(newToken: string) {
+    const transitionId = ++authTransitionIdRef.current
+
+    clearStoredOwnerRestaurantId()
+    setAuthSessionId(createAuthSessionId())
+    setOwnerBootstrapHandoff(null)
+    setCurrentUser(null)
     saveAuthToken(newToken)
     setToken(newToken)
 
     try {
       const user = await getCurrentUser(newToken)
+
+      if (
+        authTransitionIdRef.current !== transitionId ||
+        getAuthToken() !== newToken
+      ) {
+        return
+      }
+
       setCurrentUser(user)
     } catch {
-      clearAuthToken()
-      setCurrentUser(null)
-      setToken(null)
+      if (
+        authTransitionIdRef.current === transitionId &&
+        getAuthToken() === newToken
+      ) {
+        clearAuthToken()
+        clearStoredOwnerRestaurantId()
+        setCurrentUser(null)
+        setToken(null)
+      }
     }
   }
 
@@ -373,6 +553,12 @@ function App() {
     newToken: string,
     profileComplete: boolean,
   ) {
+    const transitionId = ++authTransitionIdRef.current
+
+    clearStoredOwnerRestaurantId()
+    setAuthSessionId(createAuthSessionId())
+    setOwnerBootstrapHandoff(null)
+    setCurrentUser(null)
     saveAuthToken(newToken)
     setToken(newToken)
     setShowAuthLoading(false)
@@ -381,6 +567,13 @@ function App() {
     try {
       const user = await getCurrentUser(newToken)
 
+      if (
+        authTransitionIdRef.current !== transitionId ||
+        getAuthToken() !== newToken
+      ) {
+        return
+      }
+
       setCurrentUser(user)
       navigate(
         user.isAdmin
@@ -388,24 +581,50 @@ function App() {
           : profileComplete
             ? '/owner/jobs'
             : '/owner/profile',
-        { replace: true },
+        { replace: true, state: null },
       )
     } catch {
-      clearAuthToken()
-      setCurrentUser(null)
-      setToken(null)
+      if (
+        authTransitionIdRef.current === transitionId &&
+        getAuthToken() === newToken
+      ) {
+        clearAuthToken()
+        clearStoredOwnerRestaurantId()
+        setCurrentUser(null)
+        setToken(null)
+      }
     } finally {
-      setIsCheckingAuth(false)
+      if (authTransitionIdRef.current === transitionId) {
+        setIsCheckingAuth(false)
+      }
     }
   }
 
   function handleLogout() {
+    authTransitionIdRef.current += 1
     clearAuthToken()
     clearStoredOwnerRestaurantId()
+    setAuthSessionId(createAuthSessionId())
+    setOwnerBootstrapHandoff(null)
     setCurrentUser(null)
     setToken(null)
-    navigate('/login', { replace: true })
+    setIsCheckingAuth(false)
+    navigate('/login', { replace: true, state: null })
   }
+
+  const handleOwnerBootstrapConsumed = useCallback(() => {
+    setOwnerBootstrapHandoff((currentHandoff) =>
+      currentHandoff?.authSessionId === authSessionId
+        ? null
+        : currentHandoff,
+    )
+  }, [authSessionId])
+
+  const ownerBootstrap = resolveOwnerPostAuthBootstrap(
+    ownerBootstrapHandoff,
+    authSessionId,
+    currentUser?.id,
+  )
 
   if (isCheckingAuth && showAuthLoading) {
     const language = getStoredRestaurantLanguage()
@@ -650,7 +869,9 @@ function App() {
           element={
             isRestaurantOwnerAreaUser ? (
               <OwnerRestaurantProvider
-                bootstrap={getOwnerPostAuthBootstrap(location.state)}
+                key={authSessionId}
+                bootstrap={ownerBootstrap}
+                onBootstrapConsumed={handleOwnerBootstrapConsumed}
               >
                 <AppLayout
                   userEmail={getUserDisplayName(currentUser)}

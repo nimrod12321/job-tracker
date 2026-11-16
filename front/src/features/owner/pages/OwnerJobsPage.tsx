@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import PeepssModal from '../../../components/common/PeepssModal'
 import { ENABLE_DEVELOPMENT_JOB_BOARD } from '../../../config/env'
 import { sendOwnerActivityEvent } from '../../../analytics/ownerActivity'
@@ -33,7 +33,6 @@ import type {
   OwnerProfile,
 } from '../types/owner'
 import { useOwnerRestaurant } from '../context/ownerRestaurantState'
-import { getOwnerPostAuthBootstrap } from '../utils/ownerPostAuthBootstrap'
 import { shouldRenderOwnerJobForm } from '../utils/ownerJobBoardAvailability'
 
 const emptyJobForm: OwnerJobInput = {
@@ -115,9 +114,8 @@ function getJobInputFromJob(job: OwnerJob): OwnerJobInput {
 
 function OwnerJobsPage() {
   const navigate = useNavigate()
-  const location = useLocation()
-  const ownerBootstrap = getOwnerPostAuthBootstrap(location.state)
-  const { selectedRestaurantId } = useOwnerRestaurant()
+  const { consumePostAuthProfile, selectedRestaurantId } =
+    useOwnerRestaurant()
   const { direction, language } = useRestaurantLanguage()
   const [profile, setProfile] = useState<OwnerProfile | null>(null)
   const [jobs, setJobs] = useState<OwnerJob[]>([])
@@ -417,10 +415,10 @@ function OwnerJobsPage() {
       setIsCreating(false)
 
       try {
-        const ownerProfile =
-          ownerBootstrap?.selectedRestaurantId === selectedRestaurantId
-            ? ownerBootstrap.profile
-            : await getOwnerProfile(selectedRestaurantId ?? undefined)
+        const postAuthProfile = consumePostAuthProfile(selectedRestaurantId)
+        const ownerProfile = postAuthProfile
+          ? postAuthProfile.profile
+          : await getOwnerProfile(selectedRestaurantId ?? undefined)
 
         if (isActive) {
           setProfile(ownerProfile)
@@ -462,7 +460,7 @@ function OwnerJobsPage() {
     return () => {
       isActive = false
     }
-  }, [loadAttempt, ownerBootstrap, selectedRestaurantId])
+  }, [consumePostAuthProfile, loadAttempt, selectedRestaurantId])
 
   useEffect(() => {
     return () => {

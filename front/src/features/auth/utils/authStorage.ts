@@ -1,17 +1,17 @@
-const AUTH_TOKEN_KEY = 'job-tracker-auth-token'
+export const AUTH_TOKEN_STORAGE_KEY = 'job-tracker-auth-token'
 
 export const AUTH_SESSION_EXPIRED_EVENT = 'auth-session-expired'
 
 export function getAuthToken() {
-  return localStorage.getItem(AUTH_TOKEN_KEY)
+  return localStorage.getItem(AUTH_TOKEN_STORAGE_KEY)
 }
 
 export function saveAuthToken(token: string) {
-  localStorage.setItem(AUTH_TOKEN_KEY, token)
+  localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token)
 }
 
 export function clearAuthToken() {
-  localStorage.removeItem(AUTH_TOKEN_KEY)
+  localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY)
 }
 
 export function notifyAuthSessionExpired() {
