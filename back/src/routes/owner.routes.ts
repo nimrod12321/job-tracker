@@ -21,6 +21,7 @@ import {
   updateOwnerApplicationStatus,
   updateOwnerJob,
   updateOwnerLeadStatus,
+  updateOwnerMatchContact,
   updateOwnerProfile,
   updateOwnerQrRoles,
 } from '../controllers/owner.controller.js'
@@ -107,6 +108,7 @@ ownerRouter.patch('/qr-roles', updateOwnerQrRoles)
 ownerRouter.get('/team', getOwnerTeam)
 ownerRouter.post('/team/members', addOwnerTeamMember)
 ownerRouter.delete('/team/members/:memberId', removeOwnerTeamMember)
+ownerRouter.patch('/team/match-contact', updateOwnerMatchContact)
 ownerRouter.get('/jobs', getOwnerJobs)
 ownerRouter.post('/jobs', createOwnerJob)
 ownerRouter.put('/jobs/:id', updateOwnerJob)

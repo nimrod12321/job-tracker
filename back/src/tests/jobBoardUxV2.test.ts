@@ -52,7 +52,11 @@ test('owner profile validation accepts multiple known venue types only', () => {
 
   assert.equal(
     ownerProfileSchema.safeParse({
-      ...baseProfile,
+      restaurantName: baseProfile.restaurantName,
+      contactPerson: baseProfile.contactPerson,
+      city: baseProfile.city,
+      street: baseProfile.street,
+      description: baseProfile.description,
       venueTypes: ['cafe', 'patisserie'],
     }).success,
     true,

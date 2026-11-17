@@ -4,6 +4,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import 'dotenv/config'
 import bcrypt from 'bcryptjs'
+import { randomInt } from 'node:crypto'
 import type { Express } from 'express'
 
 const shouldRunSecurityTests = process.env.RUN_SECURITY_TESTS === 'true'
@@ -90,6 +91,7 @@ type OwnerTeamResponse = {
 type OwnerProfileResponse = {
   id: string
   slug: string | null
+  phoneNumber: string
   qrEnabledRoles: string[]
   venueTypes?: string[]
 }
@@ -265,6 +267,9 @@ test(
     const uniquePhoneSuffix = Date.now().toString().slice(-7)
     const unverifiedWorkerPhone = `+97250${uniquePhoneSuffix}`
     const incompleteWorkerPhone = `+97252${uniquePhoneSuffix}`
+    const ownerAccountPhone = `+97254${randomInt(0, 10_000_000)
+      .toString()
+      .padStart(7, '0')}`
     const adminEmail = `admin-${runId}@example.test`
     const secondAdminEmail = `admin-two-${runId}@example.test`
 
@@ -453,6 +458,15 @@ test(
     async function createOwner(emailPrefix: string) {
       const email = `${emailPrefix}-${runId}@example.test`
       const token = await registerAndLogin(email, 'restaurantOwner')
+      await prisma.user.update({
+        where: { email },
+        data: {
+          phoneNumber: `+9725${randomInt(0, 100_000_000)
+            .toString()
+            .padStart(8, '0')}`,
+          phoneVerifiedAt: new Date(),
+        },
+      })
       const restaurantName = `${emailPrefix} ${runId}`
       createdRestaurantNames.push(restaurantName)
       const locationPlaceId = `${emailPrefix}-place-${runId}`
@@ -463,13 +477,15 @@ test(
         headers: jsonHeaders(token),
         body: JSON.stringify({
           restaurantName,
-          contactPerson: 'Owner',
-          phoneNumber: '0500000000',
-          whatsappNumber: '0500000000',
+          contactPerson: '',
+          phoneNumber: '',
+          whatsappNumber: '',
           city: 'Tel Aviv',
           street: emailPrefix,
-          description: 'Security test restaurant',
+          description: '',
           locationPlaceId,
+          venueTypes: ['restaurant'],
+          matchContactDisclosureVersion: 'owner-match-contact-v1',
         }),
       })
 
@@ -577,6 +593,48 @@ test(
         'unverified',
       )
 
+      const legacyCustomContactJob = await prisma.restaurantJob.create({
+        data: {
+          ownerProfileId: legacyRestaurant.id,
+          restaurantName: legacyRestaurant.restaurantName,
+          role: 'baker',
+          description: 'Legacy contact job',
+          requirements: 'Friendly service',
+          shiftInfo: '',
+          location: legacyRestaurant.city,
+          area: legacyRestaurant.street,
+          contactPhone: '+972509993333',
+          contactWhatsapp: '+972509994444',
+          kind: 'posted',
+          isActive: false,
+        },
+      })
+      const legacyContactUpdate = await request<OwnerJobResponse>(
+        `/owner/jobs/${legacyCustomContactJob.id}`,
+        {
+          method: 'PUT',
+          headers: jsonHeaders(legacyOwnerToken),
+          body: JSON.stringify({
+            role: 'baker',
+            description: 'Updated legacy contact job',
+            requirements: 'Friendly service',
+            shiftInfo: '',
+            contactPhone: '+972509995555',
+            contactWhatsapp: '+972509996666',
+          }),
+        },
+      )
+      assert.equal(legacyContactUpdate.status, 200)
+      const updatedLegacyContactJob =
+        await prisma.restaurantJob.findUniqueOrThrow({
+          where: { id: legacyCustomContactJob.id },
+        })
+      assert.equal(updatedLegacyContactJob.contactPhone, '+972509995555')
+      assert.equal(
+        updatedLegacyContactJob.contactWhatsapp,
+        '+972509996666',
+      )
+
       const ownerAInitialJobs = await request<OwnerJobResponse[]>(
         '/owner/jobs',
         {
@@ -586,19 +644,22 @@ test(
       assert.equal(ownerAInitialJobs.status, 200)
       assert.equal(
         ownerAInitialJobs.body.length,
-        8,
+        11,
       )
       assert.deepEqual(
         ownerAInitialJobs.body
           .map((job) => job.role)
           .sort(),
         [
+          'baker',
           'barista',
           'bartender',
           'cook',
           'counterWorker',
           'floorManager',
           'host',
+          'pastryChef',
+          'restaurantManager',
           'socialManager',
           'waiter',
         ],
@@ -800,8 +861,6 @@ test(
             description: 'Counter service job',
             requirements: 'Friendly and reliable',
             shiftInfo: 'Flexible counter shifts',
-            contactPhone: '',
-            contactWhatsapp: '',
           }),
         },
       )
@@ -964,9 +1023,12 @@ test(
       )
       assert.equal(activateBarista.status, 200)
 
-      const waiterBeforeUxUpdate =
-        await prisma.restaurantJob.findUniqueOrThrow({
+      const waiterBeforeUxUpdate = await prisma.restaurantJob.update({
           where: { id: ownerAWaiterJob.id },
+          data: {
+            contactPhone: '+972509991111',
+            contactWhatsapp: '+972509992222',
+          },
         })
       const ownerUpdatesJobUxFields = await request<OwnerJobResponse>(
         `/owner/jobs/${ownerAWaiterJob.id}`,
@@ -980,8 +1042,6 @@ test(
             shiftInfo: waiterBeforeUxUpdate.shiftInfo,
             employmentScope: 'partTime',
             hourlyWage: 52,
-            contactPhone: '',
-            contactWhatsapp: '',
           }),
         },
       )
@@ -994,6 +1054,12 @@ test(
         ownerUpdatesJobUxFields.body.shiftInfo,
         waiterBeforeUxUpdate.shiftInfo,
       )
+      const contactAfterNormalJobEdit =
+        await prisma.restaurantJob.findUniqueOrThrow({
+          where: { id: ownerAWaiterJob.id },
+        })
+      assert.equal(contactAfterNormalJobEdit.contactPhone, '+972509991111')
+      assert.equal(contactAfterNormalJobEdit.contactWhatsapp, '+972509992222')
 
       const ownerModifiesOptionalSalary = await request<OwnerJobResponse>(
         `/owner/jobs/${ownerAWaiterJob.id}`,
@@ -1007,8 +1073,8 @@ test(
             shiftInfo: waiterBeforeUxUpdate.shiftInfo,
             employmentScope: 'partTime',
             hourlyWage: 58,
-            contactPhone: '',
-            contactWhatsapp: '',
+            contactPhone: '+972500000001',
+            contactWhatsapp: '+972500000002',
           }),
         },
       )
@@ -1016,6 +1082,18 @@ test(
       assert.equal(ownerModifiesOptionalSalary.body.hourlyWage, 58)
       assert.equal(ownerModifiesOptionalSalary.body.kind, 'posted')
       assert.equal(ownerModifiesOptionalSalary.body.isActive, true)
+      const contactAfterDynamicContactOverrideAttempt =
+        await prisma.restaurantJob.findUniqueOrThrow({
+          where: { id: ownerAWaiterJob.id },
+        })
+      assert.equal(
+        contactAfterDynamicContactOverrideAttempt.contactPhone,
+        '+972509991111',
+      )
+      assert.equal(
+        contactAfterDynamicContactOverrideAttempt.contactWhatsapp,
+        '+972509992222',
+      )
 
       const ownerRemovesOptionalSalary = await request<OwnerJobResponse>(
         `/owner/jobs/${ownerAWaiterJob.id}`,
@@ -1029,8 +1107,6 @@ test(
             shiftInfo: waiterBeforeUxUpdate.shiftInfo,
             employmentScope: 'partTime',
             hourlyWage: null,
-            contactPhone: '',
-            contactWhatsapp: '',
           }),
         },
       )
@@ -1051,8 +1127,6 @@ test(
             shiftInfo: 'Flexible counter shifts',
             employmentScope: 'flexible',
             hourlyWage: 0,
-            contactPhone: '',
-            contactWhatsapp: '',
           }),
         },
       )
@@ -1076,8 +1150,6 @@ test(
           body: JSON.stringify({
             restaurantName: ownerProfileBeforeVenueUpdate.restaurantName,
             contactPerson: ownerProfileBeforeVenueUpdate.contactPerson,
-            phoneNumber: ownerProfileBeforeVenueUpdate.phoneNumber,
-            whatsappNumber: ownerProfileBeforeVenueUpdate.whatsappNumber,
             city: ownerProfileBeforeVenueUpdate.city,
             street: ownerProfileBeforeVenueUpdate.street,
             description: ownerProfileBeforeVenueUpdate.description,
@@ -1090,6 +1162,18 @@ test(
         'cafe',
         'patisserie',
       ])
+      const ownerProfileAfterVenueUpdate =
+        await prisma.restaurantOwnerProfile.findUniqueOrThrow({
+          where: { id: ownerA.profile.id },
+        })
+      assert.equal(
+        ownerProfileAfterVenueUpdate.phoneNumber,
+        ownerProfileBeforeVenueUpdate.phoneNumber,
+      )
+      assert.equal(
+        ownerProfileAfterVenueUpdate.whatsappNumber,
+        ownerProfileBeforeVenueUpdate.whatsappNumber,
+      )
 
       const publicAfterBaristaActivation = await request<{
         qrEnabledRoles: string[]
@@ -1147,7 +1231,7 @@ test(
           email: ownerA.email,
         },
         data: {
-          phoneNumber: '+972501234321',
+          phoneNumber: ownerAccountPhone,
           phoneVerifiedAt: new Date(),
         },
       })
@@ -2417,7 +2501,18 @@ test(
           email: ownerA.email,
         },
         data: {
-          phoneNumber: '+972501234321',
+          phoneNumber: ownerAccountPhone,
+        },
+      })
+      await prisma.restaurantMember.updateMany({
+        where: {
+          restaurantId: ownerA.profile.id,
+          user: { email: ownerA.email },
+          role: 'owner',
+          status: 'active',
+        },
+        data: {
+          phoneNumber: ownerAccountPhone,
         },
       })
 
@@ -2489,8 +2584,11 @@ test(
         },
       )
       assert.equal(ownerADetail.status, 200)
-      assert.equal(ownerADetail.body.ownerAccountPhone, '+972501234321')
-      assert.equal(ownerADetail.body.restaurantContactPhone, '0500000000')
+      assert.equal(ownerADetail.body.ownerAccountPhone, ownerAccountPhone)
+      assert.equal(
+        ownerADetail.body.restaurantContactPhone,
+        ownerA.profile.phoneNumber,
+      )
 
       const publicRestaurant = await request<Record<string, unknown>>(
         `/public/restaurants/${ownerA.profile.slug}`,

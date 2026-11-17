@@ -22,6 +22,18 @@ test('owner job description and requirements accept compact-card word limits', (
   assert.equal(result.success, true)
 })
 
+test('owner job contact snapshots are optional in the normal editor payload', () => {
+  assert.equal(
+    ownerJobSchema.safeParse({
+      role: validJob.role,
+      description: validJob.description,
+      requirements: validJob.requirements,
+      shiftInfo: validJob.shiftInfo,
+    }).success,
+    true,
+  )
+})
+
 test('owner job description rejects more than 18 words', () => {
   const result = ownerJobSchema.safeParse({
     ...validJob,

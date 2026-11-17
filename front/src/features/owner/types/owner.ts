@@ -16,6 +16,8 @@ export type OwnerProfile = {
   slug: string | null
   qrEnabledRoles: RestaurantRole[]
   venueTypes: RestaurantVenueType[]
+  ownerMatchContactConfirmed: boolean
+  primaryHiringManagerMemberId: string | null
   locationStatus: 'unverified' | 'verified'
   locationCity: string | null
   locationStreetName: string | null
@@ -63,12 +65,11 @@ export type OwnerTeam = {
 export type OwnerProfileInput = {
   restaurantName: string
   contactPerson: string
-  phoneNumber: string
-  whatsappNumber: string
   city: string
   street: string
   description: string
   venueTypes: RestaurantVenueType[]
+  hiringManagerPhone: string
   locationPlaceId?: string
 }
 
@@ -79,11 +80,16 @@ export type OwnerJobInput = {
   shiftInfo: string
   employmentScope: RestaurantEmploymentScope | null
   hourlyWage: number | null
+}
+
+export type OwnerJobLegacyContactInput = {
   contactPhone: string
   contactWhatsapp: string
 }
 
 export type OwnerJob = OwnerJobInput & {
+  contactPhone: string
+  contactWhatsapp: string
   id: string
   restaurantName: string
   city: string

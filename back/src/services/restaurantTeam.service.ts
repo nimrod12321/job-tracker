@@ -131,74 +131,60 @@ export async function getRestaurantTeam(restaurantId: string) {
   })
 }
 
-export async function addRestaurantHiringManager(input: {
+export type AddRestaurantHiringManagerInput = {
   restaurantId: string
   phoneNumber: string
   displayName?: string
   invitedByUserId: string
-}) {
+}
+
+export async function addRestaurantHiringManagerInTransaction(
+  tx: RestaurantTeamTransaction,
+  input: AddRestaurantHiringManagerInput,
+) {
   const phoneNumber = normalizeTeamPhone(input.phoneNumber)
+  const user = await tx.user.findUnique({
+    where: { phoneNumber },
+    select: {
+      id: true,
+      fullName: true,
+      phoneVerifiedAt: true,
+      registrationCompletedAt: true,
+    },
+  })
+  const canActivate = Boolean(
+    user?.phoneVerifiedAt && user.registrationCompletedAt,
+  )
+  const existingMember = await findMembershipIdentity(tx, {
+    restaurantId: input.restaurantId,
+    phoneNumber,
+    ...(canActivate && user ? { userId: user.id } : {}),
+  })
 
-  return prisma.$transaction(async (tx) => {
-    await lockRestaurantMembershipState(tx, input.restaurantId)
+  if (existingMember?.role === 'owner') {
+    throw new RestaurantTeamError(
+      'OWNER_ROLE_PROTECTED',
+      409,
+      'owner membership cannot be changed to hiring manager',
+    )
+  }
 
-    const user = await tx.user.findUnique({
-      where: { phoneNumber },
-      select: {
-        id: true,
-        fullName: true,
-      },
-    })
-    const existingMember = await findMembershipIdentity(tx, {
-      restaurantId: input.restaurantId,
-      phoneNumber,
-      ...(user ? { userId: user.id } : {}),
-    })
+  const data = {
+    phoneNumber,
+    userId: canActivate && user ? user.id : null,
+    displayName:
+      input.displayName?.trim() || user?.fullName || '',
+    role: 'hiringManager' as const,
+    status: canActivate ? ('active' as const) : ('pending' as const),
+    invitedByUserId: input.invitedByUserId,
+  }
 
-    if (existingMember?.role === 'owner') {
-      throw new RestaurantTeamError(
-        'OWNER_ROLE_PROTECTED',
-        409,
-        'owner membership cannot be changed to hiring manager',
-      )
-    }
-
-    const data = {
-      phoneNumber,
-      userId: user?.id ?? null,
-      displayName:
-        input.displayName?.trim() || user?.fullName || '',
-      role: 'hiringManager' as const,
-      status: user ? ('active' as const) : ('pending' as const),
-      invitedByUserId: input.invitedByUserId,
-    }
-
-    if (existingMember) {
-      return {
-        created: false,
-        member: await tx.restaurantMember.update({
-          where: { id: existingMember.id },
-          data,
-          include: {
-            user: {
-              select: {
-                id: true,
-                fullName: true,
-                phoneNumber: true,
-              },
-            },
-          },
-        }),
-      }
-    }
-
+  if (existingMember) {
     return {
-      created: true,
-      member: await tx.restaurantMember.create({
-        data: {
-          restaurantId: input.restaurantId,
-          ...data,
-        },
+      created: false,
+      member: await tx.restaurantMember.update({
+        where: { id: existingMember.id },
+        data,
         include: {
           user: {
             select: {
@@ -210,6 +196,34 @@ export async function addRestaurantHiringManager(input: {
         },
       }),
     }
+  }
+
+  return {
+    created: true,
+    member: await tx.restaurantMember.create({
+      data: {
+        restaurantId: input.restaurantId,
+        ...data,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            phoneNumber: true,
+          },
+        },
+      },
+    }),
+  }
+}
+
+export async function addRestaurantHiringManager(
+  input: AddRestaurantHiringManagerInput,
+) {
+  return prisma.$transaction(async (tx) => {
+    await lockRestaurantMembershipState(tx, input.restaurantId)
+    return addRestaurantHiringManagerInTransaction(tx, input)
   })
 }
 
@@ -247,11 +261,84 @@ export async function removeRestaurantHiringManager(input: {
       return member
     }
 
+    await tx.restaurantOwnerProfile.updateMany({
+      where: {
+        id: input.restaurantId,
+        primaryHiringManagerMemberId: member.id,
+      },
+      data: {
+        primaryHiringManagerMemberId: null,
+      },
+    })
+
     // Keep the linked user as a revocation tombstone. Access resolution checks
     // status on every request, and pending activation cannot revive this row.
     return tx.restaurantMember.update({
       where: { id: member.id },
       data: { status: 'removed' },
+    })
+  })
+}
+
+export async function setRestaurantMatchContact(input: {
+  restaurantId: string
+  primaryHiringManagerMemberId: string | null
+}) {
+  return prisma.$transaction(async (tx) => {
+    await lockRestaurantMembershipState(tx, input.restaurantId)
+
+    if (input.primaryHiringManagerMemberId) {
+      const member = await tx.restaurantMember.findFirst({
+        where: {
+          id: input.primaryHiringManagerMemberId,
+          restaurantId: input.restaurantId,
+          role: 'hiringManager',
+          status: 'active',
+          userId: { not: null },
+          user: {
+            is: {
+              phoneVerifiedAt: { not: null },
+              registrationCompletedAt: { not: null },
+            },
+          },
+        },
+        select: { id: true },
+      })
+
+      if (!member) {
+        throw new RestaurantTeamError(
+          'HIRING_MANAGER_REQUIRED',
+          400,
+          'choose an active verified hiring manager',
+        )
+      }
+    }
+
+    const restaurant = await tx.restaurantOwnerProfile.findUnique({
+      where: { id: input.restaurantId },
+      select: { ownerMatchContactConfirmedAt: true },
+    })
+
+    if (!restaurant) {
+      throw new RestaurantTeamError(
+        'RESTAURANT_NOT_FOUND',
+        404,
+        'restaurant not found',
+      )
+    }
+
+    return tx.restaurantOwnerProfile.update({
+      where: { id: input.restaurantId },
+      data: {
+        primaryHiringManagerMemberId:
+          input.primaryHiringManagerMemberId,
+        ownerMatchContactConfirmedAt:
+          restaurant.ownerMatchContactConfirmedAt ?? new Date(),
+      },
+      select: {
+        primaryHiringManagerMemberId: true,
+        ownerMatchContactConfirmedAt: true,
+      },
     })
   })
 }
@@ -405,6 +492,14 @@ export async function replaceRestaurantOwner(input: {
         'restaurant would have more than one active owner',
       )
     }
+
+    await tx.restaurantOwnerProfile.updateMany({
+      where: {
+        id: input.restaurantId,
+        primaryHiringManagerMemberId: replacement.id,
+      },
+      data: { primaryHiringManagerMemberId: null },
+    })
 
     // A replacement owner activates through the phone membership, not a stale
     // first-owner claim link. Consuming it closes a concurrent claim path.

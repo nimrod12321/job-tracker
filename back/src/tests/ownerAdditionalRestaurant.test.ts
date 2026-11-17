@@ -211,16 +211,20 @@ test(
     function additionalRestaurantInput(
       name: string,
       placeId: string,
+      hiringManagerPhone = '',
     ) {
       return {
         restaurantName: name,
-        contactPerson: `New Cafe Contact ${runId}`,
-        phoneNumber: '0501234567',
-        whatsappNumber: '0501234567',
+        contactPerson: '',
+        phoneNumber: '',
+        whatsappNumber: '',
         city: 'Tel Aviv–Yafo',
         street: 'Selected address',
         locationPlaceId: placeId,
-        description: `A complete restaurant profile for testing ${runId}.`,
+        description: '',
+        venueTypes: ['cafe', 'patisserie'],
+        hiringManagerPhone,
+        matchContactDisclosureVersion: 'owner-match-contact-v1',
       }
     }
 
@@ -246,6 +250,7 @@ test(
       })
 
       registerPlace(`second-${runId}`, '101')
+      const pendingManagerPhone = createPhone()
       const secondResponse = await request<{
         id: string
         restaurantName: string
@@ -258,6 +263,7 @@ test(
         body: additionalRestaurantInput(
           'Second Cafe',
           `second-${runId}`,
+          pendingManagerPhone,
         ),
       })
       assert.equal(secondResponse.status, 201)
@@ -276,17 +282,39 @@ test(
       createdUserIds.add(secondProfile.userId)
       assert.notEqual(secondProfile.userId, owner.id)
       assert.ok(secondProfile.claim?.claimedAt)
-      assert.equal(secondProfile.jobs.length, 8)
+      assert.equal(secondProfile.jobs.length, 11)
       assert.ok(secondProfile.jobs.every((job) => !job.isActive))
       assert.notDeepEqual(secondProfile.qrEnabledRoles, ['socialManager'])
       assert.deepEqual(
         secondProfile.members.map((member) => ({
           userId: member.userId,
+          phoneNumber: member.phoneNumber,
           role: member.role,
           status: member.status,
-        })),
-        [{ userId: owner.id, role: 'owner', status: 'active' }],
+        })).sort((left, right) => left.role.localeCompare(right.role)),
+        [
+          {
+            userId: null,
+            phoneNumber: pendingManagerPhone,
+            role: 'hiringManager',
+            status: 'pending',
+          },
+          {
+            userId: owner.id,
+            phoneNumber: owner.phoneNumber,
+            role: 'owner',
+            status: 'active',
+          },
+        ],
       )
+      assert.deepEqual(secondProfile.venueTypes, ['cafe', 'patisserie'])
+      assert.equal(secondProfile.ownerMatchContactConfirmedAt, null)
+      assert.equal(
+        secondProfile.matchContactDisclosureVersion,
+        'owner-match-contact-v1',
+      )
+      assert.equal(secondProfile.contactPerson, owner.fullName)
+      assert.equal(secondProfile.phoneNumber, owner.phoneNumber)
 
       registerPlace(`third-${runId}`, '102')
       const thirdResponse = await request<{ id: string; slug: string }>(
@@ -353,7 +381,7 @@ test(
             role: 'hiringManager',
           },
         }),
-        0,
+        1,
       )
 
       const secondQrUpdate = await request<{ qrEnabledRoles: string[] }>(

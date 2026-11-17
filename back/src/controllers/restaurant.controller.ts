@@ -16,6 +16,7 @@ import {
   getPreferredWorkArea,
   isInsidePreferredWorkArea,
 } from '../services/preferredWorkArea.service.js'
+import { resolveRestaurantMatchContact } from '../services/restaurantMatchContact.service.js'
 import {
   restaurantApplicationSchema,
   restaurantExploreSchema,
@@ -803,6 +804,18 @@ export async function getRestaurantMatches(req: Request, res: Response) {
       })
     }
 
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: restaurantWorkerEligibilityUserSelect,
+    })
+    const eligibility = getRestaurantWorkerEligibility(user)
+
+    if (!eligibility.eligible) {
+      return res.status(eligibility.status).json({
+        message: eligibility.message,
+      })
+    }
+
     const matches = await prisma.restaurantApplication.findMany({
       where: {
         userId,
@@ -825,6 +838,32 @@ export async function getRestaurantMatches(req: Request, res: Response) {
             hourlyWage: true,
             contactPhone: true,
             contactWhatsapp: true,
+            ownerProfile: {
+              select: {
+                ownerMatchContactConfirmedAt: true,
+                matchContactDisclosureVersion: true,
+                primaryHiringManagerMemberId: true,
+                members: {
+                  where: {
+                    role: { in: ['owner', 'hiringManager'] },
+                    status: 'active',
+                  },
+                  select: {
+                    id: true,
+                    phoneNumber: true,
+                    role: true,
+                    status: true,
+                    userId: true,
+                    user: {
+                      select: {
+                        phoneVerifiedAt: true,
+                        registrationCompletedAt: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -834,24 +873,33 @@ export async function getRestaurantMatches(req: Request, res: Response) {
     })
 
     return res.json(
-      matches.map((match) => ({
-        id: match.id,
-        createdAt: match.createdAt.toISOString(),
-        job: {
-          id: match.restaurantJob.id,
-          restaurantName: match.restaurantJob.restaurantName,
-          role: match.restaurantJob.role,
-          city: match.restaurantJob.location,
-          street: match.restaurantJob.area,
-          description: match.restaurantJob.description,
-          requirements: match.restaurantJob.requirements,
-          shiftInfo: match.restaurantJob.shiftInfo,
-          employmentScope: match.restaurantJob.employmentScope,
-          hourlyWage: match.restaurantJob.hourlyWage,
-          contactPhone: match.restaurantJob.contactPhone,
-          contactWhatsapp: match.restaurantJob.contactWhatsapp,
-        },
-      })),
+      matches.map((match) => {
+        const contact = resolveRestaurantMatchContact(
+          match.restaurantJob.ownerProfile,
+          {
+            contactPhone: match.restaurantJob.contactPhone,
+            contactWhatsapp: match.restaurantJob.contactWhatsapp,
+          },
+        )
+
+        return {
+          id: match.id,
+          createdAt: match.createdAt.toISOString(),
+          job: {
+            id: match.restaurantJob.id,
+            restaurantName: match.restaurantJob.restaurantName,
+            role: match.restaurantJob.role,
+            city: match.restaurantJob.location,
+            street: match.restaurantJob.area,
+            description: match.restaurantJob.description,
+            requirements: match.restaurantJob.requirements,
+            shiftInfo: match.restaurantJob.shiftInfo,
+            employmentScope: match.restaurantJob.employmentScope,
+            hourlyWage: match.restaurantJob.hourlyWage,
+            ...contact,
+          },
+        }
+      }),
     )
   } catch (error) {
     console.error(error)
