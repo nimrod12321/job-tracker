@@ -15,6 +15,13 @@ const optionalText = (field: string, maxLength: number) =>
     .optional()
     .default('')
 
+const optionalProvidedText = (field: string, maxLength: number) =>
+  z
+    .string({ error: `${field} must be a string` })
+    .trim()
+    .max(maxLength, `${field} is too long`)
+    .optional()
+
 const countWords = (value: string) => {
   const trimmedValue = value.trim()
 
@@ -35,8 +42,8 @@ export const ownerProfileSchema = z
   .object({
     restaurantName: optionalText('restaurant name', 200),
     contactPerson: optionalText('contact person', 150),
-    phoneNumber: optionalText('phone number', 50),
-    whatsappNumber: optionalText('WhatsApp number', 50),
+    phoneNumber: optionalProvidedText('phone number', 50),
+    whatsappNumber: optionalProvidedText('WhatsApp number', 50),
     city: optionalText('city', 200),
     street: optionalText('street', 200),
     locationPlaceId: optionalText('location place id', 300),
@@ -115,8 +122,8 @@ export const ownerJobSchema = z
       .max(10_000, 'hourly wage is too high')
       .nullable()
       .optional(),
-    contactPhone: optionalText('contact phone', 50),
-    contactWhatsapp: optionalText('contact WhatsApp', 50),
+    contactPhone: optionalProvidedText('contact phone', 50),
+    contactWhatsapp: optionalProvidedText('contact WhatsApp', 50),
   })
   .strict()
 

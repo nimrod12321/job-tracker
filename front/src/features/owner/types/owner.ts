@@ -65,8 +65,6 @@ export type OwnerTeam = {
 export type OwnerProfileInput = {
   restaurantName: string
   contactPerson: string
-  phoneNumber: string
-  whatsappNumber: string
   city: string
   street: string
   description: string
@@ -82,11 +80,16 @@ export type OwnerJobInput = {
   shiftInfo: string
   employmentScope: RestaurantEmploymentScope | null
   hourlyWage: number | null
+}
+
+export type OwnerJobLegacyContactInput = {
   contactPhone: string
   contactWhatsapp: string
 }
 
 export type OwnerJob = OwnerJobInput & {
+  contactPhone: string
+  contactWhatsapp: string
   id: string
   restaurantName: string
   city: string

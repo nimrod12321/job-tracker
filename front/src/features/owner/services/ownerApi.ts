@@ -9,6 +9,7 @@ import type {
   OwnerAccessibleRestaurant,
   OwnerJob,
   OwnerJobInput,
+  OwnerJobLegacyContactInput,
   OwnerProfile,
   OwnerProfileInput,
   OwnerTeam,
@@ -190,7 +191,7 @@ export async function createOwnerJob(
 
 export async function updateOwnerJob(
   id: string,
-  input: OwnerJobInput,
+  input: OwnerJobInput & Partial<OwnerJobLegacyContactInput>,
   restaurantId?: string,
 ): Promise<OwnerJob> {
   const response = await fetch(`${API_BASE_URL}/owner/jobs/${id}`, {

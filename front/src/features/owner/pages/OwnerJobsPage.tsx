@@ -30,6 +30,7 @@ import {
 import type {
   OwnerJob,
   OwnerJobInput,
+  OwnerJobLegacyContactInput,
   OwnerProfile,
 } from '../types/owner'
 import { useOwnerRestaurant } from '../context/ownerRestaurantState'
@@ -42,8 +43,6 @@ const emptyJobForm: OwnerJobInput = {
   shiftInfo: '',
   employmentScope: null,
   hourlyWage: null,
-  contactPhone: '',
-  contactWhatsapp: '',
 }
 
 // Keep these aligned with ownerJobSchema on the backend and with the compact
@@ -107,8 +106,6 @@ function getJobInputFromJob(job: OwnerJob): OwnerJobInput {
     shiftInfo: job.shiftInfo,
     employmentScope: job.employmentScope,
     hourlyWage: job.hourlyWage,
-    contactPhone: job.contactPhone,
-    contactWhatsapp: job.contactWhatsapp,
   }
 }
 
@@ -120,6 +117,8 @@ function OwnerJobsPage() {
   const [profile, setProfile] = useState<OwnerProfile | null>(null)
   const [jobs, setJobs] = useState<OwnerJob[]>([])
   const [form, setForm] = useState<OwnerJobInput>(emptyJobForm)
+  const [legacyContact, setLegacyContact] =
+    useState<OwnerJobLegacyContactInput | null>(null)
   const [jobStep, setJobStep] = useState(1)
   const [isCreating, setIsCreating] = useState(false)
   const [editingJobId, setEditingJobId] = useState<string | null>(null)
@@ -163,6 +162,7 @@ function OwnerJobsPage() {
     editingJobId,
     ENABLE_DEVELOPMENT_JOB_BOARD,
   )
+  const finalJobStep = legacyContact ? 4 : 3
 
   const text = {
     title: language === 'he' ? 'התחילו לגייס' : 'Start hiring',
@@ -212,14 +212,14 @@ function OwnerJobsPage() {
       language === 'he'
         ? 'לא חובה. יוצג רק אם תזינו סכום.'
         : 'Optional. Shown only when you enter an amount.',
-    contactStep:
+    legacyContactStep:
       language === 'he'
-        ? 'לאן לפנות אחרי התאמה?'
-        : 'Where should matched workers contact you?',
-    contactHint:
+        ? 'פרטי קשר ישנים למשרה הזו'
+        : 'Legacy contact for this job',
+    legacyContactHint:
       language === 'he'
-        ? 'נמלא מהפרופיל אם תשאיר ריק.'
-        : 'Leave blank to use the restaurant profile contact.',
+        ? 'המשרה הזו עדיין משתמשת בפרטי קשר ישנים. הם יישמרו עד שתפעילו אנשי קשר דרך הצוות.'
+        : 'This job still uses legacy contact details. They remain available until team-based contacts are enabled.',
     contactPhone: language === 'he' ? 'טלפון' : 'Phone',
     contactWhatsapp: language === 'he' ? 'וואטסאפ' : 'WhatsApp',
     requirements: language === 'he' ? 'דרישות' : 'Requirements',
@@ -543,17 +543,15 @@ function OwnerJobsPage() {
 
   function resetForm() {
     setForm(emptyJobForm)
+    setLegacyContact(null)
     setEditingJobId(null)
     setIsCreating(false)
     setJobStep(1)
   }
 
   function startCreating() {
-    setForm({
-      ...emptyJobForm,
-      contactPhone: profile?.phoneNumber ?? '',
-      contactWhatsapp: profile?.whatsappNumber ?? '',
-    })
+    setForm(emptyJobForm)
+    setLegacyContact(null)
     setEditingJobId(null)
     setIsCreating(true)
     setJobStep(1)
@@ -563,6 +561,15 @@ function OwnerJobsPage() {
 
   function startEditing(job: OwnerJob) {
     setForm(getJobInputFromJob(job))
+    setLegacyContact(
+      !profile?.ownerMatchContactConfirmed &&
+        Boolean(job.contactPhone || job.contactWhatsapp)
+        ? {
+            contactPhone: job.contactPhone,
+            contactWhatsapp: job.contactWhatsapp,
+          }
+        : null,
+    )
     setEditingJobId(job.id)
     setIsCreating(true)
     setJobStep(1)
@@ -588,7 +595,7 @@ function OwnerJobsPage() {
       return
     }
 
-    if (jobStep < 4) {
+    if (jobStep < finalJobStep) {
       setError(null)
       setJobStep((currentStep) => currentStep + 1)
       return
@@ -599,10 +606,9 @@ function OwnerJobsPage() {
     setIsSubmitting(true)
 
     try {
-      const jobInput = {
-        ...form,
-        contactWhatsapp: form.contactPhone,
-      }
+      const jobInput = legacyContact
+        ? { ...form, ...legacyContact }
+        : form
 
       if (editingJobId) {
         const updatedJob = await updateOwnerJob(
@@ -1384,9 +1390,12 @@ function OwnerJobsPage() {
                 ×
               </button>
               <div className="guided-form-progress">
-                <span>{jobStep}/4</span>
+                <span>{jobStep}/{finalJobStep}</span>
                 <div>
-                  {[1, 2, 3, 4].map((currentStep) => (
+                  {Array.from(
+                    { length: finalJobStep },
+                    (_, index) => index + 1,
+                  ).map((currentStep) => (
                     <span
                       className={currentStep <= jobStep ? 'active' : ''}
                       key={currentStep}
@@ -1398,7 +1407,11 @@ function OwnerJobsPage() {
               <div className="owner-form-heading">
                 <div>
                   <h2>{editingJobId ? text.editJob : text.createJob}</h2>
-                  <p>{jobStep === 4 ? text.contactHint : text.boardHint}</p>
+                  <p>
+                    {jobStep === 4
+                      ? text.legacyContactHint
+                      : text.boardHint}
+                  </p>
                 </div>
               </div>
               <p className="form-compliance-note">{text.jobComplianceNotice}</p>
@@ -1532,17 +1545,46 @@ function OwnerJobsPage() {
                 </>
               )}
 
-              {jobStep === 4 && (
-                <label>
-                  {text.contactPhone}
-                  <input
-                    type="tel"
-                    value={form.contactPhone}
-                    onChange={(event) =>
-                      updateField('contactPhone', event.target.value)
-                    }
-                  />
-                </label>
+              {jobStep === 4 && legacyContact && (
+                <>
+                  <p className="owner-field-wide form-helper-text">
+                    {text.legacyContactStep}
+                  </p>
+                  <label>
+                    {text.contactPhone}
+                    <input
+                      type="tel"
+                      value={legacyContact.contactPhone}
+                      onChange={(event) =>
+                        setLegacyContact((currentContact) =>
+                          currentContact
+                            ? {
+                                ...currentContact,
+                                contactPhone: event.target.value,
+                              }
+                            : currentContact,
+                        )
+                      }
+                    />
+                  </label>
+                  <label>
+                    {text.contactWhatsapp}
+                    <input
+                      type="tel"
+                      value={legacyContact.contactWhatsapp}
+                      onChange={(event) =>
+                        setLegacyContact((currentContact) =>
+                          currentContact
+                            ? {
+                                ...currentContact,
+                                contactWhatsapp: event.target.value,
+                              }
+                            : currentContact,
+                        )
+                      }
+                    />
+                  </label>
+                </>
               )}
 
               <div className="guided-form-actions">
@@ -1563,7 +1605,7 @@ function OwnerJobsPage() {
                 >
                   {isSubmitting
                     ? text.saving
-                    : jobStep === 4
+                    : jobStep === finalJobStep
                       ? editingJobId
                         ? text.saveChanges
                         : text.createJob

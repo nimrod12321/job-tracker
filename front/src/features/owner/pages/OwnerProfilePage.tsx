@@ -19,8 +19,6 @@ import SmsNotificationSettings from '../../../components/settings/SmsNotificatio
 const emptyProfile: OwnerProfileInput = {
   restaurantName: '',
   contactPerson: '',
-  phoneNumber: '',
-  whatsappNumber: '',
   city: 'Tel Aviv–Yafo',
   street: '',
   description: '',
@@ -132,7 +130,6 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
     descriptionSection:
       language === 'he' ? 'על המסעדה' : 'About the restaurant',
     address: language === 'he' ? 'כתובת' : 'Address',
-    contactPhone: language === 'he' ? 'טלפון' : 'Contact phone',
     incompleteSummary:
       language === 'he'
         ? 'כדי לפרסם משרות צריך להשלים את פרטי המסעדה.'
@@ -154,8 +151,6 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
   const fieldLabels: Record<ProfileField, string> = {
     restaurantName: language === 'he' ? 'שם המסעדה' : 'Restaurant name',
     contactPerson: language === 'he' ? 'איש קשר' : 'Contact person',
-    phoneNumber: text.contactPhone,
-    whatsappNumber: text.contactPhone,
     city: language === 'he' ? 'עיר' : 'City',
     street: text.address,
     description: language === 'he' ? 'על המסעדה' : 'About the restaurant',
@@ -197,8 +192,6 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
           setForm({
             restaurantName: profile.restaurantName,
             contactPerson: profile.contactPerson,
-            phoneNumber: profile.phoneNumber,
-            whatsappNumber: profile.whatsappNumber,
             city: profile.city,
             street: profile.street,
             description: profile.description,
@@ -300,7 +293,6 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
     try {
       const profileInput = {
         ...form,
-        whatsappNumber: form.phoneNumber,
         ...(locationPlaceId ? { locationPlaceId } : {}),
       }
       const savedProfile = isCreatingAdditionalRestaurant
@@ -335,8 +327,6 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
       setForm({
         restaurantName: savedProfile.restaurantName,
         contactPerson: savedProfile.contactPerson,
-        phoneNumber: savedProfile.phoneNumber,
-        whatsappNumber: savedProfile.whatsappNumber,
         city: savedProfile.city,
         street: savedProfile.street,
         description: savedProfile.description,
@@ -492,17 +482,6 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
               <h2>{text.contactSection}</h2>
             </div>
             <div className="owner-profile-section-fields">
-              <label>
-                {text.contactPhone}
-                <input
-                  type="tel"
-                  value={form.phoneNumber}
-                  onChange={(event) =>
-                    updateField('phoneNumber', event.target.value)
-                  }
-                />
-              </label>
-
               <label>
                 {fieldLabels.contactPerson}
                 <input

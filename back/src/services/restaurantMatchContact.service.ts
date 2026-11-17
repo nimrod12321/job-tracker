@@ -49,7 +49,8 @@ export function resolveRestaurantMatchContact(
   legacyContact: LegacyJobContact,
 ) {
   // Existing restaurants keep their manually configured job-level contact
-  // until an owner explicitly accepts the team-contact disclosure rule.
+  // until they explicitly enable the team rule or complete onboarding with
+  // the versioned Match-contact disclosure.
   if (
     !restaurant?.ownerMatchContactConfirmedAt &&
     !restaurant?.matchContactDisclosureVersion

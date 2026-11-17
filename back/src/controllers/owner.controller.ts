@@ -502,8 +502,12 @@ export async function createAdditionalOwnerRestaurant(
       venueTypes,
       hiringManagerPhone,
       matchContactDisclosureVersion,
+      phoneNumber: ignoredProfilePhone,
+      whatsappNumber: ignoredProfileWhatsapp,
       ...profileInput
     } = result.data
+    void ignoredProfilePhone
+    void ignoredProfileWhatsapp
     const venueTypesData =
       venueTypes === undefined ? {} : { venueTypes }
     const verifiedLocation = await verifyRestaurantPlaceId({
@@ -758,8 +762,12 @@ export async function updateOwnerProfile(req: Request, res: Response) {
       venueTypes,
       hiringManagerPhone,
       matchContactDisclosureVersion,
+      phoneNumber: ignoredProfilePhone,
+      whatsappNumber: ignoredProfileWhatsapp,
       ...profileInput
     } = result.data
+    void ignoredProfilePhone
+    void ignoredProfileWhatsapp
     const venueTypesData =
       venueTypes === undefined ? {} : { venueTypes }
 
@@ -1076,7 +1084,13 @@ export async function createOwnerJob(req: Request, res: Response) {
       })
     }
 
-    const { employmentScope, hourlyWage, ...jobInput } = result.data
+    const { employmentScope, hourlyWage } = result.data
+    const jobInput = {
+      role: result.data.role,
+      description: result.data.description,
+      requirements: result.data.requirements,
+      shiftInfo: result.data.shiftInfo,
+    }
     const optionalJobData = {
       ...(employmentScope === undefined ? {} : { employmentScope }),
       ...(hourlyWage === undefined ? {} : { hourlyWage }),
@@ -1088,9 +1102,8 @@ export async function createOwnerJob(req: Request, res: Response) {
         restaurantName: profile.restaurantName,
         location: profile.city,
         area: profile.street,
-        contactPhone: result.data.contactPhone || profile.phoneNumber,
-        contactWhatsapp:
-          result.data.contactWhatsapp || profile.whatsappNumber,
+        contactPhone: profile.phoneNumber,
+        contactWhatsapp: profile.whatsappNumber,
         ownerProfileId: profile.id,
         kind: 'posted',
         isActive: false,
@@ -1232,11 +1245,30 @@ export async function updateOwnerJob(req: Request, res: Response) {
       }
     }
 
-    const { employmentScope, hourlyWage, ...jobInput } = bodyResult.data
+    const { employmentScope, hourlyWage } = bodyResult.data
+    const jobInput = {
+      role: bodyResult.data.role,
+      description: bodyResult.data.description,
+      requirements: bodyResult.data.requirements,
+      shiftInfo: bodyResult.data.shiftInfo,
+    }
     const optionalJobData = {
       ...(employmentScope === undefined ? {} : { employmentScope }),
       ...(hourlyWage === undefined ? {} : { hourlyWage }),
     }
+    const canManageLegacyContact =
+      !profile.ownerMatchContactConfirmedAt &&
+      !profile.matchContactDisclosureVersion
+    const legacyContactData = canManageLegacyContact
+      ? {
+          ...(bodyResult.data.contactPhone === undefined
+            ? {}
+            : { contactPhone: bodyResult.data.contactPhone }),
+          ...(bodyResult.data.contactWhatsapp === undefined
+            ? {}
+            : { contactWhatsapp: bodyResult.data.contactWhatsapp }),
+        }
+      : {}
     const job = await prisma.restaurantJob.update({
       where: {
         id: existingJob.id,
@@ -1244,19 +1276,12 @@ export async function updateOwnerJob(req: Request, res: Response) {
       data: {
         ...jobInput,
         ...optionalJobData,
+        ...legacyContactData,
         kind: 'posted',
         isActive: true,
         publishedFromDraftId: null,
         location: profile?.city ?? existingJob.location,
         area: profile?.street ?? existingJob.area,
-        contactPhone:
-          bodyResult.data.contactPhone ||
-          profile?.phoneNumber ||
-          existingJob.contactPhone,
-        contactWhatsapp:
-          bodyResult.data.contactWhatsapp ||
-          profile?.whatsappNumber ||
-          existingJob.contactWhatsapp,
       },
     })
 
