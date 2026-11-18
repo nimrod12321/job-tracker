@@ -113,6 +113,20 @@ enum RestaurantLocationStatus {
   verified
 }
 
+enum AdminCandidateFollowUpStatus {
+  notContacted
+  contacted
+  lookingForJob
+  foundJobElsewhere
+  hiredByAdmin
+}
+
+enum AdminOpportunityConsentStatus {
+  notAsked
+  yes
+  no
+}
+
 model Job {
   id             String      @id @default(uuid())
   company        String
@@ -167,8 +181,35 @@ model User {
   restaurantMemberships         RestaurantMember[]             @relation("RestaurantMemberUser")
   restaurantInvitesSent         RestaurantMember[]             @relation("RestaurantMemberInviter")
   adminRestaurantReadStates     AdminRestaurantReadState[]
+  adminCandidateFollowUp        AdminCandidateFollowUp?
   analyticsAcquisitions         AnalyticsAcquisition[]
   marketingSmsUnsubscribeTokens MarketingSmsUnsubscribeToken[]
+}
+
+model AdminCandidateFollowUp {
+  id String @id @default(uuid())
+
+  candidateUserId String? @unique
+  candidateUser   User?   @relation(fields: [candidateUserId], references: [id], onDelete: SetNull)
+
+  candidateName  String @default("")
+  candidatePhone String @unique
+
+  status             AdminCandidateFollowUpStatus @default(notContacted)
+  privateNote        String                       @default("")
+  lastAdminContactAt DateTime?
+  nextFollowUpAt     DateTime?
+
+  opportunityConsent       AdminOpportunityConsentStatus @default(notAsked)
+  opportunityConsentAt     DateTime?
+  opportunityConsentMethod String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([lastAdminContactAt])
+  @@index([nextFollowUpAt])
 }
 
 model MarketingSmsUnsubscribeToken {

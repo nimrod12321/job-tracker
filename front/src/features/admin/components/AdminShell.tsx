@@ -33,6 +33,7 @@ function AdminShell({ children }: { children: ReactNode }) {
           <NavLink to="/admin/overview">Overview</NavLink>
           <NavLink to="/admin/restaurants">Restaurants</NavLink>
           <NavLink to="/admin/candidates">Candidates</NavLink>
+          <NavLink to="/admin/follow-ups">המעקב שלי</NavLink>
         </nav>
       </aside>
       <main className="admin-main">
