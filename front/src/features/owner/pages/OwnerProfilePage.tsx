@@ -19,17 +19,18 @@ import SmsNotificationSettings from '../../../components/settings/SmsNotificatio
 const emptyProfile: OwnerProfileInput = {
   restaurantName: '',
   contactPerson: '',
-  phoneNumber: '',
-  whatsappNumber: '',
   city: 'Tel Aviv–Yafo',
   street: '',
   description: '',
   venueTypes: [],
+  hiringManagerPhone: '',
 }
 
 type ProfileField = Exclude<
   keyof OwnerProfileInput,
-  'locationPlaceId' | 'venueTypes'
+  | 'locationPlaceId'
+  | 'venueTypes'
+  | 'hiringManagerPhone'
 >
 
 type OwnerProfilePageProps = {
@@ -110,14 +111,25 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
       language === 'he' ? 'סוג המקום' : 'Business type',
     venueTypesHelp:
       language === 'he'
-        ? 'אפשר לבחור יותר מסוג אחד.'
-        : 'You can choose more than one.',
+        ? 'חובה לבחור לפחות סוג אחד. אפשר לבחור יותר מסוג אחד.'
+        : 'Choose at least one. You can select more than one.',
+    hiringManager:
+      language === 'he'
+        ? 'הוספת מנהל/ת גיוס (אופציונלי)'
+        : 'Add a hiring manager (optional)',
+    hiringManagerHelp:
+      language === 'he'
+        ? 'מועמדים שתבחר יקבלו את המספר של מנהל הגיוס, או את שלך אם אין מנהל פעיל.'
+        : 'Candidates you select will receive the hiring manager’s number, or yours if no manager is active.',
+    venueTypesRequired:
+      language === 'he'
+        ? 'צריך לבחור לפחות סוג מקום אחד.'
+        : 'Choose at least one business type.',
     contactSection:
       language === 'he' ? 'יצירת קשר' : 'Contact',
     descriptionSection:
       language === 'he' ? 'על המסעדה' : 'About the restaurant',
     address: language === 'he' ? 'כתובת' : 'Address',
-    contactPhone: language === 'he' ? 'טלפון' : 'Contact phone',
     incompleteSummary:
       language === 'he'
         ? 'כדי לפרסם משרות צריך להשלים את פרטי המסעדה.'
@@ -139,8 +151,6 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
   const fieldLabels: Record<ProfileField, string> = {
     restaurantName: language === 'he' ? 'שם המסעדה' : 'Restaurant name',
     contactPerson: language === 'he' ? 'איש קשר' : 'Contact person',
-    phoneNumber: text.contactPhone,
-    whatsappNumber: text.contactPhone,
     city: language === 'he' ? 'עיר' : 'City',
     street: text.address,
     description: language === 'he' ? 'על המסעדה' : 'About the restaurant',
@@ -182,12 +192,11 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
           setForm({
             restaurantName: profile.restaurantName,
             contactPerson: profile.contactPerson,
-            phoneNumber: profile.phoneNumber,
-            whatsappNumber: profile.whatsappNumber,
             city: profile.city,
             street: profile.street,
             description: profile.description,
             venueTypes: profile.venueTypes,
+            hiringManagerPhone: '',
           })
         }
       } catch (error) {
@@ -241,11 +250,8 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
     return (
       [
         'restaurantName',
-        'contactPerson',
-        'phoneNumber',
         'city',
         'street',
-        'description',
       ] as ProfileField[]
     ).filter((field) => !form[field].trim())
   }
@@ -269,6 +275,11 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
       return
     }
 
+    if (isNewProfile && form.venueTypes.length === 0) {
+      setError(text.venueTypesRequired)
+      return
+    }
+
     const nextMissingFields = getMissingProfileFields()
 
     if (nextMissingFields.length > 0) {
@@ -282,7 +293,6 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
     try {
       const profileInput = {
         ...form,
-        whatsappNumber: form.phoneNumber,
         ...(locationPlaceId ? { locationPlaceId } : {}),
       }
       const savedProfile = isCreatingAdditionalRestaurant
@@ -317,12 +327,11 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
       setForm({
         restaurantName: savedProfile.restaurantName,
         contactPerson: savedProfile.contactPerson,
-        phoneNumber: savedProfile.phoneNumber,
-        whatsappNumber: savedProfile.whatsappNumber,
         city: savedProfile.city,
         street: savedProfile.street,
         description: savedProfile.description,
         venueTypes: savedProfile.venueTypes,
+        hiringManagerPhone: '',
       })
       setSuccess(text.saved)
       setIsNewProfile(false)
@@ -467,47 +476,50 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
           </div>
         </section>
 
-        <section className="owner-profile-section-card">
-          <div className="guided-form-heading">
-            <h2>{text.contactSection}</h2>
-          </div>
-          <div className="owner-profile-section-fields">
-            <label>
-              {text.contactPhone}
-              <input
-                type="tel"
-                aria-invalid={isMissing('phoneNumber')}
-                className={isMissing('phoneNumber') ? 'field-error' : ''}
-                value={form.phoneNumber}
-                onChange={(event) =>
-                  updateField('phoneNumber', event.target.value)
-                }
-              />
-              {isMissing('phoneNumber') && (
-                <span className="field-error-text">
-                  {fieldLabels.phoneNumber}
+        {!isNewProfile ? (
+          <section className="owner-profile-section-card">
+            <div className="guided-form-heading">
+              <h2>{text.contactSection}</h2>
+            </div>
+            <div className="owner-profile-section-fields">
+              <label>
+                {fieldLabels.contactPerson}
+                <input
+                  value={form.contactPerson}
+                  onChange={(event) =>
+                    updateField('contactPerson', event.target.value)
+                  }
+                />
+              </label>
+            </div>
+          </section>
+        ) : (
+          <section className="owner-profile-section-card">
+            <div className="guided-form-heading">
+              <h2>{text.contactSection}</h2>
+            </div>
+            <div className="owner-profile-section-fields">
+              <label className="owner-field-wide">
+                {text.hiringManager}
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  value={form.hiringManagerPhone}
+                  placeholder="050-123-4567"
+                  onChange={(event) =>
+                    setForm((currentForm) => ({
+                      ...currentForm,
+                      hiringManagerPhone: event.target.value,
+                    }))
+                  }
+                />
+                <span className="form-helper-text">
+                  {text.hiringManagerHelp}
                 </span>
-              )}
-            </label>
-
-            <label>
-              {fieldLabels.contactPerson}
-              <input
-                aria-invalid={isMissing('contactPerson')}
-                className={isMissing('contactPerson') ? 'field-error' : ''}
-                value={form.contactPerson}
-                onChange={(event) =>
-                  updateField('contactPerson', event.target.value)
-                }
-              />
-              {isMissing('contactPerson') && (
-                <span className="field-error-text">
-                  {fieldLabels.contactPerson}
-                </span>
-              )}
-            </label>
-          </div>
-        </section>
+              </label>
+            </div>
+          </section>
+        )}
 
         <section className="owner-profile-section-card">
           <div className="guided-form-heading">
@@ -516,20 +528,16 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
           <div className="owner-profile-section-fields">
             <label className="owner-field-wide">
               {fieldLabels.description}
+              <span className="form-helper-text">
+                {language === 'he' ? 'לא חובה' : 'Optional'}
+              </span>
               <textarea
-                aria-invalid={isMissing('description')}
-                className={isMissing('description') ? 'field-error' : ''}
                 rows={5}
                 value={form.description}
                 onChange={(event) =>
                   updateField('description', event.target.value)
                 }
               />
-              {isMissing('description') && (
-                <span className="field-error-text">
-                  {fieldLabels.description}
-                </span>
-              )}
             </label>
           </div>
         </section>

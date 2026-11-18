@@ -41,6 +41,9 @@ enum RestaurantRole {
   barista
   socialManager
   counterWorker
+  restaurantManager
+  baker
+  pastryChef
 }
 
 enum RestaurantJobKind {
@@ -351,6 +354,14 @@ model RestaurantOwnerProfile {
   qrEnabledRoles RestaurantRole[]      @default([waiter, bartender, host, cook, floorManager])
   venueTypes     RestaurantVenueType[] @default([])
 
+  // Legacy restaurants can explicitly enable team-based Match contacts.
+  // New onboarding records the disclosure version shown before submission,
+  // without representing it as an explicit checkbox confirmation.
+  ownerMatchContactConfirmedAt  DateTime?
+  matchContactDisclosureVersion String?
+  primaryHiringManagerMemberId  String?           @unique
+  primaryHiringManager          RestaurantMember? @relation("PrimaryHiringManager", fields: [primaryHiringManagerMemberId], references: [id], onDelete: SetNull)
+
   // Legacy city/street fields above remain for compatibility. Map visibility
   // relies only on these trusted, nullable Google-verified fields.
   locationStatus       RestaurantLocationStatus @default(unverified)
@@ -366,7 +377,7 @@ model RestaurantOwnerProfile {
   jobs            RestaurantJob[]
   leads           RestaurantCandidateLead[]
   qrEvents        RestaurantQrEvent[]
-  members         RestaurantMember[]
+  members         RestaurantMember[]         @relation("RestaurantMembers")
   adminReadStates AdminRestaurantReadState[]
   claim           RestaurantClaim?
 
@@ -414,7 +425,9 @@ model RestaurantMember {
   id String @id @default(uuid())
 
   restaurantId String
-  restaurant   RestaurantOwnerProfile @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  restaurant   RestaurantOwnerProfile @relation("RestaurantMembers", fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  primaryHiringManagerFor RestaurantOwnerProfile? @relation("PrimaryHiringManager")
 
   userId String?
   user   User?   @relation("RestaurantMemberUser", fields: [userId], references: [id], onDelete: SetNull)

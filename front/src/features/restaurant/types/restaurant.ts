@@ -39,6 +39,21 @@ export const RESTAURANT_ROLES = [
     label: 'Counter worker',
     labelHe: 'עובד/ת דלפק',
   },
+  {
+    value: 'restaurantManager',
+    label: 'Restaurant manager',
+    labelHe: 'מנהל/ת מסעדה',
+  },
+  {
+    value: 'baker',
+    label: 'Baker',
+    labelHe: 'אופה/ת',
+  },
+  {
+    value: 'pastryChef',
+    label: 'Pastry chef',
+    labelHe: 'קונדיטור/ית',
+  },
 ] as const
 
 export type RestaurantRole =

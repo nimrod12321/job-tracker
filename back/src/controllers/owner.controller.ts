@@ -32,8 +32,10 @@ import { recordAuthenticatedOwnerActivityBestEffort } from '../services/analytic
 import { DEFAULT_RESTAURANT_JOB_BOARD_JOBS } from '../services/restaurantJobTemplates.js'
 import {
   addRestaurantHiringManager,
+  addRestaurantHiringManagerInTransaction,
   removeRestaurantHiringManager,
   RestaurantTeamError,
+  setRestaurantMatchContact,
 } from '../services/restaurantTeam.service.js'
 import {
   leadIdSchema,
@@ -99,6 +101,7 @@ import {
   ownerJobActiveSchema,
   ownerJobIdSchema,
   ownerJobSchema,
+  ownerMatchContactSchema,
   ownerProfileSchema,
   ownerQrEnabledRolesSchema,
   ownerTeamMemberIdSchema,
@@ -179,6 +182,11 @@ function mapOwnerProfile(profile: RestaurantOwnerProfile) {
     slug: profile.slug,
     qrEnabledRoles: profile.qrEnabledRoles,
     venueTypes: profile.venueTypes,
+    ownerMatchContactConfirmed:
+      profile.ownerMatchContactConfirmedAt !== null ||
+      profile.matchContactDisclosureVersion !== null,
+    primaryHiringManagerMemberId:
+      profile.primaryHiringManagerMemberId,
     locationStatus: profile.locationStatus,
     locationCity: profile.locationCity,
     locationStreetName: profile.locationStreetName,
@@ -489,7 +497,17 @@ export async function createAdditionalOwnerRestaurant(
       })
     }
 
-    const { locationPlaceId, venueTypes, ...profileInput } = result.data
+    const {
+      locationPlaceId,
+      venueTypes,
+      hiringManagerPhone,
+      matchContactDisclosureVersion,
+      phoneNumber: ignoredProfilePhone,
+      whatsappNumber: ignoredProfileWhatsapp,
+      ...profileInput
+    } = result.data
+    void ignoredProfilePhone
+    void ignoredProfileWhatsapp
     const venueTypesData =
       venueTypes === undefined ? {} : { venueTypes }
     const verifiedLocation = await verifyRestaurantPlaceId({
@@ -504,6 +522,8 @@ export async function createAdditionalOwnerRestaurant(
           where: { id: userId },
           select: {
             phoneNumber: true,
+            phoneVerifiedAt: true,
+            registrationCompletedAt: true,
             fullName: true,
           },
         })
@@ -531,7 +551,11 @@ export async function createAdditionalOwnerRestaurant(
           authenticatedUser?.phoneNumber ??
           selectedOwnerMembership?.phoneNumber
 
-        if (!ownerPhoneSource) {
+        if (
+          !ownerPhoneSource ||
+          !authenticatedUser?.phoneVerifiedAt ||
+          !authenticatedUser.registrationCompletedAt
+        ) {
           throw new AdditionalRestaurantCreationError(
             403,
             'verified owner phone is required',
@@ -581,17 +605,26 @@ export async function createAdditionalOwnerRestaurant(
         const placeholderUser = await tx.user.create({
           data: {
             track: 'restaurantOwner',
-            fullName: profileInput.contactPerson,
+            fullName:
+              profileInput.contactPerson ||
+              authenticatedUser.fullName,
           },
         })
         const createdProfile =
           await tx.restaurantOwnerProfile.create({
             data: {
               ...profileInput,
+              contactPerson:
+                profileInput.contactPerson ||
+                authenticatedUser.fullName,
+              phoneNumber: ownerPhone,
+              whatsappNumber: ownerPhone,
               ...venueTypesData,
               ...verifiedLocationData,
               slug,
               userId: placeholderUser.id,
+              matchContactDisclosureVersion:
+                matchContactDisclosureVersion ?? null,
             },
           })
 
@@ -607,6 +640,14 @@ export async function createAdditionalOwnerRestaurant(
             status: 'active',
           },
         })
+
+        if (hiringManagerPhone) {
+          await addRestaurantHiringManagerInTransaction(tx, {
+            restaurantId: createdProfile.id,
+            phoneNumber: hiringManagerPhone,
+            invitedByUserId: userId,
+          })
+        }
 
         const { claim } = await createRestaurantClaim(
           tx,
@@ -638,6 +679,10 @@ export async function createAdditionalOwnerRestaurant(
       return res.status(error.status).json({
         message: error.message,
       })
+    }
+
+    if (error instanceof RestaurantTeamError) {
+      return res.status(error.status).json({ message: error.message })
     }
 
     if (
@@ -712,13 +757,41 @@ export async function updateOwnerProfile(req: Request, res: Response) {
           userId,
         },
       }))
-    const { locationPlaceId, venueTypes, ...profileInput } = result.data
+    const {
+      locationPlaceId,
+      venueTypes,
+      hiringManagerPhone,
+      matchContactDisclosureVersion,
+      phoneNumber: ignoredProfilePhone,
+      whatsappNumber: ignoredProfileWhatsapp,
+      ...profileInput
+    } = result.data
+    void ignoredProfilePhone
+    void ignoredProfileWhatsapp
     const venueTypesData =
       venueTypes === undefined ? {} : { venueTypes }
 
     if (!existingProfile && !locationPlaceId) {
       return res.status(400).json({
         message: 'Choose a valid Tel Aviv–Yafo street and number.',
+      })
+    }
+
+    if (
+      !existingProfile &&
+      (!profileInput.restaurantName.trim() ||
+        !venueTypes?.length ||
+        !matchContactDisclosureVersion)
+    ) {
+      return res.status(400).json({
+        message:
+          'Restaurant name, at least one business type, and the current match contact disclosure are required.',
+      })
+    }
+
+    if (existingProfile && hiringManagerPhone) {
+      return res.status(400).json({
+        message: 'Add hiring managers from the restaurant team page.',
       })
     }
 
@@ -763,24 +836,82 @@ export async function updateOwnerProfile(req: Request, res: Response) {
             ...(slug ? { slug } : {}),
           },
         })
-      : await prisma.restaurantOwnerProfile.upsert({
-          where: {
-            userId,
-          },
-          update: {
-            ...profileInput,
-            ...venueTypesData,
-            ...locationData,
-            ...(slug ? { slug } : {}),
-          },
-          create: {
-            ...profileInput,
-            ...venueTypesData,
-            ...locationData,
-            userId,
-            ...(slug ? { slug } : {}),
-          },
-        })
+      : existingProfile
+        ? await prisma.restaurantOwnerProfile.update({
+            where: { id: existingProfile.id },
+            data: {
+              ...profileInput,
+              ...venueTypesData,
+              ...locationData,
+              ...(slug ? { slug } : {}),
+            },
+          })
+        : await prisma.$transaction(async (tx) => {
+            const authenticatedUser = await tx.user.findUnique({
+              where: { id: userId },
+              select: {
+                phoneNumber: true,
+                phoneVerifiedAt: true,
+                registrationCompletedAt: true,
+                fullName: true,
+              },
+            })
+
+            if (
+              !authenticatedUser?.phoneNumber ||
+              !authenticatedUser.phoneVerifiedAt ||
+              !authenticatedUser.registrationCompletedAt
+            ) {
+              throw new AdditionalRestaurantCreationError(
+                403,
+                'verified owner phone is required',
+              )
+            }
+
+            const ownerPhone = normalizeIsraeliPhoneNumber(
+              authenticatedUser.phoneNumber,
+            )
+            const createdProfile =
+              await tx.restaurantOwnerProfile.create({
+                data: {
+                  ...profileInput,
+                  contactPerson:
+                    profileInput.contactPerson ||
+                    authenticatedUser.fullName,
+                  phoneNumber: ownerPhone,
+                  whatsappNumber: ownerPhone,
+                  ...venueTypesData,
+                  ...locationData,
+                  userId,
+                  ...(slug ? { slug } : {}),
+                  matchContactDisclosureVersion:
+                    matchContactDisclosureVersion ?? null,
+                },
+              })
+
+            await tx.restaurantMember.create({
+              data: {
+                restaurantId: createdProfile.id,
+                userId,
+                phoneNumber: ownerPhone,
+                displayName:
+                  createdProfile.contactPerson ||
+                  authenticatedUser.fullName,
+                role: 'owner',
+                status: 'active',
+              },
+            })
+
+            if (hiringManagerPhone) {
+              await addRestaurantHiringManagerInTransaction(tx, {
+                restaurantId: createdProfile.id,
+                phoneNumber: hiringManagerPhone,
+                invitedByUserId: userId,
+              })
+            }
+
+            return createdProfile
+          })
 
     if (hasCompleteOwnerProfile(profile)) {
       await prisma.restaurantJob.updateMany({
@@ -804,6 +935,13 @@ export async function updateOwnerProfile(req: Request, res: Response) {
       return res.status(error.status).json({
         message: error.message,
       })
+    }
+
+    if (
+      error instanceof AdditionalRestaurantCreationError ||
+      error instanceof RestaurantTeamError
+    ) {
+      return res.status(error.status).json({ message: error.message })
     }
 
     console.error(error)
@@ -946,7 +1084,13 @@ export async function createOwnerJob(req: Request, res: Response) {
       })
     }
 
-    const { employmentScope, hourlyWage, ...jobInput } = result.data
+    const { employmentScope, hourlyWage } = result.data
+    const jobInput = {
+      role: result.data.role,
+      description: result.data.description,
+      requirements: result.data.requirements,
+      shiftInfo: result.data.shiftInfo,
+    }
     const optionalJobData = {
       ...(employmentScope === undefined ? {} : { employmentScope }),
       ...(hourlyWage === undefined ? {} : { hourlyWage }),
@@ -958,9 +1102,8 @@ export async function createOwnerJob(req: Request, res: Response) {
         restaurantName: profile.restaurantName,
         location: profile.city,
         area: profile.street,
-        contactPhone: result.data.contactPhone || profile.phoneNumber,
-        contactWhatsapp:
-          result.data.contactWhatsapp || profile.whatsappNumber,
+        contactPhone: profile.phoneNumber,
+        contactWhatsapp: profile.whatsappNumber,
         ownerProfileId: profile.id,
         kind: 'posted',
         isActive: false,
@@ -1102,11 +1245,30 @@ export async function updateOwnerJob(req: Request, res: Response) {
       }
     }
 
-    const { employmentScope, hourlyWage, ...jobInput } = bodyResult.data
+    const { employmentScope, hourlyWage } = bodyResult.data
+    const jobInput = {
+      role: bodyResult.data.role,
+      description: bodyResult.data.description,
+      requirements: bodyResult.data.requirements,
+      shiftInfo: bodyResult.data.shiftInfo,
+    }
     const optionalJobData = {
       ...(employmentScope === undefined ? {} : { employmentScope }),
       ...(hourlyWage === undefined ? {} : { hourlyWage }),
     }
+    const canManageLegacyContact =
+      !profile.ownerMatchContactConfirmedAt &&
+      !profile.matchContactDisclosureVersion
+    const legacyContactData = canManageLegacyContact
+      ? {
+          ...(bodyResult.data.contactPhone === undefined
+            ? {}
+            : { contactPhone: bodyResult.data.contactPhone }),
+          ...(bodyResult.data.contactWhatsapp === undefined
+            ? {}
+            : { contactWhatsapp: bodyResult.data.contactWhatsapp }),
+        }
+      : {}
     const job = await prisma.restaurantJob.update({
       where: {
         id: existingJob.id,
@@ -1114,19 +1276,12 @@ export async function updateOwnerJob(req: Request, res: Response) {
       data: {
         ...jobInput,
         ...optionalJobData,
+        ...legacyContactData,
         kind: 'posted',
         isActive: true,
         publishedFromDraftId: null,
         location: profile?.city ?? existingJob.location,
         area: profile?.street ?? existingJob.area,
-        contactPhone:
-          bodyResult.data.contactPhone ||
-          profile?.phoneNumber ||
-          existingJob.contactPhone,
-        contactWhatsapp:
-          bodyResult.data.contactWhatsapp ||
-          profile?.whatsappNumber ||
-          existingJob.contactWhatsapp,
       },
     })
 
@@ -2013,6 +2168,56 @@ export async function removeOwnerTeamMember(req: Request, res: Response) {
 
     return res.status(500).json({
       message: 'failed to remove team member',
+    })
+  }
+}
+
+export async function updateOwnerMatchContact(
+  req: Request,
+  res: Response,
+) {
+  try {
+    const userId = getUserId(req)
+
+    if (!userId) {
+      return res.status(401).json({ message: 'unauthorized' })
+    }
+
+    const access = getRequestRestaurantAccess(req)
+
+    if (!access || access.role !== 'owner') {
+      return res.status(403).json({ message: 'owner access required' })
+    }
+
+    const result = ownerMatchContactSchema.safeParse(req.body)
+
+    if (!result.success) {
+      return res.status(400).json({
+        message: getValidationErrorMessage(result.error),
+      })
+    }
+
+    const updated = await setRestaurantMatchContact({
+      restaurantId: access.restaurant.id,
+      primaryHiringManagerMemberId:
+        result.data.primaryHiringManagerMemberId,
+    })
+
+    return res.json({
+      ownerMatchContactConfirmed:
+        updated.ownerMatchContactConfirmedAt !== null,
+      primaryHiringManagerMemberId:
+        updated.primaryHiringManagerMemberId,
+    })
+  } catch (error) {
+    if (error instanceof RestaurantTeamError) {
+      return res.status(error.status).json({ message: error.message })
+    }
+
+    console.error(error)
+
+    return res.status(500).json({
+      message: 'failed to update Match contact',
     })
   }
 }

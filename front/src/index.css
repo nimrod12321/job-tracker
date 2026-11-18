@@ -4248,6 +4248,20 @@ textarea:focus-visible {
   color: var(--restaurant-muted, var(--muted));
 }
 
+.owner-team-match-contact {
+  align-items: start;
+}
+
+.owner-team-match-contact .ui-button {
+  justify-self: start;
+}
+
+.owner-team-primary-contact {
+  color: var(--restaurant-primary, var(--peepss-primary));
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
 .owner-team-badges {
   display: flex;
   flex-wrap: wrap;
@@ -4405,6 +4419,12 @@ textarea:focus-visible {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
+}
+
+@media (max-width: 700px) {
+  .owner-profile-section-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .owner-profile-form > button,

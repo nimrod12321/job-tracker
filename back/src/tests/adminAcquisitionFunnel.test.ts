@@ -617,7 +617,7 @@ test(
       })
       assert.equal(instagram.status, 200)
       assert.ok(instagram.body.userInsights.totalUsers > 0)
-      assert.equal(instagram.body.userInsights.wantedRoles.length, 8)
+      assert.equal(instagram.body.userInsights.wantedRoles.length, 11)
       assert.equal(instagram.body.cohort.basis, 'owner_signup_started')
       assert.equal(instagram.body.cohort.count, 1)
       for (const key of [

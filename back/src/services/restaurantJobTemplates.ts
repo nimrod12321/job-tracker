@@ -76,6 +76,30 @@ export const DEFAULT_RESTAURANT_JOB_BOARD_JOBS: RestaurantJobTemplate[] = [
     description:
       'קבלת הזמנות, שירות ללקוחות, עבודה בעמדת הקופה ושמירה על עמדה מסודרת ונעימה.',
   },
+  {
+    role: 'restaurantManager',
+    shiftInfo: NEUTRAL_SHIFT_INFO,
+    requirements:
+      'אחריות, יכולת הובלת צוות, תקשורת טובה וקבלת החלטות.',
+    description:
+      'ניהול הפעילות השוטפת במסעדה, ליווי הצוות ושמירה על שירות ועבודה מסודרים.',
+  },
+  {
+    role: 'baker',
+    shiftInfo: NEUTRAL_SHIFT_INFO,
+    requirements:
+      'דיוק, אחריות, סדר ויכולת עבודה טובה בצוות.',
+    description:
+      'הכנת מוצרי מאפה כחלק מצוות המטבח ושמירה על סביבת עבודה נקייה ומסודרת.',
+  },
+  {
+    role: 'pastryChef',
+    shiftInfo: NEUTRAL_SHIFT_INFO,
+    requirements:
+      'דיוק, יצירתיות, אחריות ויכולת עבודה טובה בצוות.',
+    description:
+      'הכנת קינוחים ומוצרי קונדיטוריה כחלק מצוות המטבח ושמירה על עבודה מקצועית ומסודרת.',
+  },
 ]
 
 // These were generated automatically before the Hebrew template refresh.
