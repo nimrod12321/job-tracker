@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import {
-  PREFERRED_WORK_AREA_BOUNDS,
+  PREFERRED_WORK_AREA_ISRAEL_BOUNDS,
   PREFERRED_WORK_AREA_MAX_RADIUS_KM,
   PREFERRED_WORK_AREA_MIN_RADIUS_KM,
 } from '../services/preferredWorkArea.service.js'
@@ -32,6 +32,7 @@ export const restaurantVenueTypes = [
   'fastFood',
   'stand',
   'patisserie',
+  'popUp',
 ] as const
 
 export const defaultQrEnabledRoles = [
@@ -90,23 +91,23 @@ export const preferredWorkAreaSchema = z
       .number({ error: 'preferred work area latitude must be a number' })
       .finite('preferred work area latitude must be finite')
       .min(
-        PREFERRED_WORK_AREA_BOUNDS.minLatitude,
-        'preferred work area must be within Tel Aviv–Yafo',
+        PREFERRED_WORK_AREA_ISRAEL_BOUNDS.minLatitude,
+        'preferred work area must be within Israel',
       )
       .max(
-        PREFERRED_WORK_AREA_BOUNDS.maxLatitude,
-        'preferred work area must be within Tel Aviv–Yafo',
+        PREFERRED_WORK_AREA_ISRAEL_BOUNDS.maxLatitude,
+        'preferred work area must be within Israel',
       ),
     longitude: z
       .number({ error: 'preferred work area longitude must be a number' })
       .finite('preferred work area longitude must be finite')
       .min(
-        PREFERRED_WORK_AREA_BOUNDS.minLongitude,
-        'preferred work area must be within Tel Aviv–Yafo',
+        PREFERRED_WORK_AREA_ISRAEL_BOUNDS.minLongitude,
+        'preferred work area must be within Israel',
       )
       .max(
-        PREFERRED_WORK_AREA_BOUNDS.maxLongitude,
-        'preferred work area must be within Tel Aviv–Yafo',
+        PREFERRED_WORK_AREA_ISRAEL_BOUNDS.maxLongitude,
+        'preferred work area must be within Israel',
       ),
     radiusKm: z
       .number({ error: 'preferred work area radius must be a number' })

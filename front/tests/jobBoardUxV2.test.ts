@@ -20,8 +20,18 @@ test('employment scope labels include the supported values and unspecified', () 
 test('venue type labels cover all supported multi-select values', () => {
   assert.deepEqual(
     RESTAURANT_VENUE_TYPES.map((venueType) => venueType.value),
-    ['restaurant', 'bar', 'cafe', 'fastFood', 'stand', 'patisserie'],
+    [
+      'restaurant',
+      'bar',
+      'cafe',
+      'fastFood',
+      'stand',
+      'patisserie',
+      'popUp',
+    ],
   )
   assert.equal(getRestaurantVenueTypeLabel('cafe', 'he'), 'בית קפה')
   assert.equal(getRestaurantVenueTypeLabel('patisserie', 'en'), 'Patisserie')
+  assert.equal(getRestaurantVenueTypeLabel('popUp', 'he'), 'פופ־אפ')
+  assert.equal(getRestaurantVenueTypeLabel('popUp', 'en'), 'Pop-up')
 })

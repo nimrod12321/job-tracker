@@ -8,13 +8,6 @@ const GOOGLE_PLACE_FIELDS = [
   'types',
 ].join(',')
 
-const TEL_AVIV_LOCATION_RESTRICTION = {
-  rectangle: {
-    low: { latitude: 31.95, longitude: 34.7 },
-    high: { latitude: 32.15, longitude: 34.9 },
-  },
-}
-
 type GoogleAddressComponent = {
   longText?: string
   shortText?: string
@@ -93,18 +86,6 @@ function normalizeAddressName(value: string) {
     .toLowerCase()
 }
 
-function isTelAvivName(value: string) {
-  const normalized = normalizeAddressName(value)
-
-  return (
-    normalized === 'telaviv' ||
-    normalized === 'telavivyafo' ||
-    normalized === 'telavivjaffa' ||
-    normalized === 'תלאביב' ||
-    normalized === 'תלאביביפו'
-  )
-}
-
 function getAddressComponent(
   components: GoogleAddressComponent[],
   type: string,
@@ -136,10 +117,10 @@ function validateCommonPlace(place: GooglePlaceDetails) {
   const longitude = place.location?.longitude
 
   if (
-    (countryCode !== 'IL' && countryName !== 'israel' && countryName !== 'ישראל') ||
-    !cityCandidates.some((component) =>
-      isTelAvivName(getComponentText(component)),
-    ) ||
+    (countryCode !== 'IL' &&
+      countryName !== 'israel' &&
+      countryName !== 'ישראל') ||
+    cityCandidates.length === 0 ||
     !route ||
     typeof latitude !== 'number' ||
     !Number.isFinite(latitude) ||
@@ -149,14 +130,14 @@ function validateCommonPlace(place: GooglePlaceDetails) {
     !place.formattedAddress
   ) {
     throw new GooglePlacesError(
-      'Please choose a valid address in Tel Aviv–Yafo.',
+      'Please choose a valid address in Israel.',
     )
   }
 
   const city =
     cityCandidates
       .map((component) => getComponentText(component))
-      .find(isTelAvivName) || 'Tel Aviv–Yafo'
+      .find(Boolean) || ''
 
   return {
     googlePlaceId: place.id,
@@ -241,7 +222,6 @@ async function fetchWorkerStreetDetails(input: {
         input: `${input.streetName}, ${input.city}`,
         includedPrimaryTypes: ['route'],
         includedRegionCodes: ['il'],
-        locationRestriction: TEL_AVIV_LOCATION_RESTRICTION,
       }),
     },
   )
@@ -287,7 +267,7 @@ export async function verifyRestaurantPlaceId(input: {
 
   if (!streetNumber) {
     throw new GooglePlacesError(
-      'Choose a valid Tel Aviv–Yafo street and number.',
+      'Choose a valid Israeli street and number.',
     )
   }
 

@@ -48,12 +48,13 @@ test('new restaurant input requires venue type but not description or contact pe
     street: '',
     description: '',
     locationPlaceId: 'google-place-id',
-    venueTypes: ['cafe', 'patisserie'],
+    venueTypes: ['restaurant', 'popUp'],
     hiringManagerPhone: '',
     matchContactDisclosureVersion: MATCH_CONTACT_DISCLOSURE_VERSION,
   })
 
   assert.equal(result.success, true)
+  assert.deepEqual(result.data.venueTypes, ['restaurant', 'popUp'])
   assert.equal(
     ownerAdditionalRestaurantSchema.safeParse({
       ...result.data,

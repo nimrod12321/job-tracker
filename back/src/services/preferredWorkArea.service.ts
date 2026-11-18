@@ -1,8 +1,10 @@
-export const PREFERRED_WORK_AREA_BOUNDS = {
-  minLatitude: 32.0,
-  maxLatitude: 32.15,
-  minLongitude: 34.72,
-  maxLongitude: 34.86,
+// Bounding rectangle used to keep the optional map preference in Israel.
+// Address verification itself remains country-checked through Google Places.
+export const PREFERRED_WORK_AREA_ISRAEL_BOUNDS = {
+  minLatitude: 29.45,
+  maxLatitude: 33.35,
+  minLongitude: 34.2,
+  maxLongitude: 35.95,
 } as const
 
 export const PREFERRED_WORK_AREA_MIN_RADIUS_KM = 0.5

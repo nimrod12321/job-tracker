@@ -43,7 +43,22 @@ const telAvivComponents = [
   { longText: 'Israel', shortText: 'IL', types: ['country'] },
 ]
 
-test('restaurant Place ID stores trusted Tel Aviv street and number', async () => {
+function israelAddressComponents(input: {
+  street: string
+  streetNumber?: string
+  city: string
+}) {
+  return [
+    { longText: input.street, types: ['route'] },
+    ...(input.streetNumber
+      ? [{ longText: input.streetNumber, types: ['street_number'] }]
+      : []),
+    { longText: input.city, types: ['locality'] },
+    { longText: 'Israel', shortText: 'IL', types: ['country'] },
+  ]
+}
+
+test('restaurant Place ID stores trusted Israeli street and number', async () => {
   const location = await verifyRestaurantPlaceId({
     placeId: 'restaurant-place',
     apiKey: 'test-key',
@@ -61,6 +76,58 @@ test('restaurant Place ID stores trusted Tel Aviv street and number', async () =
   assert.equal(location.streetNumber, '100')
   assert.equal(location.latitude, 32.0809)
 })
+
+for (const locationCase of [
+  {
+    city: 'Jerusalem',
+    street: 'Jaffa Street',
+    latitude: 31.7857,
+    longitude: 35.2074,
+  },
+  {
+    city: 'Haifa',
+    street: 'Hanassi Boulevard',
+    latitude: 32.8031,
+    longitude: 34.9867,
+  },
+  {
+    city: 'Netanya',
+    street: 'Herzl Street',
+    latitude: 32.3215,
+    longitude: 34.8532,
+  },
+  {
+    city: "Be'er Sheva",
+    street: 'Rager Boulevard',
+    latitude: 31.2529,
+    longitude: 34.7915,
+  },
+] as const) {
+  test(`restaurant verification accepts ${locationCase.city}`, async () => {
+    const location = await verifyRestaurantPlaceId({
+      placeId: `${locationCase.city}-restaurant-place`,
+      apiKey: 'test-key',
+      fetchImpl: createFetch({
+        id: `${locationCase.city}-restaurant-place`,
+        formattedAddress: `${locationCase.street} 10, ${locationCase.city}, Israel`,
+        location: {
+          latitude: locationCase.latitude,
+          longitude: locationCase.longitude,
+        },
+        addressComponents: israelAddressComponents({
+          street: locationCase.street,
+          streetNumber: '10',
+          city: locationCase.city,
+        }),
+        types: ['street_address'],
+      }),
+    })
+
+    assert.equal(location.city, locationCase.city)
+    assert.equal(location.streetName, locationCase.street)
+    assert.equal(location.streetNumber, '10')
+  })
+}
 
 test('restaurant Place ID without street number is rejected', async () => {
   await assert.rejects(
@@ -83,20 +150,21 @@ test('restaurant Place ID without street number is rejected', async () => {
   )
 })
 
-test('place outside Tel Aviv–Yafo is rejected', async () => {
+test('place outside Israel is rejected', async () => {
   await assert.rejects(
     verifyRestaurantPlaceId({
-      placeId: 'jerusalem-place',
+      placeId: 'amman-place',
       apiKey: 'test-key',
       fetchImpl: createFetch({
-        id: 'jerusalem-place',
-        formattedAddress: 'Jaffa St 10, Jerusalem, Israel',
-        location: { latitude: 31.7857, longitude: 35.2074 },
-        addressComponents: telAvivComponents.map((component) =>
-          component.types.includes('locality')
-            ? { ...component, longText: 'Jerusalem' }
-            : component,
-        ),
+        id: 'amman-place',
+        formattedAddress: 'Rainbow Street 10, Amman, Jordan',
+        location: { latitude: 31.9516, longitude: 35.9239 },
+        addressComponents: [
+          { longText: 'Rainbow Street', types: ['route'] },
+          { longText: '10', types: ['street_number'] },
+          { longText: 'Amman', types: ['locality'] },
+          { longText: 'Jordan', shortText: 'JO', types: ['country'] },
+        ],
         types: ['street_address'],
       }),
     }),
@@ -122,6 +190,26 @@ test('worker location accepts a Tel Aviv route and stores no house number', asyn
   assert.equal(location.streetName, 'Dizengoff Street')
   assert.equal(location.formattedAddress, 'Dizengoff Street, Tel Aviv-Yafo')
   assert.equal('streetNumber' in location, false)
+})
+
+test('worker location accepts a Haifa route', async () => {
+  const location = await verifyWorkerStreetPlaceId({
+    placeId: 'haifa-worker-route',
+    apiKey: 'test-key',
+    fetchImpl: createFetch({
+      id: 'haifa-worker-route',
+      formattedAddress: 'Hanassi Boulevard, Haifa, Israel',
+      location: { latitude: 32.8031, longitude: 34.9867 },
+      addressComponents: israelAddressComponents({
+        street: 'Hanassi Boulevard',
+        city: 'Haifa',
+      }),
+      types: ['route'],
+    }),
+  })
+
+  assert.equal(location.streetName, 'Hanassi Boulevard')
+  assert.equal(location.formattedAddress, 'Hanassi Boulevard, Haifa')
 })
 
 test('worker can select a numbered address while only its street is stored', async () => {

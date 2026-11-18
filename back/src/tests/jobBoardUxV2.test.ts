@@ -2,6 +2,10 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { getDefaultRestaurantJobBoardJob } from '../services/restaurantJobTemplates.js'
 import {
+  adminRestaurantCreateSchema,
+  adminRestaurantUpdateSchema,
+} from '../validations/admin.validation.js'
+import {
   ownerJobSchema,
   ownerProfileSchema,
 } from '../validations/owner.validation.js'
@@ -57,7 +61,7 @@ test('owner profile validation accepts multiple known venue types only', () => {
       city: baseProfile.city,
       street: baseProfile.street,
       description: baseProfile.description,
-      venueTypes: ['cafe', 'patisserie'],
+      venueTypes: ['restaurant', 'popUp'],
     }).success,
     true,
   )
@@ -72,6 +76,28 @@ test('owner profile validation accepts multiple known venue types only', () => {
     ownerProfileSchema.safeParse({
       ...baseProfile,
       venueTypes: ['hotel'],
+    }).success,
+    false,
+  )
+})
+
+test('Admin restaurant management accepts Pop-up multi-select values', () => {
+  const venueTypes = ['restaurant', 'popUp']
+
+  assert.equal(
+    adminRestaurantCreateSchema.safeParse({
+      restaurantName: 'Seasonal Kitchen',
+      venueTypes,
+    }).success,
+    true,
+  )
+  assert.equal(
+    adminRestaurantUpdateSchema.safeParse({ venueTypes }).success,
+    true,
+  )
+  assert.equal(
+    adminRestaurantUpdateSchema.safeParse({
+      venueTypes: ['popUp', 'popUp'],
     }).success,
     false,
   )

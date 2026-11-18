@@ -9,7 +9,9 @@ type JobsMapProps = {
   onSelectRestaurant: (restaurant: RestaurantMapEntry) => void
 }
 
-const TEL_AVIV_CENTER = { lat: 32.0853, lng: 34.7818 }
+// Used only before worker/restaurant coordinates are available. Once markers
+// load, fitBounds shows every eligible Peepss restaurant across Israel.
+const DEFAULT_MAP_CENTER = { lat: 32.0853, lng: 34.7818 }
 
 // Keep geographic context while removing Google's unrelated business/POI
 // labels. Every visible business marker is created below from Peepss data.
@@ -51,7 +53,7 @@ function JobsMap({
 
         const initialCenter = center
           ? { lat: center.latitude, lng: center.longitude }
-          : TEL_AVIV_CENTER
+          : DEFAULT_MAP_CENTER
         const map = new google.maps.Map(mapElementRef.current, {
           center: initialCenter,
           zoom: center ? 13 : 12,

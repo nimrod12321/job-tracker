@@ -16,13 +16,6 @@ type VerifiedAddressAutocompleteProps = {
   }) => void
 }
 
-const TEL_AVIV_BOUNDS = {
-  north: 32.15,
-  south: 31.95,
-  east: 34.9,
-  west: 34.7,
-}
-
 function VerifiedAddressAutocomplete({
   mode,
   value,
@@ -64,8 +57,6 @@ function VerifiedAddressAutocomplete({
         const autocomplete = new google.maps.places.Autocomplete(
           inputRef.current,
           {
-            bounds: TEL_AVIV_BOUNDS,
-            strictBounds: true,
             componentRestrictions: { country: 'il' },
             fields: ['place_id', 'formatted_address', 'name', 'types'],
             types: mode === 'restaurantAddress' ? ['address'] : ['geocode'],
