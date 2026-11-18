@@ -327,7 +327,32 @@ test(
           (item) =>
             item.phoneNumber === jobOnlyPhone &&
             item.restaurantContactState === 'notTracked',
+          ),
+      )
+      const jobOnlyReference = allList.body.items[0]!.candidate
+      const trackedUnknownContact = await fetch(
+        `${baseUrl}/admin/follow-ups`,
+        {
+          method: 'PATCH',
+          headers: adminHeaders,
+          body: JSON.stringify({
+            candidate: jobOnlyReference,
+            privateNote: 'Job Board contact state is still unknown.',
+          }),
+        },
+      )
+      assert.equal(trackedUnknownContact.status, 200)
+      const trackedUnknownDefault = await readJson<FollowUpListResponse>(
+        await fetch(
+          `${baseUrl}/admin/follow-ups?search=${encodeURIComponent(jobOnlyPhone)}`,
+          { headers: adminHeaders },
         ),
+      )
+      assert.equal(trackedUnknownDefault.status, 200)
+      assert.equal(
+        trackedUnknownDefault.body.pagination.total,
+        0,
+        'tracking a Job Board candidate must not invent restaurant non-contact',
       )
       const excludedList = await readJson<FollowUpListResponse>(
         await fetch(

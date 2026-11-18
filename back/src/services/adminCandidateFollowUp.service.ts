@@ -188,14 +188,16 @@ function matchesFilter(
 ) {
   if (filter === 'all') return true
 
-  const isEligibleForFollowUp =
-    candidate.restaurantContactState === 'notRecorded' ||
-    candidate.followUp.id !== null
-
-  if (!isEligibleForFollowUp) return false
-
   if (filter === 'notContacted') {
-    return candidate.followUp.status === 'notContacted'
+    const isQrFollowUpCandidate =
+      candidate.restaurantContactState === 'notRecorded' ||
+      (candidate.restaurantContactState === 'recorded' &&
+        candidate.followUp.id !== null)
+
+    return (
+      isQrFollowUpCandidate &&
+      candidate.followUp.status === 'notContacted'
+    )
   }
 
   if (filter === 'inProgress') {
