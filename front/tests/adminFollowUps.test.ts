@@ -35,3 +35,10 @@ test('follow-up UI uses three clear status tabs and one Save action', () => {
     1,
   )
 })
+
+test('follow-up UI marks unsaved drafts without changing persisted tab counts', () => {
+  assert.match(pageSource, /hasUnsavedChanges/)
+  assert.match(pageSource, /שינויים שלא נשמרו/)
+  assert.match(pageSource, /setCounts\(result\.counts\)/)
+  assert.match(pageSource, /setRefreshKey\(\(current\) => current \+ 1\)/)
+})

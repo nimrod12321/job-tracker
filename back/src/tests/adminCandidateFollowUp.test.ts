@@ -60,7 +60,10 @@ type FollowUpListResponse = {
     }
   }>
   pagination: {
+    page: number
+    pageSize: number
     total: number
+    totalPages: number
   }
   counts: {
     notContacted: number
@@ -68,6 +71,15 @@ type FollowUpListResponse = {
     closed: number
     all: number
   }
+}
+
+function assertCountsPartitionWorkspace(response: FollowUpListResponse) {
+  assert.equal(
+    response.counts.all,
+    response.counts.notContacted +
+      response.counts.inProgress +
+      response.counts.closed,
+  )
 }
 
 async function readJson<T>(response: Response) {
@@ -152,13 +164,13 @@ test(
       const candidatePhone = createPhone()
       const candidate = await prisma.user.create({
         data: {
-          fullName: 'One Candidate',
+          fullName: `One Candidate ${runId}`,
           phoneNumber: candidatePhone,
           phoneVerifiedAt: new Date(),
           track: 'restaurant',
           restaurantWorkerProfile: {
             create: {
-              fullName: 'One Candidate',
+              fullName: `One Candidate ${runId}`,
               phoneNumber: candidatePhone,
               wantedRoles: ['waiter'],
               experienceText: 'No experience',
@@ -171,13 +183,13 @@ test(
       const jobOnlyPhone = createPhone()
       const jobOnlyCandidate = await prisma.user.create({
         data: {
-          fullName: 'Job Board Only',
+          fullName: `Job Board Only ${runId}`,
           phoneNumber: jobOnlyPhone,
           phoneVerifiedAt: new Date(),
           track: 'restaurant',
           restaurantWorkerProfile: {
             create: {
-              fullName: 'Job Board Only',
+              fullName: `Job Board Only ${runId}`,
               phoneNumber: jobOnlyPhone,
               wantedRoles: ['cook'],
               experienceText: 'One year',
@@ -230,7 +242,7 @@ test(
       const lead = await prisma.restaurantCandidateLead.create({
         data: {
           ownerProfileId: restaurant.id,
-          fullName: 'One Candidate',
+          fullName: `One Candidate ${runId}`,
           phoneNumber: candidatePhone,
           wantedRoles: ['waiter'],
           status: 'new',
@@ -248,7 +260,7 @@ test(
       await prisma.restaurantCandidateLead.create({
         data: {
           ownerProfileId: restaurant.id,
-          fullName: 'Already Contacted',
+          fullName: `Already Contacted ${runId}`,
           phoneNumber: createPhone(),
           wantedRoles: ['barista'],
           status: 'contacted',
@@ -302,6 +314,24 @@ test(
         ),
       )
 
+      const initialWorkspace = await readJson<FollowUpListResponse>(
+        await fetch(
+          `${baseUrl}/admin/follow-ups?filter=all&search=${encodeURIComponent(runId)}&pageSize=1`,
+          { headers: adminHeaders },
+        ),
+      )
+      assert.equal(initialWorkspace.status, 200)
+      assert.equal(initialWorkspace.body.pagination.total, 2)
+      assert.equal(initialWorkspace.body.pagination.totalPages, 2)
+      assert.equal(initialWorkspace.body.items.length, 1)
+      assert.deepEqual(initialWorkspace.body.counts, {
+        notContacted: 2,
+        inProgress: 0,
+        closed: 0,
+        all: 2,
+      })
+      assertCountsPartitionWorkspace(initialWorkspace.body)
+
       const unknownContactDefault = await readJson<FollowUpListResponse>(
         await fetch(
           `${baseUrl}/admin/follow-ups?search=${encodeURIComponent(jobOnlyPhone)}`,
@@ -311,9 +341,14 @@ test(
       assert.equal(unknownContactDefault.status, 200)
       assert.equal(
         unknownContactDefault.body.pagination.total,
-        0,
-        'Job Board applied status must not imply no restaurant contact',
+        1,
+        'unknown restaurant contact must remain context, not a hidden Admin-status filter',
       )
+      assert.equal(
+        unknownContactDefault.body.items[0]?.restaurantContactState,
+        'notTracked',
+      )
+      assertCountsPartitionWorkspace(unknownContactDefault.body)
 
       const allList = await readJson<FollowUpListResponse>(
         await fetch(
@@ -351,9 +386,10 @@ test(
       assert.equal(trackedUnknownDefault.status, 200)
       assert.equal(
         trackedUnknownDefault.body.pagination.total,
-        0,
-        'tracking a Job Board candidate must not invent restaurant non-contact',
+        1,
+        'persisted Admin status must remain independent from unknown restaurant contact',
       )
+      assertCountsPartitionWorkspace(trackedUnknownDefault.body)
       const excludedList = await readJson<FollowUpListResponse>(
         await fetch(
           `${baseUrl}/admin/follow-ups?filter=all&search=${encodeURIComponent(excludedPhone)}`,
@@ -404,6 +440,39 @@ test(
         persisted.body.items[0]?.followUp.privateNote,
         'Available for evening shifts in Haifa.',
       )
+      assertCountsPartitionWorkspace(persisted.body)
+
+      const leadAfterAdminNoteSave =
+        await prisma.restaurantCandidateLead.findUniqueOrThrow({
+          where: { id: lead.id },
+        })
+      assert.equal(leadAfterAdminNoteSave.status, 'new')
+      assert.equal(leadAfterAdminNoteSave.firstContactInitiatedAt, null)
+
+      await prisma.restaurantCandidateLead.update({
+        where: { id: lead.id },
+        data: { firstContactInitiatedAt: new Date() },
+      })
+      const trackedNotContactedAfterRestaurantContact =
+        await readJson<FollowUpListResponse>(
+          await fetch(
+            `${baseUrl}/admin/follow-ups?filter=notContacted&search=${encodeURIComponent(candidatePhone)}`,
+            { headers: adminHeaders },
+          ),
+        )
+      assert.equal(trackedNotContactedAfterRestaurantContact.status, 200)
+      assert.equal(
+        trackedNotContactedAfterRestaurantContact.body.items.length,
+        1,
+      )
+      assert.equal(
+        trackedNotContactedAfterRestaurantContact.body.items[0]
+          ?.restaurantContactState,
+        'recorded',
+      )
+      assertCountsPartitionWorkspace(
+        trackedNotContactedAfterRestaurantContact.body,
+      )
 
       const contactUpdate = await readJson<{
         status: string
@@ -440,18 +509,6 @@ test(
       )
       assert.equal(unrelatedSave.status, 200)
       assert.equal(unrelatedSave.body.lastAdminContactAt, firstAdminContactAt)
-
-      const leadAfterAdminSaves =
-        await prisma.restaurantCandidateLead.findUniqueOrThrow({
-          where: { id: lead.id },
-        })
-      assert.equal(leadAfterAdminSaves.status, 'new')
-      assert.equal(leadAfterAdminSaves.firstContactInitiatedAt, null)
-
-      await prisma.restaurantCandidateLead.update({
-        where: { id: lead.id },
-        data: { firstContactInitiatedAt: new Date() },
-      })
       const trackedAfterRestaurantContact =
         await readJson<FollowUpListResponse>(
           await fetch(
@@ -466,6 +523,49 @@ test(
         'recorded',
       )
       assert.equal(trackedAfterRestaurantContact.body.counts.inProgress, 1)
+      assertCountsPartitionWorkspace(trackedAfterRestaurantContact.body)
+
+      const contactedWorkspace = await readJson<FollowUpListResponse>(
+        await fetch(
+          `${baseUrl}/admin/follow-ups?filter=all&search=${encodeURIComponent(runId)}`,
+          { headers: adminHeaders },
+        ),
+      )
+      assert.deepEqual(contactedWorkspace.body.counts, {
+        notContacted: 1,
+        inProgress: 1,
+        closed: 0,
+        all: 2,
+      })
+      assertCountsPartitionWorkspace(contactedWorkspace.body)
+
+      const lookingForJobUpdate = await readJson<{
+        status: string
+        lastAdminContactAt: string | null
+      }>(
+        await fetch(`${baseUrl}/admin/follow-ups`, {
+          method: 'PATCH',
+          headers: adminHeaders,
+          body: JSON.stringify({
+            candidate: candidateReference,
+            status: 'lookingForJob',
+          }),
+        }),
+      )
+      assert.equal(lookingForJobUpdate.status, 200)
+      assert.equal(lookingForJobUpdate.body.status, 'lookingForJob')
+      assert.equal(
+        lookingForJobUpdate.body.lastAdminContactAt,
+        firstAdminContactAt,
+      )
+      const stillInProgress = await readJson<FollowUpListResponse>(
+        await fetch(
+          `${baseUrl}/admin/follow-ups?filter=inProgress&search=${encodeURIComponent(candidatePhone)}`,
+          { headers: adminHeaders },
+        ),
+      )
+      assert.equal(stillInProgress.body.items.length, 1)
+      assertCountsPartitionWorkspace(stillInProgress.body)
 
       const closeUpdate = await readJson<{ status: string }>(
         await fetch(`${baseUrl}/admin/follow-ups`, {
@@ -473,7 +573,7 @@ test(
           headers: adminHeaders,
           body: JSON.stringify({
             candidate: candidateReference,
-            status: 'foundJobElsewhere',
+            status: 'hiredByAdmin',
           }),
         }),
       )
@@ -487,6 +587,21 @@ test(
       assert.equal(closedList.status, 200)
       assert.equal(closedList.body.items.length, 1)
       assert.equal(closedList.body.counts.closed, 1)
+      assertCountsPartitionWorkspace(closedList.body)
+
+      const closedWorkspace = await readJson<FollowUpListResponse>(
+        await fetch(
+          `${baseUrl}/admin/follow-ups?filter=all&search=${encodeURIComponent(runId)}`,
+          { headers: adminHeaders },
+        ),
+      )
+      assert.deepEqual(closedWorkspace.body.counts, {
+        notContacted: 1,
+        inProgress: 0,
+        closed: 1,
+        all: 2,
+      })
+      assertCountsPartitionWorkspace(closedWorkspace.body)
 
       const unchangedLead =
         await prisma.restaurantCandidateLead.findUniqueOrThrow({

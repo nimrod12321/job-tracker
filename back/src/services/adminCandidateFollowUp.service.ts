@@ -189,15 +189,7 @@ function matchesFilter(
   if (filter === 'all') return true
 
   if (filter === 'notContacted') {
-    const isQrFollowUpCandidate =
-      candidate.restaurantContactState === 'notRecorded' ||
-      (candidate.restaurantContactState === 'recorded' &&
-        candidate.followUp.id !== null)
-
-    return (
-      isQrFollowUpCandidate &&
-      candidate.followUp.status === 'notContacted'
-    )
+    return candidate.followUp.status === 'notContacted'
   }
 
   if (filter === 'inProgress') {
@@ -211,6 +203,12 @@ function matchesFilter(
     candidate.followUp.status === 'foundJobElsewhere' ||
     candidate.followUp.status === 'hiredByAdmin'
   )
+}
+
+function isInFollowUpWorkspace(candidate: AdminCandidateFollowUpItem) {
+  if (candidate.followUp.id !== null) return true
+
+  return candidate.restaurantContactState !== 'recorded'
 }
 
 export async function getAdminCandidateFollowUps(input: {
@@ -347,6 +345,7 @@ export async function getAdminCandidateFollowUps(input: {
   const normalizedSearchPhone = normalizeCandidatePhone(input.search)
   const searchedCandidates = [...groups.values()]
     .map(mapGroup)
+    .filter(isInFollowUpWorkspace)
     .filter((candidate) => {
       if (!normalizedSearch) return true
 

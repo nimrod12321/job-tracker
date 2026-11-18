@@ -256,6 +256,17 @@ function FollowUpCard({
   const [isSaving, setIsSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const original = candidate.originalApplication
+  const effectiveConsentMethod =
+    opportunityConsent === 'notAsked' ? '' : opportunityConsentMethod
+  const savedConsentMethod =
+    candidate.followUp.opportunityConsent === 'notAsked'
+      ? ''
+      : candidate.followUp.opportunityConsentMethod ?? ''
+  const hasUnsavedChanges =
+    status !== candidate.followUp.status ||
+    privateNote !== candidate.followUp.privateNote ||
+    opportunityConsent !== candidate.followUp.opportunityConsent ||
+    effectiveConsentMethod !== savedConsentMethod
 
   async function save() {
     setIsSaving(true)
@@ -421,6 +432,11 @@ function FollowUpCard({
           קשר אחרון שלי: {formatDate(candidate.followUp.lastAdminContactAt)}
         </small>
         <div>
+          {hasUnsavedChanges && (
+            <small className="admin-follow-up-unsaved">
+              שינויים שלא נשמרו
+            </small>
+          )}
           {message && <small role="status">{message}</small>}
           <button
             type="button"

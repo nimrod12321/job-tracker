@@ -11189,6 +11189,11 @@ button.peepss-close-button:focus-visible,
   font-size: 0.78rem;
 }
 
+.admin-follow-up-card-footer .admin-follow-up-unsaved {
+  color: #92521c;
+  font-weight: 800;
+}
+
 .admin-follow-up-pagination {
   justify-content: center;
   gap: 0.8rem;
