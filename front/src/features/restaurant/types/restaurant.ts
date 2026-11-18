@@ -106,6 +106,7 @@ export const RESTAURANT_VENUE_TYPES = [
   { value: 'fastFood', label: 'Fast food', labelHe: 'מזון מהיר' },
   { value: 'stand', label: 'Stand', labelHe: 'דוכן' },
   { value: 'patisserie', label: 'Patisserie', labelHe: 'קונדיטוריה' },
+  { value: 'popUp', label: 'Pop-up', labelHe: 'פופ־אפ' },
 ] as const
 
 export type RestaurantVenueType =

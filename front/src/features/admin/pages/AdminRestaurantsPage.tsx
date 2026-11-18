@@ -7,6 +7,11 @@ import {
 } from '../services/adminApi'
 import type { AdminRestaurant, AdminRestaurantInput } from '../types/admin'
 import VerifiedAddressAutocomplete from '../../../components/location/VerifiedAddressAutocomplete'
+import {
+  getRestaurantVenueTypeLabel,
+  RESTAURANT_VENUE_TYPES,
+  type RestaurantVenueType,
+} from '../../restaurant/types/restaurant'
 
 const emptyRestaurantForm: AdminRestaurantInput = {
   restaurantName: '',
@@ -15,9 +20,10 @@ const emptyRestaurantForm: AdminRestaurantInput = {
   ownerLoginPhone: '',
   phoneNumber: '',
   whatsappNumber: '',
-  city: 'Tel Aviv–Yafo',
+  city: '',
   street: '',
   description: '',
+  venueTypes: [],
 }
 
 function AdminRestaurantsPage() {
@@ -80,6 +86,17 @@ function AdminRestaurantsPage() {
     setForm((currentForm) => ({
       ...currentForm,
       [field]: value,
+    }))
+  }
+
+  function toggleVenueType(venueType: RestaurantVenueType) {
+    setForm((currentForm) => ({
+      ...currentForm,
+      venueTypes: currentForm.venueTypes.includes(venueType)
+        ? currentForm.venueTypes.filter(
+            (currentVenueType) => currentVenueType !== venueType,
+          )
+        : [...currentForm.venueTypes, venueType],
     }))
   }
 
@@ -200,10 +217,6 @@ function AdminRestaurantsPage() {
                 placeholder="auto-generated if empty"
               />
             </label>
-            <label>
-              City
-              <input readOnly value="Tel Aviv–Yafo" />
-            </label>
             <VerifiedAddressAutocomplete
               language="en"
               label="Street and number"
@@ -215,7 +228,6 @@ function AdminRestaurantsPage() {
                 updateForm('locationPlaceId', '')
               }}
               onPlaceSelected={(place) => {
-                updateForm('city', 'Tel Aviv–Yafo')
                 updateForm('street', place.formattedAddress)
                 updateForm('locationPlaceId', place.placeId)
               }}
@@ -224,6 +236,26 @@ function AdminRestaurantsPage() {
               Selecting a suggestion verifies the map location. You can also
               create the restaurant now and verify it later.
             </p>
+            <fieldset className="restaurant-role-options admin-form-wide">
+              <legend>Business types</legend>
+              <p className="form-helper-text">
+                Choose one or more when known. The owner can complete this later.
+              </p>
+              <div>
+                {RESTAURANT_VENUE_TYPES.map((venueType) => (
+                  <label key={venueType.value}>
+                    <input
+                      type="checkbox"
+                      checked={form.venueTypes.includes(venueType.value)}
+                      onChange={() => toggleVenueType(venueType.value)}
+                    />
+                    <span>
+                      {getRestaurantVenueTypeLabel(venueType.value, 'en')}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
             <label>
               Contact person
               <input

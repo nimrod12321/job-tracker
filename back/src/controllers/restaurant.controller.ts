@@ -319,7 +319,7 @@ export async function updateRestaurantProfile(
       !homePlaceId
     ) {
       return res.status(400).json({
-        message: 'Choose a valid street in Tel Aviv–Yafo.',
+        message: 'Choose a valid street in Israel.',
       })
     }
 

@@ -4,8 +4,11 @@ import PeepssModal from '../../../components/common/PeepssModal'
 import {
   getRestaurantEmploymentScopeLabel,
   getRestaurantRoleLabel,
+  getRestaurantVenueTypeLabel,
   RESTAURANT_ROLES,
+  RESTAURANT_VENUE_TYPES,
   type RestaurantRole,
+  type RestaurantVenueType,
 } from '../../restaurant/types/restaurant'
 import type { QrAssetFormat } from '../../../utils/qrPoster'
 import AdminShell from '../components/AdminShell'
@@ -42,6 +45,7 @@ const emptyRestaurantForm: AdminRestaurantInput = {
   city: '',
   street: '',
   description: '',
+  venueTypes: [],
 }
 
 function getPublicQrLink(slug: string | null) {
@@ -141,6 +145,7 @@ function AdminRestaurantDetailPage() {
             city: nextDetail.restaurant.city,
             street: nextDetail.restaurant.street,
             description: nextDetail.restaurant.description,
+            venueTypes: nextDetail.restaurant.venueTypes,
           })
         }
 
@@ -242,6 +247,17 @@ function AdminRestaurantDetailPage() {
     setForm((currentForm) => ({
       ...currentForm,
       [field]: value,
+    }))
+  }
+
+  function toggleVenueType(venueType: RestaurantVenueType) {
+    setForm((currentForm) => ({
+      ...currentForm,
+      venueTypes: currentForm.venueTypes.includes(venueType)
+        ? currentForm.venueTypes.filter(
+            (currentVenueType) => currentVenueType !== venueType,
+          )
+        : [...currentForm.venueTypes, venueType],
     }))
   }
 
@@ -547,7 +563,7 @@ function AdminRestaurantDetailPage() {
     event.preventDefault()
 
     if (!restaurant || !locationPlaceId) {
-      setError('Choose a Tel Aviv–Yafo address from the suggestions.')
+      setError('Choose an Israeli address from the suggestions.')
       return
     }
 
@@ -1424,7 +1440,7 @@ function AdminRestaurantDetailPage() {
               onSubmit={handleSaveLocation}
             >
               <p>
-                Select a real Tel Aviv–Yafo street and number. Only verified
+                Select a real Israeli street and number. Only verified
                 restaurants can appear on the worker map.
               </p>
               <VerifiedAddressAutocomplete
@@ -1484,6 +1500,26 @@ function AdminRestaurantDetailPage() {
                 Street
                 <input readOnly value={form.street} />
               </label>
+              <fieldset className="restaurant-role-options admin-form-wide">
+                <legend>Business types</legend>
+                <p className="form-helper-text">
+                  Select every type that describes this restaurant.
+                </p>
+                <div>
+                  {RESTAURANT_VENUE_TYPES.map((venueType) => (
+                    <label key={venueType.value}>
+                      <input
+                        type="checkbox"
+                        checked={form.venueTypes.includes(venueType.value)}
+                        onChange={() => toggleVenueType(venueType.value)}
+                      />
+                      <span>
+                        {getRestaurantVenueTypeLabel(venueType.value, 'en')}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
               <label>
                 Contact person
                 <input

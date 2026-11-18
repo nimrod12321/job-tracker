@@ -14,21 +14,23 @@ type PreferredWorkAreaMapProps = {
   onChange: (value: PreferredWorkArea | null) => void
 }
 
-const TEL_AVIV_CENTER = { lat: 32.0853, lng: 34.7818 }
-const TEL_AVIV_BOUNDS = {
-  north: 32.15,
-  south: 32.0,
-  east: 34.86,
-  west: 34.72,
+// Tel Aviv remains a neutral initial view only. Search, panning, validation,
+// and saved work areas support the full Israeli map bounds below.
+const DEFAULT_MAP_CENTER = { lat: 32.0853, lng: 34.7818 }
+const ISRAEL_BOUNDS = {
+  north: 33.35,
+  south: 29.45,
+  east: 35.95,
+  west: 34.2,
 }
 const DEFAULT_RADIUS_KM = 2
 
-function isInsideTelAvivBounds(latitude: number, longitude: number) {
+function isInsideIsraelBounds(latitude: number, longitude: number) {
   return (
-    latitude >= TEL_AVIV_BOUNDS.south &&
-    latitude <= TEL_AVIV_BOUNDS.north &&
-    longitude >= TEL_AVIV_BOUNDS.west &&
-    longitude <= TEL_AVIV_BOUNDS.east
+    latitude >= ISRAEL_BOUNDS.south &&
+    latitude <= ISRAEL_BOUNDS.north &&
+    longitude >= ISRAEL_BOUNDS.west &&
+    longitude <= ISRAEL_BOUNDS.east
   )
 }
 
@@ -91,7 +93,7 @@ function PreferredWorkAreaMap({
               lat: initialValue.latitude,
               lng: initialValue.longitude,
             }
-          : TEL_AVIV_CENTER
+          : DEFAULT_MAP_CENTER
         const map = new google.maps.Map(mapElementRef.current, {
           center: initialCenter,
           zoom: initialValue ? 13 : 12,
@@ -103,7 +105,7 @@ function PreferredWorkAreaMap({
           zoomControl: true,
           gestureHandling: 'greedy',
           restriction: {
-            latLngBounds: TEL_AVIV_BOUNDS,
+            latLngBounds: ISRAEL_BOUNDS,
             strictBounds: true,
           },
         })
@@ -124,8 +126,7 @@ function PreferredWorkAreaMap({
             const autocomplete = new google.maps.places.Autocomplete(
               searchInputRef.current,
               {
-                bounds: TEL_AVIV_BOUNDS,
-                strictBounds: true,
+                bounds: ISRAEL_BOUNDS,
                 componentRestrictions: { country: 'il' },
                 fields: [
                   'place_id',
@@ -156,11 +157,11 @@ function PreferredWorkAreaMap({
                 const latitude = location.lat()
                 const longitude = location.lng()
 
-                if (!isInsideTelAvivBounds(latitude, longitude)) {
+                if (!isInsideIsraelBounds(latitude, longitude)) {
                   setSearchError(
                     languageRef.current === 'he'
-                      ? 'בחרו מיקום בתוך תל אביב-יפו.'
-                      : 'Choose a location within Tel Aviv–Yafo.',
+                      ? 'בחרו מיקום בתוך ישראל.'
+                      : 'Choose a location within Israel.',
                   )
                   return
                 }
@@ -214,11 +215,11 @@ function PreferredWorkAreaMap({
             const latitude = center.lat()
             const longitude = center.lng()
 
-            if (!isInsideTelAvivBounds(latitude, longitude)) {
+            if (!isInsideIsraelBounds(latitude, longitude)) {
               setError(
                 languageRef.current === 'he'
-                  ? 'יש למקם את מרכז המפה בתוך תל אביב-יפו.'
-                  : 'Keep the map center within Tel Aviv–Yafo.',
+                  ? 'יש למקם את מרכז המפה בתוך ישראל.'
+                  : 'Keep the map center within Israel.',
               )
               return
             }
@@ -293,7 +294,10 @@ function PreferredWorkAreaMap({
       ? { latitude: center.lat(), longitude: center.lng() }
       : value
         ? { latitude: value.latitude, longitude: value.longitude }
-        : { latitude: TEL_AVIV_CENTER.lat, longitude: TEL_AVIV_CENTER.lng }
+        : {
+            latitude: DEFAULT_MAP_CENTER.lat,
+            longitude: DEFAULT_MAP_CENTER.lng,
+          }
   }
 
   function handleRadiusChange(radiusKm: number) {
@@ -325,8 +329,8 @@ function PreferredWorkAreaMap({
           autoComplete="off"
           placeholder={
             language === 'he'
-              ? 'לדוגמה: פלורנטין או רחוב דיזנגוף'
-              : 'For example: Florentin or Dizengoff Street'
+              ? 'לדוגמה: מרכז ירושלים או רחוב דיזנגוף'
+              : 'For example: central Jerusalem or Dizengoff Street'
           }
           onChange={() => {
             if (searchError) {

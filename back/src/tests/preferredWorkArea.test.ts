@@ -52,10 +52,26 @@ test('preferred work area accepts create and removal payloads', () => {
   }
 })
 
+test('preferred work area accepts Jerusalem and Haifa', () => {
+  for (const preferredWorkArea of [
+    { latitude: 31.7683, longitude: 35.2137, radiusKm: 2 },
+    { latitude: 32.794, longitude: 34.9896, radiusKm: 5 },
+  ]) {
+    assert.equal(
+      restaurantProfileSchema.safeParse({
+        ...validProfile,
+        preferredWorkArea,
+      }).success,
+      true,
+    )
+  }
+})
+
 test('preferred work area rejects invalid coordinates and radius', () => {
   for (const preferredWorkArea of [
-    { latitude: 31.9, longitude: 34.7818, radiusKm: 2 },
-    { latitude: 32.0853, longitude: 34.9, radiusKm: 2 },
+    { latitude: 29.4, longitude: 34.7818, radiusKm: 2 },
+    { latitude: 33.4, longitude: 34.9, radiusKm: 2 },
+    { latitude: 32.0853, longitude: 36, radiusKm: 2 },
     { latitude: 32.0853, longitude: 34.7818, radiusKm: 0.4 },
     { latitude: 32.0853, longitude: 34.7818, radiusKm: 5.1 },
   ]) {
@@ -70,8 +86,8 @@ test('preferred work area rejects invalid coordinates and radius', () => {
 })
 
 test('distance filtering includes the boundary and excludes farther jobs', () => {
-  const center = { latitude: 32.0853, longitude: 34.7818 }
-  const restaurant = { latitude: 32.103, longitude: 34.7818 }
+  const center = { latitude: 31.7683, longitude: 35.2137 }
+  const restaurant = { latitude: 31.786, longitude: 35.2137 }
   const boundaryRadiusKm = calculateGeographicalDistanceKm(
     center,
     restaurant,
