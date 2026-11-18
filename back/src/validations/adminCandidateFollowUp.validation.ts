@@ -15,17 +15,15 @@ export const adminOpportunityConsentStatuses = [
 ] as const
 
 export const adminCandidateFollowUpFilters = [
-  'toContact',
-  'contacted',
-  'lookingForJob',
-  'foundJobElsewhere',
-  'hiredByAdmin',
+  'notContacted',
+  'inProgress',
+  'closed',
   'all',
 ] as const
 
 export const adminCandidateFollowUpQuerySchema = z
   .object({
-    filter: z.enum(adminCandidateFollowUpFilters).default('toContact'),
+    filter: z.enum(adminCandidateFollowUpFilters).default('notContacted'),
     search: z.string().trim().max(100).default(''),
     page: z.coerce.number().int().min(1).default(1),
     pageSize: z.coerce.number().int().min(1).max(100).default(25),
@@ -54,7 +52,6 @@ export const adminCandidateFollowUpUpdateSchema = z
       .max(100)
       .nullable()
       .optional(),
-    markContactNow: z.boolean().optional().default(false),
   })
   .strict()
   .refine(
@@ -63,7 +60,6 @@ export const adminCandidateFollowUpUpdateSchema = z
       input.privateNote !== undefined ||
       input.nextFollowUpAt !== undefined ||
       input.opportunityConsent !== undefined ||
-      input.opportunityConsentMethod !== undefined ||
-      input.markContactNow,
+      input.opportunityConsentMethod !== undefined,
     'at least one follow-up field is required',
   )

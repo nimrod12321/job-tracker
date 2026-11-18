@@ -188,14 +188,27 @@ function matchesFilter(
 ) {
   if (filter === 'all') return true
 
-  if (filter === 'toContact') {
+  const isEligibleForFollowUp =
+    candidate.restaurantContactState === 'notRecorded' ||
+    candidate.followUp.id !== null
+
+  if (!isEligibleForFollowUp) return false
+
+  if (filter === 'notContacted') {
+    return candidate.followUp.status === 'notContacted'
+  }
+
+  if (filter === 'inProgress') {
     return (
-      candidate.restaurantContactState === 'notRecorded' &&
-      candidate.followUp.status === 'notContacted'
+      candidate.followUp.status === 'contacted' ||
+      candidate.followUp.status === 'lookingForJob'
     )
   }
 
-  return candidate.followUp.status === filter
+  return (
+    candidate.followUp.status === 'foundJobElsewhere' ||
+    candidate.followUp.status === 'hiredByAdmin'
+  )
 }
 
 export async function getAdminCandidateFollowUps(input: {
@@ -330,9 +343,8 @@ export async function getAdminCandidateFollowUps(input: {
 
   const normalizedSearch = input.search.trim().toLowerCase()
   const normalizedSearchPhone = normalizeCandidatePhone(input.search)
-  const matchingCandidates = [...groups.values()]
+  const searchedCandidates = [...groups.values()]
     .map(mapGroup)
-    .filter((candidate) => matchesFilter(candidate, input.filter))
     .filter((candidate) => {
       if (!normalizedSearch) return true
 
@@ -344,8 +356,22 @@ export async function getAdminCandidateFollowUps(input: {
           candidate.phoneNumber.includes(normalizedSearchPhone))
       )
     })
+  const counts = {
+    notContacted: searchedCandidates.filter((candidate) =>
+      matchesFilter(candidate, 'notContacted'),
+    ).length,
+    inProgress: searchedCandidates.filter((candidate) =>
+      matchesFilter(candidate, 'inProgress'),
+    ).length,
+    closed: searchedCandidates.filter((candidate) =>
+      matchesFilter(candidate, 'closed'),
+    ).length,
+    all: searchedCandidates.length,
+  }
+  const matchingCandidates = searchedCandidates
+    .filter((candidate) => matchesFilter(candidate, input.filter))
     .sort((first, second) => {
-      if (input.filter === 'toContact') {
+      if (input.filter === 'notContacted') {
         return (
           new Date(first.originalApplication?.appliedAt ?? 0).getTime() -
           new Date(second.originalApplication?.appliedAt ?? 0).getTime()
@@ -376,6 +402,7 @@ export async function getAdminCandidateFollowUps(input: {
       total,
       totalPages: Math.max(1, Math.ceil(total / input.pageSize)),
     },
+    counts,
   }
 }
 
@@ -508,15 +535,12 @@ export async function updateAdminCandidateFollowUp(input: FollowUpUpdate) {
     const opportunityConsentChanged =
       input.opportunityConsent !== undefined &&
       input.opportunityConsent !== existing?.opportunityConsent
-    const status = input.markContactNow
-      ? input.status ??
-        (existing?.status === 'notContacted' || !existing
-          ? 'contacted'
-          : existing.status)
-      : input.status
+    const previousStatus = existing?.status ?? 'notContacted'
+    const recordsFirstAdminContact =
+      previousStatus === 'notContacted' && input.status === 'contacted'
     const data = {
       candidateName: identity.candidateName,
-      ...(status !== undefined ? { status } : {}),
+      ...(input.status !== undefined ? { status: input.status } : {}),
       ...(input.privateNote !== undefined
         ? { privateNote: input.privateNote }
         : {}),
@@ -527,7 +551,7 @@ export async function updateAdminCandidateFollowUp(input: FollowUpUpdate) {
               : null,
           }
         : {}),
-      ...(input.markContactNow ? { lastAdminContactAt: now } : {}),
+      ...(recordsFirstAdminContact ? { lastAdminContactAt: now } : {}),
       ...(input.opportunityConsent !== undefined
         ? {
             opportunityConsent: input.opportunityConsent,

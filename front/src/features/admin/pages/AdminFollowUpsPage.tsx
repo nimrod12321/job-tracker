@@ -7,6 +7,7 @@ import {
 import type {
   AdminCandidateFollowUp,
   AdminCandidateFollowUpFilter,
+  AdminCandidateFollowUpList,
   AdminCandidateFollowUpStatus,
   AdminOpportunityConsentStatus,
 } from '../types/admin'
@@ -16,17 +17,15 @@ const filters: Array<{
   value: AdminCandidateFollowUpFilter
   label: string
 }> = [
-  { value: 'toContact', label: 'ליצירת קשר' },
-  { value: 'contacted', label: 'נוצר קשר' },
-  { value: 'lookingForJob', label: 'מחפש/ת עבודה' },
-  { value: 'foundJobElsewhere', label: 'מצא/ה עבודה במקום אחר' },
-  { value: 'hiredByAdmin', label: 'התקבל/ה דרך Admin' },
+  { value: 'notContacted', label: 'לא יצרתי קשר' },
+  { value: 'inProgress', label: 'בטיפול' },
+  { value: 'closed', label: 'סגורים' },
   { value: 'all', label: 'הכול' },
 ]
 
 const statusLabels: Record<AdminCandidateFollowUpStatus, string> = {
-  notContacted: 'טרם נוצר קשר על ידי Admin',
-  contacted: 'נוצר קשר על ידי Admin',
+  notContacted: 'טרם יצרתי קשר',
+  contacted: 'יצרתי קשר',
   lookingForJob: 'מחפש/ת עבודה אחרת',
   foundJobElsewhere: 'מצא/ה עבודה במקום אחר',
   hiredByAdmin: 'התקבל/ה לעבודה דרך Admin',
@@ -41,29 +40,31 @@ const consentLabels: Record<AdminOpportunityConsentStatus, string> = {
 const contactStateLabels = {
   notRecorded: 'לא תועד קשר מצד המסעדה',
   recorded: 'קיים תיעוד קשר מצד המסעדה',
-  notTracked: 'מעקב קשר אינו זמין להגשת Job Board',
+  notTracked: 'אין מעקב קשר אמין להגשת Job Board',
 } as const
 
-function toDateTimeInputValue(value: string | null) {
-  if (!value) return ''
-  const date = new Date(value)
-  const offset = date.getTimezoneOffset() * 60_000
-  return new Date(date.getTime() - offset).toISOString().slice(0, 16)
+const emptyCounts: AdminCandidateFollowUpList['counts'] = {
+  notContacted: 0,
+  inProgress: 0,
+  closed: 0,
+  all: 0,
 }
 
 function formatDate(value: string | null) {
-  return value ? new Date(value).toLocaleString('he-IL') : '—'
+  return value ? new Date(value).toLocaleString('he-IL') : 'טרם תועד'
 }
 
 function AdminFollowUpsPage() {
   const [filter, setFilter] =
-    useState<AdminCandidateFollowUpFilter>('toContact')
+    useState<AdminCandidateFollowUpFilter>('notContacted')
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [items, setItems] = useState<AdminCandidateFollowUp[]>([])
+  const [counts, setCounts] = useState(emptyCounts)
   const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
+  const [refreshKey, setRefreshKey] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -93,6 +94,7 @@ function AdminFollowUpsPage() {
 
         if (isActive) {
           setItems(result.items)
+          setCounts(result.counts)
           setTotal(result.pagination.total)
           setTotalPages(result.pagination.totalPages)
         }
@@ -114,7 +116,7 @@ function AdminFollowUpsPage() {
     return () => {
       isActive = false
     }
-  }, [filter, page, search])
+  }, [filter, page, refreshKey, search])
 
   function handleSaved(
     candidateKey: string,
@@ -125,6 +127,7 @@ function AdminFollowUpsPage() {
         item.key === candidateKey ? { ...item, followUp } : item,
       ),
     )
+    setRefreshKey((current) => current + 1)
   }
 
   return (
@@ -132,21 +135,27 @@ function AdminFollowUpsPage() {
       <section className="admin-page admin-follow-ups-page" dir="rtl">
         <header className="admin-page-header admin-follow-ups-header">
           <div>
-            <p className="admin-eyebrow">מרחב עבודה פרטי ל-Admin</p>
+            <p className="admin-eyebrow">רשימת שיחות אישית</p>
             <h1>המעקב שלי</h1>
             <p>
-              מעקב אישי אחר מועמדים. המידע כאן אינו משנה את סטטוס המועמדות
-              במסעדה.
+              הרשימה מבוססת על מידע מתועד בלבד. היא אינה משנה את סטטוס
+              המועמדות במסעדה.
             </p>
           </div>
           <span className="admin-follow-ups-total">{total} מועמדים</span>
         </header>
 
         <div className="admin-follow-up-toolbar">
-          <div className="admin-follow-up-filters" role="group" aria-label="סינון מעקב">
+          <div
+            className="admin-follow-up-filters"
+            role="tablist"
+            aria-label="סינון מעקב"
+          >
             {filters.map((option) => (
               <button
                 type="button"
+                role="tab"
+                aria-selected={filter === option.value}
                 className={filter === option.value ? 'active' : ''}
                 key={option.value}
                 onClick={() => {
@@ -154,7 +163,8 @@ function AdminFollowUpsPage() {
                   setPage(1)
                 }}
               >
-                {option.label}
+                <span>{option.label}</span>
+                <b>{counts[option.value]}</b>
               </button>
             ))}
           </div>
@@ -180,19 +190,12 @@ function AdminFollowUpsPage() {
         ) : items.length === 0 ? (
           <div className="empty-state admin-empty-state">
             <h2>אין מועמדים בתצוגה הזו</h2>
-            <p>אפשר לשנות את הסינון או לחפש שם ומספר אחר.</p>
+            <p>אפשר לעבור ללשונית אחרת או לחפש שם ומספר אחר.</p>
           </div>
         ) : (
-          <div className="admin-follow-up-table" role="table">
-            <div className="admin-follow-up-table-head" role="row">
-              <span role="columnheader">מועמד/ת</span>
-              <span role="columnheader">המועמדות המקורית</span>
-              <span role="columnheader">המעקב שלי</span>
-              <span role="columnheader">הערה והרשאה</span>
-              <span role="columnheader">פעולות</span>
-            </div>
+          <div className="admin-follow-up-list">
             {items.map((item) => (
-              <FollowUpRow
+              <FollowUpCard
                 candidate={item}
                 key={item.key}
                 onSaved={handleSaved}
@@ -229,7 +232,7 @@ function AdminFollowUpsPage() {
   )
 }
 
-function FollowUpRow({
+function FollowUpCard({
   candidate,
   onSaved,
 }: {
@@ -243,9 +246,6 @@ function FollowUpRow({
   const [privateNote, setPrivateNote] = useState(
     candidate.followUp.privateNote,
   )
-  const [nextFollowUpAt, setNextFollowUpAt] = useState(
-    toDateTimeInputValue(candidate.followUp.nextFollowUpAt),
-  )
   const [opportunityConsent, setOpportunityConsent] =
     useState<AdminOpportunityConsentStatus>(
       candidate.followUp.opportunityConsent,
@@ -257,29 +257,24 @@ function FollowUpRow({
   const [message, setMessage] = useState<string | null>(null)
   const original = candidate.originalApplication
 
-  async function save(markContactNow = false) {
+  async function save() {
     setIsSaving(true)
     setMessage(null)
 
     try {
       const saved = await saveAdminCandidateFollowUp({
         candidate: candidate.candidate,
-        status:
-          markContactNow && status === 'notContacted' ? 'contacted' : status,
+        status,
         privateNote,
-        nextFollowUpAt: nextFollowUpAt
-          ? new Date(nextFollowUpAt).toISOString()
-          : null,
         opportunityConsent,
         opportunityConsentMethod:
           opportunityConsent === 'notAsked'
             ? null
             : opportunityConsentMethod || null,
-        markContactNow,
       })
       setStatus(saved.status)
       onSaved(candidate.key, saved)
-      setMessage(markContactNow ? 'השיחה תועדה' : 'נשמר')
+      setMessage('נשמר')
     } catch (saveError) {
       setMessage(
         saveError instanceof Error ? saveError.message : 'השמירה נכשלה',
@@ -290,29 +285,36 @@ function FollowUpRow({
   }
 
   return (
-    <article className="admin-follow-up-row" role="row">
-      <div className="admin-follow-up-identity" role="cell">
-        <strong>{candidate.fullName}</strong>
-        <a href={`tel:${candidate.phoneNumber}`} dir="ltr">
-          {candidate.phoneNumber}
-        </a>
-        <span className={`admin-follow-up-contact-state ${candidate.restaurantContactState}`}>
+    <article className="admin-follow-up-card">
+      <header className="admin-follow-up-card-header">
+        <div className="admin-follow-up-identity">
+          <strong>{candidate.fullName}</strong>
+          <a href={`tel:${candidate.phoneNumber}`} dir="ltr">
+            {candidate.phoneNumber}
+          </a>
+        </div>
+        <span
+          className={`admin-follow-up-contact-state ${candidate.restaurantContactState}`}
+        >
           {contactStateLabels[candidate.restaurantContactState]}
         </span>
-      </div>
+      </header>
 
-      <div className="admin-follow-up-origin" role="cell">
+      <div className="admin-follow-up-origin">
         {original ? (
           <>
-            <strong>{original.restaurant.restaurantName}</strong>
-            <span>
-              {original.roles
-                .map((role) => getRestaurantRoleLabel(role, 'he'))
-                .join(', ')}
-            </span>
-            <time dateTime={original.appliedAt}>
+            <div>
+              <strong>{original.restaurant.restaurantName}</strong>
+              <span>
+                {original.roles
+                  .map((role) => getRestaurantRoleLabel(role, 'he'))
+                  .join(', ')}
+              </span>
+            </div>
+            <small>
+              {original.source === 'qr' ? 'הגשת QR' : 'Job Board'} ·{' '}
               {formatDate(original.appliedAt)}
-            </time>
+            </small>
             {candidate.relatedApplications.length > 1 && (
               <details>
                 <summary>
@@ -325,7 +327,8 @@ function FollowUpRow({
                       {application.roles
                         .map((role) => getRestaurantRoleLabel(role, 'he'))
                         .join(', ')}{' '}
-                      · {formatDate(application.appliedAt)}
+                      · {application.source === 'qr' ? 'QR' : 'Job Board'} ·{' '}
+                      {formatDate(application.appliedAt)}
                     </li>
                   ))}
                 </ul>
@@ -337,9 +340,9 @@ function FollowUpRow({
         )}
       </div>
 
-      <div className="admin-follow-up-status-fields" role="cell">
+      <div className="admin-follow-up-edit-fields">
         <label>
-          <span>סטטוס</span>
+          <span>הסטטוס שלי</span>
           <select
             value={status}
             onChange={(event) =>
@@ -353,90 +356,82 @@ function FollowUpRow({
             ))}
           </select>
         </label>
-        <label>
-          <span>מעקב הבא</span>
-          <input
-            type="datetime-local"
-            value={nextFollowUpAt}
-            onChange={(event) => setNextFollowUpAt(event.target.value)}
-          />
-        </label>
-        <small>
-          קשר אחרון: {formatDate(candidate.followUp.lastAdminContactAt)}
-        </small>
-      </div>
-
-      <div className="admin-follow-up-note-fields" role="cell">
-        <label>
+        <label className="admin-follow-up-note-field">
           <span>הערה פרטית</span>
           <textarea
-            rows={3}
+            rows={2}
             maxLength={2000}
             value={privateNote}
             onChange={(event) => setPrivateNote(event.target.value)}
-            placeholder="לדוגמה: מחפש/ת עבודה כברמן/ית באזור שרונה"
+            placeholder="הערה קצרה לשיחה הבאה"
           />
         </label>
-        <label>
-          <span>הסכמה לשמוע על הזדמנויות נוספות</span>
-          <select
-            value={opportunityConsent}
-            onChange={(event) =>
-              setOpportunityConsent(
-                event.target.value as AdminOpportunityConsentStatus,
-              )
-            }
-          >
-            {Object.entries(consentLabels).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-        {opportunityConsent !== 'notAsked' && (
-          <label>
-            <span>איך תועדה ההסכמה</span>
-            <select
-              value={opportunityConsentMethod}
-              onChange={(event) =>
-                setOpportunityConsentMethod(event.target.value)
-              }
-            >
-              <option value="">לא צוין</option>
-              <option value="phone">שיחת טלפון</option>
-              <option value="whatsapp">WhatsApp</option>
-              <option value="inPerson">שיחה פנים אל פנים</option>
-              <option value="other">אחר</option>
-            </select>
-          </label>
-        )}
-        {candidate.followUp.opportunityConsentAt && (
-          <small>
-            תועד: {formatDate(candidate.followUp.opportunityConsentAt)}
-          </small>
-        )}
       </div>
 
-      <div className="admin-follow-up-actions" role="cell">
-        <button
-          type="button"
-          className="ui-button ui-button--secondary"
-          disabled={isSaving}
-          onClick={() => void save(false)}
-        >
-          שמירה
-        </button>
-        <button
-          type="button"
-          className="ui-button ui-button--primary"
-          disabled={isSaving}
-          onClick={() => void save(true)}
-        >
-          תיעוד שיחה עכשיו
-        </button>
-        {message && <small role="status">{message}</small>}
-      </div>
+      <details className="admin-follow-up-consent">
+        <summary>
+          הרשאה להזדמנויות נוספות: {consentLabels[opportunityConsent]}
+        </summary>
+        <div>
+          <label>
+            <span>האם המועמד/ת הסכים/ה?</span>
+            <select
+              value={opportunityConsent}
+              onChange={(event) =>
+                setOpportunityConsent(
+                  event.target.value as AdminOpportunityConsentStatus,
+                )
+              }
+            >
+              {Object.entries(consentLabels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+          {opportunityConsent !== 'notAsked' && (
+            <label>
+              <span>איך תועדה ההרשאה?</span>
+              <select
+                value={opportunityConsentMethod}
+                onChange={(event) =>
+                  setOpportunityConsentMethod(event.target.value)
+                }
+              >
+                <option value="">לא צוין</option>
+                <option value="phone">שיחת טלפון</option>
+                <option value="whatsapp">WhatsApp</option>
+                <option value="inPerson">שיחה פנים אל פנים</option>
+                <option value="other">אחר</option>
+              </select>
+            </label>
+          )}
+          {candidate.followUp.opportunityConsentAt && (
+            <small>
+              ההרשאה תועדה: {' '}
+              {formatDate(candidate.followUp.opportunityConsentAt)}
+            </small>
+          )}
+        </div>
+      </details>
+
+      <footer className="admin-follow-up-card-footer">
+        <small>
+          קשר אחרון שלי: {formatDate(candidate.followUp.lastAdminContactAt)}
+        </small>
+        <div>
+          {message && <small role="status">{message}</small>}
+          <button
+            type="button"
+            className="ui-button ui-button--primary"
+            disabled={isSaving}
+            onClick={() => void save()}
+          >
+            {isSaving ? 'שומר...' : 'שמירה'}
+          </button>
+        </div>
+      </footer>
     </article>
   )
 }

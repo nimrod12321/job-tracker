@@ -20,8 +20,18 @@ test('Admin My Follow-ups is routed inside the existing Admin shell', () => {
 })
 test('follow-up UI keeps Admin state and restaurant contact state distinct', () => {
   assert.match(pageSource, /לא תועד קשר מצד המסעדה/)
-  assert.match(pageSource, /מעקב קשר אינו זמין להגשת Job Board/)
-  assert.match(pageSource, /המידע כאן אינו משנה את סטטוס המועמדות/)
-  assert.match(pageSource, /markContactNow/)
-  assert.match(pageSource, /הסכמה לשמוע על הזדמנויות נוספות/)
+  assert.match(pageSource, /אין מעקב קשר אמין להגשת Job Board/)
+  assert.match(pageSource, /אינה משנה את סטטוס/)
+  assert.match(pageSource, /הרשאה להזדמנויות נוספות/)
+})
+
+test('follow-up UI uses three clear status tabs and one Save action', () => {
+  assert.match(pageSource, /לא יצרתי קשר/)
+  assert.match(pageSource, /בטיפול/)
+  assert.match(pageSource, /סגורים/)
+  assert.doesNotMatch(pageSource, /תיעוד שיחה עכשיו|markContactNow/)
+  assert.equal(
+    pageSource.match(/onClick=\{\(\) => void save\(\)\}/g)?.length,
+    1,
+  )
 })

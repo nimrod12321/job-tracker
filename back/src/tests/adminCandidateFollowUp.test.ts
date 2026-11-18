@@ -62,6 +62,12 @@ type FollowUpListResponse = {
   pagination: {
     total: number
   }
+  counts: {
+    notContacted: number
+    inProgress: number
+    closed: number
+    all: number
+  }
 }
 
 async function readJson<T>(response: Response) {
@@ -276,6 +282,8 @@ test(
       )
       assert.equal(defaultList.status, 200)
       assert.equal(defaultList.body.pagination.total, 1)
+      assert.equal(defaultList.body.counts.notContacted, 1)
+      assert.equal(defaultList.body.counts.inProgress, 0)
       assert.equal(defaultList.body.items[0]?.phoneNumber, candidatePhone)
       assert.equal(
         defaultList.body.items[0]?.relatedApplications.length,
@@ -292,6 +300,19 @@ test(
             related.source === 'jobBoard' &&
             related.restaurantContactState === 'notTracked',
         ),
+      )
+
+      const unknownContactDefault = await readJson<FollowUpListResponse>(
+        await fetch(
+          `${baseUrl}/admin/follow-ups?search=${encodeURIComponent(jobOnlyPhone)}`,
+          { headers: adminHeaders },
+        ),
+      )
+      assert.equal(unknownContactDefault.status, 200)
+      assert.equal(
+        unknownContactDefault.body.pagination.total,
+        0,
+        'Job Board applied status must not imply no restaurant contact',
       )
 
       const allList = await readJson<FollowUpListResponse>(
@@ -329,7 +350,7 @@ test(
           headers: adminHeaders,
           body: JSON.stringify({
             candidate: candidateReference,
-            status: 'lookingForJob',
+            status: 'notContacted',
             privateNote: 'Available for evening shifts in Haifa.',
             opportunityConsent: 'yes',
             opportunityConsentMethod: 'phone',
@@ -337,7 +358,7 @@ test(
         }),
       )
       assert.equal(noteUpdate.status, 200)
-      assert.equal(noteUpdate.body.status, 'lookingForJob')
+      assert.equal(noteUpdate.body.status, 'notContacted')
       assert.equal(
         noteUpdate.body.privateNote,
         'Available for evening shifts in Haifa.',
@@ -348,7 +369,7 @@ test(
 
       const persisted = await readJson<FollowUpListResponse>(
         await fetch(
-          `${baseUrl}/admin/follow-ups?filter=lookingForJob&search=${encodeURIComponent(candidatePhone)}`,
+          `${baseUrl}/admin/follow-ups?filter=notContacted&search=${encodeURIComponent(candidatePhone)}`,
           { headers: adminHeaders },
         ),
       )
@@ -368,13 +389,79 @@ test(
           headers: adminHeaders,
           body: JSON.stringify({
             candidate: candidateReference,
-            markContactNow: true,
+            status: 'contacted',
+            privateNote: 'Reached by phone.',
           }),
         }),
       )
       assert.equal(contactUpdate.status, 200)
-      assert.equal(contactUpdate.body.status, 'lookingForJob')
+      assert.equal(contactUpdate.body.status, 'contacted')
       assert.ok(contactUpdate.body.lastAdminContactAt)
+      const firstAdminContactAt = contactUpdate.body.lastAdminContactAt
+
+      const unrelatedSave = await readJson<{
+        status: string
+        lastAdminContactAt: string | null
+      }>(
+        await fetch(`${baseUrl}/admin/follow-ups`, {
+          method: 'PATCH',
+          headers: adminHeaders,
+          body: JSON.stringify({
+            candidate: candidateReference,
+            status: 'contacted',
+            privateNote: 'Updated note only.',
+          }),
+        }),
+      )
+      assert.equal(unrelatedSave.status, 200)
+      assert.equal(unrelatedSave.body.lastAdminContactAt, firstAdminContactAt)
+
+      const leadAfterAdminSaves =
+        await prisma.restaurantCandidateLead.findUniqueOrThrow({
+          where: { id: lead.id },
+        })
+      assert.equal(leadAfterAdminSaves.status, 'new')
+      assert.equal(leadAfterAdminSaves.firstContactInitiatedAt, null)
+
+      await prisma.restaurantCandidateLead.update({
+        where: { id: lead.id },
+        data: { firstContactInitiatedAt: new Date() },
+      })
+      const trackedAfterRestaurantContact =
+        await readJson<FollowUpListResponse>(
+          await fetch(
+            `${baseUrl}/admin/follow-ups?filter=inProgress&search=${encodeURIComponent(candidatePhone)}`,
+            { headers: adminHeaders },
+          ),
+        )
+      assert.equal(trackedAfterRestaurantContact.status, 200)
+      assert.equal(trackedAfterRestaurantContact.body.items.length, 1)
+      assert.equal(
+        trackedAfterRestaurantContact.body.items[0]?.restaurantContactState,
+        'recorded',
+      )
+      assert.equal(trackedAfterRestaurantContact.body.counts.inProgress, 1)
+
+      const closeUpdate = await readJson<{ status: string }>(
+        await fetch(`${baseUrl}/admin/follow-ups`, {
+          method: 'PATCH',
+          headers: adminHeaders,
+          body: JSON.stringify({
+            candidate: candidateReference,
+            status: 'foundJobElsewhere',
+          }),
+        }),
+      )
+      assert.equal(closeUpdate.status, 200)
+      const closedList = await readJson<FollowUpListResponse>(
+        await fetch(
+          `${baseUrl}/admin/follow-ups?filter=closed&search=${encodeURIComponent(candidatePhone)}`,
+          { headers: adminHeaders },
+        ),
+      )
+      assert.equal(closedList.status, 200)
+      assert.equal(closedList.body.items.length, 1)
+      assert.equal(closedList.body.counts.closed, 1)
 
       const unchangedLead =
         await prisma.restaurantCandidateLead.findUniqueOrThrow({
@@ -385,7 +472,7 @@ test(
           where: { id: application.id },
         })
       assert.equal(unchangedLead.status, 'new')
-      assert.equal(unchangedLead.firstContactInitiatedAt, null)
+      assert.ok(unchangedLead.firstContactInitiatedAt)
       assert.equal(unchangedApplication.status, 'applied')
     } finally {
       if (server) {

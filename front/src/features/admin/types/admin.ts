@@ -243,11 +243,9 @@ export type AdminCandidateFollowUpStatus =
 export type AdminOpportunityConsentStatus = 'notAsked' | 'yes' | 'no'
 
 export type AdminCandidateFollowUpFilter =
-  | 'toContact'
-  | 'contacted'
-  | 'lookingForJob'
-  | 'foundJobElsewhere'
-  | 'hiredByAdmin'
+  | 'notContacted'
+  | 'inProgress'
+  | 'closed'
   | 'all'
 
 export type AdminCandidateReference = {
@@ -299,6 +297,12 @@ export type AdminCandidateFollowUpList = {
     total: number
     totalPages: number
   }
+  counts: {
+    notContacted: number
+    inProgress: number
+    closed: number
+    all: number
+  }
 }
 
 export type AdminCandidateFollowUpUpdate = {
@@ -308,7 +312,6 @@ export type AdminCandidateFollowUpUpdate = {
   nextFollowUpAt?: string | null
   opportunityConsent?: AdminOpportunityConsentStatus
   opportunityConsentMethod?: string | null
-  markContactNow?: boolean
 }
 
 export type AdminRestaurantClaim = {
