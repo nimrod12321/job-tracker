@@ -138,6 +138,7 @@ type AdminRestaurantResponse = {
   restaurantName: string
   slug: string | null
   qrEnabledRoles: string[]
+  venueTypes: string[]
   ownerLoginPhone: string | null
   phoneNumber: string
   city: string
@@ -1844,6 +1845,7 @@ test(
           headers: jsonHeaders(adminToken),
           body: JSON.stringify({
             restaurantName: `Admin Created ${runId}`,
+            venueTypes: ['restaurant', 'popUp'],
           }),
         },
       )
@@ -1856,6 +1858,10 @@ test(
       assert.equal(adminCreatedRestaurant.body.hasNewCandidate, false)
       assert.equal(adminCreatedRestaurant.body.newCandidateCount, 0)
       assert.equal(adminCreatedRestaurant.body.ownerLoginPhone, null)
+      assert.deepEqual(adminCreatedRestaurant.body.venueTypes, [
+        'restaurant',
+        'popUp',
+      ])
       createdOwnerProfileIds.push(adminCreatedRestaurant.body.id)
 
       const adminCreatedProfile =
@@ -3471,8 +3477,14 @@ test(
         where: { id: ownerB.profile.id },
         data: {
           locationStatus: 'verified',
-          latitude: 32.13,
-          longitude: 34.84,
+          city: 'Haifa',
+          street: 'Hanassi Boulevard 10',
+          locationCity: 'Haifa',
+          locationStreetName: 'Hanassi Boulevard',
+          locationStreetNumber: '10',
+          formattedAddress: 'Hanassi Boulevard 10, Haifa, Israel',
+          latitude: 32.794,
+          longitude: 34.9896,
           locationVerifiedAt: new Date(),
         },
       })
@@ -3552,6 +3564,29 @@ test(
         ),
       )
 
+      const haifaPreferredArea = await savePreferredArea({
+        latitude: 32.794,
+        longitude: 34.9896,
+        radiusKm: 1,
+      })
+      assert.equal(haifaPreferredArea.status, 200)
+      const haifaFilteredExplore =
+        await request<RestaurantExploreResponse>('/restaurant/explore', {
+          method: 'POST',
+          headers: jsonHeaders(workerToken),
+          body: JSON.stringify({
+            limit: 1,
+            excludeJobIds: [],
+            focusJobId: inactiveAttachedJob.id,
+          }),
+        })
+      assert.equal(haifaFilteredExplore.status, 200)
+      assert.equal(
+        haifaFilteredExplore.body.jobs[0]?.id,
+        inactiveAttachedJob.id,
+        'Swipe radius filtering must work outside Tel Aviv',
+      )
+
       const mapWithPreferredArea = await request<RestaurantMapResponse>(
         '/restaurant/jobs/map',
         { headers: jsonHeaders(workerToken) },
@@ -3559,11 +3594,18 @@ test(
       assert.equal(mapWithPreferredArea.status, 200)
       assert.ok(
         mapWithPreferredArea.body.some(
+          (entry) => entry.restaurantId === ownerA.profile.id,
+        ),
+        'Jobs Map must keep Tel Aviv restaurants outside a Haifa Swipe circle',
+      )
+      assert.ok(
+        mapWithPreferredArea.body.some(
           (entry) =>
             entry.restaurantId === ownerB.profile.id &&
+            entry.formattedAddress.includes('Haifa') &&
             entry.jobs.some((job) => job.id === inactiveAttachedJob.id),
         ),
-        'Jobs Map must keep eligible restaurants outside the Swipe circle',
+        'Jobs Map must include eligible Haifa restaurants',
       )
 
       const removedPreferredArea = await savePreferredArea(null)

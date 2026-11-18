@@ -64,6 +64,7 @@ enum RestaurantVenueType {
   fastFood
   stand
   patisserie
+  popUp
 }
 
 enum RestaurantApplicationStatus {

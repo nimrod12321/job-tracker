@@ -1,6 +1,7 @@
 import type {
   RestaurantEmploymentScope,
   RestaurantRole,
+  RestaurantVenueType,
 } from '../../restaurant/types/restaurant'
 import type {
   CandidateLeadStatus,
@@ -155,6 +156,7 @@ export type AdminRestaurant = {
   description: string
   slug: string | null
   qrEnabledRoles: RestaurantRole[]
+  venueTypes: RestaurantVenueType[]
   locationStatus: 'unverified' | 'verified'
   locationCity: string | null
   locationStreetName: string | null
@@ -249,6 +251,7 @@ export type AdminRestaurantInput = {
   street: string
   locationPlaceId?: string
   description: string
+  venueTypes: RestaurantVenueType[]
 }
 
 export type AdminRestaurantJob = {

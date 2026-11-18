@@ -1,5 +1,9 @@
 import type { Request, Response } from 'express'
-import type { Prisma, RestaurantRole } from '../generated/prisma/client.js'
+import type {
+  Prisma,
+  RestaurantRole,
+  RestaurantVenueType,
+} from '../generated/prisma/client.js'
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js'
 import { prisma } from '../lib/prisma.js'
 import { getValidationErrorMessage } from '../utils/validation.js'
@@ -178,6 +182,7 @@ function mapAdminRestaurantSummary(restaurant: {
   description: string
   slug: string | null
   qrEnabledRoles: RestaurantRole[]
+  venueTypes: RestaurantVenueType[]
   locationStatus: 'unverified' | 'verified'
   locationCity: string | null
   locationStreetName: string | null
@@ -348,6 +353,7 @@ function mapAdminRestaurantSummary(restaurant: {
     description: restaurant.description,
     slug: restaurant.slug,
     qrEnabledRoles: restaurant.qrEnabledRoles,
+    venueTypes: restaurant.venueTypes,
     locationStatus: restaurant.locationStatus,
     locationCity: restaurant.locationCity,
     locationStreetName: restaurant.locationStreetName,
@@ -1311,6 +1317,7 @@ export async function updateAdminRestaurant(req: Request, res: Response) {
       city?: string
       street?: string
       description?: string
+      venueTypes?: RestaurantVenueType[]
       slug?: string | null
     } = {}
 
@@ -1326,6 +1333,10 @@ export async function updateAdminRestaurant(req: Request, res: Response) {
       if (bodyResult.data[field] !== undefined) {
         data[field] = bodyResult.data[field]
       }
+    }
+
+    if (bodyResult.data.venueTypes !== undefined) {
+      data.venueTypes = bodyResult.data.venueTypes
     }
 
     if (slug !== undefined) {

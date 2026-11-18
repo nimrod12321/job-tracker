@@ -19,7 +19,7 @@ import SmsNotificationSettings from '../../../components/settings/SmsNotificatio
 const emptyProfile: OwnerProfileInput = {
   restaurantName: '',
   contactPerson: '',
-  city: 'Tel Aviv–Yafo',
+  city: '',
   street: '',
   description: '',
   venueTypes: [],
@@ -144,8 +144,8 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
         : 'Need to update the restaurant location? Contact Peepss.',
     addressSelectionError:
       language === 'he'
-        ? 'יש לבחור רחוב ומספר תקינים בתל אביב-יפו.'
-        : 'Choose a valid Tel Aviv–Yafo street and number.',
+        ? 'יש לבחור רחוב ומספר תקינים בישראל.'
+        : 'Choose a valid Israeli street and number.',
   }
 
   const fieldLabels: Record<ProfileField, string> = {
@@ -247,13 +247,11 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
   }
 
   function getMissingProfileFields() {
-    return (
-      [
-        'restaurantName',
-        'city',
-        'street',
-      ] as ProfileField[]
-    ).filter((field) => !form[field].trim())
+    const requiredFields: ProfileField[] = isNewProfile
+      ? ['restaurantName']
+      : ['restaurantName', 'city', 'street']
+
+    return requiredFields.filter((field) => !form[field].trim())
   }
 
   function isMissing(field: ProfileField) {
@@ -443,10 +441,6 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
                 </>
               ) : (
                 <>
-                  <label>
-                    {fieldLabels.city}
-                    <input readOnly value="Tel Aviv–Yafo" />
-                  </label>
                   <VerifiedAddressAutocomplete
                     language={language}
                     label={language === 'he' ? 'רחוב ומספר' : 'Street and number'}
@@ -466,7 +460,6 @@ function OwnerProfilePage({ mode = 'profile' }: OwnerProfilePageProps) {
                     onPlaceSelected={(place) => {
                       setLocationInput(place.formattedAddress)
                       setLocationPlaceId(place.placeId)
-                      updateField('city', 'Tel Aviv–Yafo')
                       updateField('street', place.formattedAddress)
                     }}
                   />

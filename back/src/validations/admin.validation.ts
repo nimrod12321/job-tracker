@@ -1,5 +1,8 @@
 import { z } from 'zod'
-import { restaurantRoles } from './restaurant.validation.js'
+import {
+  restaurantRoles,
+  restaurantVenueTypes,
+} from './restaurant.validation.js'
 
 const optionalText = (field: string, maxLength: number) =>
   z
@@ -15,6 +18,14 @@ const patchText = (field: string, maxLength: number) =>
     .trim()
     .max(maxLength, `${field} is too long`)
     .optional()
+
+const adminRestaurantVenueTypesSchema = z
+  .array(z.enum(restaurantVenueTypes, { error: 'venue type is invalid' }))
+  .max(restaurantVenueTypes.length, 'too many venue types')
+  .refine(
+    (venueTypes) => new Set(venueTypes).size === venueTypes.length,
+    'venue types must be unique',
+  )
 
 export const adminRestaurantIdSchema = z
   .string()
@@ -51,6 +62,7 @@ export const adminRestaurantCreateSchema = z
     street: optionalText('street', 200),
     locationPlaceId: optionalText('location place id', 300),
     description: optionalText('description', 2_000),
+    venueTypes: adminRestaurantVenueTypesSchema.optional().default([]),
   })
   .strict()
 
@@ -68,6 +80,7 @@ export const adminRestaurantUpdateSchema = z
     city: patchText('city', 200),
     street: patchText('street', 200),
     description: patchText('description', 2_000),
+    venueTypes: adminRestaurantVenueTypesSchema.optional(),
   })
   .strict()
 

@@ -773,7 +773,7 @@ export async function updateOwnerProfile(req: Request, res: Response) {
 
     if (!existingProfile && !locationPlaceId) {
       return res.status(400).json({
-        message: 'Choose a valid Tel Aviv–Yafo street and number.',
+        message: 'Choose a valid Israeli street and number.',
       })
     }
 
