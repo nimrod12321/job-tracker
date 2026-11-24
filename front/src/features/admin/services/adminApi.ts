@@ -8,6 +8,9 @@ import type {
   AdminAcquisitionFunnelReport,
   AdminAcquisitionFunnelStageKey,
   AdminAcquisitionStageDetailsReport,
+  AdminCandidateFollowUpList,
+  AdminCandidateFollowUpFilter,
+  AdminCandidateFollowUpUpdate,
   AdminCandidate,
   AdminRestaurant,
   AdminRestaurantClaim,
@@ -126,6 +129,45 @@ export async function getAdminCandidates(): Promise<AdminCandidate[]> {
 
   if (!response.ok) {
     await handleApiError(response, 'Failed to load candidates')
+  }
+
+  return response.json()
+}
+
+export async function getAdminCandidateFollowUps(input: {
+  filter: AdminCandidateFollowUpFilter
+  search?: string
+  page?: number
+  pageSize?: number
+}): Promise<AdminCandidateFollowUpList> {
+  const query = new URLSearchParams({ filter: input.filter })
+  if (input.search?.trim()) query.set('search', input.search.trim())
+  if (input.page) query.set('page', String(input.page))
+  if (input.pageSize) query.set('pageSize', String(input.pageSize))
+
+  const response = await fetch(
+    `${API_BASE_URL}/admin/follow-ups?${query.toString()}`,
+    { headers: getHeaders() },
+  )
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to load candidate follow-ups')
+  }
+
+  return response.json()
+}
+
+export async function saveAdminCandidateFollowUp(
+  input: AdminCandidateFollowUpUpdate,
+): Promise<AdminCandidateFollowUpList['items'][number]['followUp']> {
+  const response = await fetch(`${API_BASE_URL}/admin/follow-ups`, {
+    method: 'PATCH',
+    headers: getHeaders(),
+    body: JSON.stringify(input),
+  })
+
+  if (!response.ok) {
+    await handleApiError(response, 'Failed to save candidate follow-up')
   }
 
   return response.json()

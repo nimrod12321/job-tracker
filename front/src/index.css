@@ -10940,3 +10940,316 @@ button.peepss-close-button:focus-visible,
     grid-row: 3;
   }
 }
+
+.admin-follow-ups-page {
+  display: grid;
+  gap: 1rem;
+}
+
+.admin-follow-ups-header,
+.admin-follow-up-toolbar,
+.admin-follow-up-filters,
+.admin-follow-up-pagination {
+  display: flex;
+  align-items: center;
+}
+
+.admin-follow-ups-header,
+.admin-follow-up-toolbar {
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.admin-follow-ups-header h1,
+.admin-follow-ups-header p {
+  margin: 0;
+}
+
+.admin-follow-ups-header > div {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.admin-follow-ups-total {
+  flex: 0 0 auto;
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: 999px;
+  padding: 0.45rem 0.8rem;
+  background: #fffdf8;
+  font-weight: 800;
+}
+
+.admin-follow-up-filters {
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.admin-follow-up-filters button,
+.admin-follow-up-pagination button {
+  min-height: 38px;
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: 999px;
+  padding: 0.45rem 0.8rem;
+  background: #fffdf8;
+  color: var(--peepss-text, #201d1d);
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.admin-follow-up-filters button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.admin-follow-up-filters button b {
+  min-width: 1.45rem;
+  border-radius: 999px;
+  padding: 0.12rem 0.38rem;
+  background: rgb(32 29 29 / 7%);
+  font-size: 0.7rem;
+  text-align: center;
+}
+
+.admin-follow-up-filters button.active {
+  border-color: var(--peepss-primary, #dc5634);
+  background: var(--peepss-primary, #dc5634);
+  color: #fff;
+}
+
+.admin-follow-up-filters button.active b {
+  background: rgb(255 255 255 / 20%);
+}
+
+.admin-follow-up-search,
+.admin-follow-up-edit-fields label,
+.admin-follow-up-consent label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.admin-follow-up-search {
+  min-width: min(100%, 240px);
+}
+
+.admin-follow-up-search input,
+.admin-follow-up-card select,
+.admin-follow-up-card textarea {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: 12px;
+  padding: 0.55rem 0.65rem;
+  background: #fffdf8;
+  color: var(--peepss-text, #201d1d);
+  font: inherit;
+}
+
+.admin-follow-up-card textarea {
+  min-height: 64px;
+  resize: vertical;
+}
+
+.admin-follow-up-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.admin-follow-up-card {
+  display: grid;
+  gap: 0.75rem;
+  border: 1px solid var(--restaurant-border, var(--border));
+  border-radius: 16px;
+  padding: 0.9rem;
+  background: #fffdf8;
+}
+
+.admin-follow-up-card > *,
+.admin-follow-up-identity,
+.admin-follow-up-origin,
+.admin-follow-up-edit-fields {
+  min-width: 0;
+}
+
+.admin-follow-up-card-header,
+.admin-follow-up-card-footer,
+.admin-follow-up-origin > div,
+.admin-follow-up-card-footer > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.admin-follow-up-identity,
+.admin-follow-up-origin {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.admin-follow-up-identity a {
+  width: fit-content;
+  color: var(--peepss-primary, #dc5634);
+  font-weight: 800;
+}
+
+.admin-follow-up-origin {
+  border-block: 1px solid rgb(226 203 185 / 58%);
+  padding-block: 0.65rem;
+}
+
+.admin-follow-up-origin > div span::before {
+  content: " · ";
+}
+
+.admin-follow-up-contact-state {
+  width: fit-content;
+  border-radius: 999px;
+  padding: 0.3rem 0.55rem;
+  background: #f1ece5;
+  color: #6f625b;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.admin-follow-up-contact-state.notRecorded {
+  background: #fff0dc;
+  color: #92521c;
+}
+
+.admin-follow-up-contact-state.recorded {
+  background: #e7f3ea;
+  color: #2f6b4f;
+}
+
+.admin-follow-up-origin span,
+.admin-follow-up-card small {
+  color: var(--peepss-text-muted, #765a56);
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.admin-follow-up-origin details ul {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.45rem 0 0;
+  padding-inline-start: 1.1rem;
+  font-size: 0.76rem;
+}
+
+.admin-follow-up-origin summary {
+  color: var(--peepss-primary, #dc5634);
+  font-size: 0.75rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.admin-follow-up-edit-fields {
+  display: grid;
+  grid-template-columns: minmax(170px, 0.42fr) minmax(260px, 1fr);
+  align-items: start;
+  gap: 0.75rem;
+}
+
+.admin-follow-up-consent {
+  width: fit-content;
+  max-width: 100%;
+  color: var(--peepss-text-muted, #765a56);
+  font-size: 0.76rem;
+}
+
+.admin-follow-up-consent summary {
+  cursor: pointer;
+  font-weight: 750;
+}
+
+.admin-follow-up-consent > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(160px, 1fr));
+  gap: 0.65rem;
+  width: min(100%, 430px);
+  margin-top: 0.55rem;
+}
+
+.admin-follow-up-consent > div > small {
+  grid-column: 1 / -1;
+}
+
+.admin-follow-up-card-footer {
+  min-height: 40px;
+}
+
+.admin-follow-up-card-footer .ui-button {
+  min-width: 100px;
+  min-height: 38px;
+  padding: 0.5rem 0.8rem;
+  font-size: 0.78rem;
+}
+
+.admin-follow-up-card-footer .admin-follow-up-unsaved {
+  color: #92521c;
+  font-weight: 800;
+}
+
+.admin-follow-up-pagination {
+  justify-content: center;
+  gap: 0.8rem;
+}
+
+.admin-follow-up-pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+@media (max-width: 640px) {
+  .admin-follow-ups-header,
+  .admin-follow-up-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-follow-ups-total {
+    width: fit-content;
+  }
+
+  .admin-follow-up-search {
+    width: 100%;
+  }
+
+  .admin-follow-up-filters {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 0.2rem;
+  }
+
+  .admin-follow-up-filters button {
+    flex: 0 0 auto;
+  }
+
+  .admin-follow-up-card-header,
+  .admin-follow-up-card-footer,
+  .admin-follow-up-origin > div {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .admin-follow-up-edit-fields,
+  .admin-follow-up-consent > div {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-follow-up-origin > div span::before {
+    content: "";
+  }
+
+  .admin-follow-up-card-footer > div {
+    width: 100%;
+  }
+
+  .admin-follow-up-card-footer .ui-button {
+    margin-inline-start: auto;
+  }
+}
