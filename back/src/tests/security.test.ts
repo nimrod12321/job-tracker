@@ -4003,6 +4003,13 @@ test(
           ],
         },
       })
+      await prisma.restaurantMember.deleteMany({
+        where: {
+          restaurantId: {
+            in: createdOwnerProfileIds,
+          },
+        },
+      })
       await prisma.user.deleteMany({
         where: {
           OR: [

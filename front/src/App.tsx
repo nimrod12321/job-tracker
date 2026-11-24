@@ -56,6 +56,9 @@ import { getStoredRestaurantLanguage } from './features/restaurant/utils/restaur
 const AdminLeadsPage = lazy(
   () => import('./features/admin/pages/AdminLeadsPage'),
 )
+const AdminFollowUpsPage = lazy(
+  () => import('./features/admin/pages/AdminFollowUpsPage'),
+)
 const AdminOverviewPage = lazy(
   () => import('./features/admin/pages/AdminOverviewPage'),
 )
@@ -744,6 +747,7 @@ function App() {
       <Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
         <Route path="/admin/overview" element={<AdminOverviewPage />} />
         <Route path="/admin/candidates" element={<AdminLeadsPage />} />
+        <Route path="/admin/follow-ups" element={<AdminFollowUpsPage />} />
         <Route
           path="/admin/leads"
           element={<Navigate to="/admin/candidates" replace />}

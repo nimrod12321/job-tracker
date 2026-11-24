@@ -233,6 +233,87 @@ export type AdminCandidate = {
   notificationDeliveries: AdminCandidateNotificationDelivery[]
 }
 
+export type AdminCandidateFollowUpStatus =
+  | 'notContacted'
+  | 'contacted'
+  | 'lookingForJob'
+  | 'foundJobElsewhere'
+  | 'hiredByAdmin'
+
+export type AdminOpportunityConsentStatus = 'notAsked' | 'yes' | 'no'
+
+export type AdminCandidateFollowUpFilter =
+  | 'notContacted'
+  | 'inProgress'
+  | 'closed'
+  | 'all'
+
+export type AdminCandidateReference = {
+  source: 'qr' | 'jobBoard' | 'followUp'
+  id: string
+}
+
+export type AdminFollowUpRelatedApplication = {
+  id: string
+  source: 'qr' | 'jobBoard'
+  restaurant: {
+    id: string
+    restaurantName: string
+  }
+  roles: RestaurantRole[]
+  appliedAt: string
+  restaurantStatus: CandidateLeadStatus | 'applied' | 'selected' | 'rejected'
+  restaurantContactState: 'recorded' | 'notRecorded' | 'notTracked'
+  restaurantContactAt: string | null
+}
+
+export type AdminCandidateFollowUp = {
+  key: string
+  candidate: AdminCandidateReference
+  candidateUserId: string | null
+  fullName: string
+  phoneNumber: string
+  originalApplication: AdminFollowUpRelatedApplication | null
+  relatedApplications: AdminFollowUpRelatedApplication[]
+  restaurantContactState: 'recorded' | 'notRecorded' | 'notTracked'
+  followUp: {
+    id: string | null
+    status: AdminCandidateFollowUpStatus
+    privateNote: string
+    lastAdminContactAt: string | null
+    nextFollowUpAt: string | null
+    opportunityConsent: AdminOpportunityConsentStatus
+    opportunityConsentAt: string | null
+    opportunityConsentMethod: string | null
+    updatedAt: string | null
+  }
+}
+
+export type AdminCandidateFollowUpList = {
+  items: AdminCandidateFollowUp[]
+  pagination: {
+    page: number
+    pageSize: number
+    total: number
+    totalPages: number
+  }
+  counts: {
+    notContacted: number
+    inProgress: number
+    closed: number
+    all: number
+  }
+}
+
+export type AdminCandidateFollowUpUpdate = {
+  candidate: AdminCandidateReference
+  status?: AdminCandidateFollowUpStatus
+  privateNote?: string
+  nextFollowUpAt?: string | null
+  opportunityConsent?: AdminOpportunityConsentStatus
+  opportunityConsentMethod?: string | null
+}
+
 export type AdminRestaurantClaim = {
   status: 'available' | 'claimed' | 'missing'
   token: string | null

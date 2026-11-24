@@ -27,6 +27,10 @@ import {
   removeAdminRestaurantHiringManager,
   replaceAdminRestaurantOwner,
 } from '../controllers/adminRestaurantTeam.controller.js'
+import {
+  getAdminCandidateFollowUpList,
+  saveAdminCandidateFollowUp,
+} from '../controllers/adminCandidateFollowUp.controller.js'
 
 const adminRouter = Router()
 
@@ -42,6 +46,8 @@ adminRouter.get(
 )
 adminRouter.get('/restaurants', getAdminRestaurants)
 adminRouter.get('/candidates', getAdminCandidates)
+adminRouter.get('/follow-ups', getAdminCandidateFollowUpList)
+adminRouter.patch('/follow-ups', saveAdminCandidateFollowUp)
 adminRouter.post('/restaurants', createAdminRestaurant)
 adminRouter.post('/restaurants/:id/mark-seen', markAdminRestaurantSeen)
 adminRouter.get('/restaurants/:id', getAdminRestaurantDetail)
